@@ -1,4 +1,5 @@
 import { checkStore } from "./checker";
+import { createCheckoutSession, verifyStripeSignature, parseStripeEvent } from "./stripe";
 import type { Env, Store } from "./types";
 
 // ── Cron: runs every hour ────────────────────────────────
@@ -139,6 +140,29 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
     return json({ ...result, store_id: undefined, domain });
   }
 
+  // POST /create-checkout-session
+  if (path === "/create-checkout-session" && method === "POST") {
+    const body = (await request.json()) as {
+      plan?: string;
+      email?: string;
+      domain?: string;
+    };
+
+    if (body.plan !== "solo" && body.plan !== "agency") {
+      return json({ error: "plan must be 'solo' or 'agency'" }, 400);
+    }
+
+    try {
+      const url = await createCheckoutSession(env, body.plan, body.email, body.domain);
+      return json({ url });
+    } catch (e) {
+      if (e instanceof Error && e.message === "Stripe not configured") {
+        return json({ error: "Stripe not configured" }, 503);
+      }
+      throw e;
+    }
+  }
+
   // POST /stores — register store + immediate check
   if (path === "/stores" && method === "POST") {
     if (!env.DB) return json({ error: "Persistent monitoring requires full setup. Use POST /check for on-demand checks." }, 503);
@@ -254,7 +278,66 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
   // POST /webhooks/stripe
   if (path === "/webhooks/stripe" && method === "POST") {
-    // Signature verification stubbed — add when STRIPE_WEBHOOK_SECRET is set
+    const rawBody = await request.text();
+
+    if (env.STRIPE_WEBHOOK_SECRET) {
+      const sig = request.headers.get("stripe-signature") ?? "";
+      const valid = await verifyStripeSignature(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
+      if (!valid) return json({ error: "Invalid signature" }, 400);
+    }
+
+    const event = parseStripeEvent(rawBody);
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const domain = (session["metadata"] as Record<string, string> | null)?.[
+        "domain"
+      ];
+      const customerEmail = session["customer_email"] as string | null;
+
+      if (domain && env.DB) {
+        const id = crypto.randomUUID();
+        const cleanDomain = domain
+          .toLowerCase()
+          .trim()
+          .replace(/^https?:\/\//, "")
+          .replace(/\/$/, "");
+        try {
+          await env.DB.prepare(
+            "INSERT INTO stores (id, domain, alert_email, plan) VALUES (?, ?, ?, ?)"
+          )
+            .bind(id, cleanDomain, customerEmail ?? "", "solo")
+            .run();
+        } catch {
+          // store already registered — not fatal
+        }
+      }
+
+      if (customerEmail && env.RESEND_API_KEY) {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "CheckPulse <alerts@checkpulse.io>",
+            to: [customerEmail],
+            subject: "Welcome to CheckPulse",
+            html: `
+              <div style="font-family:sans-serif;max-width:520px;padding:24px">
+                <h2 style="color:#22c55e;margin:0 0 16px">You're all set!</h2>
+                <p>CheckPulse is now monitoring your checkout${domain ? ` for <strong>${domain}</strong>` : ""}.</p>
+                <p style="color:#888;font-size:14px">
+                  We run checks every hour and will email you the moment something breaks — and again when it's fixed.
+                </p>
+              </div>
+            `,
+          }),
+        });
+      }
+    }
+
     return json({ received: true });
   }
 

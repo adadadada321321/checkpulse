@@ -1988,7 +1988,7 @@
             <li>30-day incident history</li>
             <li>14-day free trial</li>
           </ul>
-          <a class="pricing-btn secondary" href="#cta">Start free trial</a>
+          <a class="pricing-btn secondary" href="#cta" onclick="startCheckout('solo');return false;">Start free trial</a>
         </div>
 
         <div class="pricing-card featured reveal reveal-delay-1">
@@ -2004,7 +2004,7 @@
             <li>Client-ready status reports</li>
             <li>14-day free trial</li>
           </ul>
-          <a class="pricing-btn primary" href="#cta">Start free trial</a>
+          <a class="pricing-btn primary" href="#cta" onclick="startCheckout('agency');return false;">Start free trial</a>
         </div>
 
       </div>
@@ -2084,6 +2084,32 @@
     </div>
   </section>
 
+
+  <!-- ── STRIPE CHECKOUT MODAL ────────────────────────── -->
+  <div id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="cm-title" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;">
+    <div style="background:#10131C;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:36px 32px;max-width:420px;width:calc(100% - 32px);box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+      <h3 id="cm-title" style="margin:0 0 6px;font-size:1.25rem;font-weight:700;color:#F0F2F8;">Start your 14-day free trial</h3>
+      <p style="margin:0 0 24px;font-size:0.875rem;color:#8892AA;">No charge until the trial ends. Cancel anytime.</p>
+      <label style="display:block;margin-bottom:16px;">
+        <span style="font-size:0.8rem;color:#8892AA;display:block;margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;">Shopify Store Domain</span>
+        <input id="cm-domain" type="text" placeholder="yourstore.myshopify.com" autocomplete="off" spellcheck="false"
+          style="width:100%;box-sizing:border-box;background:#1A1F2E;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:11px 14px;font-size:0.9375rem;color:#F0F2F8;outline:none;"
+          onfocus="this.style.borderColor='#F59E0B'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" />
+      </label>
+      <label style="display:block;margin-bottom:24px;">
+        <span style="font-size:0.8rem;color:#8892AA;display:block;margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;">Email for alerts</span>
+        <input id="cm-email" type="email" placeholder="you@example.com" autocomplete="email"
+          style="width:100%;box-sizing:border-box;background:#1A1F2E;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:11px 14px;font-size:0.9375rem;color:#F0F2F8;outline:none;"
+          onfocus="this.style.borderColor='#F59E0B'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" />
+      </label>
+      <button id="cm-submit" type="button"
+        style="width:100%;background:#F59E0B;color:#0B0E14;font-weight:700;font-size:0.9375rem;border:none;border-radius:8px;padding:13px;cursor:pointer;transition:background 0.15s;">
+        Continue to checkout →
+      </button>
+      <p id="cm-error" style="display:none;margin:12px 0 0;font-size:0.8rem;color:#ef4444;text-align:center;"></p>
+      <button onclick="closeCheckoutModal()" style="display:block;margin:16px auto 0;background:none;border:none;color:#8892AA;font-size:0.8rem;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
 
   <!-- ── FOOTER ─────────────────────────────────────────── -->
   <footer>
@@ -2345,6 +2371,75 @@
       );
 
       barObserver.observe(bar.closest('.drain-card'));
+    })();
+
+    // Stripe checkout modal
+    (function () {
+      var currentPlan = 'solo';
+      var modal = document.getElementById('checkout-modal');
+      var domainInput = document.getElementById('cm-domain');
+      var emailInput = document.getElementById('cm-email');
+      var submitBtn = document.getElementById('cm-submit');
+      var errorEl = document.getElementById('cm-error');
+
+      window.startCheckout = function (plan) {
+        if (!window.CHECKPULSE_API) {
+          // Worker not deployed yet — fall back to email list
+          document.getElementById('cta').scrollIntoView({ behavior: 'smooth' });
+          return;
+        }
+        currentPlan = plan || 'solo';
+        document.getElementById('cm-title').textContent =
+          plan === 'agency' ? 'Agency plan — 14-day free trial' : 'Solo plan — 14-day free trial';
+        errorEl.style.display = 'none';
+        domainInput.value = '';
+        emailInput.value = '';
+        modal.style.display = 'flex';
+        setTimeout(function () { domainInput.focus(); }, 50);
+      };
+
+      window.closeCheckoutModal = function () {
+        modal.style.display = 'none';
+      };
+
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeCheckoutModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeCheckoutModal();
+      });
+
+      submitBtn.addEventListener('click', function () {
+        var domain = domainInput.value.trim();
+        var email = emailInput.value.trim();
+        if (!domain) { domainInput.focus(); return; }
+        if (!email) { emailInput.focus(); return; }
+
+        submitBtn.textContent = 'Redirecting…';
+        submitBtn.disabled = true;
+        errorEl.style.display = 'none';
+
+        fetch(window.CHECKPULSE_API + '/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: currentPlan, email: email, domain: domain })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.url) {
+              window.location.href = data.url;
+            } else {
+              throw new Error(data.error || 'Checkout unavailable');
+            }
+          })
+          .catch(function (err) {
+            errorEl.textContent = err.message || 'Something went wrong. Try again.';
+            errorEl.style.display = 'block';
+            submitBtn.textContent = 'Continue to checkout →';
+            submitBtn.disabled = false;
+          });
+      });
     })();
   </script>
 

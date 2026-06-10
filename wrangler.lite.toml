@@ -7,7 +7,16 @@ compatibility_date = "2024-01-01"
 #   CLOUDFLARE_API_TOKEN=xxx npx wrangler deploy -c wrangler.lite.toml
 #
 # Endpoints available in lite mode:
-#   POST /check   { domain, email? }  — run a checkout check, optionally email result
-#   GET  /health                       — health check
+#   GET  /health                                     — health check
+#   POST /check                { domain, email? }    — on-demand checkout check
+#   POST /create-checkout-session { plan, email?, domain? } — Stripe checkout (needs secrets below)
+#   POST /webhooks/stripe                            — Stripe subscription events
 #
-# Full monitoring (hourly cron + incident tracking) requires wrangler.toml + setup.sh.
+# Optional secrets (add via: wrangler secret put SECRET_NAME):
+#   RESEND_API_KEY         — email alerts on failed checks
+#   STRIPE_SECRET_KEY      — Stripe API key (sk_live_... or sk_test_...)
+#   STRIPE_WEBHOOK_SECRET  — Stripe webhook signing secret (whsec_...)
+#   STRIPE_PRICE_SOLO      — Stripe price ID for $39/mo plan (price_...)
+#   STRIPE_PRICE_AGENCY    — Stripe price ID for $99/mo plan (price_...)
+#
+# Full monitoring (hourly cron + incident history) requires wrangler.toml + setup.sh.

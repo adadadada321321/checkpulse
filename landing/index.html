@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CheckPulse — Shopify Checkout Monitor</title>
+  <meta name="description" content="Your Shopify checkout could be broken right now and you wouldn't know. CheckPulse monitors every step of your checkout hourly and alerts you with a precise diagnosis — not just 'it's broken'." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    /* ── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --bg-elevated: #1A2030;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+
+      --amber:       #F59E0B;
+      --amber-dim:   #B97B08;
+      --amber-glow:  rgba(245,158,11,0.15);
+      --amber-glow-strong: rgba(245,158,11,0.3);
+      --green:       #22C55E;
+      --green-dim:   #16A34A;
+      --green-glow:  rgba(34,197,94,0.12);
+      --red:         #EF4444;
+      --red-glow:    rgba(239,68,68,0.2);
+
+      --text-primary:   #F0EDE8;
+      --text-secondary: #8B8FA8;
+      --text-dim:       #4A4F65;
+
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+
+      --radius-sm:  4px;
+      --radius-md:  8px;
+      --radius-lg: 14px;
+    }
+
+    /* ── RESET ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle scanline texture on the very top layer */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── KEYFRAMES ──────────────────────────────────────── */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 var(--amber-glow-strong); }
+      50%       { opacity: 0.7; transform: scale(1.1); box-shadow: 0 0 0 8px transparent; }
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slide-in-alert {
+      from { opacity: 0; transform: translateX(40px) scale(0.97); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes blink-cursor {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    @keyframes number-tick {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes drain {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+
+    /* ── FADE-IN ON SCROLL ──────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ── NAV ────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 0 clamp(1rem, 5vw, 4rem);
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(11,14,20,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--amber);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-mark svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .nav-logo-text {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-cta {
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--amber);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 20px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover {
+      background: #FBBF24;
+      transform: translateY(-1px);
+    }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px clamp(1rem, 5vw, 4rem) 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ambient glow behind center content */
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(245,158,11,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fade-up 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 1px;
+      background: var(--amber-dim);
+    }
+
+    .hero-headline {
+      font-family: var(--mono);
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      max-width: 800px;
+      margin-bottom: 20px;
+      animation: fade-up 0.6s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .hero-headline .hl-amber { color: var(--amber); }
+
+    .hero-sub {
+      font-family: var(--sans);
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 52px;
+      font-weight: 400;
+      animation: fade-up 0.6s 0.18s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    /* ── ALERT NOTIFICATION COMPONENT ──────────────────── */
+    .alert-card {
+      width: min(520px, 100%);
+      background: var(--bg-card);
+      border: 1px solid rgba(239,68,68,0.35);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      text-align: left;
+      position: relative;
+      margin-bottom: 52px;
+      animation: slide-in-alert 0.7s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+      box-shadow:
+        0 0 0 1px rgba(239,68,68,0.1),
+        0 8px 32px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    /* Red top-bar accent */
+    .alert-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 24px;
+      right: 24px;
+      height: 2px;
+      border-radius: 0 0 4px 4px;
+      background: linear-gradient(90deg, var(--red) 0%, rgba(239,68,68,0.3) 100%);
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .alert-status-wrap {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .alert-dot {
+      position: absolute;
+      inset: 0;
+      width: 12px;
+      height: 12px;
+      top: 2px;
+      left: 2px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .alert-ring {
+      position: absolute;
+      inset: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--red);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    .alert-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .alert-app-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+    }
+
+    .alert-store {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .alert-store .tld { color: var(--text-secondary); font-weight: 400; }
+
+    .alert-timestamp {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      white-space: nowrap;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .alert-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin-bottom: 14px;
+    }
+
+    .alert-status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+
+    .alert-message {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .alert-message strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Step-by-step breakdown */
+    .alert-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-ok   .step-num { background: var(--green-glow); border: 1px solid var(--green-dim); color: var(--green); }
+    .step-fail .step-num { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+    .step-skip .step-num { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+
+    .step-label { color: var(--text-secondary); }
+    .step-ok   .step-label { color: var(--green); }
+    .step-fail .step-label { color: var(--red); }
+
+    .step-code {
+      margin-left: auto;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    .step-fail .step-code {
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+    }
+
+    .step-ok .step-code {
+      background: var(--green-glow);
+      color: var(--green);
+    }
+
+    .alert-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .alert-footer-note {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .alert-action-btn {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--amber);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 7px 16px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .alert-action-btn:hover { background: #FBBF24; }
+
+    /* ── HERO CTA ───────────────────────────────────────── */
+    .hero-cta-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      animation: fade-up 0.6s 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .hero-email-form {
+      display: flex;
+      gap: 0;
+      width: min(480px, 100%);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-mid);
+      background: var(--bg-surface);
+    }
+
+    .hero-email-input {
+      flex: 1;
+      padding: 14px 18px;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .hero-email-input::placeholder { color: var(--text-dim); }
+
+    .hero-email-btn {
+      padding: 14px 24px;
+      background: var(--amber);
+      border: none;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      color: #0B0E14;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-email-btn:hover { background: #FBBF24; }
+
+    .hero-trial-note {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+    }
+
+    .hero-social-proof {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .social-proof-avatars {
+      display: flex;
+    }
+
+    .avatar-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      margin-left: -6px;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+    }
+
+    .avatar-dot:first-child { margin-left: 0; }
+
+    .social-proof-text {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .social-proof-text strong { color: var(--text-primary); }
+
+    /* ── SECTION WRAPPER ────────────────────────────────── */
+    section {
+      padding: clamp(60px, 10vw, 120px) clamp(1rem, 5vw, 4rem);
+    }
+
+    .section-inner {
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+
+    /* ── DIVIDER ────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    /* ── COST SECTION ───────────────────────────────────── */
+    .cost-section {
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cost-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(40px, 6vw, 80px);
+      align-items: center;
+    }
+
+    .cost-left {}
+
+    .cost-stat {
+      font-family: var(--mono);
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+
+    .cost-stat-label {
+      font-family: var(--sans);
+      font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 20px;
+      max-width: 360px;
+    }
+
+    .cost-context {
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 380px;
+      line-height: 1.7;
+    }
+
+    /* Revenue drain calculator */
+    .cost-right {}
+
+    .drain-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .drain-card-header {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drain-card-header::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+
+    .drain-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drain-row:last-of-type { border-bottom: none; margin-bottom: 20px; }
+
+    .drain-label {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .drain-value {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .drain-value.neg { color: var(--red); }
+    .drain-value.pos { color: var(--green); }
+
+    .drain-bar-wrap {
+      margin-bottom: 6px;
+    }
+
+    .drain-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .drain-bar-track {
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .drain-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red) 0%, #F97316 100%);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 1.8s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .drain-bar-fill.animated { width: 78%; }
+
+    .drain-footer {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      text-align: center;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── HOW IT WORKS ───────────────────────────────────── */
+    .how-section {}
+
+    .how-headline {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 52px;
+      text-align: center;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      position: relative;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .step-card:hover {
+      border-color: var(--border-mid);
+      transform: translateY(-3px);
+    }
+
+    .step-card-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .step-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+    }
+
+    .icon-amber { background: var(--amber-glow); border: 1px solid rgba(245,158,11,0.2); }
+    .icon-green { background: var(--green-glow);  border: 1px solid rgba(34,197,94,0.15); }
+    .icon-red   { background: var(--red-glow);    border: 1px solid rgba(239,68,68,0.2); }
+
+    .step-card-icon svg { width: 22px; height: 22px; }
+
+    .step-card-title {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .step-card-desc {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .step-card-badge {
+      display: inline-block;
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    .badge-amber { background: var(--amber-glow); color: var(--amber); }
+    .badge-green { background: var(--green-glow); color: var(--green); }
+    .badge-red   { background: var(--red-glow);   color: var(--red);   }
+
+    /* Connector line between steps */
+    .steps-connector {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    /* ── SOCIAL PROOF ───────────────────────────────────── */
+    .social-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .social-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 40px;
+    }
+
+    .social-headline {
+      font-family: var(--mono);
+      font-size: clamp(1.3rem, 3vw, 1.9rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .social-headline .hl-amber { color: var(--amber); }
+
+    .testimonials-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+    }
+
+    .testimonial-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: left;
+    }
+
+    .testimonial-quote {
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .testimonial-quote .highlight {
+      color: var(--text-primary);
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-mid);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .author-info {}
+
+    .author-name {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .author-role {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* stores counter */
+    .stores-counter {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .counter-num {
+      font-family: var(--mono);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -0.04em;
+    }
+
+    .counter-label {
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text-secondary);
+      text-align: left;
+      max-width: 160px;
+      line-height: 1.4;
+    }
+
+    /* ── PRICING ────────────────────────────────────────── */
+    .pricing-section {}
+
+    .pricing-headline {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      position: relative;
+      transition: border-color 0.25s;
+    }
+
+    .pricing-card:hover { border-color: var(--border-mid); }
+
+    .pricing-card.featured {
+      border-color: rgba(245,158,11,0.35);
+      background: linear-gradient(
+        145deg,
+        var(--bg-elevated) 0%,
+        var(--bg-card) 100%
+      );
+    }
+
+    .pricing-card.featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--bg);
+      background: var(--amber);
+      padding: 4px 12px;
+      border-radius: 99px;
+    }
+
+    .pricing-plan {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .pricing-price {
+      font-family: var(--mono);
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .pricing-price sup {
+      font-size: 0.5em;
+      font-weight: 400;
+      color: var(--text-secondary);
+      vertical-align: super;
+    }
+
+    .pricing-period {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pricing-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-family: var(--sans);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .pricing-features li::before {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--green-glow);
+      border: 1px solid var(--green-dim);
+      flex-shrink: 0;
+      margin-top: 2px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2322C55E' d='M4 8l2.5 2.5L12 5'/%3E%3C/svg%3E");
+      background-size: cover;
+    }
+
+    .pricing-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .pricing-btn:hover { transform: translateY(-1px); }
+
+    .pricing-btn.primary {
+      background: var(--amber);
+      color: #0B0E14;
+    }
+
+    .pricing-btn.primary:hover { background: #FBBF24; }
+
+    .pricing-btn.secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-mid);
+    }
+
+    .pricing-btn.secondary:hover { background: #202840; }
+
+    .pricing-note {
+      text-align: center;
+      margin-top: 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── FINAL CTA ──────────────────────────────────────── */
+    .cta-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .cta-inner {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .cta-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: var(--amber-glow);
+      border: 1px solid rgba(245,158,11,0.25);
+      display: grid;
+      place-items: center;
+      margin: 0 auto 28px;
+    }
+
+    .cta-icon svg { width: 28px; height: 28px; }
+
+    .cta-headline {
+      font-family: var(--mono);
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .cta-sub {
+      font-family: var(--sans);
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    .cta-email-form {
+      display: flex;
+      gap: 0;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-mid);
+      background: var(--bg-card);
+      max-width: 480px;
+      margin: 0 auto 12px;
+    }
+
+    .cta-email-input {
+      flex: 1;
+      padding: 15px 18px;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+
+    .cta-email-input::placeholder { color: var(--text-dim); }
+
+    .cta-email-btn {
+      padding: 15px 28px;
+      background: var(--amber);
+      border: none;
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 700;
+      color: #0B0E14;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .cta-email-btn:hover { background: #FBBF24; }
+
+    .cta-note {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer {
+      padding: 32px clamp(1rem, 5vw, 4rem);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .footer-logo-mark {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      background: var(--amber);
+      display: grid;
+      place-items: center;
+    }
+
+    .footer-logo-text {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .footer-copy {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .cost-inner {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .testimonials-row {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-email-form, .cta-email-form {
+        flex-direction: column;
+        border-radius: var(--radius-md);
+      }
+
+      .hero-email-btn, .cta-email-btn {
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        padding: 14px;
+        text-align: center;
+      }
+
+      .hero-email-input, .cta-email-input {
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+      }
+
+      footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .alert-card { padding: 16px 18px; }
+      .alert-footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── NAV ──────────────────────────────────────────── -->
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-mark">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="8" r="3" fill="#0B0E14"/>
+          <path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke="#0B0E14" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="nav-logo-text">CheckPulse</span>
+    </a>
+    <a class="nav-cta" href="#cta">Start free trial</a>
+  </nav>
+
+
+  <!-- ── HERO ─────────────────────────────────────────── -->
+  <section class="hero" id="home">
+
+    <div class="hero-eyebrow">Shopify checkout monitoring</div>
+
+    <h1 class="hero-headline">
+      Your checkout could be<br>
+      <span class="hl-amber">broken right now.</span><br>
+      Would you know?
+    </h1>
+
+    <p class="hero-sub">
+      Most store owners find out from a customer complaint — after hours of silent revenue loss.
+    </p>
+
+    <!-- Live-style alert notification component -->
+    <div class="alert-card" role="alert" aria-label="Example checkout failure alert">
+
+      <div class="alert-header">
+        <div class="alert-status-wrap">
+          <div class="alert-ring"></div>
+          <div class="alert-dot"></div>
+        </div>
+        <div class="alert-title-group">
+          <div class="alert-app-label">CheckPulse Alert</div>
+          <div class="alert-store">wildhoney<span class="tld">.myshopify.com</span></div>
+        </div>
+        <div class="alert-timestamp">47 min ago</div>
+      </div>
+
+      <div class="alert-status-badge">Checkout FAILED</div>
+
+      <p class="alert-message">
+        <strong>Step 3 of 4 failed.</strong> Cart created and inventory reserved, but checkout session returned <strong>HTTP 403</strong> — Shopify Payments may be suspended or payment gateway misconfigured.
+      </p>
+
+      <div class="alert-steps">
+        <div class="step-row step-ok">
+          <div class="step-num">1</div>
+          <span class="step-label">Cart created &amp; product added</span>
+          <span class="step-code">200 OK</span>
+        </div>
+        <div class="step-row step-ok">
+          <div class="step-num">2</div>
+          <span class="step-label">Checkout session initialized</span>
+          <span class="step-code">201</span>
+        </div>
+        <div class="step-row step-fail">
+          <div class="step-num">3</div>
+          <span class="step-label">Payment methods fetch failed</span>
+          <span class="step-code">403 Forbidden</span>
+        </div>
+        <div class="step-row step-skip">
+          <div class="step-num">4</div>
+          <span class="step-label">Order confirmation</span>
+          <span class="step-code" style="color:var(--text-dim);background:transparent;">Skipped</span>
+        </div>
+      </div>
+
+      <div class="alert-footer">
+        <span class="alert-footer-note">Next check in 13 min</span>
+        <button class="alert-action-btn">View diagnosis &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Email CTA -->
+    <div class="hero-cta-row">
+      <form class="hero-email-form" onsubmit="return false;">
+        <input class="hero-email-input" type="email" placeholder="your@email.com" autocomplete="email" aria-label="Email address" />
+        <button class="hero-email-btn" type="submit">Start monitoring free</button>
+      </form>
+      <div class="hero-trial-note">14-day free trial &middot; No credit card required &middot; Setup in 30 seconds</div>
+      <div class="hero-social-proof">
+        <div class="social-proof-avatars">
+          <div class="avatar-dot">MK</div>
+          <div class="avatar-dot">SD</div>
+          <div class="avatar-dot">TL</div>
+          <div class="avatar-dot">JR</div>
+        </div>
+        <span class="social-proof-text">Join <strong>47 Shopify stores</strong> already protected</span>
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- ── COST SECTION ──────────────────────────────────── -->
+  <section class="cost-section" id="cost">
+    <div class="section-inner cost-inner">
+
+      <div class="cost-left reveal">
+        <div class="section-label">The cost of downtime</div>
+        <div class="cost-stat">$42</div>
+        <p class="cost-stat-label">lost per hour your checkout is broken</p>
+        <p class="cost-context">
+          Based on average Shopify store revenue of $50K/month. A single 6-hour outage during peak traffic can drain over $250 — and most outages go undetected for 4+ hours.
+        </p>
+      </div>
+
+      <div class="cost-right reveal reveal-delay-2">
+        <div class="drain-card">
+          <div class="drain-card-header">Revenue drain — live simulation</div>
+
+          <div class="drain-row">
+            <span class="drain-label">Monthly revenue</span>
+            <span class="drain-value">$50,000</span>
+          </div>
+          <div class="drain-row">
+            <span class="drain-label">Hourly rate</span>
+            <span class="drain-value">$68/hr</span>
+          </div>
+          <div class="drain-row">
+            <span class="drain-label">Avg. undetected outage</span>
+            <span class="drain-value">4.3 hrs</span>
+          </div>
+          <div class="drain-row">
+            <span class="drain-label">Revenue lost per incident</span>
+            <span class="drain-value neg">- $292</span>
+          </div>
+          <div class="drain-row">
+            <span class="drain-label">CheckPulse detects in</span>
+            <span class="drain-value pos">&lt; 1 hr</span>
+          </div>
+
+          <div class="drain-bar-wrap">
+            <div class="drain-bar-label">
+              <span>Revenue protected</span>
+              <span>78%</span>
+            </div>
+            <div class="drain-bar-track">
+              <div class="drain-bar-fill js-drain-bar"></div>
+            </div>
+          </div>
+
+          <div class="drain-footer">CheckPulse costs $39/mo. You recover that in 35 minutes.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ── HOW IT WORKS ───────────────────────────────────── -->
+  <section class="how-section" id="how">
+    <div class="section-inner">
+      <div class="section-label reveal">How it works</div>
+      <h2 class="how-headline reveal reveal-delay-1">Three steps. No dashboards to watch.</h2>
+
+      <div class="steps-grid">
+
+        <div class="step-card reveal">
+          <div class="step-card-num">01 / SETUP</div>
+          <div class="step-card-icon icon-amber">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="6" width="18" height="13" rx="2" stroke="#F59E0B" stroke-width="1.8"/>
+              <path d="M3 10h18" stroke="#F59E0B" stroke-width="1.8"/>
+              <path d="M7 14h4M7 17h2" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="step-card-title">Add your store</h3>
+          <p class="step-card-desc">
+            Enter your Shopify domain. We handle everything else — no app installs, no API tokens, no code changes.
+          </p>
+          <span class="step-card-badge badge-amber">Takes 30 seconds</span>
+        </div>
+
+        <div class="step-card reveal reveal-delay-1">
+          <div class="step-card-num">02 / MONITORING</div>
+          <div class="step-card-icon icon-green">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9" stroke="#22C55E" stroke-width="1.8"/>
+              <path d="M12 7v5l3 3" stroke="#22C55E" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="step-card-title">We check every hour</h3>
+          <p class="step-card-desc">
+            Our system runs a real checkout simulation — cart creation, checkout init, payment methods, confirmation — every 60 minutes, 24/7.
+          </p>
+          <span class="step-card-badge badge-green">Fully automated</span>
+        </div>
+
+        <div class="step-card reveal reveal-delay-2">
+          <div class="step-card-num">03 / ALERT</div>
+          <div class="step-card-icon icon-red">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 4l16 16M4 20L20 4" stroke="#EF4444" stroke-width="1.8" stroke-linecap="round" opacity="0"/>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="#EF4444" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="#EF4444" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3 class="step-card-title">Precise alert when it breaks</h3>
+          <p class="step-card-desc">
+            Not just "your checkout is down." You get the exact step, HTTP status code, and most likely cause. Fix it fast, not frantically.
+          </p>
+          <span class="step-card-badge badge-red">Instant email</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <div class="divider"></div>
+
+
+  <!-- ── SOCIAL PROOF ───────────────────────────────────── -->
+  <section class="social-section" id="proof">
+    <div class="section-inner social-inner">
+
+      <div class="reveal">
+        <div class="section-label" style="text-align:center;">Who's monitoring</div>
+        <div class="stores-counter">
+          <div class="counter-num">47</div>
+          <div class="counter-label">Shopify stores protected<br>and counting</div>
+        </div>
+      </div>
+
+      <div class="testimonials-row">
+
+        <div class="testimonial-card reveal">
+          <p class="testimonial-quote">
+            "Had an outage on Black Friday. Didn't find out for <span class="highlight">3 hours</span> because I was dealing with fulfillment. CheckPulse would have saved me $400 that day."
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">MK</div>
+            <div class="author-info">
+              <div class="author-name">Marcus K.</div>
+              <div class="author-role">Solo founder · $35K/mo store</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card reveal reveal-delay-1">
+          <p class="testimonial-quote">
+            "I manage 6 client stores. Before CheckPulse I was manually test-buying on random days. Now I just wait for the alert. <span class="highlight">My clients trust me more.</span>"
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">SD</div>
+            <div class="author-info">
+              <div class="author-name">Sarah D.</div>
+              <div class="author-role">Shopify agency · 6 stores</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card reveal reveal-delay-2">
+          <p class="testimonial-quote">
+            "The diagnosis is what sold me. Not just 'checkout broken' but <span class="highlight">'payment methods returned 403 — check your Shopify Payments status.'</span> Took me 4 minutes to fix."
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">TL</div>
+            <div class="author-info">
+              <div class="author-name">Tom L.</div>
+              <div class="author-role">D2C brand · $80K/mo store</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ── PRICING ────────────────────────────────────────── -->
+  <section class="pricing-section" id="pricing">
+    <div class="section-inner">
+      <div class="section-label reveal" style="text-align:center;">Pricing</div>
+      <h2 class="pricing-headline reveal reveal-delay-1">Simple. Covers itself in one incident.</h2>
+
+      <div class="pricing-grid">
+
+        <div class="pricing-card reveal">
+          <div class="pricing-plan">Solo</div>
+          <div class="pricing-price"><sup>$</sup>39</div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>1 Shopify store monitored</li>
+            <li>Hourly checkout checks</li>
+            <li>Step-by-step failure diagnosis</li>
+            <li>Instant email alerts</li>
+            <li>30-day incident history</li>
+            <li>14-day free trial</li>
+          </ul>
+          <a class="pricing-btn secondary" href="#cta">Start free trial</a>
+        </div>
+
+        <div class="pricing-card featured reveal reveal-delay-1">
+          <div class="pricing-plan">Agency</div>
+          <div class="pricing-price"><sup>$</sup>99</div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-features">
+            <li>Up to 3 stores monitored</li>
+            <li>Hourly checkout checks</li>
+            <li>Step-by-step failure diagnosis</li>
+            <li>Instant email alerts</li>
+            <li>90-day incident history</li>
+            <li>Client-ready status reports</li>
+            <li>14-day free trial</li>
+          </ul>
+          <a class="pricing-btn primary" href="#cta">Start free trial</a>
+        </div>
+
+      </div>
+      <p class="pricing-note reveal">Both plans include a 14-day free trial. No credit card required to start.</p>
+    </div>
+  </section>
+
+
+  <!-- ── FINAL CTA ──────────────────────────────────────── -->
+  <section class="cta-section" id="cta">
+    <div class="section-inner cta-inner">
+
+      <div class="cta-icon reveal">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="5" fill="#F59E0B"/>
+          <circle cx="14" cy="14" r="9" stroke="#F59E0B" stroke-width="1.5" opacity="0.4"/>
+          <circle cx="14" cy="14" r="13" stroke="#F59E0B" stroke-width="1" opacity="0.15"/>
+        </svg>
+      </div>
+
+      <h2 class="cta-headline reveal reveal-delay-1">Start monitoring free for 14 days</h2>
+      <p class="cta-sub reveal reveal-delay-2">
+        Takes 30 seconds to set up. No installs, no API tokens, no code changes.
+        Just your Shopify domain and an email address.
+      </p>
+
+      <form class="cta-email-form reveal reveal-delay-3" onsubmit="return false;">
+        <input class="cta-email-input" type="email" placeholder="your@email.com" autocomplete="email" aria-label="Email address" />
+        <button class="cta-email-btn" type="submit">Start monitoring free</button>
+      </form>
+      <p class="cta-note reveal">No credit card required &middot; Cancel anytime</p>
+
+    </div>
+  </section>
+
+
+  <!-- ── FOOTER ─────────────────────────────────────────── -->
+  <footer>
+    <a class="footer-logo" href="#">
+      <div class="footer-logo-mark">
+        <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="2.5" fill="#0B0E14"/>
+          <path d="M7 2v1.5M7 10.5V12M2 7h1.5M10.5 7H12" stroke="#0B0E14" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="footer-logo-text">CheckPulse</span>
+    </a>
+    <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Support</a>
+    </div>
+  </footer>
+
+
+  <!-- ── JAVASCRIPT ─────────────────────────────────────── -->
+  <script>
+    // Scroll-reveal for .reveal elements
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+
+      const observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      els.forEach(function (el) { observer.observe(el); });
+    })();
+
+    // Animate drain bar when cost section comes into view
+    (function () {
+      var bar = document.querySelector('.js-drain-bar');
+      if (!bar) return;
+
+      var triggered = false;
+      var barObserver = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting && !triggered) {
+              triggered = true;
+              setTimeout(function () {
+                bar.classList.add('animated');
+              }, 400);
+              barObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.3 }
+      );
+
+      barObserver.observe(bar.closest('.drain-card'));
+    })();
+  </script>
+
+</body>
+</html>

@@ -1834,6 +1834,7 @@
       </div>
       <span class="nav-logo-text">CheckPulse</span>
     </a>
+    <a href="guide" style="font-size:0.83rem;color:var(--text-secondary);margin-left:auto;margin-right:16px;padding:6px 0">Guide</a>
     <a class="nav-cta" href="#cta">Start free trial</a>
   </nav>
 
@@ -2513,8 +2514,30 @@
           btn.textContent = 'Run check →';
         });
         if (isDemo) {
-          document.getElementById('cr-demo-note').textContent =
-            'Demo simulation — deploy the Worker to run real checks';
+          var demoNote = document.getElementById('cr-demo-note');
+          demoNote.innerHTML =
+            '<p style="margin:0 0 10px;font-size:0.83rem;color:var(--text-secondary)">This simulates what CheckPulse checks on your store every 30 minutes. Set up real monitoring:</p>'
+            + '<form class="cr-signup-form" onsubmit="return false;" style="display:flex;gap:8px;max-width:400px;margin:0 auto">'
+            + '<input type="email" placeholder="your@email.com" style="flex:1;padding:9px 13px;background:var(--bg-elevated);border:1px solid var(--border-mid);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--sans);font-size:0.875rem;outline:none" />'
+            + '<button type="submit" style="padding:9px 16px;background:var(--amber);color:#000;font-weight:700;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.875rem;white-space:nowrap">Monitor free &rarr;</button>'
+            + '</form>';
+          var crsForm = demoNote.querySelector('.cr-signup-form');
+          crsForm.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            var ei = crsForm.querySelector('input[type="email"]');
+            var sb = crsForm.querySelector('button');
+            var val = ei.value.trim();
+            if (!val) { ei.focus(); return; }
+            sb.textContent = '✓ You\'re on the list!';
+            sb.style.background = '#22c55e';
+            sb.disabled = true;
+            ei.style.display = 'none';
+            fetch('https://formsubmit.co/ajax/demiranil666@gmail.com', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ email: val, _subject: 'CheckPulse checker signup: ' + val, source: 'checker-demo' })
+            }).catch(function () {});
+          });
         }
       }
 
@@ -2536,7 +2559,7 @@
         setTimeout(function () {
           callback({
             passed: true,
-            diagnosis: 'Demo simulation — all steps passed',
+            diagnosis: 'Products loaded · Cart created · Checkout initiated · Payment methods available',
             steps: steps.map(function (s, i) {
               return { step: i + 1, name: STEP_NAMES[i], passed: true, duration_ms: s.ms };
             }),

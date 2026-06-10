@@ -3,6 +3,8 @@ import type { Env, Store } from "./types";
 
 // ── Cron: runs every hour ────────────────────────────────
 async function runChecks(env: Env): Promise<void> {
+  if (!env.DB) return; // lite mode — no persistent monitoring
+
   const { results: stores } = await env.DB.prepare(
     "SELECT * FROM stores WHERE active = 1"
   ).all<Store>();
@@ -114,8 +116,32 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
   if (path === "/health") return json({ ok: true });
 
+  // POST /check — stateless on-demand checkout check (lite mode, no DB needed)
+  if (path === "/check" && method === "POST") {
+    const body = (await request.json()) as { domain?: string; email?: string };
+    if (!body.domain) return json({ error: "domain is required" }, 400);
+
+    const domain = body.domain.toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const store: Store = {
+      id: "ondemand",
+      domain,
+      alert_email: body.email?.trim() ?? "",
+      plan: "trial",
+      active: 1,
+    };
+
+    const result = await checkStore(store);
+
+    if (!result.passed && body.email && env.RESEND_API_KEY) {
+      await sendAlert(env, store, result.diagnosis, result.failure_step ?? 0);
+    }
+
+    return json({ ...result, store_id: undefined, domain });
+  }
+
   // POST /stores — register store + immediate check
   if (path === "/stores" && method === "POST") {
+    if (!env.DB) return json({ error: "Persistent monitoring requires full setup. Use POST /check for on-demand checks." }, 503);
     const body = (await request.json()) as {
       domain?: string;
       email?: string;
@@ -151,11 +177,14 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
   // GET /stores
   if (path === "/stores" && method === "GET") {
+    if (!env.DB) return json({ error: "Persistent monitoring requires full setup." }, 503);
     const { results } = await env.DB.prepare(
       "SELECT id, domain, alert_email, plan, active, created_at FROM stores ORDER BY created_at DESC"
     ).all<Store>();
     return json(results);
   }
+
+  if (!env.DB) return json({ error: "Not found" }, 404);
 
   // GET /stores/:id/results
   const resultsMatch = path.match(/^\/stores\/([^/]+)\/results$/);

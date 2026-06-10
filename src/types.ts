@@ -1,9 +1,9 @@
 export interface Env {
-  DB: D1Database;
-  KV: KVNamespace;
-  RESEND_API_KEY: string;
-  STRIPE_SECRET_KEY: string;
-  STRIPE_WEBHOOK_SECRET: string;
+  DB?: D1Database;
+  KV?: KVNamespace;
+  RESEND_API_KEY?: string;
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 export interface CheckStep {

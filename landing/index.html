@@ -2382,20 +2382,32 @@
       var submitBtn = document.getElementById('cm-submit');
       var errorEl = document.getElementById('cm-error');
 
+      // Zero-backend payments: set these two vars to go live today (no Worker needed).
+      // Create links at: https://dashboard.stripe.com/payment-links
+      // Tip: add a custom text field "Shopify store domain" in the Stripe link settings.
+      var STRIPE_SOLO   = window.CHECKPULSE_STRIPE_SOLO   || '';
+      var STRIPE_AGENCY = window.CHECKPULSE_STRIPE_AGENCY || '';
+
       window.startCheckout = function (plan) {
-        if (!window.CHECKPULSE_API) {
-          // Worker not deployed yet — fall back to email list
-          document.getElementById('cta').scrollIntoView({ behavior: 'smooth' });
+        // Priority 1: Direct Stripe Payment Link (zero backend, live today)
+        var link = plan === 'agency' ? STRIPE_AGENCY : STRIPE_SOLO;
+        if (link) { window.location.href = link; return; }
+
+        // Priority 2: Worker-backed Stripe Checkout (requires deployed Worker)
+        if (window.CHECKPULSE_API) {
+          currentPlan = plan || 'solo';
+          document.getElementById('cm-title').textContent =
+            plan === 'agency' ? 'Agency plan — 14-day free trial' : 'Solo plan — 14-day free trial';
+          errorEl.style.display = 'none';
+          domainInput.value = '';
+          emailInput.value = '';
+          modal.style.display = 'flex';
+          setTimeout(function () { domainInput.focus(); }, 50);
           return;
         }
-        currentPlan = plan || 'solo';
-        document.getElementById('cm-title').textContent =
-          plan === 'agency' ? 'Agency plan — 14-day free trial' : 'Solo plan — 14-day free trial';
-        errorEl.style.display = 'none';
-        domainInput.value = '';
-        emailInput.value = '';
-        modal.style.display = 'flex';
-        setTimeout(function () { domainInput.focus(); }, 50);
+
+        // Priority 3: Email capture fallback
+        document.getElementById('cta').scrollIntoView({ behavior: 'smooth' });
       };
 
       window.closeCheckoutModal = function () {

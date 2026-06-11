@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Not Loading or Blank Page — 8 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify checkout page not loading, showing a blank white page, or stuck on a spinner? Customers are hitting a dead end right before they pay. Here are all 8 causes and exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-loading" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-loading" />
+  <meta property="og:title" content="Shopify Checkout Not Loading or Blank Page: All Causes &amp; Fixes" />
+  <meta property="og:description" content="When Shopify checkout won't load — blank page, endless spinner, or 500 error — every customer who tries to buy leaves empty-handed. 8 causes, exact fixes, and monitoring guidance." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Not Loading or Blank Page — 8 Causes and Fixes",
+    "description": "When the Shopify checkout page won't load, shows a blank white screen, or is stuck spinning, every customer who tries to buy leaves without purchasing. This guide covers all eight root causes and exact steps to fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-not-loading",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-11",
+    "dateModified": "2026-06-11"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify checkout page not loading?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout fails to load for several distinct reasons: a Shopify platform or CDN outage (check status.shopify.com), a corrupted browser session or stale cache preventing the checkout JS from initializing, a JavaScript error in a custom theme script or checkout app that throws before the page can render, a third-party script (chat widget, analytics, ad pixel) blocking or timing out and halting page load, or a browser extension (ad blocker, privacy extension) intercepting checkout resources. The fastest first check is to open checkout in a private/incognito window with no extensions — if it loads there, the issue is browser-side."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout show a blank white page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A blank white checkout page almost always means the checkout JavaScript failed to execute after the HTML was delivered. The browser received the page shell but a critical script crashed before the UI could render. The most common causes are: an uncaught JavaScript error in a checkout app or theme customization, a Content Security Policy header blocking a required Shopify checkout script, a browser extension intercepting and corrupting a required JS file, or a third-party script loading synchronously and throwing before Shopify's checkout bundle runs. Check your browser console (F12) immediately — a blank page almost always has a visible JS error."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Shopify checkout down right now?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Check https://www.shopifystatus.com in real time. Shopify runs checkout on a globally distributed infrastructure using Cloudflare and their own CDN. If there is a Shopify-side outage, it will appear on the status page within minutes. Note: Shopify status shows infrastructure-level incidents but does not reflect store-specific failures (broken theme script, app conflict, DNS misconfiguration) — those won't appear on status.shopify.com even when your checkout is completely broken."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout get stuck loading / spinning forever?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "An infinite loading spinner on Shopify checkout usually means the checkout page HTML loaded but a dependent script or API call is hanging. Common causes: a third-party script (chat widget, fraud app, subscription app) is waiting for a response that never comes — and the checkout UI won't render until that promise resolves. Another common cause is a slow or unresponsive external API being called by a checkout extension. Open browser developer tools (F12 → Network tab) and look for requests stuck in 'pending' state — those are your culprit."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a browser extension cause Shopify checkout not to load?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, and this is one of the most common causes of customer-reported checkout loading failures. Ad blockers (uBlock Origin, AdBlock Plus), privacy extensions (Privacy Badger, Ghostery), and VPN extensions frequently block or intercept Shopify checkout scripts, Shopify Payments resources, or checkout telemetry endpoints. When these scripts are blocked, the checkout page either shows blank or gets stuck in an infinite spinner. Always test in a fresh incognito window (which disables extensions by default) before diagnosing server-side causes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will an uptime monitor tell me when checkout is not loading?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Not reliably. Standard uptime monitors (Pingdom, UptimeRobot, StatusCake) check whether a URL returns an HTTP 200 status. The Shopify checkout URL typically returns 200 even when the checkout page is blank or stuck — because the server is delivering the HTML shell correctly. The rendering failure happens client-side when JS executes. Only a tool that runs the full checkout flow end-to-end — like CheckPulse — can detect that checkout is broken when the page appears to return 200 normally."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #60A5FA;
+      --orange:      #FB923C;
+      --text-primary:   #F0EDE8;
+      --text-secondary: #8B8FA8;
+      --text-dim:       #4A4F65;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 20px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.95rem; color: var(--amber); font-weight: 700; }
+    .nav-sep { color: var(--text-dim); }
+    .nav-crumb { font-size: 0.85rem; color: var(--text-secondary); }
+    .nav-cta {
+      margin-left: auto;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .article-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .article-tag {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .article-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .article-meta a { color: var(--text-secondary); }
+    .article-meta a:hover { color: var(--amber); }
+
+    .alert-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+    }
+    .alert-box strong { color: var(--red); }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .toc a { color: var(--text-secondary); }
+    .toc a:hover { color: var(--amber); }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 44px 0 16px;
+      color: var(--text-primary);
+      scroll-margin-top: 80px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      color: var(--text-primary);
+    }
+    p { margin-bottom: 18px; color: var(--text-secondary); }
+    strong { color: var(--text-primary); }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 18px;
+    }
+    li { color: var(--text-secondary); margin-bottom: 6px; }
+    li strong { color: var(--text-primary); }
+
+    .mono-tag {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--text-primary);
+    }
+
+    .terminal-block {
+      background: #0D1117;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin: 24px 0;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+    .terminal-block .line { margin-bottom: 6px; color: var(--text-secondary); }
+    .terminal-block .line.ok { color: var(--green); }
+    .terminal-block .line.err { color: var(--red); }
+    .terminal-block .line.warn { color: var(--amber); }
+    .terminal-block .line.dim { color: var(--text-dim); }
+
+    .cause-list {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .cause-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .cause-body p { margin: 0 0 8px; font-size: 0.88rem; }
+    .cause-body p:last-child { margin: 0; }
+    .cause-fix {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-top: 4px;
+    }
+
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 0.88rem;
+    }
+    .diag-table th {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .diag-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .diag-table td strong { color: var(--text-primary); }
+    .diag-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .step-grid {
+      display: grid;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .step-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .step-n {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--amber);
+      margin-top: 2px;
+    }
+    .step-body h3 { margin: 0 0 6px; font-size: 0.95rem; }
+    .step-body p { margin: 0; font-size: 0.88rem; }
+
+    .cta-box {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.04) 100%);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 10px;
+      padding: 32px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-box h2 { margin: 0 0 12px; font-size: 1.25rem; }
+    .cta-box p { margin-bottom: 24px; font-size: 0.92rem; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 5px;
+      text-decoration: none;
+      margin: 4px 8px;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+    .cta-btn.secondary {
+      background: transparent;
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
+    .cta-btn.secondary:hover { background: rgba(245,158,11,0.1); }
+
+    .checklist {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    .checklist li {
+      padding: 8px 0 8px 28px;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before {
+      content: '☐';
+      position: absolute;
+      left: 0;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    .faq-section { margin-top: 48px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+    .faq-a { margin: 0; font-size: 0.92rem; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <span class="nav-brand">CheckPulse</span>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">Shopify Checkout Not Loading</span>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor My Checkout →</a>
+  </nav>
+
+  <main class="article-wrap">
+
+    <div class="article-tag">Incident Response</div>
+    <h1>Shopify Checkout Not Loading or Showing a Blank Page</h1>
+    <div class="article-meta">
+      <span>By CheckPulse</span>
+      <span>·</span>
+      <span>Updated June 2026</span>
+      <span>·</span>
+      <a href="#causes">8 causes</a>
+      <span>·</span>
+      <a href="#diagnosis">5-step diagnosis</a>
+      <span>·</span>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <div class="alert-box">
+      <strong>Your checkout is silently broken.</strong> When Shopify checkout won't load, your store homepage, product pages, and cart all look fine. Standard uptime monitors show green. You have no alert. Every customer who clicks "Checkout" hits a blank page or an infinite spinner and leaves — most without telling you.
+    </div>
+
+    <p>This guide covers every reason Shopify checkout fails to load: blank pages, endless loading spinners, HTTP 500 errors, and pages that partially render then freeze. Each cause has distinct symptoms and a distinct fix.</p>
+
+    <div class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#causes">8 causes of Shopify checkout not loading</a></li>
+        <li><a href="#diagnosis">5-step diagnosis checklist</a></li>
+        <li><a href="#fix-table">Cause-by-cause fix reference</a></li>
+        <li><a href="#prevent-recurrence">How to prevent this from happening again</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="causes">8 Causes of Shopify Checkout Not Loading</h2>
+
+    <p>Checkout loading failures split into two categories: <strong>platform-side</strong> (Shopify or its CDN is down) and <strong>store-side</strong> (something specific to your store is breaking checkout). Platform outages are rare and short-lived. Store-side failures are far more common and can last for hours or days without any automatic alert.</p>
+
+    <div class="cause-list">
+
+      <div class="cause-card">
+        <div class="cause-num">01</div>
+        <div class="cause-body">
+          <h3>Shopify Platform or CDN Outage</h3>
+          <p>Shopify delivers checkout pages through a global CDN (Cloudflare and their own infrastructure). A CDN edge node failure or platform incident can cause checkout to return 503 or timeout for customers in specific regions — even when your store homepage loads fine from a different edge location. This is the first thing to rule out because the fix requires no action on your part.</p>
+          <div class="cause-fix">FIX → Check https://www.shopifystatus.com and the Shopify Status Twitter for active incidents. If an incident is declared, wait for resolution.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">02</div>
+        <div class="cause-body">
+          <h3>Corrupted Browser Cache or Stale Checkout Session</h3>
+          <p>Shopify checkout uses a session token stored in the browser. If that token is corrupted, expired in an unusual way, or mismatched against the cart token, the checkout page can load a blank state or loop on an initializing spinner. This is the second most common cause of customer-reported checkout loading failures and is <strong>invisible to you as the store owner</strong> — your own browser works fine because your session is fresh.</p>
+          <div class="cause-fix">FIX → Tell customers: clear browser cache + cookies for your domain, or open checkout in an incognito window. If incognito works, the issue is session/cache.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">03</div>
+        <div class="cause-body">
+          <h3>Browser Extension Blocking Checkout Scripts</h3>
+          <p>Ad blockers, privacy extensions, VPN browser extensions, and anti-tracking tools frequently intercept Shopify checkout resources. Shopify loads several first-party and third-party scripts during checkout (payment SDKs, risk assessment, analytics). If any of these are blocked, the checkout UI either doesn't render at all (blank page) or renders partially then freezes. This is the <strong>#1 cause of customer-specific checkout failures</strong> — the customer can't checkout but you can, because you don't have the same extension.</p>
+          <div class="cause-fix">FIX → Test in incognito (no extensions). If it loads: the issue is a browser extension on the customer's side. Add a note to your checkout instructions advising customers to disable ad blockers if they see a loading error.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">04</div>
+        <div class="cause-body">
+          <h3>JavaScript Error from a Checkout App or Extension</h3>
+          <p>Shopify's checkout extensibility platform lets apps inject JavaScript directly into the checkout page. An uncaught JavaScript error thrown before Shopify's checkout bundle completes execution will halt page rendering entirely, leaving customers with a blank white screen. This happens after app installs, app updates, and sometimes after Shopify's own checkout bundle version changes. The error is real but invisible — checkout returns HTTP 200, so uptime monitors see no problem.</p>
+          <div class="cause-fix">FIX → Open checkout in a browser, press F12 → Console. Any red JS error is your culprit. Identify which app or script produced the error (check the file name in the stack trace), then disable that app via Settings → Checkout → Checkout extensions.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">05</div>
+        <div class="cause-body">
+          <h3>Custom Theme Script Breaking Checkout Render</h3>
+          <p>Theme customizations that inject scripts into checkout (via <span class="mono-tag">checkout.liquid</span> in older themes, or via Script Tags API) can throw errors that prevent checkout from rendering. This is especially common after theme updates — the theme update changes a dependency or class name that a custom script relies on, causing a runtime error. Unlike app extensions, theme script errors are harder to trace because they may not show a clear error message in the console.</p>
+          <div class="cause-fix">FIX → Temporarily switch to Shopify's default Dawn theme and test checkout. If it works on Dawn, the issue is your custom theme or a script tag added to checkout. Check the most recent theme changes and revert the last edit.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">06</div>
+        <div class="cause-body">
+          <h3>Third-Party Script Timeout Blocking Page Render</h3>
+          <p>Chat widgets, fraud prevention services, analytics platforms, and ad pixels are often loaded synchronously or with insufficient timeout handling during checkout. If one of these services is slow or unresponsive, the checkout page waits indefinitely for that script to complete before rendering — causing an infinite spinner. The underlying Shopify checkout is fine; it's a third-party dependency that's hanging. Check the Network tab in developer tools for requests stuck in "pending" for more than 3–5 seconds.</p>
+          <div class="cause-fix">FIX → Open F12 → Network tab → Reload checkout → Sort by "Time" — any request stuck pending for 5+ seconds is likely your culprit. Either remove the script, add a timeout, or switch to async loading.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">07</div>
+        <div class="cause-body">
+          <h3>Content Security Policy (CSP) Blocking Checkout Resources</h3>
+          <p>If you or a Shopify app has added a custom Content-Security-Policy header to your storefront, it may block checkout-specific scripts served from Shopify's CDN subdomains. Shopify checkout loads resources from multiple <span class="mono-tag">cdn.shopify.com</span>, <span class="mono-tag">checkoutapi.shopify.com</span>, and payment partner domains. A CSP that doesn't include these as allowed sources will silently block them — causing a partial or blank checkout render without any obvious error on the page.</p>
+          <div class="cause-fix">FIX → Check F12 → Console for CSP violation errors (they appear in red with "Content Security Policy" prefix). If found, update your CSP to allow Shopify's checkout CDN domains, or remove the custom CSP if it was added by an app you no longer use.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">08</div>
+        <div class="cause-body">
+          <h3>DNS or SSL Certificate Issue</h3>
+          <p>If you use a custom domain for your Shopify store, a DNS propagation issue, expired SSL certificate, or misconfigured CNAME record can cause checkout to fail for some customers while working for others (depending on which DNS resolver they use). Shopify's checkout URL typically redirects to <span class="mono-tag">checkout.shopify.com</span> — but if the initial domain resolution fails, customers never reach the redirect. Check Shopify Admin → Settings → Domains for any SSL or DNS warnings.</p>
+          <div class="cause-fix">FIX → Shopify Admin → Settings → Domains → look for any yellow warning icons. If your SSL certificate shows "pending" or "error", follow Shopify's reconnect steps. For DNS issues, check that your CNAME points to <span class="mono-tag">shops.myshopify.com</span>.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <h2 id="diagnosis">5-Step Diagnosis Checklist</h2>
+
+    <p>Work through these in order. Each step narrows down whether the issue is platform-wide, browser-specific, or store-specific.</p>
+
+    <div class="step-grid">
+      <div class="step-item">
+        <div class="step-n">1</div>
+        <div class="step-body">
+          <h3>Check Shopify Status first (30 seconds)</h3>
+          <p>Go to <strong>shopifystatus.com</strong>. If there is an active incident involving Checkout, nothing you do will fix it — only Shopify can. Wait for resolution before diagnosing store-side issues.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-n">2</div>
+        <div class="step-body">
+          <h3>Test in incognito on a different device (2 minutes)</h3>
+          <p>Open a fresh incognito/private window on a <strong>different device or browser</strong> (ideally a real mobile device on cellular, not WiFi). Add a product and go to checkout. If it loads: the issue is either browser-cache, browser extension, or network-specific to the original device.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-n">3</div>
+        <div class="step-body">
+          <h3>Open browser developer tools and check Console (3 minutes)</h3>
+          <p>Press <strong>F12</strong> (or Cmd+Option+I on Mac) → Console tab. Reload the checkout page. Any red JavaScript errors are your most likely cause. Note the filename in the error stack trace — it usually identifies the offending app or script.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-n">4</div>
+        <div class="step-body">
+          <h3>Check Network tab for pending requests (2 minutes)</h3>
+          <p>F12 → Network tab → reload checkout → wait 10 seconds → filter by "Pending" or sort by Time descending. Any request still in pending for 5+ seconds is blocking checkout render. The URL of the pending request identifies the third-party service responsible.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-n">5</div>
+        <div class="step-body">
+          <h3>Disable checkout apps and extensions one by one (5–10 minutes)</h3>
+          <p>Go to <strong>Settings → Checkout → Checkout extensions</strong>. Disable apps starting with the most recently installed or updated. Re-test checkout after each disable. When checkout loads again, you have identified the offending extension.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="terminal-block">
+      <div class="line dim"># Typical browser console output for a JS-caused blank checkout</div>
+      <div class="line err">Uncaught TypeError: Cannot read properties of undefined (reading 'init')</div>
+      <div class="line err">    at checkout-extension-bundle.js:1:4821</div>
+      <div class="line err">    at Object.&lt;anonymous&gt; (checkout-extension-bundle.js:1:5102)</div>
+      <div class="line warn">GET https://checkout-app-cdn.example.com/extension.js net::ERR_BLOCKED_BY_CLIENT</div>
+      <div class="line dim"></div>
+      <div class="line dim"># "ERR_BLOCKED_BY_CLIENT" = browser extension blocking the script</div>
+      <div class="line dim"># "TypeError: Cannot read properties of undefined" = app JS error</div>
+      <div class="line dim"># Both cause a blank or frozen checkout page</div>
+    </div>
+
+    <h2 id="fix-table">Cause-by-Cause Fix Reference</h2>
+
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Fix Step</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>All customers, blank page, sudden onset</strong></td>
+          <td>JS error from app or theme update</td>
+          <td>F12 → Console → identify error → disable offending app</td>
+        </tr>
+        <tr>
+          <td><strong>All customers, HTTP 503 or "site unavailable"</strong></td>
+          <td>Shopify platform / CDN outage</td>
+          <td>Check shopifystatus.com — wait for Shopify resolution</td>
+        </tr>
+        <tr>
+          <td><strong>Some customers only, others can checkout</strong></td>
+          <td>Browser extension, VPN, or old cache</td>
+          <td>Ask affected customer to test incognito; clear cache/cookies</td>
+        </tr>
+        <tr>
+          <td><strong>Endless spinner, page never finishes loading</strong></td>
+          <td>Third-party script timeout</td>
+          <td>F12 → Network → find pending requests → remove blocking script</td>
+        </tr>
+        <tr>
+          <td><strong>Loads on desktop, blank on mobile</strong></td>
+          <td>Device-specific JS or CSS issue</td>
+          <td>Open mobile emulation in F12 → find mobile-specific JS error</td>
+        </tr>
+        <tr>
+          <td><strong>Started after app install</strong></td>
+          <td>Checkout extensibility app JS error</td>
+          <td>Settings → Checkout → Checkout extensions → disable new app</td>
+        </tr>
+        <tr>
+          <td><strong>Started after theme update</strong></td>
+          <td>Custom theme script or <code>checkout.liquid</code> change</td>
+          <td>Switch to Dawn theme temporarily — if that fixes it, revert theme</td>
+        </tr>
+        <tr>
+          <td><strong>CSP errors in browser console</strong></td>
+          <td>Content Security Policy blocking checkout scripts</td>
+          <td>Remove or update CSP header to allow Shopify CDN domains</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cta-box">
+      <h2>Is your checkout broken right now?</h2>
+      <p>CheckPulse runs a full 4-step checkout simulation on your store every 5 minutes — cart creation, checkout session, payment methods fetch, and checkout URL verification. When any step fails to return a valid response, you get an email with the exact failure point before your customers notice. Takes 30 seconds to set up.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/#pricing" class="cta-btn secondary">Set Up Monitoring</a>
+    </div>
+
+    <h2 id="prevent-recurrence">How to Prevent This from Happening Again</h2>
+
+    <p>The most dangerous aspect of checkout loading failures is that they are <strong>completely invisible to standard monitoring</strong>. Your homepage returns 200. Your synthetic uptime check returns 200. You have no alert. The only indicator is a drop in conversion rate — and that signal arrives hours or days after the failure, after significant revenue has already been lost.</p>
+
+    <h3>1. Automated Checkout Simulation (Catches Platform and App Failures)</h3>
+    <p>A tool that runs the full checkout flow end-to-end on a schedule — creates a cart, initiates a checkout session, fetches payment methods, verifies the checkout URL is reachable — and alerts you immediately when any step fails. This is the only approach that catches checkout failures in real time, regardless of whether the cause is a Shopify outage, an app conflict, or a payment gateway failure.</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># CheckPulse — checkout simulation every 5 minutes</div>
+      <div class="line ok">[11:30] Step 1: Products fetch ........... 200 OK (143ms)</div>
+      <div class="line ok">[11:30] Step 2: Cart creation ............ 201 OK (287ms)</div>
+      <div class="line err">[11:30] Step 3: Checkout session ......... 500 ERROR → ALERT SENT</div>
+      <div class="line dim"></div>
+      <div class="line dim">→ Email: "Your checkout is returning 500 — customers cannot complete orders"</div>
+      <div class="line dim">→ Incident detected at 11:30 — before any customer reported an issue</div>
+    </div>
+
+    <h3>2. Post-Change Checkout Tests (Catches App and Theme Failures)</h3>
+    <p>The vast majority of store-side checkout loading failures appear immediately after a change: an app install, a theme update, a Script Tag addition. Building the habit of running a full checkout test in incognito immediately after any storefront change catches these failures in seconds, before they affect real customers.</p>
+
+    <p><strong>Post-change checkout checklist:</strong></p>
+    <ul class="checklist">
+      <li>Open incognito on desktop — add product to cart — load checkout — confirm page renders</li>
+      <li>Open F12 → Console — confirm no new JavaScript errors on the checkout page</li>
+      <li>Open F12 → Network — confirm no requests pending &gt;3 seconds</li>
+      <li>Repeat on a real mobile device (not just desktop emulation)</li>
+      <li>Complete a test order through to the order confirmation page</li>
+    </ul>
+
+    <h3>3. Stay Subscribed to Shopify's Status Page</h3>
+    <p>Shopify publishes real-time status at shopifystatus.com. Subscribe to email or RSS alerts so you are notified the moment Shopify declares a platform incident. This separates platform outages (nothing you can do) from store-specific failures (something you must fix) in under 60 seconds.</p>
+
+    <div class="faq-section" id="faq">
+      <h2>FAQ</h2>
+
+      <div class="faq-item">
+        <div class="faq-q">Why is my Shopify checkout page not loading?</div>
+        <p class="faq-a">Shopify checkout fails to load for several distinct reasons: a Shopify platform or CDN outage (check shopifystatus.com), a corrupted browser session or stale checkout cache, a JavaScript error in a checkout app or theme script, a third-party script hanging and blocking page render, or a browser extension intercepting checkout resources. The fastest first check: open checkout in a fresh incognito window. If it loads there but not in a regular browser, the issue is browser-side (cache, extension, or stale session).</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify checkout show a blank white page?</div>
+        <p class="faq-a">A blank white checkout page means the HTML was delivered but the JavaScript that renders the UI crashed before it could run. Open F12 → Console and look for red JavaScript errors — there is almost always a visible error. The filename in the error stack trace usually points to the offending app or script. Disable checkout apps one by one (Settings → Checkout → Checkout extensions) until the page loads again.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Is Shopify checkout down right now?</div>
+        <p class="faq-a">Check shopifystatus.com in real time. If an active incident is listed for Checkout, it's a platform issue — wait for Shopify's resolution. If the status page shows all-green but your checkout still doesn't load, the failure is specific to your store (app conflict, theme script, DNS issue). The status page only reflects platform-wide failures, not store-specific problems.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify checkout keep spinning / never finish loading?</div>
+        <p class="faq-a">An infinite spinner usually means a third-party script is hanging. Open F12 → Network tab → reload checkout → wait 10 seconds → sort by Time. Look for requests in "pending" state for 5+ seconds. The URL of the hanging request identifies the service. Common culprits: chat widgets, fraud prevention services, subscription app SDKs. Either remove the script from checkout or ensure it loads asynchronously with a timeout.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Can a browser extension cause Shopify checkout not to load?</div>
+        <p class="faq-a">Yes — this is the most common cause of customer-specific loading failures. Ad blockers and privacy extensions frequently block Shopify checkout scripts or payment SDK resources. Test in incognito (which disables extensions by default). If it loads there, the customer's extension is the cause. Add a note to your checkout error messaging advising customers to try incognito if they see a loading issue.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Will an uptime monitor tell me when checkout is not loading?</div>
+        <p class="faq-a">No. Standard uptime monitors check whether a URL returns HTTP 200. Shopify checkout returns 200 even when the page is blank or stuck — because the server delivered the HTML correctly. The rendering failure is client-side when JS executes. Only a tool that runs the full checkout simulation end-to-end, like CheckPulse, can reliably detect these failures. CheckPulse verifies that checkout creates a valid session and returns accessible payment methods, not just that the URL is reachable.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working">Button Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+    </p>
+    <p style="margin-top: 8px;">© 2026 CheckPulse · Shopify checkout monitoring</p>
+  </footer>
+
+</body>
+</html>

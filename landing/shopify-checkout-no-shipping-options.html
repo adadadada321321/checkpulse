@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify No Shipping Options at Checkout — 8 Causes & Fixes (2026)</title>
+  <meta name="description" content="Shopify checkout showing no shipping rates? Customers are stuck at the shipping step and abandoning. 8 causes: no zones configured, carrier API timeouts, weight thresholds, and more — with exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options" />
+  <meta property="og:title" content="Shopify Checkout: No Shipping Options — Every Cause Decoded" />
+  <meta property="og:description" content="When Shopify checkout shows no shipping rates, every customer at the shipping step abandons. 8 root causes, exact fixes, and how to detect it before customers do." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify No Shipping Options at Checkout — 8 Causes & Fixes",
+    "description": "When Shopify checkout displays no shipping rates at the shipping step, customers cannot proceed to payment and abandon immediately. This guide covers all eight root causes — from missing shipping zones to carrier API timeouts — and gives exact steps to fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout show no shipping options for some customers but not others?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When shipping rates appear for some customers but not others, the cause is almost always address-based. The most common reason: you have shipping zones configured for some countries or regions, but the affected customer's delivery address doesn't match any zone. Check your Admin → Settings → Shipping and Delivery → Shipping zones to confirm the customer's country is covered. A second common cause: conditional rates with a minimum order value — if a customer's cart value is below the threshold and there is no fallback flat-rate, they see no rates. A third: P.O. Box addresses are excluded from some carrier-calculated services (FedEx, UPS), so those rates disappear when a customer enters a P.O. Box but the store has no non-carrier fallback rate."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix 'no shipping rates available' in Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To fix 'no shipping rates available' in Shopify checkout: (1) Go to Admin → Settings → Shipping and Delivery. Confirm you have at least one shipping zone that includes the customer's country. (2) Check that every physical product in the cart has a weight set — go to each product → Shipping section → verify weight is not blank or zero. A product with no weight can cause carrier-calculated rates to return nothing. (3) Check for a minimum order threshold on your shipping rates — if your only rate is 'Free shipping over $50' and the cart is $40, no rates appear. Add a flat-rate fallback. (4) If you use carrier-calculated shipping (FedEx, UPS, USPS), go to Settings → Shipping → Carrier accounts and confirm the integration is active and not showing errors. Test a live rate fetch from Admin."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify shipping rates stop showing after I installed a new app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Third-party shipping apps (ShipBob, EasyPost, custom rate calculators) can override or replace Shopify's native shipping rates. If the app has a configuration error, invalid credentials, or an API timeout, it returns no rates — and since it's now the rate source for those products or shipping profiles, customers see an empty rate list. To diagnose: go to Admin → Settings → Shipping and Delivery → Carrier and app rates and check the app's status. Try temporarily disabling the app in the shipping settings (not uninstalling it) and see if your native rates return. If they do, the app's rate endpoint is the problem — contact the app developer or check the app's API credentials."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does carrier-calculated shipping sometimes not show at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify requests carrier-calculated rates (FedEx, UPS, USPS, Canada Post) in real-time during checkout. If the carrier's API times out, returns an error, or the credentials in Shopify have expired, the rate fetch fails silently — and Shopify shows no rates rather than an error message. This is especially common during carrier API outages or maintenance windows. To detect this: go to Admin → Settings → Shipping and Delivery → Carrier accounts → click the carrier name to see the last successful rate fetch. If carrier-calculated rates are your only rates and they're timing out, add a flat-rate backup (e.g., 'Standard Shipping — $9.99') so customers have at least one option during outages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify checkout show no shipping options even if I have rates configured?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Even with shipping rates configured, customers can see no rates at checkout if: (1) the delivery address doesn't match any zone; (2) a product in the cart has no weight and carrier-calculated rates need weight data; (3) a product is assigned to a custom shipping profile that has different zones/rates than the general profile; (4) a conditional rate's minimum threshold isn't met and no fallback rate exists; or (5) a shipping app is returning errors. The most dangerous scenario is #5: from your side, you see rates configured correctly — but the app is silently failing at runtime, and customers get an empty list with no explanation. Standard testing won't catch this because it passes on casual inspection."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if my Shopify shipping rates are broken without waiting for a customer complaint?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Standard uptime monitoring won't catch shipping rate failures — your checkout URL returns HTTP 200 even when the shipping step is empty. The only reliable early warning is automated checkout simulation that actually tests the shipping step: simulating checkout creation with a real address and verifying that shipping rates are returned. CheckPulse runs this 4-step checkout simulation (product fetch → cart → checkout session → payment methods + session validity check) every 5 minutes and alerts you when the checkout session is invalid — which includes the class of failures where the shipping step becomes unreachable. For carrier-calculated rate outages specifically, CheckPulse provides a baseline: if you normally see 2-3 shipping rates and suddenly see zero, the alert fires before you lose real orders."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    /* HERO */
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .stat { }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--amber);
+      font-weight: 700;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* FLOW VISUAL */
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-error-box .dim { color: var(--text-dim); }
+
+    /* SECTION */
+    .section {
+      padding: 56px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    /* TOC */
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin: 32px 0;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 14px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { color: var(--text-mid); font-size: 0.9rem; margin-bottom: 6px; }
+    .toc a { color: var(--text-mid); }
+    .toc a:hover { color: var(--amber); }
+
+    /* CAUSE CARDS */
+    .cause-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 32px; }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      position: relative;
+    }
+    .cause-card.priority { border-color: rgba(239,68,68,0.3); }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .cause-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .cause-card p { font-size: 0.9rem; color: var(--text-mid); margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.07);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      color: var(--green);
+      line-height: 1.6;
+    }
+    .cause-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .badge-common { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+    .badge-silent { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid rgba(168,85,247,0.25); }
+    .badge-config { background: rgba(59,130,246,0.12); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+    .badge-app { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+
+    /* DIAGNOSIS TABLE */
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 0.85rem;
+    }
+    .diag-table th {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .diag-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-mid);
+      vertical-align: top;
+    }
+    .diag-table tr:last-child td { border-bottom: none; }
+    .diag-table td:first-child { color: var(--text); font-weight: 500; }
+
+    /* TIMELINE / STEPS */
+    .timeline { display: flex; flex-direction: column; gap: 0; margin: 32px 0; }
+    .timeline-step { display: flex; gap: 18px; padding-bottom: 28px; position: relative; }
+    .timeline-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 16px; top: 36px; bottom: 0;
+      width: 1px;
+      background: var(--border-mid);
+    }
+    .timeline-num {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+    }
+    .timeline-body { padding-top: 4px; }
+    .timeline-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .timeline-body p { font-size: 0.88rem; color: var(--text-mid); margin-bottom: 0; }
+
+    /* MONITORING CALLOUT */
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px;
+      margin: 32px 0;
+    }
+    .monitor-box .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .monitor-icon { font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
+    .monitor-text { font-size: 0.88rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    /* CTA */
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 { font-size: 1.4rem; margin-bottom: 12px; }
+    .cta-block p { color: var(--text-mid); font-size: 0.95rem; max-width: 540px; margin: 0 auto 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #0B0E14;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 28px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .flow-steps { flex-direction: column; align-items: flex-start; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <span class="nav-brand">⬡ CheckPulse</span>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Checkout Failure · Shipping Step</div>
+        <h1>Shopify Checkout: <span>No Shipping Options</span> — Every Cause Fixed</h1>
+        <p class="hero-lead">
+          When Shopify checkout shows no shipping rates, customers reach the shipping
+          step and see an empty list — they cannot proceed to payment and abandon immediately.
+          Here are all 8 causes and exactly how to fix each one.
+        </p>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-num">8</div>
+            <div class="stat-label">distinct causes</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">#1</div>
+            <div class="stat-label">most common: no shipping zone match</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">100%</div>
+            <div class="stat-label">abandonment when it hits</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Checkout step where the failure occurs</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step ok">✓ Contact info</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Shipping</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">— Payment</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">— Order</div>
+        </div>
+        <div class="flow-error-box">
+          <span style="color:var(--red)">No shipping rates available for your address.</span>
+          <span class="dim"> — The customer sees this message, has no option to select, and cannot reach the payment step. Zero orders placed.</span>
+          <br /><br />
+          <span class="dim">GET  /api/checkouts/&lt;token&gt;/shipping_rates  →  </span><span style="color:var(--red)">{ "shipping_rates": [] }</span>
+          <br />
+          <span class="dim"># Shopify returned an empty array — no rates calculated for this address + cart combination</span>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <section class="section">
+        <div class="section-label">Overview</div>
+        <h2>Why Shopify Returns No Shipping Rates</h2>
+        <p>
+          Shopify calculates shipping rates dynamically at checkout based on four inputs:
+          the delivery address, the cart's total weight, the cart's total value, and the
+          shipping profiles assigned to the products in the cart. If any of these inputs
+          fails to match a configured rate, Shopify returns an empty rate list instead
+          of an error — and customers see the "no shipping rates available" state.
+        </p>
+        <p>
+          The most dangerous scenario is a shipping app or carrier API that was working
+          yesterday but fails silently today: your Admin still shows rates configured,
+          your test orders go through, but real customers in specific locations or with
+          specific cart contents see nothing.
+        </p>
+        <p>
+          The eight causes below cover both configuration gaps (fixable in Admin settings)
+          and runtime failures (that require monitoring to detect proactively).
+        </p>
+        <div class="toc">
+          <div class="toc-title">In this guide</div>
+          <ol>
+            <li><a href="#cause-1">No shipping zone for the customer's address</a></li>
+            <li><a href="#cause-2">Cart value below minimum threshold, no fallback rate</a></li>
+            <li><a href="#cause-3">Cart weight missing or zero on a product</a></li>
+            <li><a href="#cause-4">Carrier-calculated shipping API timeout or failure</a></li>
+            <li><a href="#cause-5">P.O. Box address + carrier services that don't support it</a></li>
+            <li><a href="#cause-6">Third-party shipping app returning errors</a></li>
+            <li><a href="#cause-7">Product in wrong shipping profile</a></li>
+            <li><a href="#cause-8">Local pickup only, no shipping rate configured</a></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- CAUSES -->
+      <section class="section" id="causes">
+        <div class="section-label">Root Causes</div>
+        <h2>8 Reasons Shopify Checkout Shows No Shipping Options</h2>
+
+        <div class="cause-grid">
+
+          <div class="cause-card priority" id="cause-1">
+            <div class="cause-num">CAUSE 01 / 08</div>
+            <div class="cause-badge badge-common">Most Common</div>
+            <h3>No shipping zone configured for the customer's country or region</h3>
+            <p>
+              Shopify shipping zones define which countries and regions you ship to. If a
+              customer's delivery address is in a country not covered by any zone, Shopify
+              returns zero rates. This is the most common cause of selective no-shipping
+              reports — international customers or customers in states/provinces you forgot
+              to add see no options while domestic customers are unaffected.
+            </p>
+            <p>
+              Common scenario: you added a "Rest of World" zone but forgot to include a
+              specific country. Or your General Profile has the US covered, but a new
+              Canadian customer finds nothing.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Settings → Shipping and Delivery → Shipping Profiles → General Profile →
+              Shipping Zones. Verify the customer's country is listed under at least one zone.
+              Add a "Rest of World" zone with a flat rate as a catch-all if you ship globally.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-2">
+            <div class="cause-num">CAUSE 02 / 08</div>
+            <div class="cause-badge badge-config">Configuration Gap</div>
+            <h3>Cart value below minimum threshold — no fallback rate exists</h3>
+            <p>
+              Conditional shipping rates (e.g., "Free Shipping — orders over $50") only
+              display when the cart meets the condition. If your only configured rate is
+              a free shipping threshold and a customer's cart is $48, Shopify returns an
+              empty list — because the single rate's condition isn't met and there is no
+              fallback.
+            </p>
+            <p>
+              This silently affects every customer whose cart value is below your free
+              shipping minimum if you haven't added a paid fallback rate. These customers
+              see "no shipping options" and assume your store doesn't ship to them.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Settings → Shipping and Delivery → open each shipping zone →
+              confirm you have at least one rate with NO minimum order value (or with a
+              minimum of $0). Add a flat "Standard Shipping — $X" rate as your unconditional
+              fallback so all customers always see at least one option.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-3">
+            <div class="cause-num">CAUSE 03 / 08</div>
+            <div class="cause-badge badge-config">Configuration Gap</div>
+            <h3>Product has no weight set — carrier-calculated rates fail silently</h3>
+            <p>
+              Carrier-calculated shipping rates (FedEx, UPS, USPS, Canada Post) require
+              the total cart weight to generate a quote. If any product in the cart has
+              weight set to zero or left blank, the total weight calculation returns 0 —
+              and many carrier services refuse to quote for a zero-weight shipment,
+              returning no rates instead of an error.
+            </p>
+            <p>
+              This is particularly hard to notice because it's product-specific: carts
+              containing only well-configured products work fine; carts containing the
+              one product with missing weight show nothing.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Products → open each physical product → scroll to "Shipping" →
+              confirm "This is a physical product" is checked and a non-zero weight is set.
+              For a bulk fix: export products to CSV (Admin → Products → Export), filter for
+              rows where weight is blank or 0, update, and re-import.
+            </div>
+          </div>
+
+          <div class="cause-card priority" id="cause-4">
+            <div class="cause-num">CAUSE 04 / 08</div>
+            <div class="cause-badge badge-silent">Silent Runtime Failure</div>
+            <h3>Carrier-calculated shipping API timeout or credentials expired</h3>
+            <p>
+              Shopify requests real-time rates from carrier APIs during checkout. FedEx,
+              UPS, USPS, and Canada Post all experience periodic API outages and rate
+              limits. When the carrier API request times out, returns a 5xx error, or
+              the stored credentials in Shopify have expired, Shopify cannot fetch a
+              rate — and returns nothing to the customer.
+            </p>
+            <p>
+              This is the hardest failure to catch because it's intermittent. During the
+              outage window, customers see no rates and abandon. After the outage ends,
+              rates return and everything looks normal. You have no record of the failure.
+            </p>
+            <div class="cause-fix">
+              FIX (immediate) → Admin → Settings → Shipping and Delivery → Carrier accounts →
+              check for error banners on each carrier. Re-authenticate if credentials show
+              as expired.
+              <br /><br />
+              FIX (resilience) → Add at least one flat-rate fallback ("Standard Shipping — $X")
+              so customers always have a non-carrier option during API outages. Rate it
+              competitively so customers don't feel penalized when carriers fail.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-5">
+            <div class="cause-num">CAUSE 05 / 08</div>
+            <div class="cause-badge badge-config">Address-Specific</div>
+            <h3>P.O. Box address — carrier services don't cover it</h3>
+            <p>
+              FedEx and UPS do not deliver to P.O. Boxes. If a customer enters a P.O.
+              Box as their shipping address and your only shipping rates are FedEx or
+              UPS carrier-calculated, those rates disappear — because the carrier API
+              returns no quote for that address type.
+            </p>
+            <p>
+              USPS and Canada Post do service P.O. Boxes. If you only have FedEx/UPS
+              configured, P.O. Box customers are stuck with no options. This affects
+              a small but real percentage of customers, particularly in rural areas
+              where P.O. Box delivery is standard.
+            </p>
+            <div class="cause-fix">
+              FIX → Add USPS or a flat-rate option to your shipping zones so P.O. Box
+              customers always have at least one choice. In Admin → Settings → Shipping
+              → add a "P.O. Box compatible — USPS" rate or a flat rate that isn't
+              carrier-calculated. Alternatively, add a note in checkout asking customers
+              with P.O. Boxes to select USPS.
+            </div>
+          </div>
+
+          <div class="cause-card priority" id="cause-6">
+            <div class="cause-num">CAUSE 06 / 08</div>
+            <div class="cause-badge badge-app">Third-Party App</div>
+            <h3>Third-party shipping app returning errors or invalid responses</h3>
+            <p>
+              Shipping apps like ShipBob, Shippit, EasyPost rate calculators, and custom
+              carrier apps can register themselves as the rate source for products or
+              shipping profiles. When the app's API endpoint is down, returns malformed
+              JSON, or its credentials in Shopify have expired, Shopify receives no rates
+              from the app and shows nothing to the customer.
+            </p>
+            <p>
+              The critical risk: you can see "Carrier and app rates" configured in your
+              Admin, everything looks set up correctly from the settings view — but at
+              runtime the app's endpoint is timing out. No error is surfaced to you.
+              Every customer hits an empty list.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Settings → Shipping and Delivery → "Carrier and app rates" →
+              check each app entry for error states. Temporarily disable the shipping app
+              in shipping settings (don't uninstall) and see if native rates return. If
+              they do, the app's rate endpoint is the problem. Contact the app's support
+              with the error, or rotate the app's API credentials in both Shopify and
+              the app's own dashboard.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-7">
+            <div class="cause-num">CAUSE 07 / 08</div>
+            <div class="cause-badge badge-config">Shipping Profile</div>
+            <h3>Product assigned to a custom shipping profile with different zones</h3>
+            <p>
+              Shopify lets you create custom shipping profiles to give certain products
+              different rates or restrictions. If a product is assigned to a custom
+              profile that has a narrower set of shipping zones than your General Profile,
+              carts containing that product will only show rates valid for both profiles.
+              If there's no overlap, the customer sees nothing.
+            </p>
+            <p>
+              This is common when you add a new product, assign it to a custom profile
+              for a specific reason (like oversized items), and forget that the custom
+              profile only covers domestic shipping while the General Profile covers
+              international — international customers with that product in cart get
+              no rates.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Settings → Shipping and Delivery → Shipping Profiles → open
+              each custom profile → verify the zones and rates match or are a superset
+              of what customers need. If a product is in a custom profile unintentionally,
+              move it back to the General Profile by editing the custom profile and
+              clicking "Remove product."
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-8">
+            <div class="cause-num">CAUSE 08 / 08</div>
+            <div class="cause-badge badge-config">Local Pickup Only</div>
+            <h3>Only local pickup configured — no actual shipping rate</h3>
+            <p>
+              Local Pickup is not a shipping rate in Shopify — it's a separate fulfilment
+              method that appears on the shipping step. If Local Pickup is your only
+              fulfilment option and a customer is not near your location (or doesn't
+              realize local pickup exists), the shipping rate list may appear empty to
+              them depending on your Shopify plan and checkout version.
+            </p>
+            <p>
+              Also common: stores set up for click-and-collect only, later want to start
+              shipping, but haven't configured any shipping rates in the General Profile —
+              the Local Pickup option shows but no shipping rates do.
+            </p>
+            <div class="cause-fix">
+              FIX → Admin → Settings → Shipping and Delivery → Shipping Profiles → General
+              Profile → add at least one Shipping Zone with a flat rate or carrier-calculated
+              rate. Confirm "Local pickup" is correctly labeled so customers understand it
+              requires physical pickup (add your store address in the pickup settings so
+              it displays to customers).
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DIAGNOSIS TABLE -->
+      <section class="section">
+        <div class="section-label">Quick Diagnosis</div>
+        <h2>Which Cause Matches Your Situation</h2>
+        <p>
+          Use these symptoms to quickly identify which of the 8 causes applies before
+          changing settings:
+        </p>
+        <table class="diag-table">
+          <thead>
+            <tr>
+              <th>Symptom</th>
+              <th>Most Likely Cause</th>
+              <th>First Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No rates for international customers only</td>
+              <td>Cause 1 — Missing shipping zone</td>
+              <td>Admin → Shipping → Zones → check country coverage</td>
+            </tr>
+            <tr>
+              <td>No rates for carts under a certain value</td>
+              <td>Cause 2 — Threshold with no fallback</td>
+              <td>Admin → Shipping → check for $0-minimum fallback rate</td>
+            </tr>
+            <tr>
+              <td>No rates when a specific product is in cart</td>
+              <td>Cause 3 or 7 — Weight missing or wrong profile</td>
+              <td>Check product weight; check its shipping profile</td>
+            </tr>
+            <tr>
+              <td>No rates intermittently, works some of the time</td>
+              <td>Cause 4 — Carrier API timeout</td>
+              <td>Admin → Shipping → Carrier accounts → error banners</td>
+            </tr>
+            <tr>
+              <td>No rates for P.O. Box addresses only</td>
+              <td>Cause 5 — FedEx/UPS can't deliver to P.O. Box</td>
+              <td>Add USPS or a flat-rate non-carrier option</td>
+            </tr>
+            <tr>
+              <td>No rates since installing a shipping app</td>
+              <td>Cause 6 — App endpoint failing</td>
+              <td>Disable app in shipping settings; check if native rates return</td>
+            </tr>
+            <tr>
+              <td>Affects all customers, appeared suddenly</td>
+              <td>Cause 4 or 6 — Carrier API or app runtime failure</td>
+              <td>Carrier accounts status + shipping app status</td>
+            </tr>
+            <tr>
+              <td>Only local pickup shows, no shipping rates</td>
+              <td>Cause 8 — No shipping rate configured</td>
+              <td>Admin → Shipping → General Profile → add a zone with a rate</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 5-STEP DIAGNOSIS -->
+      <section class="section">
+        <div class="section-label">Step-by-Step Fix</div>
+        <h2>5-Step Diagnosis When Shipping Rates Are Missing</h2>
+
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-num">1</div>
+            <div class="timeline-body">
+              <h4>Reproduce the exact customer scenario</h4>
+              <p>
+                Open a private/incognito browser window, add the same product(s) to cart,
+                and enter the exact address the affected customer used. This isolates
+                whether the issue is address-specific, product-specific, or global. If
+                rates appear in your test, the cause is likely an edge case (P.O. Box,
+                specific country, cart value). If no rates appear for you either, it's
+                a broader configuration or runtime problem.
+              </p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">2</div>
+            <div class="timeline-body">
+              <h4>Verify shipping zone coverage in Admin</h4>
+              <p>
+                Admin → Settings → Shipping and Delivery → open the General Profile →
+                check every shipping zone. Confirm the customer's country appears in at
+                least one zone. Confirm each zone has at least one rate with no minimum
+                order restriction (or a $0 minimum). If any zone lacks a fallback rate,
+                add one immediately.
+              </p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">3</div>
+            <div class="timeline-body">
+              <h4>Check carrier account and shipping app status</h4>
+              <p>
+                Admin → Settings → Shipping and Delivery → scroll to "Carrier and app rates."
+                Look for error indicators on each carrier account. If you see authentication
+                errors or "last successful fetch" timestamps that are hours old, re-authorize
+                the carrier. For shipping apps, check the app's own dashboard for API error
+                logs and verify credentials haven't expired.
+              </p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">4</div>
+            <div class="timeline-body">
+              <h4>Audit product shipping data</h4>
+              <p>
+                Admin → Products → filter to "physical products" → spot-check products
+                in the affected cart for missing weights. Any product with weight = 0 or
+                blank is a candidate for causing carrier rate failures. Also check the
+                "Shipping" section of each product to confirm "This is a physical product"
+                is checked — if it's unchecked, Shopify excludes it from shipping
+                calculations entirely.
+              </p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">5</div>
+            <div class="timeline-body">
+              <h4>Add a flat-rate fallback and test end-to-end</h4>
+              <p>
+                Regardless of the root cause identified, add a flat-rate shipping option
+                ($X standard shipping, no conditions) to every shipping zone as a backstop.
+                This ensures customers always have at least one option even during carrier
+                API outages or app failures. After adding it, re-test the original scenario
+                in incognito to confirm rates now appear.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING -->
+      <section class="section">
+        <div class="section-label">The Monitoring Gap</div>
+        <h2>Why Shipping Rate Failures Go Undetected for Hours</h2>
+        <p>
+          Shipping rate failures — especially carrier API timeouts and shipping app
+          errors — are completely invisible to standard monitoring. Your checkout URL
+          returns HTTP 200. Your uptime tool shows green. Your homepage, product pages,
+          and cart all load normally. The failure happens inside the checkout session's
+          shipping rate calculation — a backend call that standard ping-based monitors
+          never touch.
+        </p>
+        <p>
+          Carrier API outages are the worst scenario: they strike suddenly, can last
+          minutes to hours, and leave no trace. During the outage window, every customer
+          at the shipping step sees an empty list and abandons. You find out via a
+          revenue dip or a customer complaint — typically hours after the damage is done.
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">Why standard tools miss this</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Ping monitor:</strong> checks if your checkout URL returns 200. It does — the page loads. The empty shipping list is an application-layer failure, invisible to TCP/HTTP checks.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Uptime robot / Pingdom:</strong> same limitation. They verify the HTTP handshake, not the checkout session's ability to compute shipping rates.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Manual testing:</strong> only catches the issue during business hours, when you happen to be watching, and only if your test address + cart triggers the failure.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation:</strong> the only approach that verifies the full checkout flow — including that a valid session is created and shipping is reachable — on an automated schedule.</div>
+          </div>
+        </div>
+
+        <div class="cta-block">
+          <h2>Know When Shipping Rates Break Before Customers Do</h2>
+          <p>
+            CheckPulse runs a 4-step checkout simulation every 5 minutes — product fetch,
+            cart creation, checkout session initialization, and payment methods verification.
+            When the checkout session becomes invalid (including when the shipping step is
+            unreachable), you get an email with the exact failure point before any customer
+            encounters it.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">
+            Start Free Monitoring →
+          </a>
+          <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dim);">
+            No credit card required &mdash; free instant checkout health check available
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify No Shipping Options — Frequently Asked Questions</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify checkout show no shipping options for some customers but not others?</div>
+            <div class="faq-a">
+              Address-based mismatches are the most common cause of selective failures. Your shipping zones may not cover the customer's country, the customer entered a P.O. Box address that FedEx/UPS won't quote for, or their cart value is below a minimum threshold and you have no fallback rate. Go to Admin → Settings → Shipping and add a "Rest of World" zone with a flat fallback rate to eliminate address gaps.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I fix "no shipping rates available" in Shopify?</div>
+            <div class="faq-a">
+              Step 1: Admin → Settings → Shipping and Delivery → confirm the customer's country is in a shipping zone. Step 2: Check every zone has at least one rate with no minimum order requirement. Step 3: Verify all physical products in the cart have a non-zero weight set. Step 4: If you use carrier-calculated rates, check Carrier accounts for authentication errors. Step 5: Add a flat-rate backup in every zone so customers always have one option.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why did shipping rates disappear after I installed a new app?</div>
+            <div class="faq-a">
+              The new app likely registered itself as the rate provider for your shipping profile and is returning errors or empty responses. Temporarily disable the app in Admin → Settings → Shipping and Delivery → Carrier and app rates (click the toggle, don't uninstall). If native rates come back, the app's endpoint is broken — contact the app developer with the error details, and add a flat-rate fallback to cover the gap while you troubleshoot.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does carrier-calculated shipping sometimes not show at Shopify checkout?</div>
+            <div class="faq-a">
+              Shopify fetches carrier rates in real-time during checkout. FedEx, UPS, USPS, and Canada Post APIs have occasional outages and rate limits. When the API call times out or returns a 5xx error, Shopify shows no rates rather than an error message. Add at least one flat-rate option per zone so customers have a fallback during carrier API outages.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can Shopify checkout show no shipping options even if I have rates configured?</div>
+            <div class="faq-a">
+              Yes. Configured rates and runtime rates are different things. A rate can be correctly configured in Admin but fail at runtime because: the carrier API is down, a shipping app is returning errors, a product has no weight set and breaks the carrier calculation, or the delivery address doesn't match any zone despite the zone existing. Always add a flat-rate fallback with no conditions as insurance against runtime failures.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I know if my Shopify shipping rates are broken without waiting for a customer complaint?</div>
+            <div class="faq-a">
+              Standard uptime monitoring won't catch this — your checkout URL returns 200 even when the shipping step is empty. The only early-warning option is a tool that simulates the full checkout flow and verifies the shipping step is reachable. CheckPulse runs a 4-step simulation every 5 minutes and alerts you the moment the checkout session breaks — giving you the failure signal before customers encounter an empty rate list.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &mdash;
+        Shopify Checkout Monitor &mdash;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+        &mdash;
+        Related: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

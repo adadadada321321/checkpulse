@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Payments Suspended: What Happens to Your Checkout & How to Fix It (2026)</title>
+  <meta name="description" content="Shopify Payments suspended? Your checkout is silently broken right now. Learn why suspension happens, what customers see, how long it lasts, and how to monitor recovery." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-payments-suspended" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-payments-suspended" />
+  <meta property="og:title" content="Shopify Payments Suspended: Your Checkout Is Silently Broken" />
+  <meta property="og:description" content="When Shopify suspends your payments account, your checkout shows no payment methods. No alert fires. Here's what to do." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Payments Suspended: What Happens to Your Checkout & How to Fix It",
+    "description": "When Shopify Payments suspends your account, your checkout silently stops accepting orders. No standard monitoring tool detects it. This guide explains why, what customers see, and how to recover faster.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-payments-suspended",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-11",
+    "dateModified": "2026-06-11"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did Shopify suspend my payments?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify suspends payment accounts for several reasons: high chargeback rates (above 0.5%), selling in a restricted product category, identity verification failure, suspicious transaction velocity, or suspected policy violations. You'll receive an email from Shopify with the reason. The most common cause is chargebacks exceeding Shopify Payments' risk threshold."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens to my checkout when Shopify Payments is suspended?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When Shopify Payments is suspended, the payment methods step of checkout returns no available payment options. Customers reach the checkout page but cannot place an order — they see either a blank payment section or an error. Your store homepage, product pages, and cart all appear normal. This is a silent failure: standard uptime monitors show green while your checkout is dead."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does a Shopify Payments suspension last?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most Shopify Payments suspensions are resolved within 1–5 business days once you respond to Shopify's verification request. Identity verification suspensions are often lifted within 24 hours. Chargeback-related suspensions may require a review period of 3–10 business days. Responding immediately to Shopify's email is the fastest way to shorten the suspension window."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I still accept payments while Shopify Payments is suspended?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. You can activate a third-party payment provider (PayPal, Stripe, or another gateway) as an alternative while Shopify Payments is suspended. Go to Settings → Payments → Add payment method. Note that Shopify charges a 0.5–2% transaction fee on third-party payments on most plans, but this is far less than the revenue loss from a completely broken checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know when Shopify Payments is restored?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify sends an email when your account is reinstated, but the exact timing is unpredictable. The most reliable method is to run a checkout simulation — a tool that actually attempts to fetch payment methods from your store's API will detect restoration the moment it happens. CheckPulse runs this check every 5 minutes and emails you when payment methods become available again."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will my customers see an error message if Shopify Payments is suspended?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends. Some stores show a generic checkout error. Others show a blank payment section with no options. A few show a 'No payment methods available' message. In all cases, customers cannot complete their purchase. Many will simply abandon without telling you, which is why automated checkout monitoring is critical during and after any payment account issue."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #60A5FA;
+      --orange:      #FB923C;
+      --text-primary:   #F0EDE8;
+      --text-secondary: #8B8FA8;
+      --text-dim:       #4A4F65;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 20px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.95rem; color: var(--amber); font-weight: 700; }
+    .nav-sep { color: var(--text-dim); }
+    .nav-crumb { font-size: 0.85rem; color: var(--text-secondary); }
+    .nav-cta {
+      margin-left: auto;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .article-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .article-tag {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .article-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .article-meta a { color: var(--text-secondary); }
+    .article-meta a:hover { color: var(--amber); }
+
+    .alert-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+    }
+    .alert-box strong { color: var(--red); }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .toc a { color: var(--text-secondary); }
+    .toc a:hover { color: var(--amber); }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 44px 0 16px;
+      color: var(--text-primary);
+      scroll-margin-top: 80px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      color: var(--text-primary);
+    }
+    p { margin-bottom: 18px; color: var(--text-secondary); }
+    strong { color: var(--text-primary); }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 18px;
+    }
+    li { color: var(--text-secondary); margin-bottom: 6px; }
+    li strong { color: var(--text-primary); }
+
+    .mono-tag {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--text-primary);
+    }
+
+    .terminal-block {
+      background: #0D1117;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin: 24px 0;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+    .terminal-block .line { margin-bottom: 6px; color: var(--text-secondary); }
+    .terminal-block .line.ok { color: var(--green); }
+    .terminal-block .line.err { color: var(--red); }
+    .terminal-block .line.warn { color: var(--amber); }
+    .terminal-block .line.dim { color: var(--text-dim); }
+
+    .step-grid {
+      display: grid;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .step-body p { margin: 0; font-size: 0.88rem; }
+
+    .reason-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .reason-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .reason-card .reason-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--red);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .reason-card h3 { font-size: 0.95rem; margin: 0 0 6px; }
+    .reason-card p { font-size: 0.84rem; margin: 0; }
+
+    .cta-box {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(251,146,60,0.05) 100%);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-box h2 { margin: 0 0 10px; font-size: 1.3rem; }
+    .cta-box p { margin-bottom: 22px; font-size: 0.93rem; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 4px;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+    .cta-btn.secondary {
+      background: transparent;
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
+    .cta-btn.secondary:hover { background: rgba(245,158,11,0.08); }
+
+    .faq-section { margin-top: 48px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); margin: 0; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .nav-crumb { display: none; }
+      .reason-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">Shopify Payments Suspended</span>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Store Check</a>
+  </nav>
+
+  <main class="article-wrap">
+    <div class="article-tag">⚠ Critical — Revenue Impact</div>
+    <h1>Shopify Payments Suspended: Your Checkout Is Silently Broken</h1>
+    <div class="article-meta">
+      <span>Updated June 2026 · 9 min read · By CheckPulse</span>
+      <span>·</span>
+      <a href="./shopify-checkout-not-working">Checkout not working?</a>
+      <span>·</span>
+      <a href="./shopify-payment-failed">Payment failed?</a>
+    </div>
+
+    <div class="alert-box">
+      <strong>If your Shopify Payments account is suspended right now:</strong> your checkout is silently failing for every customer who tries to buy. Your homepage looks normal. Product pages load fine. But at the payment step, customers see no payment options and can't complete their order. No standard monitoring tool will alert you.
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">In this guide</div>
+      <ol>
+        <li><a href="#what-happens">What actually happens to your checkout</a></li>
+        <li><a href="#why-suspended">Why Shopify suspends payment accounts</a></li>
+        <li><a href="#how-long">How long suspensions last</a></li>
+        <li><a href="#fix-it">How to fix it: immediate steps</a></li>
+        <li><a href="#backup-payments">Accept payments while suspended</a></li>
+        <li><a href="#monitoring">How to know the moment payments are restored</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="what-happens">What Actually Happens to Your Checkout</h2>
+    <p>This is the part most guides skip. When Shopify suspends your Payments account, the failure is invisible from the outside. Here's exactly what breaks:</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># Shopify checkout API — payment methods endpoint</div>
+      <div class="line dim">GET /checkouts/{token}/payment_url</div>
+      <div class="line ok">→ Step 1: Products fetch ............. 200 OK</div>
+      <div class="line ok">→ Step 2: Cart creation .............. 200 OK</div>
+      <div class="line ok">→ Step 3: Checkout session init ...... 200 OK</div>
+      <div class="line err">→ Step 4: Payment methods fetch ...... 200 OK (empty)</div>
+      <div class="line err">   payment_gateways: []  ←  NO PAYMENT OPTIONS</div>
+    </div>
+
+    <p>The critical detail: <strong>the API returns 200 OK</strong>. Your store is not "down" in any detectable way. The response is valid JSON. The status is success. But the payment gateways array is empty — which means your checkout renders with zero payment options.</p>
+
+    <p>What customers see varies by theme:</p>
+    <ul>
+      <li>A blank payment section with no cards, PayPal, or other options</li>
+      <li>A grayed-out "Place order" button that can't be clicked</li>
+      <li>A generic "No payment methods available" message (some themes)</li>
+      <li>A checkout that appears to load but never presents payment options</li>
+    </ul>
+    <p>In every case: <strong>no customer can complete an order</strong>. Most will leave without telling you.</p>
+
+    <h2 id="why-suspended">Why Shopify Suspends Payment Accounts</h2>
+    <p>Shopify sends an email when your account is suspended, and the email usually states the reason. The most common causes:</p>
+
+    <div class="reason-grid">
+      <div class="reason-card">
+        <div class="reason-label">Most Common</div>
+        <h3>High chargeback rate</h3>
+        <p>Shopify Payments requires chargebacks below 0.5%. Exceeding this triggers automatic review and possible suspension, especially if the rate climbs quickly.</p>
+      </div>
+      <div class="reason-card">
+        <div class="reason-label">Common</div>
+        <h3>Identity verification required</h3>
+        <p>Shopify periodically requires stores to re-verify the account holder's identity. Failing to respond within the deadline suspends payouts and checkout.</p>
+      </div>
+      <div class="reason-card">
+        <div class="reason-label">Common</div>
+        <h3>Restricted product category</h3>
+        <p>Shopify Payments does not support certain product types (supplements, certain electronics, high-risk goods). Selling these can result in account suspension.</p>
+      </div>
+      <div class="reason-card">
+        <div class="reason-label">Less Common</div>
+        <h3>Suspicious transaction velocity</h3>
+        <p>A sudden spike in order volume — such as from a viral post or influencer campaign — can trigger fraud detection and a temporary hold on payments.</p>
+      </div>
+      <div class="reason-card">
+        <div class="reason-label">Less Common</div>
+        <h3>Policy violation</h3>
+        <p>Shopify's Acceptable Use Policy prohibits certain business models. If Shopify's compliance team flags your store, payments may be suspended during investigation.</p>
+      </div>
+      <div class="reason-card">
+        <div class="reason-label">Rare</div>
+        <h3>Bank or card network requirement</h3>
+        <p>Visa/Mastercard compliance requirements can require Shopify to pause a merchant's processing while documentation is collected.</p>
+      </div>
+    </div>
+
+    <h2 id="how-long">How Long Does a Suspension Last?</h2>
+    <p>Duration depends entirely on the reason and how quickly you respond to Shopify's request:</p>
+    <ul>
+      <li><strong>Identity verification:</strong> Usually resolved within 24 hours of submitting documents</li>
+      <li><strong>Chargeback review:</strong> 3–10 business days; may require submitting dispute evidence</li>
+      <li><strong>Restricted products:</strong> Requires category change or migration to a third-party gateway; timeline varies</li>
+      <li><strong>Policy investigation:</strong> 5–15 business days; outcome not guaranteed</li>
+    </ul>
+    <p><strong>The fastest path to resolution in every case:</strong> respond to Shopify's email immediately and completely. Delays in responding extend the suspension window by days.</p>
+
+    <h2 id="fix-it">Immediate Steps When You Discover a Suspension</h2>
+
+    <div class="step-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Check your email immediately</h3>
+          <p>Shopify sends a suspension notice to the account email. Search for "Shopify Payments" and "account" in your inbox. The email states the reason and usually requests specific documentation or action.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>Log in to Shopify Admin → Settings → Payments</h3>
+          <p>Check for any banners or action items on the Payments page. Shopify often surfaces the suspension reason here with a direct link to the resolution flow.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>Activate a backup payment method immediately</h3>
+          <p>Don't wait for Shopify to resolve the suspension before recovering your checkout. Add PayPal or another third-party gateway as an alternative so customers can buy now. See the next section.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Contact Shopify Support with your case number</h3>
+          <p>Use the in-admin chat or email. Reference the suspension email's case or ticket number. Ask for the specific documentation needed and the expected timeline. Don't submit a new request — respond to the original.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <h3>Submit required documentation immediately and completely</h3>
+          <p>Partial submissions restart the review clock. Submit everything Shopify asks for in one response: government ID, business registration, bank statements, or dispute evidence — whatever applies to your case.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="backup-payments">Accept Payments While Suspended</h2>
+    <p>You do not need to wait for Shopify Payments to be reinstated. You can activate a third-party payment provider in minutes:</p>
+    <ol>
+      <li>Go to <strong>Shopify Admin → Settings → Payments</strong></li>
+      <li>Click <strong>Add payment method</strong> in the "Supported payment methods" section</li>
+      <li>Select PayPal, Stripe, or another available gateway</li>
+      <li>Complete the provider's onboarding (usually 5–10 minutes)</li>
+      <li>Test a checkout to confirm payment options appear</li>
+    </ol>
+    <p><strong>Transaction fees:</strong> Most Shopify plans charge a 0.5–2% fee on third-party payments. On a $10,000/day store, that's $50–200/day in extra fees. That's far less painful than zero revenue from a broken checkout. Enable the backup gateway immediately.</p>
+
+    <div class="cta-box">
+      <h2>Know the moment your checkout is broken</h2>
+      <p>CheckPulse simulates a full 4-step checkout every 5 minutes. When payment methods disappear — due to a suspension, a gateway error, or anything else — you get an email with the exact failure point before any customer notices.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/#pricing" class="cta-btn secondary">See Plans</a>
+    </div>
+
+    <h2 id="monitoring">Know the Moment Payments Are Restored</h2>
+    <p>Once you've submitted your documentation to Shopify, there's a waiting period. The problem: Shopify's email notification of reinstatement is not instant. It may arrive minutes or hours after your checkout actually starts working again.</p>
+    <p>The most reliable way to know the exact moment your Shopify Payments account is restored is a <strong>live checkout simulation</strong>: a tool that actually fetches payment methods from your checkout API every few minutes and alerts you when the array goes from empty back to populated.</p>
+    <p>This is exactly what CheckPulse does:</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># CheckPulse monitoring — every 5 minutes</div>
+      <div class="line err">[09:12] Step 4: payment_gateways: []  →  ALERT SENT</div>
+      <div class="line err">[09:17] Step 4: payment_gateways: []  →  still down</div>
+      <div class="line err">[09:22] Step 4: payment_gateways: []  →  still down</div>
+      <div class="line ok">[09:27] Step 4: payment_gateways: ["shopify_payments", "paypal"]  →  RESTORED — ALERT SENT</div>
+      <div class="line dim">  ↳ Total downtime detected: 15 minutes</div>
+    </div>
+
+    <p>Without monitoring, you may not know your checkout is fixed until you manually test it — or until you happen to check your Shopify admin. With monitoring, you get an email the moment it's back. You can turn off the backup gateway, update your payment settings, and resume normal operations immediately.</p>
+
+    <h2 id="faq">Frequently Asked Questions</h2>
+    <div class="faq-section">
+      <div class="faq-item">
+        <div class="faq-q">Why did Shopify suspend my payments?</div>
+        <p class="faq-a">Shopify suspends payment accounts for several reasons: high chargeback rates (above 0.5%), selling in a restricted product category, identity verification failure, suspicious transaction velocity, or suspected policy violations. You'll receive an email from Shopify with the reason. The most common cause is chargebacks exceeding Shopify Payments' risk threshold.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What do customers see when Shopify Payments is suspended?</div>
+        <p class="faq-a">Customers see either a blank payment section with no options, a grayed-out checkout button, or a generic error. The experience depends on your theme, but in all cases customers cannot complete a purchase. Most will leave without contacting you — making checkout monitoring essential to know how long the failure has been occurring.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How long does a Shopify Payments suspension last?</div>
+        <p class="faq-a">Most suspensions are resolved within 1–5 business days once you respond to Shopify's verification request. Identity verification suspensions are often lifted within 24 hours. Chargeback-related suspensions may require a review period of 3–10 business days. Responding immediately to Shopify's email is the fastest way to shorten the suspension window.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I still accept payments while Shopify Payments is suspended?</div>
+        <p class="faq-a">Yes. You can activate a third-party payment provider (PayPal, Stripe, or another gateway) as an alternative while Shopify Payments is suspended. Go to Settings → Payments → Add payment method. Shopify charges a 0.5–2% transaction fee on third-party payments on most plans, but this is far less than the revenue loss from a completely broken checkout.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I know when Shopify Payments is restored?</div>
+        <p class="faq-a">Shopify sends a reinstatement email, but timing is unpredictable. The most reliable method is automated checkout monitoring — a tool that simulates the checkout flow and detects when payment methods return. CheckPulse checks every 5 minutes and sends an alert the moment payments are restored.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does a Shopify Payments suspension affect my existing orders or payouts?</div>
+        <p class="faq-a">Suspended accounts typically have payouts paused in addition to new payment processing. Existing orders that were already paid should still fulfill normally. Pending payouts may be held during the suspension period and released when the account is reinstated. Check the Payments section in your Shopify admin for the payout status.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-monitoring-comparison">Monitoring Comparison</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </footer>
+
+</body>
+</html>

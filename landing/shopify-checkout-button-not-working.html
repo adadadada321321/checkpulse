@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Button Not Working or Greyed Out — 8 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify checkout button greyed out or not clickable? Customers can see your checkout but can't complete the order. Here are all 8 causes — required fields, JS errors, app conflicts — and exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working" />
+  <meta property="og:title" content="Shopify Checkout Button Not Working or Greyed Out: All Causes &amp; Fixes" />
+  <meta property="og:description" content="When Shopify's 'Complete order' button is greyed out or disabled, customers are stuck at the final step. 8 causes, exact fix steps, and monitoring guidance." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Button Not Working or Greyed Out — 8 Causes and Fixes",
+    "description": "When the Shopify checkout 'Complete order' button is greyed out or not clickable, customers are stopped at the last step of checkout. This guide covers all eight root causes and exact steps to fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-11",
+    "dateModified": "2026-06-11"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Shopify checkout button greyed out?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 'Complete order' or 'Place order' button in Shopify checkout is greyed out when the checkout detects that a required field or condition has not been met. The most common reasons are: a required field (billing address, email, phone) is empty or invalid, a Terms and Conditions checkbox is required but unchecked, payment methods failed to load (leaving the payment section empty), a JavaScript error in the checkout page prevented the form validation logic from enabling the button, or a checkout app or theme customization overrode the default button enable logic."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can customers see the checkout but not click 'Complete order'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's checkout button is intentionally disabled by default and only enabled when all required fields are valid. If it stays disabled even after a customer fills in everything, the most likely causes are: a hidden required field they haven't noticed (some themes obscure certain fields), a Terms and Conditions checkbox not checked, payment method not selected because the payment section failed to load, or a JavaScript error that broke the form-validation event listener responsible for enabling the button."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Could a Shopify app cause the checkout button to stay greyed out?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Checkout extensibility apps — fraud detection apps, subscription billing apps, upsell apps — can inject logic that conditionally controls the checkout button state. A bug or misconfiguration in one of these apps can cause the button to remain disabled for all or some customers even after all fields are correctly filled. If the issue appeared after installing or updating an app, disable the most recently changed app and re-test checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test if the checkout button issue is affecting all customers or just some?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Open an incognito window and use a different device or browser (ideally a real mobile device) to simulate a full customer checkout session. Fill in all required fields including email, shipping address, and select a payment method. If the button enables in incognito but not in a regular session, the issue is browser-specific (extension or cached session state). If it is disabled in both, the issue is affecting all customers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "My checkout button is greyed out even when all fields look filled in — what do I do?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "First, open your browser's developer console (F12) and look for JavaScript errors on the checkout page. A JS error in checkout is the most common non-obvious cause of the button staying disabled. Second, check if the payment section is actually showing a selectable payment method — if payment methods are not loading, the button stays disabled even if all address fields are complete. Third, check if your theme or a checkout app has a custom Terms and Conditions checkbox that requires explicit consent before the button is enabled."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will an uptime monitor alert me when the checkout button is broken?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Standard uptime monitors (Pingdom, UptimeRobot, StatusCake) check whether a URL returns a non-error HTTP status. They do not simulate a checkout flow, interact with form fields, or verify that payment methods are loaded and the button is enabled. The checkout page can return HTTP 200 while the button is completely unusable for every customer. Only a tool that simulates the full checkout flow — like CheckPulse — can detect this class of failure."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #60A5FA;
+      --orange:      #FB923C;
+      --text-primary:   #F0EDE8;
+      --text-secondary: #8B8FA8;
+      --text-dim:       #4A4F65;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 20px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.95rem; color: var(--amber); font-weight: 700; }
+    .nav-sep { color: var(--text-dim); }
+    .nav-crumb { font-size: 0.85rem; color: var(--text-secondary); }
+    .nav-cta {
+      margin-left: auto;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .article-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .article-tag {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .article-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .article-meta a { color: var(--text-secondary); }
+    .article-meta a:hover { color: var(--amber); }
+
+    .alert-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+    }
+    .alert-box strong { color: var(--red); }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .toc a { color: var(--text-secondary); }
+    .toc a:hover { color: var(--amber); }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 44px 0 16px;
+      color: var(--text-primary);
+      scroll-margin-top: 80px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      color: var(--text-primary);
+    }
+    p { margin-bottom: 18px; color: var(--text-secondary); }
+    strong { color: var(--text-primary); }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 18px;
+    }
+    li { color: var(--text-secondary); margin-bottom: 6px; }
+    li strong { color: var(--text-primary); }
+
+    .mono-tag {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--text-primary);
+    }
+
+    .terminal-block {
+      background: #0D1117;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin: 24px 0;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+    .terminal-block .line { margin-bottom: 6px; color: var(--text-secondary); }
+    .terminal-block .line.ok { color: var(--green); }
+    .terminal-block .line.err { color: var(--red); }
+    .terminal-block .line.warn { color: var(--amber); }
+    .terminal-block .line.dim { color: var(--text-dim); }
+
+    .cause-list {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .cause-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .cause-body p { margin: 0 0 8px; font-size: 0.88rem; }
+    .cause-body p:last-child { margin: 0; }
+    .cause-fix {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-top: 4px;
+    }
+
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 0.88rem;
+    }
+    .diag-table th {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .diag-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .diag-table td strong { color: var(--text-primary); }
+    .diag-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .step-grid {
+      display: grid;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .step-body p { margin: 0; font-size: 0.88rem; }
+
+    .cta-box {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(251,146,60,0.05) 100%);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-box h2 { margin: 0 0 10px; font-size: 1.3rem; }
+    .cta-box p { margin-bottom: 22px; font-size: 0.93rem; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 4px;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+    .cta-btn.secondary {
+      background: transparent;
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
+    .cta-btn.secondary:hover { background: rgba(245,158,11,0.08); }
+
+    .faq-section { margin-top: 48px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); margin: 0; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .nav-crumb { display: none; }
+      .cause-card { grid-template-columns: 1fr; }
+      .diag-table { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">Checkout Button Not Working</span>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Store Check</a>
+  </nav>
+
+  <main class="article-wrap">
+    <div class="article-tag">⚠ Revenue Blocked — Active Issue</div>
+    <h1>Shopify Checkout Button Not Working or Greyed Out — 8 Causes &amp; Fixes</h1>
+    <div class="article-meta">
+      <span>Updated June 2026 · 9 min read · By CheckPulse</span>
+      <span>·</span>
+      <a href="./shopify-checkout-not-working">Checkout not working?</a>
+      <span>·</span>
+      <a href="./shopify-checkout-no-payment-methods">No payment methods?</a>
+      <span>·</span>
+      <a href="./shopify-payment-failed">Payment failed?</a>
+    </div>
+
+    <div class="alert-box">
+      <strong>If your Shopify checkout button is greyed out or unclickable right now:</strong> customers are reaching the final step and cannot complete their order. Your product pages, cart, and checkout all look completely normal — the failure is invisible from the outside. Every minute this continues, orders are silently lost.
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">In this guide</div>
+      <ol>
+        <li><a href="#what-it-looks-like">What customers actually see</a></li>
+        <li><a href="#how-button-works">How Shopify's checkout button works</a></li>
+        <li><a href="#8-causes">All 8 causes — and how to identify yours</a></li>
+        <li><a href="#quick-diagnosis">Quick diagnosis checklist</a></li>
+        <li><a href="#fix-table">Cause-by-cause fix reference</a></li>
+        <li><a href="#prevent-recurrence">How to prevent it from happening again</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="what-it-looks-like">What Customers Actually See</h2>
+    <p>When the checkout button is broken, the failure looks deceptively minor. There is no error message, no crash, no redirect failure. Customers see a checkout that appears fully functional — address fields, payment section, order summary — but the final action is blocked:</p>
+    <ul>
+      <li><strong>A greyed-out "Complete order" button</strong> that cannot be clicked regardless of what the customer fills in</li>
+      <li><strong>A button that flashes enabled then immediately disables again</strong> — a form validation race condition</li>
+      <li><strong>A button that looks active but does nothing on click</strong> — a JavaScript error absorbing the click event</li>
+      <li><strong>A spinner on the button that never resolves</strong> — a silent API call failure during submission</li>
+    </ul>
+    <p>In every variant: <strong>no order can be placed</strong>. Most customers assume your store is broken and leave. Very few will contact you to report it. The failure accumulates silently until you notice revenue has dropped.</p>
+
+    <h2 id="how-button-works">How Shopify's Checkout Button Actually Works</h2>
+    <p>Shopify's checkout button (<span class="mono-tag">Complete order</span> or <span class="mono-tag">Place order</span>) is <strong>disabled by default</strong>. JavaScript event listeners on the checkout form monitor field validity and enable the button only when all conditions are met:</p>
+    <ul>
+      <li>All required fields are non-empty and valid (email, shipping address, billing address)</li>
+      <li>A payment method is selected (payment section rendered and a method chosen)</li>
+      <li>Any required consent checkboxes are checked (Terms &amp; Conditions, age verification)</li>
+      <li>No form-level validation errors are present</li>
+    </ul>
+    <p>If any one of these conditions fails — or if the JavaScript that monitors these conditions throws an error — the button stays grey. This is why a greyed-out button does not always mean the customer hasn't filled in the form correctly. It can mean the button's enable logic itself is broken.</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># Simplified checkout button state logic</div>
+      <div class="line warn">button.disabled = true  // always starts disabled</div>
+      <div class="line dim"></div>
+      <div class="line ok">allFieldsValid     = checkRequiredFields()    // false if any field empty/invalid</div>
+      <div class="line ok">paymentSelected    = checkPaymentMethod()     // false if payment section empty</div>
+      <div class="line ok">consentGiven       = checkConsentBoxes()      // false if T&C unchecked</div>
+      <div class="line dim"></div>
+      <div class="line warn">if (allFieldsValid &amp;&amp; paymentSelected &amp;&amp; consentGiven) {</div>
+      <div class="line ok">  button.disabled = false  // ← button enables here</div>
+      <div class="line warn">}</div>
+      <div class="line dim"></div>
+      <div class="line err">// If any condition is broken, or if the JS above throws: button stays grey</div>
+    </div>
+
+    <h2 id="8-causes">All 8 Causes of a Greyed-Out Checkout Button</h2>
+
+    <div class="cause-list">
+      <div class="cause-card">
+        <div class="cause-num">#1</div>
+        <div class="cause-body">
+          <h3>Payment Methods Not Loaded</h3>
+          <p>This is the most common non-obvious cause. If the payment section fails to load — due to a Shopify Payments suspension, gateway misconfiguration, or network error — the payment step renders blank. With no payment method selectable, Shopify's checkout logic cannot mark <span class="mono-tag">paymentSelected = true</span>, so the button stays disabled regardless of how correctly the customer fills in every other field.</p>
+          <p>This is also why a "greyed out button" and a "no payment methods" error are often the same underlying problem seen from different angles.</p>
+          <div class="cause-fix">FIX → Check <a href="./shopify-checkout-no-payment-methods" style="color: var(--green);">Shopify Checkout No Payment Methods guide</a> for all 9 payment loading failure causes. Start with Settings → Payments in your admin.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#2</div>
+        <div class="cause-body">
+          <h3>Required Field Missing or Invalid</h3>
+          <p>Shopify's checkout has required fields that vary by store configuration: email, phone number, shipping address (street, city, postcode), and sometimes billing address if it differs from shipping. If any of these fields are empty, contain an invalid format, or are hidden by a theme customization and auto-filled with invalid placeholder data, the button validation fails.</p>
+          <p>This is the most common cause for individual customers but rarely affects all customers simultaneously.</p>
+          <div class="cause-fix">FIX → Test checkout in incognito, filling every field carefully. Open browser console (F12) and look for validation errors on submit attempt. Check your theme code for any fields being hidden or auto-filled with invalid values.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#3</div>
+        <div class="cause-body">
+          <h3>Terms &amp; Conditions Checkbox Not Checked</h3>
+          <p>Many Shopify themes add a Terms and Conditions consent checkbox to checkout. If your theme includes this checkbox and a customer hasn't checked it, Shopify treats consent as absent and keeps the button disabled. The checkbox is sometimes rendered below the fold or in an easy-to-miss position on mobile.</p>
+          <p>This is a common cause of customer complaints — they fill everything in correctly but the button never enables, not realising there is an unchecked checkbox further down the page.</p>
+          <div class="cause-fix">FIX → Test checkout on mobile. Scroll down to look for any unchecked consent checkbox. If you want to remove the T&C requirement: Online Store → Themes → Edit Code → search for "terms" in your theme files. Or contact your theme developer.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#4</div>
+        <div class="cause-body">
+          <h3>JavaScript Error in Checkout</h3>
+          <p>Shopify's checkout page loads several JavaScript files — Shopify's own checkout scripts, theme scripts, and any scripts injected by apps. A JavaScript error in any of these can prevent the button's event listeners from being set up correctly, meaning the button is never re-evaluated after fields are filled and stays disabled permanently.</p>
+          <p>JS errors in checkout are especially common after a theme update, a Shopify platform update, or a checkout app update that introduces a script conflict.</p>
+          <div class="cause-fix">FIX → Open your checkout in Chrome, press F12, click "Console." Reproduce the issue and look for red error lines. Common culprits are uncaught TypeError or ReferenceError in a script from a checkout app. Disable checkout apps one by one to isolate the conflict.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#5</div>
+        <div class="cause-body">
+          <h3>Checkout App or Extension Conflict</h3>
+          <p>Shopify's checkout extensibility framework allows apps to inject UI components, event handlers, and validation logic into the checkout. A bug in a checkout app — particularly fraud detection apps, loyalty apps, upsell apps, or subscription billing apps — can override the button state and keep it permanently disabled, even when all native Shopify conditions are met.</p>
+          <p>This failure often appears suddenly after an app update, or when two apps both attempt to control the button state simultaneously.</p>
+          <div class="cause-fix">FIX → Shopify Admin → Settings → Checkout → Checkout extensions. Disable extensions one at a time, test checkout after each. Identify the conflicting app and contact its developer or roll back to the previous version.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#6</div>
+        <div class="cause-body">
+          <h3>Theme Customization Overriding Button Logic</h3>
+          <p>Custom theme development sometimes adds JavaScript to the checkout to implement additional UX — custom field validation, order note requirements, upsell accept/decline logic. If this custom script contains a bug, it can prevent the button from enabling. This is most common with heavily customized themes and Shopify Plus accounts with checkout.liquid customizations.</p>
+          <div class="cause-fix">FIX → Review any custom scripts in your theme's checkout.liquid (Shopify Plus) or in any theme Script Tags. Temporarily remove custom scripts to test whether the button enables correctly without them. Use the console to identify which script is throwing.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#7</div>
+        <div class="cause-body">
+          <h3>Cart Changed During Checkout (Item OOS or Price Change)</h3>
+          <p>If a cart item goes out of stock or its price changes while a customer is mid-checkout, Shopify detects the mismatch and may disable the button with an inline error about an "unavailable item" or "price change." The customer sees the button grayed out with a notice near the cart section — but on some themes, the error message is subtle and easy to miss.</p>
+          <div class="cause-fix">FIX → Test checkout end-to-end immediately. Check your inventory levels for items currently in carts. If items are going OOS during checkout spikes, consider enabling "Continue selling when out of stock" or adding an inventory buffer.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#8</div>
+        <div class="cause-body">
+          <h3>Customer Account Required but Not Logged In</h3>
+          <p>If your Shopify store is configured to require customer accounts for checkout (Online Store → Preferences → Customer accounts set to "Required"), customers who are not logged in will be unable to complete checkout. Depending on your theme, this sometimes manifests as a disabled button rather than a clear login prompt — especially if the login redirect is broken.</p>
+          <div class="cause-fix">FIX → Check Online Store → Preferences → Customer accounts. If account requirement is intentional, verify the login/register flow works correctly. If not intentional, switch to "Optional" or "Disabled."</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="quick-diagnosis">Quick Diagnosis: Identify Your Cause in 5 Minutes</h2>
+    <p>Run through these steps in order. Most causes become obvious at step 1 or 2.</p>
+
+    <div class="step-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Test in incognito on mobile</h3>
+          <p>Open an incognito window on your phone. Add a product to cart, go to checkout, fill in every field carefully. Scroll all the way down before attempting to click. If the button enables in incognito: the issue is browser/session-specific (likely a conflicting browser extension). If it stays disabled: the issue affects all customers.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>Check for a hidden T&amp;C checkbox</h3>
+          <p>On mobile, scroll down past the payment section and look for any unchecked checkbox. Terms &amp; Conditions checkboxes are the most common cause of customers reporting "the button is greyed out and I've filled everything in." Check on both desktop and mobile — the checkbox position varies by theme.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>Check the browser console for JS errors</h3>
+          <p>Open Chrome on desktop, go to your checkout, press F12. Click the Console tab. Look for any red error lines. If you see errors from a script named after an app (e.g. a fraud app, a subscription app), that app's script is likely interfering with the button. Note the error message and source file.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Check Settings → Payments for the payment section</h3>
+          <p>If the payment section itself is not rendering (blank payment step), the button will never enable because no payment method can be selected. Go to Settings → Payments and verify at least one gateway is active. See the <a href="./shopify-checkout-no-payment-methods">No Payment Methods guide</a> if the payment section is blank.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <h3>Disable checkout apps one by one</h3>
+          <p>If steps 1–4 don't surface the cause, go to Settings → Checkout → Checkout extensions and disable each extension. Test after disabling each one. When the button starts working after disabling a specific extension, that extension is your cause. Contact the app developer with a bug report.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="fix-table">Cause-by-Cause Fix Reference</h2>
+
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th>Cause</th>
+          <th>Where to Check</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Payment methods not loaded</strong></td>
+          <td>Settings → Payments</td>
+          <td>Fix payment gateway — see <a href="./shopify-checkout-no-payment-methods">No Payment Methods guide</a></td>
+        </tr>
+        <tr>
+          <td><strong>Required field missing</strong></td>
+          <td>Incognito checkout + browser console</td>
+          <td>Fix field validation; check theme for auto-filled invalid values</td>
+        </tr>
+        <tr>
+          <td><strong>T&amp;C checkbox unchecked</strong></td>
+          <td>Mobile incognito checkout — scroll down</td>
+          <td>Uncheck or move checkbox; or remove T&C requirement from theme</td>
+        </tr>
+        <tr>
+          <td><strong>JavaScript error</strong></td>
+          <td>Browser console (F12) during checkout</td>
+          <td>Identify offending script, disable conflicting app or revert theme change</td>
+        </tr>
+        <tr>
+          <td><strong>Checkout app conflict</strong></td>
+          <td>Settings → Checkout → Checkout extensions</td>
+          <td>Disable apps one by one; contact developer</td>
+        </tr>
+        <tr>
+          <td><strong>Custom theme script bug</strong></td>
+          <td>Theme code → checkout.liquid / script tags</td>
+          <td>Remove/fix custom script; revert recent theme changes</td>
+        </tr>
+        <tr>
+          <td><strong>Item OOS / price changed</strong></td>
+          <td>Cart section in checkout (look for inline error)</td>
+          <td>Restock item or adjust inventory settings</td>
+        </tr>
+        <tr>
+          <td><strong>Customer account required</strong></td>
+          <td>Online Store → Preferences → Customer accounts</td>
+          <td>Switch to "Optional" or fix login redirect</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cta-box">
+      <h2>Is your checkout broken right now?</h2>
+      <p>CheckPulse runs a full 4-step checkout simulation on your store every 5 minutes — cart creation, checkout session, payment methods fetch, and checkout URL verification. When any step fails, you get an email with the exact step and HTTP status before customers notice. Takes 30 seconds to set up.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/#pricing" class="cta-btn secondary">Set Up Monitoring</a>
+    </div>
+
+    <h2 id="prevent-recurrence">How to Prevent This from Happening Again</h2>
+    <p>The checkout button failure is particularly dangerous because it shares a trait with all other Shopify checkout failures: <strong>your standard monitoring tools will not catch it</strong>. The checkout page returns HTTP 200. Your homepage is fine. There is no alert. The only way to detect this class of failure in real time is automated checkout simulation.</p>
+
+    <p>There are two complementary prevention layers:</p>
+
+    <h3>1. Automated Checkout Simulation (Catches Payment-Layer Failures)</h3>
+    <p>A tool that runs the full checkout flow — adds to cart, initiates checkout, fetches payment methods, verifies the checkout URL is valid — on a schedule. CheckPulse does this every 5 minutes. When payment methods return empty (causing the button to stay greyed), you get an alert immediately.</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># CheckPulse alert — payment methods empty → button disabled for all customers</div>
+      <div class="line ok">[09:14] Step 1: Products fetch ......... 200 OK</div>
+      <div class="line ok">[09:14] Step 2: Cart creation .......... 200 OK</div>
+      <div class="line ok">[09:14] Step 3: Checkout session ....... 200 OK</div>
+      <div class="line err">[09:14] Step 4: Payment methods ........ [] EMPTY → ALERT SENT</div>
+      <div class="line dim"></div>
+      <div class="line dim">→ Email: "Your checkout button is disabled — payment methods not loading"</div>
+      <div class="line dim">→ Likely cause: Shopify Payments suspension or gateway deactivation</div>
+    </div>
+
+    <h3>2. Staged Testing After Any Change (Catches JS/App Failures)</h3>
+    <p>JavaScript and app-related button failures appear after changes — theme updates, app installs, checkout extension updates. Build the habit of running a full incognito checkout test immediately after any change that touches your storefront or checkout apps. Most JS-related button failures are caught within minutes of deployment if you test proactively.</p>
+
+    <p><strong>Checklist for post-change testing:</strong></p>
+    <ul>
+      <li>Open incognito on desktop — add to cart — complete full checkout to confirmation page</li>
+      <li>Open incognito on mobile — repeat the same flow</li>
+      <li>Check browser console for new JS errors</li>
+      <li>Verify payment section renders and shows at least one selectable method</li>
+      <li>Confirm "Complete order" button enables after filling all fields</li>
+    </ul>
+
+    <div class="faq-section" id="faq">
+      <h2>FAQ</h2>
+
+      <div class="faq-item">
+        <div class="faq-q">Why is the Shopify checkout button greyed out?</div>
+        <p class="faq-a">The "Complete order" or "Place order" button in Shopify checkout is disabled by default and only enables when all required conditions are met: required fields filled, a payment method selected, and any consent checkboxes checked. If it stays greyed out even after filling everything in, the most likely causes are payment methods not loading (payment section blank), a JavaScript error preventing the enable logic from running, a Terms &amp; Conditions checkbox not checked, or a checkout app conflict.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why can customers see the checkout but not click "Complete order"?</div>
+        <p class="faq-a">Shopify's button stays disabled until all form conditions are met. If it never enables, the most likely issue is either the payment section hasn't loaded a selectable method (so <span class="mono-tag">paymentSelected</span> stays false) or a JavaScript error broke the form-validation listener that would normally enable the button. Test in incognito, check the console for errors, and verify the payment section shows a selectable method.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Could a Shopify app cause the checkout button to stay greyed out?</div>
+        <p class="faq-a">Yes. Checkout extensibility apps can inject logic that controls the button state. A bug in a fraud detection app, subscription billing app, or upsell app can keep the button permanently disabled. If the issue appeared after installing or updating an app, disable it in Settings → Checkout → Checkout extensions and re-test.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">My checkout button is greyed out even when all fields look filled in — what do I do?</div>
+        <p class="faq-a">First: open browser console (F12) and look for JavaScript errors on the checkout page — a JS error is the most common non-obvious cause. Second: check that the payment section is rendering and showing a selectable method (no payment loaded means button stays disabled). Third: scroll down past the payment section and check for a Terms &amp; Conditions checkbox that requires checking. Fourth: try a completely different browser to rule out a browser extension conflict.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Will an uptime monitor alert me when the checkout button is broken?</div>
+        <p class="faq-a">No. Standard uptime monitors check whether a URL returns a non-error HTTP status. The checkout page returns HTTP 200 regardless of whether the button is usable. Only a tool that simulates the full checkout flow — like CheckPulse — can detect when payment methods fail to load and the button becomes permanently disabled for all customers.</p>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How do I test if the checkout button issue is affecting all customers or just some?</div>
+        <p class="faq-a">Open an incognito window on a different browser and device. Add a product and complete the full checkout form. If the button enables in incognito but not in a regular session, the issue is browser/extension-specific. If it stays disabled in incognito on multiple devices, all customers are affected and you have an active revenue-blocking incident.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payments-suspended">Payments Suspended</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    </p>
+    <p style="margin-top: 8px;">© 2026 CheckPulse · Shopify checkout monitoring</p>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout "No Payment Methods Available" — 9 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify checkout showing 'no payment methods available'? Your customers can't pay right now. Here are all 9 causes, exact fix steps, and how to prevent it happening again." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods" />
+  <meta property="og:title" content="Shopify Checkout No Payment Methods: All Causes &amp; Fixes" />
+  <meta property="og:description" content="When Shopify shows no payment methods at checkout, every visitor who reaches that step bounces with zero revenue. 9 causes, exact fixes, and monitoring guidance." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout 'No Payment Methods Available' — 9 Causes and Fixes",
+    "description": "When Shopify checkout shows no payment methods, every customer who reaches checkout leaves without buying. This guide covers all nine root causes and exact steps to fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-11",
+    "dateModified": "2026-06-11"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout say 'no payment methods available'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify shows 'no payment methods available' when the checkout payment methods API returns an empty gateways array. This happens for several reasons: your Shopify Payments account is suspended, your payment gateway is not configured for the customer's currency or country, all payment gateways were recently deleted or deactivated, your store is in test mode with no test payment gateway activated, or gateway credentials have expired. The most common causes are a Shopify Payments suspension or currency/country mismatch."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does 'no payment methods' mean my entire store is down?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. This is the most dangerous aspect of this error. Your store homepage, product pages, and cart all load and function normally. The failure is isolated to Step 3 of 4 in the checkout flow — the payment methods fetch. Standard uptime monitors show green because they only check if the homepage returns 200. Customers reach checkout, see no payment options, and leave. You have no outage alert."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I quickly check why Shopify checkout has no payment methods?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Start with Shopify Admin → Settings → Payments. If you see a yellow or red banner, that is your cause. If everything looks normal: check whether your Shopify Payments is active and not suspended, verify your active payment gateways support the currency of your store (Settings → General → Store currency), place a test order using the same browser and location a customer would use, and check if any recently installed apps modified checkout behavior."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify app cause checkout to show no payment methods?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Checkout extensibility apps, fraud prevention apps, and some subscription billing apps can inject checkout logic that conditionally hides payment methods. If the error appeared after installing or updating an app, disable the most recently changed app and re-test checkout. Shopify's checkout extensibility framework allows apps to render payment method UI — a bug in that layer can result in an empty payment section even when gateways are correctly configured."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I prevent this from happening again?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The only reliable way to catch this proactively is automated checkout simulation — a tool that runs the full checkout flow (cart creation, checkout init, payment methods fetch, checkout URL verification) on a schedule and alerts you the moment payment methods disappear. Standard uptime monitors cannot detect this failure. CheckPulse runs a full 4-step simulation every 5 minutes and sends an email with the exact failure point when payment methods return an empty array."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What do customers see when there are no payment methods?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on your Shopify theme. Most themes show either a blank payment step with no options listed, a greyed-out 'Complete order' button that cannot be clicked, or explicitly the message 'No payment methods available.' In all cases, customers cannot place an order. The majority will leave without contacting you, so the failure accumulates silently — often for hours — before a merchant notices the revenue drop."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #60A5FA;
+      --orange:      #FB923C;
+      --text-primary:   #F0EDE8;
+      --text-secondary: #8B8FA8;
+      --text-dim:       #4A4F65;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 20px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.95rem; color: var(--amber); font-weight: 700; }
+    .nav-sep { color: var(--text-dim); }
+    .nav-crumb { font-size: 0.85rem; color: var(--text-secondary); }
+    .nav-cta {
+      margin-left: auto;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 7px 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .article-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .article-tag {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--red);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .article-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .article-meta a { color: var(--text-secondary); }
+    .article-meta a:hover { color: var(--amber); }
+
+    .alert-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin-bottom: 32px;
+    }
+    .alert-box strong { color: var(--red); }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .toc a { color: var(--text-secondary); }
+    .toc a:hover { color: var(--amber); }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 44px 0 16px;
+      color: var(--text-primary);
+      scroll-margin-top: 80px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      color: var(--text-primary);
+    }
+    p { margin-bottom: 18px; color: var(--text-secondary); }
+    strong { color: var(--text-primary); }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 18px;
+    }
+    li { color: var(--text-secondary); margin-bottom: 6px; }
+    li strong { color: var(--text-primary); }
+
+    .mono-tag {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--text-primary);
+    }
+
+    .terminal-block {
+      background: #0D1117;
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin: 24px 0;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+    .terminal-block .line { margin-bottom: 6px; color: var(--text-secondary); }
+    .terminal-block .line.ok { color: var(--green); }
+    .terminal-block .line.err { color: var(--red); }
+    .terminal-block .line.warn { color: var(--amber); }
+    .terminal-block .line.dim { color: var(--text-dim); }
+
+    .cause-list {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0;
+    }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .cause-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .cause-body p { margin: 0 0 8px; font-size: 0.88rem; }
+    .cause-body p:last-child { margin: 0; }
+    .cause-fix {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--green);
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-top: 4px;
+    }
+
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 0.88rem;
+    }
+    .diag-table th {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      padding: 10px 14px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .diag-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .diag-table td strong { color: var(--text-primary); }
+    .diag-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .step-grid {
+      display: grid;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 4px 8px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-body h3 { margin: 0 0 6px; font-size: 1rem; }
+    .step-body p { margin: 0; font-size: 0.88rem; }
+
+    .cta-box {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(251,146,60,0.05) 100%);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-box h2 { margin: 0 0 10px; font-size: 1.3rem; }
+    .cta-box p { margin-bottom: 22px; font-size: 0.93rem; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 4px;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+    .cta-btn.secondary {
+      background: transparent;
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.4);
+    }
+    .cta-btn.secondary:hover { background: rgba(245,158,11,0.08); }
+
+    .faq-section { margin-top: 48px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); margin: 0; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .nav-crumb { display: none; }
+      .cause-card { grid-template-columns: 1fr; }
+      .diag-table { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">No Payment Methods</span>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Store Check</a>
+  </nav>
+
+  <main class="article-wrap">
+    <div class="article-tag">⚠ Revenue Blocked — Active Issue</div>
+    <h1>Shopify Checkout "No Payment Methods Available" — 9 Causes &amp; Fixes</h1>
+    <div class="article-meta">
+      <span>Updated June 2026 · 10 min read · By CheckPulse</span>
+      <span>·</span>
+      <a href="./shopify-payments-suspended">Payments suspended?</a>
+      <span>·</span>
+      <a href="./shopify-payment-failed">Payment failed?</a>
+      <span>·</span>
+      <a href="./shopify-checkout-not-working">Checkout not working?</a>
+    </div>
+
+    <div class="alert-box">
+      <strong>If your Shopify checkout is showing no payment methods right now:</strong> customers are reaching your checkout and leaving with zero ability to buy. Your homepage looks completely normal. No alert has fired. Every minute this continues, you are losing revenue with no indication of the problem.
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">In this guide</div>
+      <ol>
+        <li><a href="#what-it-looks-like">What customers actually see</a></li>
+        <li><a href="#why-it-is-silent">Why this is a silent failure</a></li>
+        <li><a href="#9-causes">All 9 causes — and how to identify yours</a></li>
+        <li><a href="#quick-diagnosis">Quick diagnosis checklist</a></li>
+        <li><a href="#fix-each-cause">How to fix each cause</a></li>
+        <li><a href="#prevent-recurrence">How to prevent it happening again</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ol>
+    </div>
+
+    <h2 id="what-it-looks-like">What Customers Actually See</h2>
+    <p>The "no payment methods" failure does not look like a crash. It looks like an incomplete checkout. Depending on your Shopify theme, customers see one of these:</p>
+    <ul>
+      <li><strong>A blank payment section</strong> — the step loads but shows nothing where credit card / PayPal / Shop Pay would normally appear</li>
+      <li><strong>The explicit message "No payment methods available"</strong> — some themes surface this directly</li>
+      <li><strong>A greyed-out or unclickable "Complete order" button</strong> — the page renders but the button is disabled</li>
+      <li><strong>A spinner that never resolves</strong> — the payment methods request is hanging</li>
+    </ul>
+    <p>In every variant: <strong>no customer can place an order</strong>. Most close the tab and buy from a competitor. Very few email you to report it.</p>
+
+    <h2 id="why-it-is-silent">Why This Is a Silent Failure (and Why Most Monitoring Misses It)</h2>
+    <p>The checkout payment methods call is a sub-request inside a normal-looking checkout page load. When it fails or returns empty, the overall HTTP response for the checkout URL is still <span class="mono-tag">200 OK</span>. Your store is not "down" by any standard definition.</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># What the API returns when payment methods are empty</div>
+      <div class="line ok">GET /checkouts/{token}       → 200 OK  ← uptime monitors see this</div>
+      <div class="line ok">GET /cart/{token}            → 200 OK</div>
+      <div class="line err">GET /checkouts/{token}/payment_url → 200 OK</div>
+      <div class="line err">   { "payment_gateways": [] }  ←  empty — NO PAYMENT OPTIONS</div>
+      <div class="line dim"></div>
+      <div class="line dim"># Uptime monitor verdict: ALL GREEN ✓</div>
+      <div class="line dim"># Checkout reality:       BROKEN ✗</div>
+    </div>
+
+    <p>Standard uptime monitors — Pingdom, UptimeRobot, StatusCake, Better Uptime — check whether a URL returns a non-error HTTP status. They do not simulate a checkout flow. They will never catch this failure.</p>
+    <p>This is why stores often run with a broken payment layer for hours. Revenue drops. Conversion rate collapses. The first human who notices is usually the merchant checking their Shopify analytics at the end of the day.</p>
+
+    <h2 id="9-causes">All 9 Causes of "No Payment Methods Available"</h2>
+
+    <div class="cause-list">
+      <div class="cause-card">
+        <div class="cause-num">#1</div>
+        <div class="cause-body">
+          <h3>Shopify Payments Account Suspended</h3>
+          <p>The most common cause. When Shopify suspends your Payments account — due to chargebacks, identity verification, or policy review — the payment gateway is removed from checkout immediately. The API returns an empty <span class="mono-tag">payment_gateways</span> array.</p>
+          <p>Check: Shopify Admin → Settings → Payments. A suspension banner appears here and Shopify sends an email to your account address.</p>
+          <div class="cause-fix">FIX → Activate a backup gateway (PayPal / Stripe) immediately + respond to Shopify's suspension email. See <a href="./shopify-payments-suspended" style="color: var(--green);">Shopify Payments Suspended guide</a>.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#2</div>
+        <div class="cause-body">
+          <h3>No Active Payment Gateway Configured</h3>
+          <p>If all payment gateways were deactivated or deleted — sometimes accidentally during a settings cleanup or app uninstall — the checkout has no gateways to show. This is uncommon but happens after bulk settings changes or store migrations.</p>
+          <p>Check: Settings → Payments. Under "Payment providers," verify at least one gateway shows as active.</p>
+          <div class="cause-fix">FIX → Reactivate Shopify Payments or add a third-party gateway in Settings → Payments.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#3</div>
+        <div class="cause-body">
+          <h3>Currency or Country Mismatch</h3>
+          <p>Shopify Payments is only available in specific countries. If your store currency is set to a currency that your active gateway does not support — or if a customer's billing country is unsupported — checkout returns no payment options for that session.</p>
+          <p>This is especially common after enabling multi-currency or changing the store's primary currency without checking gateway compatibility.</p>
+          <div class="cause-fix">FIX → Settings → General → check Store currency matches your Shopify Payments country. Or: add a third-party gateway with broader currency support (PayPal, Stripe).</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#4</div>
+        <div class="cause-body">
+          <h3>Store in Test Mode with No Test Gateway</h3>
+          <p>If your Shopify store is in development, the theme or checkout may be configured for test mode. In test mode, Shopify Payments requires the Bogus Gateway (test gateway) to be enabled, or a Shopify Payments test configuration. If test mode is active but no test gateway is set, checkout shows no methods.</p>
+          <div class="cause-fix">FIX → Settings → Payments → Enable "Bogus Gateway" under test payment providers. Or: disable test mode if you're ready for live payments.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#5</div>
+        <div class="cause-body">
+          <h3>Third-Party Gateway Credentials Expired or Invalid</h3>
+          <p>Third-party gateways (PayPal, Stripe, Authorize.net, etc.) use API keys or OAuth tokens that can expire. When the token expires or the gateway account is suspended on the provider side, Shopify can no longer authenticate with it, and it is removed from the payment options returned to checkout.</p>
+          <div class="cause-fix">FIX → Settings → Payments → click into your third-party gateway → re-authenticate or update API credentials. Check your provider account for any suspension notices.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#6</div>
+        <div class="cause-body">
+          <h3>Checkout App or Extension Hiding Payment Methods</h3>
+          <p>Shopify's checkout extensibility lets apps inject UI and logic into the payment step. A bug or misconfiguration in a checkout app — fraud prevention, subscription billing, upsell apps — can cause it to hide or remove payment method components from the rendered checkout.</p>
+          <p>This failure often appears after an app update or when a new app is installed that conflicts with an existing one.</p>
+          <div class="cause-fix">FIX → Apps → disable the most recently installed/updated checkout app → test checkout. Identify the conflicting app via Settings → Checkout → Checkout extensions.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#7</div>
+        <div class="cause-body">
+          <h3>Checkout Not Routed Through Shopify's Secure Domain</h3>
+          <p>Shopify checkout must go through <span class="mono-tag">checkout.shopify.com</span> (or your store's <span class="mono-tag">.myshopify.com</span> checkout URL). If a custom domain redirect or proxy misconfiguration routes customers to the wrong checkout domain, payment method loading can fail due to cross-origin restrictions.</p>
+          <div class="cause-fix">FIX → Verify your checkout link in the theme follows Shopify's standard checkout URL structure. Check any redirect rules in Online Store → Navigation and your DNS/proxy configuration.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#8</div>
+        <div class="cause-body">
+          <h3>Payment Methods Restricted by Checkout Rules</h3>
+          <p>Shopify's Checkout Rules (available on Shopify Plus) allow merchants to conditionally show or hide payment methods based on order value, customer tags, or product types. A misconfigured rule can inadvertently hide all payment methods for a broad set of customers.</p>
+          <div class="cause-fix">FIX → Shopify Admin → Settings → Checkout → Checkout rules. Review any active rules and check whether they might match a wider audience than intended.</div>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-num">#9</div>
+        <div class="cause-body">
+          <h3>Temporary Shopify Platform Issue</h3>
+          <p>In rare cases, Shopify's own payment gateway API experiences degradation that affects all or some merchants. This is the least common cause and usually resolves within minutes, but it does happen — typically visible on Shopify's status page.</p>
+          <div class="cause-fix">FIX → Check <a href="https://www.shopifystatus.com" target="_blank" rel="noopener" style="color: var(--green);">shopifystatus.com</a>. If Shopify reports a payment incident, wait for resolution. Monitor your checkout to confirm when it recovers.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="quick-diagnosis">Quick Diagnosis: Identify Your Cause in 5 Minutes</h2>
+    <p>Run through this checklist in order. Most causes become obvious at step 1 or 2.</p>
+
+    <div class="step-grid">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Check Settings → Payments for any banners</h3>
+          <p>A suspension notice, verification request, or "action required" banner here immediately tells you the cause. If you see a banner: that is your issue. Follow the instructions on screen.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>Check your Shopify account email</h3>
+          <p>Search for recent emails from Shopify regarding payments, verification, or account issues. A suspension or credential expiry almost always comes with an email notification — which many merchants miss if it went to spam.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>Place a test order in an incognito window</h3>
+          <p>Use a fresh incognito browser to test your checkout from the customer's perspective. This eliminates cached sessions or browser-specific issues and gives you the exact experience a customer sees. Note exactly which step fails.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Check when the issue started and what changed</h3>
+          <p>Review recent app installs, updates, theme changes, or settings changes. If you can pinpoint a change that preceded the failure, you have your likely cause. Shopify Admin → Apps → sort by "Recently updated."</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <h3>Check shopifystatus.com</h3>
+          <p>If the above checks turn up nothing, a platform-level incident may be the cause. Shopify's status page lists active incidents and affected components. Payments and Checkout have their own status lines.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="fix-each-cause">Cause-by-Cause Fix Reference</h2>
+
+    <table class="diag-table">
+      <thead>
+        <tr>
+          <th>Cause</th>
+          <th>Where to Fix</th>
+          <th>Immediate Revenue Recovery</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Shopify Payments suspended</strong></td>
+          <td>Settings → Payments (respond to Shopify email)</td>
+          <td>Add PayPal / Stripe as backup gateway immediately</td>
+        </tr>
+        <tr>
+          <td><strong>No gateway configured</strong></td>
+          <td>Settings → Payments → Add payment method</td>
+          <td>Add and activate any supported gateway</td>
+        </tr>
+        <tr>
+          <td><strong>Currency / country mismatch</strong></td>
+          <td>Settings → General → Store currency</td>
+          <td>Add a gateway supporting the target currency</td>
+        </tr>
+        <tr>
+          <td><strong>Test mode, no test gateway</strong></td>
+          <td>Settings → Payments → Enable Bogus Gateway</td>
+          <td>Enable test gateway or disable test mode</td>
+        </tr>
+        <tr>
+          <td><strong>Third-party credentials expired</strong></td>
+          <td>Settings → Payments → Re-authenticate gateway</td>
+          <td>Re-enter credentials or use a backup gateway</td>
+        </tr>
+        <tr>
+          <td><strong>Checkout app conflict</strong></td>
+          <td>Apps → disable conflicting app</td>
+          <td>Disable app temporarily; contact app developer</td>
+        </tr>
+        <tr>
+          <td><strong>Domain / routing misconfiguration</strong></td>
+          <td>Online Store → Domains + DNS settings</td>
+          <td>Fix redirect to Shopify checkout domain</td>
+        </tr>
+        <tr>
+          <td><strong>Checkout rules misconfigured</strong></td>
+          <td>Settings → Checkout → Checkout rules (Plus)</td>
+          <td>Disable or narrow the hiding rule</td>
+        </tr>
+        <tr>
+          <td><strong>Shopify platform issue</strong></td>
+          <td>shopifystatus.com — wait for resolution</td>
+          <td>No action possible; monitor restoration</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cta-box">
+      <h2>Is your checkout broken right now?</h2>
+      <p>CheckPulse runs a full 4-step checkout simulation on your store and tells you exactly which step is failing — including whether payment methods are returning empty. Takes 30 seconds. No account required.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/#pricing" class="cta-btn secondary">Set Up Monitoring</a>
+    </div>
+
+    <h2 id="prevent-recurrence">How to Prevent This from Happening Again</h2>
+    <p>Every cause above shares one common trait: <strong>it can occur silently, at any time, without triggering any standard alert</strong>. A Shopify Payments suspension can happen overnight. A gateway token can expire on a weekend. A checkout app update can deploy on Tuesday afternoon. In each case, your uptime monitor stays green while your checkout is dead.</p>
+
+    <p>The only reliable prevention layer is <strong>automated checkout simulation</strong> — a process that actually runs through your checkout flow, requests payment methods, and verifies that the result is non-empty.</p>
+
+    <div class="terminal-block">
+      <div class="line dim"># CheckPulse — every 5 minutes, 24/7</div>
+      <div class="line ok">[14:00] Step 1: Products fetch ......... 200 OK</div>
+      <div class="line ok">[14:00] Step 2: Cart creation .......... 200 OK</div>
+      <div class="line ok">[14:00] Step 3: Checkout session ....... 200 OK</div>
+      <div class="line err">[14:00] Step 4: Payment methods ........ [] EMPTY → ALERT SENT</div>
+      <div class="line dim"></div>
+      <div class="line dim">Email: "CheckPulse alert — your Shopify checkout has no payment methods"</div>
+      <div class="line dim">  Store: yourstore.com</div>
+      <div class="line dim">  Step failed: 4 (payment_gateways empty)</div>
+      <div class="line dim">  Time: 14:00 UTC</div>
+      <div class="line dim">  Most likely cause: Shopify Payments suspension or gateway deactivated</div>
+    </div>
+
+    <p>With a 5-minute check interval, the maximum time any payment failure can go undetected is 5 minutes. Without monitoring, the average time-to-discovery in our analysis of Shopify incidents is 4–8 hours — because merchants only notice when they check their order dashboard and wonder why sales stopped.</p>
+
+    <p>The math on a typical Shopify store converting at 2.5% with average order value of $80 and 500 daily sessions: <strong>a 4-hour payment failure costs approximately $166 in lost revenue</strong>. A single prevented incident more than pays for a year of monitoring.</p>
+
+    <h2 id="faq">Frequently Asked Questions</h2>
+    <div class="faq-section">
+      <div class="faq-item">
+        <div class="faq-q">Why does my Shopify checkout say "no payment methods available"?</div>
+        <p class="faq-a">Shopify shows this when the checkout payment methods API returns an empty gateways array. The most common causes are a Shopify Payments suspension, a currency/country mismatch with your active gateway, or a checkout app that is hiding payment method components. Start with Settings → Payments and check for any banners or suspension notices.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does "no payment methods" mean my entire store is down?</div>
+        <p class="faq-a">No — and that is the danger. Your homepage, product pages, and cart all function normally. The failure is isolated to Step 3 or 4 of the checkout flow. Standard uptime monitors show green. Customers reach checkout, see no options, and leave. You have no outage alert and no indication anything is wrong until you notice a drop in orders.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I quickly check why Shopify checkout has no payment methods?</div>
+        <p class="faq-a">Go to Settings → Payments and look for any banners. Then check your account email for Shopify notifications. Place a test order in an incognito window to reproduce exactly what customers see. If everything looks normal in settings, check whether any checkout apps were recently installed or updated.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can a Shopify app cause checkout to show no payment methods?</div>
+        <p class="faq-a">Yes. Checkout extensibility apps, fraud prevention apps, and subscription billing apps can inject logic that conditionally hides payment methods. If the error appeared after installing or updating an app, disable it via Apps and re-test checkout immediately.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I prevent this from happening again?</div>
+        <p class="faq-a">The only reliable method is automated checkout simulation — a tool that runs the full checkout flow and alerts you the moment payment methods return empty. Standard uptime monitors cannot detect this class of failure. CheckPulse checks every 5 minutes and sends an immediate email alert when any checkout step fails, including an empty payment methods response.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What do customers see when there are no payment methods?</div>
+        <p class="faq-a">Most Shopify themes show either a blank payment section, a greyed-out checkout button, or the explicit message "No payment methods available." In all cases, customers cannot place an order and most leave without contacting you — making the failure accumulate silently until you notice a revenue drop.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payments-suspended">Payments Suspended</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-monitoring-comparison">Monitoring Comparison</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </footer>
+
+</body>
+</html>

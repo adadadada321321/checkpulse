@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Discount Code Not Working at Checkout — 8 Causes & Fixes (2026)</title>
+  <meta name="description" content="Shopify discount code not working at checkout? 8 causes: expired code, usage limit reached, minimum order not met, product restrictions, app conflicts, and more — with exact fix steps for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" />
+  <meta property="og:title" content="Shopify Discount Code Not Working — Every Cause Fixed" />
+  <meta property="og:description" content="When Shopify discount codes fail at checkout, customers abandon rather than buy at full price. 8 root causes, exact fixes, and how to detect silent app failures before customers report them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Discount Code Not Working at Checkout — 8 Causes & Fixes",
+    "description": "When a Shopify discount code fails at checkout, customers either abandon immediately or place a full-price order they'll dispute later. This guide covers all eight root causes — from expired codes and usage limits to silent third-party app failures — with exact admin steps to diagnose and fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify discount code not working at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons a Shopify discount code fails at checkout are: (1) the code has expired or the start date hasn't arrived yet — check Admin → Discounts → click the code → look at the Active dates section; (2) the customer hasn't met the minimum purchase amount — the error message usually states this explicitly; (3) the usage limit has been reached — check the 'Times used' counter on the discount page; (4) the code only applies to specific products or collections, and those items aren't in the cart; (5) the code is restricted to specific customers or first-time buyers; (6) a single-use code was already redeemed by that customer. Go to Admin → Discounts, find the code, and review each setting — the cause will be visible."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify discount code say 'invalid' even though I set it up correctly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If the discount code shows 'This discount code isn't valid' and you're confident the code is correct, the most likely causes are: (1) the code was created with a specific customer segment restriction — the customer entering it doesn't qualify; (2) a third-party discount app (Bold Discounts, Automatic Discounts Pro, Shopify Scripts) is overriding or conflicting with native Shopify discounts; (3) the code is case-sensitive in a third-party app context (Shopify native codes are case-insensitive, but apps may not be); (4) the code is for a subscription product but the customer is placing a one-time order. Check Admin → Discounts → click the specific code → review Customer eligibility and Active dates carefully."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify discount code work for some customers but not others?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. A Shopify discount code can apply to some customers but not others if: (1) the code has a 'specific customers' or 'specific customer segments' eligibility setting — only tagged customers qualify; (2) the code has a 'first-time customers only' restriction — returning customers are blocked; (3) the code has a per-customer usage limit and some customers have already hit it; (4) the cart contents differ — the code may apply to a specific product and only customers with that product qualify. To see why a specific customer was rejected, go to Admin → Discounts → click the code → review Customer eligibility and Usage limits."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "My discount code stopped working — why?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If a discount code was working and then stopped, the most likely causes in order of frequency are: (1) the end date passed — the code expired automatically; (2) the total usage limit was reached — the 'Times used' counter hit the cap you set; (3) a third-party discount app was updated and introduced a conflict with this specific code; (4) the code was tied to a specific Shopify Script or function that was paused or deleted. Go to Admin → Discounts → find the code — check the Active dates section and the Usage limits section. If both look fine, check your installed discount apps for recent changes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't customers stack discount codes in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "By default, Shopify does not allow customers to combine a manual discount code with an automatic discount. If you have an active automatic discount running (Admin → Discounts → Automatic discounts), it will apply automatically at checkout — and a manual code entered by the customer will be rejected with 'only one discount may be applied.' To allow stacking, you need to either: (1) use Shopify's Discount Combinations feature (available on some plans) — enable it on each discount's edit page under 'Combinations'; or (2) use a third-party app like Shopify Bundles or a custom Shopify Function. Shopify's native discount system blocks stacking by design unless combinations are explicitly enabled."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can a discount code failure break the entire checkout — not just the discount?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Third-party discount apps inject into the checkout pipeline. When such an app crashes or returns a malformed response, it can corrupt the checkout session — not just reject the discount code, but make the entire checkout un-completeable. Customers see the checkout load visually, but order placement fails silently. From the merchant's side, the checkout URL still returns HTTP 200, making it invisible to standard uptime monitoring. This is the class of failure that end-to-end checkout simulation catches: CheckPulse verifies that a valid checkout session can be created and remains intact — so if a discount app crash is corrupting sessions, you get alerted before customers start reporting order failures."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    /* HERO */
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      color: var(--amber);
+      font-weight: 700;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    /* FLOW VISUAL */
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    /* SECTION */
+    .section {
+      padding: 56px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 2.5vw, 1.75rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    /* TOC */
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin: 32px 0;
+    }
+    .toc-title { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 14px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { color: var(--text-mid); font-size: 0.9rem; margin-bottom: 6px; }
+    .toc a { color: var(--text-mid); }
+    .toc a:hover { color: var(--amber); }
+
+    /* CAUSE CARDS */
+    .cause-grid { display: flex; flex-direction: column; gap: 24px; margin-top: 32px; }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .cause-card.priority { border-color: rgba(239,68,68,0.3); }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .cause-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .cause-card p { font-size: 0.9rem; color: var(--text-mid); margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.07);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      color: var(--green);
+      line-height: 1.6;
+    }
+    .cause-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .badge-common { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+    .badge-silent { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid rgba(168,85,247,0.25); }
+    .badge-config { background: rgba(59,130,246,0.12); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+    .badge-app { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+
+    /* DIAGNOSIS TABLE */
+    .diag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 0.85rem;
+    }
+    .diag-table th {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .diag-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-mid);
+      vertical-align: top;
+    }
+    .diag-table tr:last-child td { border-bottom: none; }
+    .diag-table td:first-child { color: var(--text); font-weight: 500; }
+
+    /* TIMELINE */
+    .timeline { display: flex; flex-direction: column; gap: 0; margin: 32px 0; }
+    .timeline-step { display: flex; gap: 18px; padding-bottom: 28px; position: relative; }
+    .timeline-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 16px; top: 36px; bottom: 0;
+      width: 1px;
+      background: var(--border-mid);
+    }
+    .timeline-num {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+    }
+    .timeline-body { padding-top: 4px; }
+    .timeline-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .timeline-body p { font-size: 0.88rem; color: var(--text-mid); margin-bottom: 0; }
+
+    /* MONITORING CALLOUT */
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px;
+      margin: 32px 0;
+    }
+    .monitor-box .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .monitor-icon { font-size: 1.1rem; margin-top: 2px; flex-shrink: 0; }
+    .monitor-text { font-size: 0.88rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    /* CTA */
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 { font-size: 1.4rem; margin-bottom: 12px; }
+    .cta-block p { color: var(--text-mid); font-size: 0.95rem; max-width: 540px; margin: 0 auto 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #0B0E14;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 28px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .flow-steps { flex-direction: column; align-items: flex-start; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <span class="nav-brand">⬡ CheckPulse</span>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Checkout Failure · Discount Step</div>
+        <h1>Shopify <span>Discount Code Not Working</span> at Checkout — 8 Causes Fixed</h1>
+        <p class="hero-lead">
+          When a Shopify discount code fails at checkout, customers either abandon
+          immediately or place a full-price order they'll dispute later. Here are all
+          8 causes and exactly how to diagnose and fix each one.
+        </p>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-num">8</div>
+            <div class="stat-label">distinct causes covered</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">#1</div>
+            <div class="stat-label">most common: expired code or usage limit</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">~35%</div>
+            <div class="stat-label">of shoppers abandon when their discount fails</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Checkout step where the failure occurs</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Discount code field</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">— Contact info</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">— Shipping</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">— Payment</div>
+        </div>
+        <div class="flow-error-box">
+          Customer enters discount code → sees "This discount code isn't valid" or "Enter a valid discount code" → cannot get the discount they were promised → abandons or disputes later.
+          <br /><br />
+          <span style="color: var(--text-dim);">Most causes are fixable from Admin → Discounts in under 5 minutes. Cause 8 (third-party app failure) is the silent one — it requires a different diagnostic approach.</span>
+        </div>
+      </div>
+
+      <!-- WHAT THE CUSTOMER SEES -->
+      <section class="section">
+        <div class="section-label">Diagnosis</div>
+        <h2>What the Customer Sees vs. What It Means</h2>
+        <p>
+          Shopify shows different error messages depending on the cause. Match the
+          exact message your customer is seeing to the right cause before you start
+          changing settings.
+        </p>
+        <table class="diag-table">
+          <thead>
+            <tr>
+              <th>Error / Symptom</th>
+              <th>Likely Cause</th>
+              <th>First Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>"This discount code isn't valid"</td>
+              <td>Expired, eligibility restriction, or app conflict</td>
+              <td>Admin → Discounts → find the code → check Active dates + Customer eligibility</td>
+            </tr>
+            <tr>
+              <td>"Enter a valid discount code"</td>
+              <td>Code doesn't exist or was deleted</td>
+              <td>Admin → Discounts → search for the exact code string</td>
+            </tr>
+            <tr>
+              <td>"Minimum purchase requirement not met"</td>
+              <td>Cart total is below the code's minimum</td>
+              <td>Admin → Discounts → check Minimum purchase amount setting on the code</td>
+            </tr>
+            <tr>
+              <td>"Discount code limit has been reached"</td>
+              <td>Total usage limit exhausted</td>
+              <td>Admin → Discounts → check Times used vs. Usage limits</td>
+            </tr>
+            <tr>
+              <td>Code works for some customers, fails for others</td>
+              <td>Customer eligibility restriction or per-customer limit</td>
+              <td>Admin → Discounts → Customer eligibility section</td>
+            </tr>
+            <tr>
+              <td>"Only one discount may be applied"</td>
+              <td>Automatic discount conflict — stacking blocked</td>
+              <td>Admin → Discounts → check for active Automatic discounts</td>
+            </tr>
+            <tr>
+              <td>Code was working, then suddenly stopped</td>
+              <td>Code expired or usage limit just reached</td>
+              <td>Admin → Discounts → Active dates end date + Times used counter</td>
+            </tr>
+            <tr>
+              <td>Checkout breaks entirely when code is entered</td>
+              <td>Third-party discount app crashing</td>
+              <td>Admin → Apps → check discount app status; try disabling it temporarily</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 8 CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>All 8 Causes — With Exact Fix Steps</h2>
+
+        <div class="toc">
+          <div class="toc-title">Jump to a cause</div>
+          <ol>
+            <li><a href="#cause-1">Code expired or not yet active</a></li>
+            <li><a href="#cause-2">Minimum purchase requirement not met</a></li>
+            <li><a href="#cause-3">Usage limit reached</a></li>
+            <li><a href="#cause-4">Product or collection restriction</a></li>
+            <li><a href="#cause-5">Customer eligibility restriction</a></li>
+            <li><a href="#cause-6">Single-use code already redeemed</a></li>
+            <li><a href="#cause-7">Automatic discount conflict</a></li>
+            <li><a href="#cause-8">Third-party discount app failure (silent)</a></li>
+          </ol>
+        </div>
+
+        <div class="cause-grid">
+
+          <div class="cause-card priority" id="cause-1">
+            <div class="cause-num">CAUSE 01 / 08</div>
+            <div class="cause-badge badge-common">Most Common</div>
+            <h3>Code Expired or Not Yet Active</h3>
+            <p>
+              Every Shopify discount code has an optional start date and end date. If the
+              current date is past the end date, or before the start date, Shopify rejects
+              the code as invalid — even if the code string is correct. This is the #1
+              cause of discount codes that "worked last week but don't work today."
+            </p>
+            <p>
+              Seasonal campaigns (Black Friday, January sale) are especially prone to this:
+              the promotional email goes out with a code, the end date passes, but the
+              email stays in inboxes and recipients try the code months later.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the discount code → look at "Active dates."
+              If the end date has passed, either remove it (no expiration) or extend it.
+              If the start date is in the future, the code won't work until that date arrives.
+              Save changes — takes effect immediately.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-2">
+            <div class="cause-num">CAUSE 02 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Minimum Purchase Requirement Not Met</h3>
+            <p>
+              Shopify discount codes can require a minimum order amount (e.g., "$50 minimum")
+              or a minimum item quantity. When the customer's cart doesn't meet the threshold,
+              the code is rejected. Shopify usually shows a message stating the minimum
+              requirement, but some storefronts suppress or obscure this message.
+            </p>
+            <p>
+              This cause is very common when influencer codes or email codes have a minimum
+              that isn't prominently displayed — customers enter the code and get rejected
+              without understanding why.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the code → "Minimum purchase requirements" section.
+              Either lower/remove the minimum, or make the threshold visible to customers
+              at cart/checkout so they can add more to qualify. Consider adding a cart
+              notification that shows when a customer is close to the minimum.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-3">
+            <div class="cause-num">CAUSE 03 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Usage Limit Reached</h3>
+            <p>
+              Shopify lets you cap how many total times a code can be used, and separately
+              how many times a single customer can use it. When the total limit is reached,
+              the code stops working for everyone. When the per-customer limit is reached,
+              the code stops working for that specific customer but continues for others.
+            </p>
+            <p>
+              This is a silent failure from the merchant perspective — you may not notice
+              the limit was hit unless you check the discount's usage counter. Meanwhile,
+              customers who received the code (via email, influencer partnership) keep
+              trying it and getting rejected.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the code → "Usage limits" section.
+              Check "Times used" against your limit. To allow more usage: increase or
+              remove the total limit. For per-customer limits, you can't reset individual
+              customer usage from the admin — you'd need to create a new code for that
+              customer. If the code was shared broadly and limits are exhausted, create
+              a new code with a higher limit.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-4">
+            <div class="cause-num">CAUSE 04 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Product or Collection Restriction</h3>
+            <p>
+              A discount code can be restricted to apply only to specific products or
+              specific collections. If the customer's cart contains only items outside
+              the eligible set, the code is rejected. If the cart is mixed (some eligible,
+              some not), Shopify applies the discount only to eligible items — the customer
+              may see a partial discount and assume the code is broken.
+            </p>
+            <p>
+              This is especially confusing when the code was shared in a context that
+              implied it applied to all products (e.g., "20% off your order") but was
+              actually created with product restrictions in admin.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the code → "Applies to" section.
+              If it shows "Specific products" or "Specific collections," confirm the
+              products in the customer's cart match. Either add the missing products/collections
+              to the discount, change to "All products," or communicate the restriction
+              clearly to customers in the promotional material.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-5">
+            <div class="cause-num">CAUSE 05 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Customer Eligibility Restriction</h3>
+            <p>
+              Shopify discount codes can be restricted to specific customers (by customer
+              tag or manually selected), specific customer segments, or first-time customers
+              only. When a customer who doesn't meet the eligibility criteria tries the code,
+              they get "This discount code isn't valid" — the same error as an expired code,
+              with no indication that eligibility is the cause.
+            </p>
+            <p>
+              "First-time customers only" restrictions are a frequent source of confusion:
+              a returning customer who received a referral code will be blocked, and the
+              rejection message gives no hint that they've already purchased before.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the code → "Customer eligibility" section.
+              If it shows "Specific customer segments" or "Specific customers," verify
+              the customer qualifies. For first-time customers, check the customer's
+              order history in Admin → Customers. To broaden eligibility, change to
+              "All customers" — or create a separate code for returning customers
+              without the restriction.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-6">
+            <div class="cause-num">CAUSE 06 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Single-Use Code Already Redeemed</h3>
+            <p>
+              Some discount codes are generated as single-use — once one customer redeems
+              them, they're invalid for everyone including the original recipient. This
+              is common with bulk-generated unique codes (e.g., "generate 1,000 unique
+              20%-off codes for email campaign"), where each code is tied to exactly one use.
+            </p>
+            <p>
+              If a customer clicks an email link, adds to cart, doesn't complete the purchase,
+              then returns later and the code was somehow used in between (e.g., forwarded
+              to someone else), they'll see the code as invalid.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → click the code → confirm "Limit to one use per customer"
+              is checked and check "Times used" (should be 1 if already redeemed).
+              For bulk-generated unique codes, each customer should have their own code.
+              If this customer's code was redeemed unintentionally, contact the customer
+              directly and issue a new unique code — there's no way to "unredeeem" a
+              single-use code in Shopify.
+            </div>
+          </div>
+
+          <div class="cause-card" id="cause-7">
+            <div class="cause-num">CAUSE 07 / 08</div>
+            <div class="cause-badge badge-config">Configuration</div>
+            <h3>Automatic Discount Conflict</h3>
+            <p>
+              Shopify has two types of discounts: manual codes (customers enter at checkout)
+              and automatic discounts (applied automatically to qualifying carts without any
+              code entry). By default, Shopify does not allow both to apply to the same order.
+              If an automatic discount is active and applies to the customer's cart, they
+              cannot also use a manual discount code — they'll see "Only one discount may
+              be applied."
+            </p>
+            <p>
+              This is easy to trigger accidentally: you run a sitewide automatic discount
+              for a sale, then a customer tries to use an influencer code on top of it.
+              The manual code is rejected even though it's valid.
+            </p>
+            <div class="cause-fix">
+              FIX: Admin → Discounts → Automatic discounts tab — check for any active
+              automatic discounts. Two options: (1) Allow combinations — edit both
+              the automatic discount and the manual code, enable "Discount combinations"
+              so they can stack; (2) Pause or end the automatic discount if the sale period
+              is over. Shopify's combination settings let you explicitly allow or block
+              stacking between discount types on supported plans.
+            </div>
+          </div>
+
+          <div class="cause-card priority" id="cause-8">
+            <div class="cause-num">CAUSE 08 / 08</div>
+            <div class="cause-badge badge-silent">Silent Failure</div>
+            <h3>Third-Party Discount App Failure</h3>
+            <p>
+              Third-party discount apps (Bold Discounts, Automatic Discounts Pro, Shopify
+              Scripts, custom Shopify Functions) inject into the checkout pipeline to apply
+              their own discount logic. When such an app experiences an API error, credential
+              expiration, a deployment issue, or a conflict with a Shopify platform update,
+              it can fail silently in one of two ways:
+            </p>
+            <p>
+              <strong>Soft failure:</strong> the app rejects a valid code as "invalid" — customers
+              can't apply their discount but can still check out at full price. The checkout
+              itself works; only the discount logic is broken.
+            </p>
+            <p>
+              <strong>Hard failure:</strong> the app crash corrupts the checkout session —
+              customers can't complete the order at all, whether or not they're entering
+              a discount code. The checkout URL still returns HTTP 200, so standard uptime
+              monitoring shows all-green while orders are failing.
+            </p>
+            <div class="cause-fix">
+              FIX (soft): Admin → Apps → find the discount app → check its dashboard for
+              error logs. Try disabling the app in its own settings (not uninstalling) to
+              confirm whether native Shopify discount codes start working again. Contact
+              the app developer with the specific code and error message.
+
+              FIX (hard): If checkout itself is broken, disable the discount app entirely
+              from Admin → Apps → uninstall or disable. Then run a test checkout without
+              the app to confirm the session is valid. Re-enable only after the app's
+              support team resolves the issue. Use CheckPulse to get alerted the moment
+              a session-level failure like this occurs — before customers start reporting it.
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DIAGNOSTIC TIMELINE -->
+      <section class="section">
+        <div class="section-label">Troubleshooting Flow</div>
+        <h2>5-Step Diagnosis When a Code Is Reported Broken</h2>
+        <p>
+          When a customer reports that a discount code doesn't work, go through these
+          steps in order before contacting the customer — you'll find the cause in
+          under 5 minutes in most cases.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-num">1</div>
+            <div class="timeline-body">
+              <h4>Find the code in Admin</h4>
+              <p>Go to Admin → Discounts → search for the exact code string the customer reported. Confirm it exists. If it doesn't exist or shows 0 results, the code was deleted or they have a typo.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">2</div>
+            <div class="timeline-body">
+              <h4>Check Active dates and Status</h4>
+              <p>Is the code showing as "Active"? Check the start date (hasn't arrived yet?) and end date (already passed?). This resolves the majority of "suddenly stopped working" reports.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">3</div>
+            <div class="timeline-body">
+              <h4>Check Usage limits and Customer eligibility</h4>
+              <p>Is "Times used" at or above the limit? Does Customer eligibility restrict to specific customers or segments? Ask the customer for their email to look up whether they meet the eligibility requirements.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">4</div>
+            <div class="timeline-body">
+              <h4>Reproduce the failure yourself</h4>
+              <p>Add the same products the customer had to a cart and apply the code in a test checkout. If it works for you but not them, the issue is customer-specific (eligibility, per-customer limit, or their browser/session). If it fails for you too, the issue is global.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">5</div>
+            <div class="timeline-body">
+              <h4>Check for app conflicts</h4>
+              <p>If steps 1–4 show nothing wrong, go to Admin → Apps and look for any installed discount apps. Try temporarily disabling them and reproduce the test. If the code starts working after disabling an app, that app is the conflict.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING GAP -->
+      <section class="section">
+        <div class="section-label">The Monitoring Gap</div>
+        <h2>Why Most Discount Failures Are Invisible Until Customers Complain</h2>
+        <p>
+          Causes 1–7 are configuration issues: they're visible in Admin, fixable in
+          minutes, and don't require any monitoring. Once you know the cause, you can
+          prevent them with better launch checklists.
+        </p>
+        <p>
+          Cause 8 — third-party app failure — is different. When a discount app breaks,
+          here is what your monitoring stack sees:
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What monitoring tools see during a discount app failure</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Ping monitor:</strong> your checkout URL returns HTTP 200. The page loads. The app failure is an application-layer event, invisible to TCP/HTTP checks.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom:</strong> same limitation — they verify the HTTP handshake, not whether the checkout session is valid or the discount pipeline is intact.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Shopify Analytics:</strong> conversion rate drops are visible after the fact — you'll see the damage in your dashboard, not before customers experience it.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Manual testing:</strong> only catches the issue if you happen to test during the failure window, with a cart that includes the affected product set.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation:</strong> verifies the full checkout session is valid — including that app-layer failures haven't corrupted the checkout pipeline — on an automated schedule.</div>
+          </div>
+        </div>
+
+        <div class="cta-block">
+          <h2>Know When Your Checkout Breaks Before Customers Do</h2>
+          <p>
+            CheckPulse runs a 4-step checkout simulation every 5 minutes: product fetch,
+            cart creation, checkout session initialization, and payment methods verification.
+            When a third-party app crash corrupts the checkout session — making it impossible
+            to place orders, with or without a discount code — you get an email alert with
+            the exact failure point before orders are lost.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">
+            Start Free Monitoring →
+          </a>
+          <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dim);">
+            No credit card required &mdash; free instant checkout health check available
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify Discount Code Not Working — Frequently Asked Questions</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why is my Shopify discount code not working at checkout?</div>
+            <div class="faq-a">
+              The most common reasons: the code has expired (check Active dates in Admin → Discounts), the usage limit has been reached (check Times used), the customer hasn't met the minimum purchase amount, or the code is restricted to specific products or customer segments. Go to Admin → Discounts, find the code, and review each setting — the cause will be visible in 90% of cases within 2 minutes.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does my Shopify discount code say "invalid" even though I set it up correctly?</div>
+            <div class="faq-a">
+              If the code looks correct in Admin but shows "invalid" at checkout, the most likely cause is a Customer eligibility restriction — the specific customer entering the code doesn't qualify (wrong segment, not a first-time buyer, etc.). Another cause: a third-party discount app is overriding the native discount logic. Try disabling any installed discount apps and test the code again. If it works without the app, the app is the conflict.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can a Shopify discount code work for some customers but not others?</div>
+            <div class="faq-a">
+              Yes. Codes with "Specific customers" or "Specific customer segments" eligibility will only work for qualifying customers. Codes with "First-time customers only" will fail for returning customers. Codes with a per-customer usage limit will fail for customers who've already hit their redemption count. To see why a specific customer was rejected, go to Admin → Discounts → click the code → Customer eligibility section.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">My discount code stopped working — why?</div>
+            <div class="faq-a">
+              If a code was working and then stopped, in order of likelihood: (1) the end date passed — check Active dates; (2) the total usage limit was reached — check Times used vs. your cap; (3) a third-party discount app was updated and introduced a conflict. Go to Admin → Discounts → find the code and check the Active dates section and Usage limits section first. If both look fine, check for recent app updates or changes.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why can't customers stack discount codes in Shopify?</div>
+            <div class="faq-a">
+              Shopify does not stack a manual discount code with an active automatic discount by default. If you have an Automatic discount running and it applies to the customer's cart, a manually entered code will be rejected. To allow stacking, go to each discount's edit page and enable "Discount combinations" (available on Shopify plans that support it). Alternatively, pause the automatic discount during periods when you want manual codes to be the primary discount mechanism.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How can a discount code failure break the entire checkout — not just the discount?</div>
+            <div class="faq-a">
+              Third-party discount apps inject into the checkout pipeline. When such an app crashes, it can corrupt the checkout session — not just reject the discount, but prevent orders from being placed entirely. The checkout URL still returns HTTP 200, so standard uptime monitoring won't catch it. End-to-end checkout simulation — which actually tests whether a checkout session is valid and completeable — is the only automated way to catch this class of failure before customers report order failures.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &mdash;
+        Shopify Checkout Monitor &mdash;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+        &mdash;
+        Related: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working">Button Not Working</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

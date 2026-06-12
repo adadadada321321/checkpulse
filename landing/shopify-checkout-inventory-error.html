@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Inventory Error — 7 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify blocking checkout with 'not enough inventory to fulfill your order' or silently removing items? 7 causes: inventory sync delay, multi-location failures, reserve holds, overselling race conditions — with exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error" />
+  <meta property="og:title" content="Shopify Checkout Inventory Error — Every Cause Fixed" />
+  <meta property="og:description" content="When Shopify blocks checkout with an inventory error, items can appear in stock on your storefront while the checkout step silently rejects them. 7 root causes, exact admin fix steps, and the one inventory failure that standard monitoring cannot detect." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Inventory Error — 7 Causes &amp; Fixes",
+    "description": "When Shopify shows 'not enough inventory to fulfill your order,' silently removes items from checkout, or blocks the customer from proceeding past the cart step, the root cause is almost always one of seven distinct inventory failures — from a race condition during a flash sale to a multi-location sync gap where Shopify's displayed stock doesn't match the physical warehouse count. This guide covers all seven, with exact admin diagnostic steps and fix instructions for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say 'not enough inventory to fulfill your order' at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify validates inventory at the moment of checkout submission, not when the customer adds the item to their cart. If the item's available quantity drops to 0 between cart creation and checkout — because another customer completed a purchase, because a Shopify Flow automation adjusted inventory, or because an ERP sync updated the count — Shopify blocks the checkout with 'not enough inventory to fulfill your order' or silently removes the item. This is distinct from a storefront 'sold out' message: the product page may still show the item as available because Shopify's catalog cache hasn't refreshed, while the inventory API already reads 0."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix an inventory error blocking Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The fix depends on the cause. For a race condition during a flash sale or product drop: go to Admin → Products → select the variant → check its 'Available' count in each location. If it's 0, you either need to restock or enable 'Continue selling when out of stock' temporarily. For a multi-location sync issue: go to Admin → Products → Inventory tab → check which location has stock assigned and whether the checkout is routing to a location with 0 inventory. For an ERP or WMS sync delay: check Admin → Products → Inventory and compare the listed count to your actual warehouse system — if they don't match, the sync is lagging. Trigger a manual sync in your ERP/WMS connector app to force an immediate update."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify product showing as in stock on the storefront but blocking at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's storefront uses a cached view of inventory that can lag behind the live inventory count by several minutes. The checkout step queries the inventory API in real time. This means a product can display 'In Stock' on the product page while the live inventory count at checkout reads 0. The most common causes: (1) another customer completed checkout and bought the last unit — the storefront cache hasn't updated; (2) an ERP, WMS, or inventory management app pushed a sync that set the count to 0 seconds ago — the cache hasn't refreshed; (3) Shopify's checkout reserve system has allocated your last unit to a different active checkout session. In all three cases, the storefront appears normal but checkout is blocked."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is a Shopify checkout inventory reserve and how long does it last?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's checkout inventory reserve temporarily holds an item's inventory for a customer who has reached the payment step of checkout. The reserve prevents overselling when two customers try to purchase the last unit simultaneously. The reserve lasts for approximately 10 minutes after the customer reaches the payment step. If the customer doesn't complete payment within that window, the inventory is released and becomes available again. For merchants, this means that during high-demand drops, customers who add to cart and proceed to checkout may still see an inventory error if another customer's reserve is consuming the last available unit — even if the original customer was fast enough to start the checkout flow."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can inventory sync delays cause false 'out of stock' errors at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. If your store uses a third-party ERP, WMS, or inventory management app (NetSuite, TradeGecko, Cin7, DEAR Inventory, etc.), those systems sync inventory counts to Shopify on a schedule — typically every 5 to 60 minutes. During the sync interval, Shopify's inventory count can drift from the physical warehouse count in either direction. If a sync incorrectly sets inventory to 0 (a sync error, a duplicate sync, or a rounding issue) for an item that is physically in stock, customers will see 'not enough inventory to fulfill your order' at checkout even though the item exists and could ship. Go to Admin → Products → check the 'Last sync' timestamp in your inventory connector app and compare the Shopify count to your WMS. Trigger a manual sync to force an immediate correction."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify platform incident cause inventory errors at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Shopify's inventory service is a separate internal API that checkout queries at submission time. During Shopify infrastructure incidents affecting the inventory service, this API can return incorrect counts (often 0) for items that are actually in stock. Every customer attempting to checkout sees an inventory error, even if the item has ample stock. The checkout page itself returns HTTP 200 — the form loads normally. Standard uptime monitors (Uptime Robot, Pingdom, Better Uptime) show green because they only verify the HTTP response, not whether inventory queries return correct counts. This type of failure is only detectable by end-to-end checkout simulation that validates the full cart-to-payment flow, including inventory resolution."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.app { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.race { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+
+    .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .timeline-step { display: flex; gap: 20px; padding-bottom: 28px; position: relative; }
+    .timeline-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 36px;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .timeline-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .timeline-body p { font-size: 0.88rem; color: var(--text-mid); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .monitor-row:first-of-type { border-top: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.85rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: clamp(1.2rem, 3vw, 1.6rem); margin-bottom: 14px; }
+    .cta-block p { font-size: 0.95rem; color: var(--text-mid); max-width: 560px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .faq-item {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 0.97rem; margin-bottom: 12px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify Checkout <span>Inventory Error</span> — 7 Causes &amp; Fixes</h1>
+        <p class="hero-lead">
+          "Not enough inventory to fulfill your order." Shopify blocks checkout while your storefront
+          still shows the item as available. This guide covers every cause — from flash-sale race
+          conditions to multi-location sync failures — and the one inventory failure that standard
+          monitoring completely misses.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">7</div>
+            <div class="stat-label">root causes covered</div>
+          </div>
+          <div>
+            <div class="stat-num">10 min</div>
+            <div class="stat-label">Shopify reserve hold window</div>
+          </div>
+          <div>
+            <div class="stat-num">HTTP 200</div>
+            <div class="stat-label">while checkout is blocked</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Shopify Checkout — Where Inventory Errors Occur</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart Created</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step ok">✓ Checkout Initiated</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Inventory Check Fails</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Payment (unreachable)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Order (unreachable)</div>
+        </div>
+        <div class="flow-error-box">
+          Error: "Not enough inventory to fulfill your order" or item silently removed from checkout.
+          Storefront product page may still show "In Stock" — the storefront cache lags behind the
+          live inventory API. The checkout page returns HTTP 200. Standard uptime monitors show: all green.
+        </div>
+      </div>
+
+      <!-- CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>Why Shopify Checkout Blocks with an Inventory Error</h2>
+        <p>
+          Inventory errors at checkout are distinct from storefront "sold out" messages because the
+          product page and checkout page query inventory at different times and from different sources.
+          The storefront uses a cached view; the checkout step queries the inventory API in real time.
+          This gap is why an item can appear available on your store while being blocked at checkout.
+        </p>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <div class="cause-tag race">Race Condition</div>
+            <div class="cause-header">
+              <div class="cause-num">01</div>
+              <h3>Item Sells Out Between Cart Creation and Checkout Submission</h3>
+            </div>
+            <p>
+              Shopify validates inventory at checkout submission, not when the customer adds to cart.
+              If another customer completes a purchase of the last unit between the moment your
+              customer adds to cart and when they click "Pay Now," Shopify blocks checkout with
+              "not enough inventory to fulfill your order." The first customer's cart still shows the
+              item — the cart doesn't update in real time — but checkout is blocked.
+            </p>
+            <p>
+              This is the most common inventory error cause during flash sales, product drops, and
+              limited-edition releases. It is not a bug — it is Shopify's oversell protection working
+              as intended. But customers experience it as a checkout failure with no clear explanation.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Products → select the affected variant → check the
+"Available" count for each location. If overselling is a real risk, enable
+"Continue selling when out of stock" temporarily during peak demand.
+Alternatively, enable "Reserve items at checkout" (Admin → Settings →
+Checkout) so Shopify holds inventory for customers who have started checkout,
+reducing the race window. Consider waitlist functionality for high-demand drops.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Multi-Location</div>
+            <div class="cause-header">
+              <div class="cause-num">02</div>
+              <h3>Multi-Location Inventory Sync Failure — Wrong Location Assigned to Checkout</h3>
+            </div>
+            <p>
+              Merchants with multiple fulfillment locations (warehouses, retail stores, 3PLs) can
+              have inventory spread across locations. Shopify aggregates these for the storefront
+              total, but at checkout it routes to a specific location based on shipping rules.
+              If the location assigned to fulfill the customer's order has 0 inventory — even though
+              the aggregate total is positive — checkout is blocked.
+            </p>
+            <p>
+              Common scenario: Location A has 50 units and Location B has 0. Your checkout is
+              configured to fulfill from Location B first. The storefront shows "50 in stock."
+              Every checkout is blocked with an inventory error pointing to Location B.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Products → Inventory tab. Check each location's
+individual stock count, not just the total. Then check Admin → Settings →
+Shipping and delivery → Locations to review which locations are active for
+fulfillment and in what priority order. If a location has 0 stock but is
+at the top of the fulfillment priority, either restock it or reprioritize
+another location with available inventory.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag app">ERP / WMS Sync Delay</div>
+            <div class="cause-header">
+              <div class="cause-num">03</div>
+              <h3>Third-Party ERP or WMS Sync Sets Inventory to 0 on a Delay</h3>
+            </div>
+            <p>
+              ERP systems (NetSuite, SAP, DEAR Inventory, Cin7, Brightpearl) and warehouse
+              management systems sync inventory to Shopify on a schedule — typically every
+              5 to 60 minutes, sometimes longer. During the sync interval, Shopify's count
+              can differ from the physical warehouse count in either direction.
+            </p>
+            <p>
+              If a sync job incorrectly sets a variant's inventory to 0 — due to a sync error,
+              a duplicate adjustment, a rounding issue, or a data mapping mismatch — checkout
+              is blocked even though the item physically exists and could ship. This typically
+              appears as a sudden spike in inventory errors across a specific product line
+              that resolves after the next sync cycle.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Products → check the "Last sync" or inventory history
+for the affected variant. Compare the Shopify count to your ERP/WMS
+current count. If they differ, check your connector app's sync logs for
+errors at the last sync time. Trigger a manual sync to force an
+immediate correction. If sync errors are recurring, check for duplicate
+webhook registrations in your ERP connector — double-firing a "set
+inventory to 0" adjustment is a common connector misconfiguration.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Reserve Hold</div>
+            <div class="cause-header">
+              <div class="cause-num">04</div>
+              <h3>Shopify Checkout Reserve Holding Inventory for Another Active Session</h3>
+            </div>
+            <p>
+              When a customer reaches the payment step of Shopify checkout, Shopify optionally
+              reserves the inventory for that active checkout session — preventing another customer
+              from completing the same purchase simultaneously. The reserve hold lasts approximately
+              10 minutes. During that window, another customer attempting to checkout for the same
+              item sees "not enough inventory to fulfill your order" even if the item shows in stock
+              on the storefront.
+            </p>
+            <p>
+              Reserve holds are most impactful on limited-inventory products (1–5 units). A customer
+              who adds to cart, reaches payment, and then abandons without completing holds the inventory
+              for 10 minutes before it's released. During high-traffic drops, this creates a chain
+              of blocked checkouts from customers who are too slow relative to the reserve holder.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Settings → Checkout → "Reserve items at checkout."
+This setting can be set to "For as long as the checkout is open" or
+"Until checkout is complete" or disabled entirely. Disabling it increases
+oversell risk but eliminates reserve-caused inventory blocks. For
+limited-edition drops, consider queue/waitlist apps (Loop Returns,
+Waitwhile) that manage demand in a controlled funnel rather than first-
+come-first-served checkout competition.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Manual Error</div>
+            <div class="cause-header">
+              <div class="cause-num">05</div>
+              <h3>Variant Inventory Manually Set to 0 with "Continue Selling When Out of Stock" Disabled</h3>
+            </div>
+            <p>
+              Shopify allows merchants to manually set inventory counts per variant per location.
+              If a variant's inventory is manually set to 0 — by a staff member making an adjustment,
+              by an import, or by an accidental bulk edit — and "Continue selling when out of stock"
+              is disabled for that product, checkout is blocked. The storefront may not immediately
+              reflect this, especially if the product uses a cached availability indicator.
+            </p>
+            <p>
+              This is a silent error that's easy to introduce through bulk inventory imports (CSV)
+              where a zero-value column incorrectly overwrites existing counts.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Products → select the product → check each variant's
+inventory count per location. Look for variants showing 0 or negative
+counts that should be in stock. Correct the count manually. If a recent
+bulk import may have caused this, go to Admin → Products → Import history
+and review the last import's changes. For future protection, test bulk
+inventory imports on a staging environment before applying to production.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag app">Automation Error</div>
+            <div class="cause-header">
+              <div class="cause-num">06</div>
+              <h3>Shopify Flow Automation or Webhook Erroneously Setting Inventory to 0</h3>
+            </div>
+            <p>
+              Shopify Flow workflows, custom webhooks, and fulfillment automation can adjust
+              inventory as part of automated processes — for example, holding inventory when an
+              order is created, adjusting counts when a return is processed, or syncing inventory
+              across channels. Misconfigured automations can fire at the wrong time or with
+              incorrect values, setting inventory to 0 for in-stock items.
+            </p>
+            <p>
+              A common pattern: a "set inventory to 0 when an order is placed" Flow that fires
+              immediately on order creation instead of after fulfillment confirmation, causing
+              checkout to block for subsequent customers even when the physical stock is available.
+              Duplicate webhook registrations can cause this adjustment to fire twice, driving
+              inventory to -1 or lower.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Shopify Flow → review all active workflows that
+include inventory adjustment actions. Check Admin → Settings → Notifications
+→ Webhooks for duplicate inventory-related webhook subscriptions.
+Review Admin → Products → Inventory → activity log for the affected
+variant to see the exact timestamp and source of the incorrect adjustment.
+If a Flow is the cause, add a conditional step that validates current
+inventory before executing the adjustment action.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag silent">Silent / Platform Incident</div>
+            <div class="cause-header">
+              <div class="cause-num">07</div>
+              <h3>Shopify Inventory API Service Degradation — Incorrect Counts Platform-Wide</h3>
+            </div>
+            <p>
+              Shopify's inventory service is a distinct internal API that checkout queries in real
+              time to validate item availability before allowing the customer to proceed to payment.
+              During Shopify infrastructure incidents affecting the inventory service, this API can
+              return incorrect counts — often 0 — for items that are fully in stock across all
+              locations.
+            </p>
+            <p>
+              Every checkout for affected products is blocked with an inventory error. The checkout
+              page itself returns HTTP 200, the form renders, and every standard uptime monitor
+              shows all green. The only indication is a sudden spike in inventory error reports
+              across all products simultaneously, often coinciding with a Shopify status page
+              incident that may not be posted for 15–30 minutes after the inventory service
+              actually starts degrading.
+            </p>
+            <div class="cause-fix">FIX: Check shopifystatus.com for active or recent incidents affecting
+"Inventory" or "Storefront." If a platform incident is confirmed, no
+store-level action will resolve it — wait for Shopify to restore normal
+inventory API behavior. To detect this type of failure before customers
+report it, end-to-end checkout simulation is required: a monitor that
+actually creates a cart with a test product and attempts to proceed through
+checkout will catch inventory API failures within minutes.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DIAGNOSIS STEPS -->
+      <section class="section">
+        <div class="section-label">Diagnosis</div>
+        <h2>How to Identify Which Inventory Error Is Affecting Your Store</h2>
+        <p>
+          Inventory errors at checkout are harder to isolate than most checkout failures because
+          the storefront can show different data from the checkout system, and the checkout page
+          itself provides minimal error context. Work through these steps in order.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-num">1</div>
+            <div class="timeline-body">
+              <h4>Check if the problem affects all products or a specific product/variant</h4>
+              <p>Try adding a completely different product to cart and proceeding through checkout. If checkout succeeds for one product but fails for another, the issue is inventory-specific to that product — check Causes 1, 2, 3, 5, or 6. If checkout fails for all products simultaneously, you likely have a platform incident (Cause 7) or a multi-location misconfiguration (Cause 2) affecting your primary fulfillment location.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">2</div>
+            <div class="timeline-body">
+              <h4>Check Shopify's status page and your inventory counts immediately</h4>
+              <p>Go to shopifystatus.com. If an inventory or storefront incident is active, no store-level action helps — wait for Shopify. Simultaneously go to Admin → Products → open the affected product → check inventory counts per location. If any location shows 0 or negative for a variant that should be in stock, you have a data issue rather than a platform issue — correct the count and test checkout again.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">3</div>
+            <div class="timeline-body">
+              <h4>Review the inventory activity log for the affected variant</h4>
+              <p>In Admin → Products → select the affected product → select the variant → click "View inventory history" (if available) or check the recent activity feed. Look for unexpected adjustments — sudden drops to 0, adjustments at unusual times, or adjustments with source listed as a Flow, webhook, or third-party app. The source of the last adjustment before the error started is almost always the cause.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">4</div>
+            <div class="timeline-body">
+              <h4>Disable inventory-modifying apps and automations temporarily</h4>
+              <p>If a third-party app or Shopify Flow workflow is the suspected cause, disable it temporarily and test checkout. Go to Admin → Shopify Flow → pause workflows that include inventory adjustments. Go to Admin → Apps and disable any inventory management, ERP connector, or fulfillment apps. Retest checkout after each disablement. If inventory errors stop after disabling a specific automation, investigate its configuration before re-enabling.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">5</div>
+            <div class="timeline-body">
+              <h4>Check multi-location fulfillment routing</h4>
+              <p>If your store has multiple locations enabled, go to Admin → Settings → Shipping and delivery → Locations. Verify that locations with available stock are active for fulfillment and ranked appropriately. Test checkout from your store and check which location Shopify attempts to fulfill from — if it's routing to a location with 0 stock, either restock that location, deactivate it from fulfillment, or adjust location priority.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING GAP -->
+      <section class="section">
+        <div class="section-label">The Monitoring Gap</div>
+        <h2>Why Inventory API Incidents Are Invisible Until Customers Complain</h2>
+        <p>
+          Causes 1–6 are configuration, automation, or data issues — diagnosable through admin review
+          and fixable at the store level. They don't require real-time automated monitoring to catch,
+          though monitoring helps you know when to look.
+        </p>
+        <p>
+          Cause 7 — Shopify inventory API service degradation — is different. It is a runtime
+          failure at the platform level that affects all checkouts for affected products simultaneously,
+          can't be caught in admin review, and is completely invisible to standard monitoring. Here
+          is what your monitoring stack sees during a Shopify inventory API incident:
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What monitoring tools see during a Shopify inventory API degradation</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Ping monitor:</strong> the checkout URL returns HTTP 200. The page renders. Inventory failure is application-layer — completely invisible to TCP/HTTP checks.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom / Better Uptime:</strong> same limitation — they verify that the URL responds, not whether inventory queries return correct counts that allow checkout to proceed.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Storefront availability check:</strong> Shopify's storefront uses cached inventory data. The product page may still show "In Stock" during an inventory API degradation — the cache hasn't refreshed with the incorrect API data yet.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Shopify Analytics:</strong> checkout conversion rate drop is visible after the fact. Orders were lost during the gap between incident start and detection.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Shopify status page:</strong> typically lags 15–30 minutes behind actual incident start. Inventory degradation often begins before Shopify posts publicly.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation:</strong> adds a test product to cart, proceeds through checkout, and validates that inventory checks pass at the checkout step. Catches inventory API failures within 5 minutes — before customers report them.</div>
+          </div>
+        </div>
+
+        <div class="cta-block">
+          <h2>Know When Your Checkout Breaks Before Customers Do</h2>
+          <p>
+            CheckPulse runs a 4-step checkout simulation every 5 minutes: product fetch,
+            cart creation, checkout session initialization, and payment methods verification.
+            When Shopify's inventory API degrades and blocks checkout — or when an automation
+            misconfiguration drives inventory to 0 — you get an email alert with the exact
+            failure point before orders are lost.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">
+            Start Free Monitoring →
+          </a>
+          <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dim);">
+            No credit card required &mdash; free instant checkout health check available
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify Checkout Inventory Error — Frequently Asked Questions</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify say "not enough inventory to fulfill your order" at checkout?</div>
+            <div class="faq-a">
+              Shopify validates inventory at checkout submission, not when the customer adds to cart. If the item's available count drops to 0 between cart creation and checkout — because another customer completed a purchase, because a sync job updated the count, or because a Shopify Flow adjustment fired — checkout is blocked. This is Shopify's oversell protection. The storefront may still show the item as "In Stock" because the product page uses a cached inventory view that hasn't refreshed yet.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I fix an inventory error blocking Shopify checkout?</div>
+            <div class="faq-a">
+              First, go to Admin → Products and check the affected variant's inventory count per location. If any location shows 0 or negative for an item that should be in stock, correct it manually. Check the inventory activity log for the source of the last adjustment — it will be a staff edit, an app sync, a Flow workflow, or a platform event. If the count is correct but checkout is still blocked, check Admin → Settings → Checkout → "Reserve items at checkout" — another customer's active checkout session may be holding the last unit in reserve.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why is my Shopify product showing in stock on the storefront but blocking at checkout?</div>
+            <div class="faq-a">
+              Shopify's storefront uses a cached inventory view that can lag several minutes behind the live inventory count. The checkout step queries the inventory API in real time. This creates a visible gap: the product page shows the cached count (still positive), while checkout reads the live API count (0) and blocks the purchase. Common causes of the discrepancy: another customer just completed checkout and bought the last unit; an ERP sync just set the count to 0; or a Shopify reserve hold is consuming the last available unit. Go to Admin → Products and check the live count — the storefront cache is not the authoritative source.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">What is a Shopify checkout inventory reserve and how long does it last?</div>
+            <div class="faq-a">
+              Shopify optionally holds inventory for customers who have reached the payment step of checkout. The reserve prevents two customers from purchasing the same last-in-stock unit simultaneously. The hold lasts approximately 10 minutes. If the customer doesn't complete payment in that window, the inventory is released. During the hold, other customers attempting to checkout for the same item see "not enough inventory to fulfill your order." You can control this in Admin → Settings → Checkout → "Reserve items at checkout."
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can inventory sync delays cause false out-of-stock errors at Shopify checkout?</div>
+            <div class="faq-a">
+              Yes. ERP and WMS systems sync inventory on a schedule — typically every 5 to 60 minutes. A sync error, duplicate adjustment, or rounding issue can set a variant's count to 0 in Shopify while the physical warehouse has stock. Checkout is immediately blocked for that variant until the next correct sync cycle fixes the count. Go to Admin → Products → check the variant's inventory history for an unexpected 0-adjustment, then check your ERP connector's sync logs for errors. Trigger a manual sync to force an immediate correction.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can a Shopify platform incident cause inventory errors at checkout?</div>
+            <div class="faq-a">
+              Yes. Shopify's inventory service is an internal API that checkout queries in real time. During infrastructure incidents, this service can return incorrect counts — often 0 — across all products simultaneously, blocking all checkouts with inventory errors. The checkout page still returns HTTP 200. Standard monitoring tools show green. The Shopify status page typically lags 15–30 minutes. Only end-to-end checkout simulation — which actually proceeds through the checkout flow and validates inventory checks — can detect this within minutes of onset.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &mdash;
+        Shopify Checkout Monitor &mdash;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+        &mdash;
+        Related: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-store-password-protected">Store Password Protected</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

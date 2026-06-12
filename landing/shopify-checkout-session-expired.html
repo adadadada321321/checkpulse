@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Session Expired — 8 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify showing 'Your session has expired' or 'Your cart has been reset' at checkout? 8 causes: 24-hour timeout, browser back button, platform incidents, cart conflicts, and more — with exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-session-expired" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-session-expired" />
+  <meta property="og:title" content="Shopify Checkout Session Expired — Every Cause Fixed" />
+  <meta property="og:description" content="When Shopify invalidates a checkout session mid-flow, customers lose their cart and must start over. 8 root causes, exact fixes, and how to detect platform-level session failures before customers report them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Session Expired — 8 Causes &amp; Fixes",
+    "description": "When Shopify shows 'Your session has expired,' 'Your cart has been reset,' or silently resets the cart mid-checkout, customers lose everything they've added and must start over — causing immediate abandonment. This guide covers all eight root causes, from the 24-hour session timeout and browser back button invalidation to platform-level Shopify incidents that invalidate sessions en masse, with exact admin steps to diagnose and fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-session-expired",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say 'Your session has expired' at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout sessions expire after 24 hours. If a customer adds items to their cart, leaves, and returns the next day using a bookmarked checkout URL, they will see 'Your session has expired' or 'Your cart has been reset.' The checkout URL still loads (returns HTTP 200) but the session token is no longer valid. The customer must start the checkout process again. This is Shopify's intended behavior — sessions are not designed to persist indefinitely. A separate cause: if a third-party app or checkout extension calls the checkout API with an invalid or stale session token, it can also trigger session expiry messages mid-flow for customers who only just started checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify reset my cart at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify resets the cart at checkout for several reasons: (1) an item in the cart went out of stock between cart creation and checkout submission — Shopify removes the unavailable item and may reset the checkout session; (2) the checkout session expired (24-hour timeout) and the cart tokens are no longer valid; (3) a cart modification app, discount app, or subscription app attempted to update the checkout after it was already locked for payment processing, causing Shopify to invalidate the session; (4) the customer navigated using the browser back button after clicking 'Pay Now,' which triggers session invalidation to prevent double-charging. In most cases, the customer sees the cart reset without explanation, which is very confusing and causes immediate abandonment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do customers lose their cart when they hit the browser back button during Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer clicks 'Pay Now' in Shopify checkout, the payment processor is called and the checkout session is locked. If they then press the browser back button, Shopify must invalidate the session to prevent a double-charge scenario — the payment may already be in flight. This invalidation causes the checkout session to expire, and the customer sees 'Your session has expired' or finds their cart reset when they try to proceed again. This is a known UX issue with the standard Shopify checkout flow. The fix is not to suppress the invalidation (which is intentional fraud/double-charge protection) but to ensure the customer sees a clear explanation and an easy path to restart checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I stop Shopify checkout sessions from expiring for customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You cannot extend Shopify's 24-hour checkout session limit — it is a platform constraint. What you can do: (1) send cart recovery emails quickly after abandonment, before the session expires; (2) ensure your abandoned cart automation creates a new checkout URL (not reuse the old token) — Shopify's built-in cart recovery does this correctly, but some third-party tools reuse stale tokens; (3) if a checkout extension or app is causing mid-flow session invalidation (outside the 24-hour window), identify which app is calling the checkout API after the session is locked — go to Admin → Apps and temporarily disable checkout-modifying apps one at a time. If sessions stop expiring after disabling a specific app, that app is the cause."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify app cause checkout sessions to expire for all customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. A misbehaving checkout app or Shopify Function can trigger session invalidation for all customers in two ways: (1) it may call the Storefront API or Admin API with incorrect session tokens, causing Shopify to mark those sessions as corrupted; (2) it may attempt to modify checkout attributes (line items, discount codes, shipping) after the session has been locked for payment, which forces a session reset. If you see a sudden spike in 'session expired' errors and the 24-hour timeout doesn't explain the timing, go to Admin → Apps and check for recently updated or newly installed checkout extensions. Disable them one at a time and retest."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can a Shopify session expiry incident be invisible to standard monitoring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify session expiry incidents are invisible to standard monitoring because the checkout URL still returns HTTP 200 — the page loads, the form renders, everything looks operational. Uptime Robot, Pingdom, and Better Uptime only check whether the URL responds; they don't attempt to create a checkout session and verify that the session is valid. During a Shopify platform incident where checkout session creation is failing en masse, every standard monitor shows green while customers cannot place orders. The only way to detect this is end-to-end checkout simulation that actually creates a session, verifies it, and proceeds through checkout steps — which is what CheckPulse does every 5 minutes."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.app { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.ux { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+
+    .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .timeline-step { display: flex; gap: 20px; padding-bottom: 28px; position: relative; }
+    .timeline-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 36px;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .timeline-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .timeline-body p { font-size: 0.88rem; color: var(--text-mid); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .monitor-row:first-of-type { border-top: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.85rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: clamp(1.2rem, 3vw, 1.6rem); margin-bottom: 14px; }
+    .cta-block p { font-size: 0.95rem; color: var(--text-mid); max-width: 560px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .faq-item {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 0.97rem; margin-bottom: 12px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify Checkout <span>Session Expired</span> — 8 Causes &amp; Fixes</h1>
+        <p class="hero-lead">
+          "Your session has expired." "Your cart has been reset." Customers who see these messages
+          lose everything they added and must start over — and most don't. This guide covers every
+          cause and the one failure type that's completely invisible to standard monitoring.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">8</div>
+            <div class="stat-label">root causes covered</div>
+          </div>
+          <div>
+            <div class="stat-num">24h</div>
+            <div class="stat-label">Shopify session timeout</div>
+          </div>
+          <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">cart loss on session expiry</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Shopify Checkout — Where Session Expiry Occurs</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart Created</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step ok">✓ Checkout Initiated</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Session Expired / Reset</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Payment (unreachable)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Order (unreachable)</div>
+        </div>
+        <div class="flow-error-box">
+          Error: "Your session has expired. Please start your checkout again." or "Your cart has been reset."
+          The checkout URL still loads (HTTP 200). The form renders. But the session token is invalid —
+          no payment can be processed. Standard uptime monitors show: all green.
+        </div>
+      </div>
+
+      <!-- CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>Why Shopify Checkout Sessions Expire</h2>
+        <p>
+          Checkout session expiry and cart resets are distinct from other checkout failures because
+          the page itself continues to load — only the underlying session token is invalid. This
+          makes the error invisible to uptime monitoring and confusing to customers who see a
+          seemingly normal-looking checkout page that refuses to proceed.
+        </p>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <div class="cause-tag config">Platform Limit</div>
+            <div class="cause-header">
+              <div class="cause-num">01</div>
+              <h3>24-Hour Session Timeout</h3>
+            </div>
+            <p>
+              Shopify checkout sessions expire after 24 hours by design. A customer who adds items
+              to their cart, leaves, and returns the next day using a bookmarked checkout URL will
+              see "Your session has expired" or find their cart empty. The checkout URL still loads
+              and returns HTTP 200 — only the session token is invalid.
+            </p>
+            <p>
+              This is the most common cause of session expiry reports. It primarily affects
+              customers who receive abandoned cart emails that link to the original checkout URL
+              rather than generating a fresh one, or who bookmark checkout pages across multiple
+              shopping sessions.
+            </p>
+            <div class="cause-fix">FIX: Ensure abandoned cart email flows generate fresh checkout URLs rather than
+reusing 24-hour-old session tokens. Shopify's built-in abandoned checkout recovery
+does this correctly. Third-party email tools may reuse stale tokens — check your
+email platform's checkout URL generation method in its settings.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag ux">Browser Navigation</div>
+            <div class="cause-header">
+              <div class="cause-num">02</div>
+              <h3>Browser Back Button After Clicking "Pay Now"</h3>
+            </div>
+            <p>
+              When a customer clicks "Pay Now" in Shopify checkout, the payment processor is called
+              and the checkout session is locked. If the customer then presses the browser back
+              button, Shopify intentionally invalidates the session to prevent double-charging —
+              the payment may already be in flight. The customer sees "Your session has expired"
+              or a cart reset.
+            </p>
+            <p>
+              This is intentional fraud and double-charge protection, not a bug. But the customer
+              experience is poor: they receive no clear explanation and lose their cart. This
+              pattern generates a significant share of "checkout broken" support tickets.
+            </p>
+            <div class="cause-fix">FIX: This cannot be suppressed — the session invalidation is intentional.
+Improve the error message: use a Shopify checkout extension to display a clear
+"Your payment was processing — please restart checkout to try again" message
+with a button that creates a fresh checkout session with the same cart items.
+Check Admin → Settings → Checkout → Checkout customization for custom messaging options.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag app">App Conflict</div>
+            <div class="cause-header">
+              <div class="cause-num">03</div>
+              <h3>Checkout App or Extension Corrupting the Session</h3>
+            </div>
+            <p>
+              A misbehaving checkout app or Shopify Function can invalidate sessions for all
+              customers simultaneously. This happens when an app calls the Storefront API or
+              Admin API with an incorrect or stale session token, causing Shopify to mark the
+              session as corrupted. It can also happen when an app attempts to modify checkout
+              attributes (line items, shipping, discounts) after the session has been locked
+              for payment processing.
+            </p>
+            <p>
+              This is a silent failure from the merchant's perspective: the checkout page loads,
+              the app appears to be working, but every checkout session is being invalidated
+              before customers can place orders.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Apps → check recently updated or newly installed
+checkout extensions. Disable them one at a time and retest checkout after each.
+When sessions stop expiring after disabling a specific app, that app's API
+calls are invalidating sessions. Contact the app's support with the timestamp
+of when the issue began to correlate with their update history.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Inventory</div>
+            <div class="cause-header">
+              <div class="cause-num">04</div>
+              <h3>Out-of-Stock Item Invalidating Checkout Session</h3>
+            </div>
+            <p>
+              If an item in the customer's cart goes out of stock between cart creation and
+              checkout submission, Shopify may not just remove the item — in some configurations
+              it invalidates the entire checkout session, triggering a "Your cart has been reset"
+              message. This is most common during flash sales, product launches, or when inventory
+              levels are not properly tracked.
+            </p>
+            <p>
+              Customers who add to cart early and checkout later (common with high-demand
+              product drops) are particularly affected. The reset appears unrelated to inventory
+              from the customer's perspective, causing confusion and support tickets.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Products → check inventory tracking settings.
+Ensure "Track quantity" is enabled for items that can sell out. For high-demand
+drops, consider enabling "Continue selling when out of stock" during peak
+periods to prevent mid-checkout resets, then disable it after inventory stabilizes.
+Review Admin → Settings → Checkout → "Reserve items at checkout" setting.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag ux">Multi-Tab</div>
+            <div class="cause-header">
+              <div class="cause-num">05</div>
+              <h3>Multiple Browser Tabs / Simultaneous Sessions</h3>
+            </div>
+            <p>
+              A customer with multiple browser tabs open on the same Shopify checkout will have
+              sessions conflict. When they take an action in one tab (adding a discount code,
+              updating quantities, proceeding to payment), the other tab's session token becomes
+              stale or invalid. Proceeding in the other tab triggers "Your session has expired."
+            </p>
+            <p>
+              This is increasingly common as customers compare products across tabs or are
+              interrupted mid-checkout and open a new tab. It generates confusing support
+              reports because the customer can't reproduce it reliably.
+            </p>
+            <div class="cause-fix">FIX: No complete technical fix at the Shopify level. Mitigations:
+use a checkout extension to detect and warn about multiple active sessions
+(via Shopify's session state). Ensure the "session expired" error message
+is clear and provides a one-click "restart checkout" button that preserves
+the customer's cart items. This reduces abandonment when multi-tab conflicts occur.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag app">Third-Party Integration</div>
+            <div class="cause-header">
+              <div class="cause-num">06</div>
+              <h3>Subscription or Discount App Modifying Locked Session</h3>
+            </div>
+            <p>
+              Subscription apps (ReCharge, Bold Subscriptions), loyalty apps, and complex
+              discount apps sometimes modify the cart or checkout session asynchronously —
+              after the customer has already proceeded to the payment step. When these
+              modifications hit a session that Shopify has already locked for payment
+              processing, the session is invalidated.
+            </p>
+            <p>
+              This typically appears as intermittent session expiry — it affects customers
+              who check out at the exact moment the app's background job fires, making it
+              very difficult to reproduce in testing.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Apps and identify subscription, loyalty, or discount
+apps that interact with checkout. Check each app's settings for "automatic cart
+updates" or "checkout modification" features. Disable automatic cart modification
+features or configure them to only fire before the customer reaches the payment
+step, not during or after. Contact the app's support team with the pattern
+(which customers, which checkout step, timing) to help diagnose the conflict.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Markets / Currency</div>
+            <div class="cause-header">
+              <div class="cause-num">07</div>
+              <h3>Currency or Market Switch Mid-Checkout</h3>
+            </div>
+            <p>
+              If a customer switches their currency or market between checkout steps — either
+              manually via a currency selector widget or because a geolocation redirect fires
+              mid-session — Shopify must recreate the checkout session with the new pricing.
+              This invalidates the previous session, causing a "Your cart has been reset"
+              or session expiry message.
+            </p>
+            <p>
+              Currency conversion apps that dynamically adjust prices mid-checkout are a
+              common trigger. Shopify Markets geo-redirects that fire after checkout has
+              started can also cause this.
+            </p>
+            <div class="cause-fix">FIX: Go to Admin → Settings → Markets and review geo-redirect settings.
+Disable mid-checkout currency switching in currency converter apps — most have
+a "freeze currency at checkout" option. Ensure currency selector widgets are
+hidden or disabled once the customer reaches the checkout page (outside the
+Shopify checkout itself, on the cart page), so customers cannot switch
+currency after checkout has been initiated.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag silent">Silent / Platform Incident</div>
+            <div class="cause-header">
+              <div class="cause-num">08</div>
+              <h3>Shopify Platform Incident — Mass Session Invalidation</h3>
+            </div>
+            <p>
+              During Shopify infrastructure incidents, checkout session creation or validation
+              can fail at the platform level — invalidating sessions en masse across thousands
+              of stores simultaneously. Customers see "Your session has expired" or are unable
+              to proceed past the cart step. Every customer is affected, not just some.
+            </p>
+            <p>
+              This is the only cause of session expiry that is entirely outside merchant control
+              and the only one that is completely invisible to standard monitoring. The checkout
+              URL returns HTTP 200. The form renders. Every standard monitor shows green.
+              But no sessions can be created or validated — no orders can be placed.
+            </p>
+            <div class="cause-fix">FIX: Monitor Shopify's status page (shopifystatus.com) during unusual
+session expiry spikes. Set up end-to-end checkout monitoring that validates session
+creation at every cycle — this detects platform-level session failures within
+5 minutes, before customers report them. See: The Monitoring Gap below.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DIAGNOSIS STEPS -->
+      <section class="section">
+        <div class="section-label">Diagnosis</div>
+        <h2>How to Diagnose Which Cause Is Affecting Your Store</h2>
+        <p>
+          Session expiry is harder to diagnose than most checkout errors because the symptom
+          (a customer losing their cart) is often reported hours after it occurs, and the
+          checkout page itself looks functional. Work through these steps in order.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-num">1</div>
+            <div class="timeline-body">
+              <h4>Check Shopify status first</h4>
+              <p>Go to shopifystatus.com. If there is an active or recent Shopify incident affecting "Checkout" or "Cart," Cause 8 (platform incident) explains the session expiry. No store-level action will resolve it — wait for Shopify to restore normal session handling. Note: Shopify takes 15–30 minutes to post incidents to their status page; session failures often start before the incident is public.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">2</div>
+            <div class="timeline-body">
+              <h4>Determine whether the issue is new or ongoing</h4>
+              <p>Check Admin → Analytics → Reports → Checkout funnel. Look for when the abandonment rate at the checkout step spiked. If the spike coincides with a recent app install, update, or store configuration change, you likely have Causes 3, 6, or 7. If it coincides with a sudden peak in traffic (flash sale, influencer post), Cause 4 (inventory) is likely. If it's slow and steady across all customers, Cause 1 (24-hour timeout) or Cause 5 (multi-tab) may be contributing.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">3</div>
+            <div class="timeline-body">
+              <h4>Test checkout in a fresh session and an old session</h4>
+              <p>Open a new incognito window and go through checkout to payment — this tests the current live session state. Then manually construct a checkout URL from a cart token that is more than 24 hours old (or wait 24 hours after adding to cart) and test that. If only old sessions fail, Cause 1 (timeout) is the only issue. If fresh sessions also fail, you have a live problem: proceed to step 4.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">4</div>
+            <div class="timeline-body">
+              <h4>Disable checkout apps one at a time</h4>
+              <p>Go to Admin → Apps. Identify apps that interact with checkout: discount apps, loyalty apps, subscription apps, checkout extension apps, cart upsell apps. Disable them one at a time, testing checkout after each. If session expiry stops after disabling a specific app, that app is the culprit. Contact that app's support with the exact behavior and the timestamp when it began.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">5</div>
+            <div class="timeline-body">
+              <h4>Check currency and market redirect settings</h4>
+              <p>If the issue affects international customers disproportionately, check Admin → Settings → Markets → geo-redirect settings and Admin → Apps for currency converter apps. Disable geo-redirects temporarily and test checkout from a VPN in an affected country. If checkout succeeds without the redirect, Cause 7 (currency/market switch) is the problem.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING GAP -->
+      <section class="section">
+        <div class="section-label">The Monitoring Gap</div>
+        <h2>Why Session Expiry Platform Incidents Are Invisible Until Customers Complain</h2>
+        <p>
+          Causes 1–7 are configuration, UX, or app issues — diagnosable through admin review,
+          visible in funnel analytics, and fixable once identified. They don't require real-time
+          automated monitoring to catch.
+        </p>
+        <p>
+          Cause 8 — Shopify platform-level session invalidation — is different. It is a runtime
+          failure that affects all sessions simultaneously, can't be caught in configuration
+          review, and is completely invisible to standard monitoring. Here is what your standard
+          monitoring stack sees during a session infrastructure incident:
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What monitoring tools see during a Shopify session infrastructure incident</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Ping monitor:</strong> the checkout URL returns HTTP 200. The form renders. Session failure is application-layer — completely invisible to TCP/HTTP checks.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom / Better Uptime:</strong> same limitation — they verify the HTTP handshake, not whether a checkout session can be created and validated successfully.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Shopify status page (shopifystatus.com):</strong> typically lags 15–30 minutes behind the actual incident start. Customers report session failures before Shopify posts the incident publicly.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Shopify Analytics:</strong> checkout conversion rate drop is visible in your dashboard — after the damage is done. Orders were lost during the gap between incident start and detection.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation:</strong> creates a real checkout session and verifies that it is valid at each step. Catches session infrastructure failures within 5 minutes, before the Shopify status page posts and before customers report them.</div>
+          </div>
+        </div>
+
+        <div class="cta-block">
+          <h2>Know When Your Checkout Breaks Before Customers Do</h2>
+          <p>
+            CheckPulse runs a 4-step checkout simulation every 5 minutes: product fetch,
+            cart creation, checkout session initialization, and payment methods verification.
+            When a Shopify platform incident invalidates checkout sessions — or when an app
+            corrupts your session flow — you get an email alert with the exact failure point
+            before orders are lost.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">
+            Start Free Monitoring →
+          </a>
+          <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dim);">
+            No credit card required &mdash; free instant checkout health check available
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify Checkout Session Expired — Frequently Asked Questions</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify say "Your session has expired" at checkout?</div>
+            <div class="faq-a">
+              The most common reason: the checkout session is more than 24 hours old. Shopify sessions expire by design after 24 hours. The checkout URL still loads — returns HTTP 200 and renders the form — but the session token is invalid and no payment can be processed. Customers who return via a bookmarked checkout URL or via an abandoned cart email that reuses a stale token will hit this. The fix: ensure abandoned cart email flows generate fresh checkout URLs, not reuse the original 24-hour-old session token.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify reset my cart at checkout?</div>
+            <div class="faq-a">
+              Cart resets at checkout happen for four main reasons: (1) an item went out of stock between cart creation and checkout — Shopify removes the item and may reset the session; (2) the session expired (24-hour timeout); (3) a checkout extension or app attempted to modify the checkout after it was locked for payment, forcing a session reset; (4) the customer navigated back using the browser back button after clicking "Pay Now," which triggers intentional session invalidation to prevent double-charging. In all cases, the customer sees no explanation and loses their cart — which causes immediate abandonment.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why do customers lose their cart when they hit the back button during Shopify checkout?</div>
+            <div class="faq-a">
+              When "Pay Now" is clicked, the payment processor is called and the session is locked. Navigating back after this point triggers intentional session invalidation — Shopify must prevent a scenario where two payment attempts are made for the same order. The customer sees "Your session has expired" or a cart reset. This is not a bug. The fix is not technical suppression — it's improving the error message with a "restart checkout" CTA that creates a fresh session with the same cart items, reducing the abandonment rate when this happens.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I stop Shopify checkout sessions from expiring for customers?</div>
+            <div class="faq-a">
+              The 24-hour session limit is a Shopify platform constraint and cannot be extended. Mitigation steps: (1) ensure abandoned cart email tools generate fresh checkout URLs rather than reusing stale tokens — check your email platform's abandoned cart URL settings; (2) if sessions expire mid-flow (well within 24 hours), disable checkout-modifying apps one at a time to identify which app is causing session invalidation; (3) if currency switching is involved, disable mid-checkout currency selector widgets so customers can't switch currency after checkout has started.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can a Shopify app cause checkout sessions to expire for all customers?</div>
+            <div class="faq-a">
+              Yes. A checkout app that calls the Storefront API with stale or incorrect session tokens, or that attempts to modify checkout attributes after the session is locked for payment, can cause session invalidation for every customer simultaneously. This is difficult to diagnose because the checkout page loads normally. Diagnosis: go to Admin → Apps → disable checkout-related apps one at a time → retest checkout after each. When sessions stop expiring after disabling a specific app, that app is the cause.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How can session expiry be invisible to standard monitoring?</div>
+            <div class="faq-a">
+              Because the checkout URL returns HTTP 200 even when session creation is failing. Uptime monitors check the HTTP response — they don't create a checkout session and verify it's valid. During a Shopify platform incident where sessions are failing en masse, Uptime Robot, Pingdom, and every standard monitor shows all-green while customers cannot place orders. The Shopify status page typically lags 15–30 minutes behind the actual incident start. End-to-end checkout simulation — which creates a real session and validates it step by step — is the only automated way to detect this within minutes.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &mdash;
+        Shopify Checkout Monitor &mdash;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+        &mdash;
+        Related: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

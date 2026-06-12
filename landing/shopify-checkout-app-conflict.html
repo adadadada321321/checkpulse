@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify App Blocking Checkout — App Conflict at Checkout Fixed (2026)</title>
+  <meta name="description" content="Shopify checkout broken after installing an app, checkout extension error, no shipping options from carrier app, or post-purchase app blank screen? 7 root causes of third-party app checkout conflicts — exact isolation steps and fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" />
+  <meta property="og:title" content="Shopify App Blocking Checkout — App Conflict Diagnosis &amp; Fix" />
+  <meta property="og:description" content="Third-party apps are the most common cause of checkout regressions that aren't covered by Shopify's status page. A checkout extension JS error, a post-purchase app blank screen, or a Shopify Functions conflict can silently break checkout — and every HTTP monitor stays green. 7 causes and isolation steps." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify App Blocking Checkout — 7 App Conflict Causes &amp; Fixes",
+    "description": "Third-party Shopify apps are the most frequent cause of checkout regressions that aren't covered by Shopify's own status page. Checkout extensions, post-purchase apps, carrier shipping apps, payment gateway apps, loyalty apps, and Shopify Functions customizations can each break checkout in distinct ways — some visible (customer sees an error and cannot proceed), some silent (checkout completes but the wrong behavior runs, or a critical feature like post-purchase upsell shows a blank screen). This guide covers the seven most common app-related checkout failures, how to isolate which app is the culprit, and the exact fix steps for each category.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify checkout break after installing an app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout can break after installing an app for several reasons depending on the app type. (1) Checkout extension apps (apps built on Shopify's Checkout Extensibility platform) inject UI blocks or scripts directly into the checkout. If the extension has a JavaScript error or a bad API call, it can freeze checkout UI or cause the checkout to show a blank section. (2) Apps that add payment methods (third-party payment gateways, buy-now-pay-later apps) modify the payment step — a misconfigured app can hide all payment methods or show an error at the payment step. (3) Shipping rate apps (real-time carrier apps like ShipStation Carrier Service or EasyPost) inject rates into the shipping step — if the app times out or errors, checkout shows 'no shipping options available'. (4) Apps that use Shopify Functions (payment customizations, delivery customizations) can hide payment methods or shipping options based on logic rules — a bug in those rules can hide options for all customers. In all cases, the first diagnostic step is to identify which recently installed or updated app correlates with the checkout regression."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I find which Shopify app is breaking my checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The fastest way to isolate a Shopify app conflict is systematic disabling. First, check your app install history: Shopify Admin → Settings → Apps and sales channels → scroll to 'Apps' — look for apps installed or updated within 24–48 hours of when the checkout problem started. Then disable apps one at a time, starting with the most recently installed, and test the checkout after each disable. For checkout extension apps specifically: Admin → Online Store → Themes → Customize → Checkout (in the theme editor sidebar) — you can see and remove individual checkout extensions here without fully uninstalling the app. For Shopify Functions apps: Admin → Settings → Checkout → Payment customizations / Delivery customizations — disable each customization and test. If you cannot disable apps easily, create a Shopify test order (Admin → Orders → Create order) and use a test gateway — this bypasses checkout extensions and confirms whether the issue is in the native checkout or in an extension."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout show no shipping options after installing a carrier app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Real-time carrier shipping apps (apps that calculate live rates from ShipStation, EasyPost, Shippo, FedEx, UPS, or similar carriers) integrate with Shopify using the Carrier Service API. When the carrier app's server times out, returns an error, or returns zero rates, Shopify's checkout removes all shipping options for that carrier — and if it was your only configured carrier, the customer sees 'no shipping options available' and cannot complete checkout. The app's failure is completely invisible to HTTP uptime monitors because the checkout URL itself still returns 200. Common causes: (1) the carrier app's API credentials expired or the connected carrier account was suspended; (2) the app's server is having an outage — check the app's own status page or support channel; (3) the shipping rules are configured to return zero rates for the customer's address (e.g., a rule that only ships domestically, and the customer has an international address). To fix: Admin → Settings → Shipping and delivery → Carrier-calculated shipping rates — identify which carrier service is failing, click it, and test its connection. Disable the carrier service temporarily and add a manual flat-rate backup rate so checkout works while you investigate."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify post-purchase page show a blank screen or error?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Post-purchase apps (apps that show an upsell, survey, or cross-sell offer between the payment confirmation and the thank-you page) use Shopify's post-purchase extension API. A blank screen or JavaScript error on the post-purchase page is almost always caused by one of three things: (1) the post-purchase extension is throwing an uncaught JavaScript error — visible in the browser's developer console (F12 → Console tab), but not visible in Shopify Admin; (2) the post-purchase app's backend API call is failing — the extension loads but cannot fetch the offer to display; (3) two post-purchase apps are both registered for the post-purchase hook, and they conflict. In all three cases, the payment itself has already completed — the customer's order exists and has been paid. The blank screen is a UX failure (lost upsell revenue) but not a payment failure. To fix: Admin → Online Store → Themes → Customize → look for Post-purchase section → identify which app's extension is registered → disable it and test. If you run two post-purchase apps, only one can own the post-purchase page — configure one as the primary."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify app break checkout without showing an error?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — several app conflict types cause silent failures. (1) A checkout extension can throw a JavaScript error that Shopify catches internally, logs to its own error tracking, but does not surface to the merchant or the customer. The checkout appears to work, but a feature (like an upsell block, a consent checkbox, or a trust badge) is silently missing. (2) A Shopify Functions payment customization can silently hide a payment method for a subset of customers — for example, hiding a 'Pay by invoice' option for orders under $500. If the rule has a logic bug, it might hide the option for all orders. No error is thrown; the payment method simply doesn't appear. (3) A loyalty app can silently skip applying a reward discount if the reward stack conflicts with an automatic discount — customers eligible for a reward see no error, but the discount never applies. These silent failures are the hardest to catch because they require testing checkout from the customer's perspective with the affected conditions (specific customer tags, order values, shipping addresses, or payment methods)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do Shopify Functions apps break checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Functions apps use Shopify's server-side execution environment to run logic that customizes checkout behavior — hiding or reordering payment methods (Payment Customization), hiding or reordering delivery options (Delivery Customization), or modifying cart discounts (Discounts). Because Functions run server-side, they do not produce browser console errors — if a Function's logic has a bug, it silently produces the wrong outcome. Common failure patterns: (1) a Payment Customization function hides a payment method for orders over a certain amount, but the condition uses the wrong currency unit (e.g., comparing cents vs. dollars) — so it hides the payment method for all orders; (2) a Delivery Customization function reorders shipping rates based on speed, but a rate with a new name from the carrier doesn't match the expected pattern, so the function hides it entirely; (3) two Functions apps both targeting the same customization point (e.g., two Payment Customization apps) — their combined output is unpredictable. To diagnose: Admin → Settings → Checkout → Payment customizations and Delivery customizations — disable each Function one at a time, test checkout after each disable. If checkout is fixed after disabling a Function, that's your culprit."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-step.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-note {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(245,158,11,0.05);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 6px;
+      color: var(--amber);
+      font-size: 0.73rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.app { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.user { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .cause-tag.browser { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .monitor-row:first-of-type { border-top: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.85rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: clamp(1.2rem, 3vw, 1.6rem); margin-bottom: 14px; }
+    .cta-block p { font-size: 0.95rem; color: var(--text-mid); max-width: 560px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .faq-item {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 0.97rem; margin-bottom: 12px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify <span>App Blocking Checkout</span> — 7 Conflict Types &amp; Fixes</h1>
+        <p class="hero-lead">
+          You installed an app. Checkout broke. Shopify's status page shows green,
+          your uptime monitor shows green, and there is no error in your admin dashboard.
+          Third-party app conflicts are the most common source of checkout regressions
+          that no platform-level monitor will ever catch.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">7</div>
+            <div class="stat-label">app conflict types covered</div>
+          </div>
+          <div>
+            <div class="stat-num">0</div>
+            <div class="stat-label">HTTP errors during app-caused failures</div>
+          </div>
+          <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">missed by standard uptime monitors</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Checkout Extension Injection Points — Where Apps Can Fail</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step warn">⚡ Checkout extension loads</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step warn">⚡ Carrier rates API call</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step warn">⚡ Payment methods (Functions)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Blocked / blank / wrong</div>
+        </div>
+        <div class="flow-error-box">
+          No shipping options available · Checkout cannot be completed · This payment method is unavailable · [blank screen at post-purchase]
+        </div>
+        <div class="flow-note">
+          ⚠ App conflict blindspot: when a checkout extension throws a JavaScript error, Shopify catches it internally. The checkout URL returns HTTP 200. Your uptime monitor shows green. The customer sees a broken or missing UI element — or cannot complete checkout at all — and the merchant has no alert.
+        </div>
+      </div>
+
+      <!-- CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>7 Ways a Shopify App Can Break Checkout</h2>
+        <p>
+          App-related checkout failures fall into two categories: <strong>visible</strong> (checkout blocks with an error message,
+          customer cannot proceed) and <strong>silent</strong> (checkout appears to work but a feature is broken, a discount isn't
+          applying, or the wrong behavior is running). Silent failures are more dangerous — they show as increased abandonment
+          or lost revenue with no error to investigate.
+        </p>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">01</div>
+              <h3>Checkout Extension JavaScript error — UI freezes, blank section, or missing block</h3>
+            </div>
+            <div class="cause-tag silent">SILENT FAILURE</div>
+            <p>
+              Apps built on Shopify's Checkout Extensibility platform inject UI blocks directly into
+              the checkout — trust badges, upsell widgets, consent checkboxes, custom fields.
+              If the extension's JavaScript throws an uncaught error, Shopify's checkout runtime
+              catches it internally and removes the extension block from the UI — no error is
+              surfaced to the customer or the merchant.
+            </p>
+            <p>
+              This means a checkout extension can fail completely and silently. The merchant sees
+              the app is "installed and active" in their app list. The extension is no longer
+              rendering in checkout. Customers see a missing block. If the block contained a
+              required consent checkbox, customers may be completing checkout without the legal
+              consent the merchant requires — with no alert.
+            </p>
+            <div class="cause-fix">Fix / Detection:
+1. Open your store's checkout in an incognito window and press F12 → Console tab.
+   Look for JavaScript errors referencing the extension or the app vendor's domain.
+   These errors are visible to you in the browser but are not logged in Shopify Admin.
+2. Shopify Admin → Online Store → Themes → Customize → click "Checkout"
+   in the left sidebar. Review which checkout extensions are listed.
+   Remove and re-add the failing extension to force a reload of its latest version.
+3. Check the app vendor's changelog or support docs for recent updates that
+   may have introduced the regression. Most checkout extension breakages
+   coincide with an app update.
+4. If you cannot identify the failing extension quickly, temporarily remove all
+   checkout extensions from the theme editor, test checkout, then re-add them
+   one at a time to identify the culprit.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">02</div>
+              <h3>Carrier shipping app timeout or error — "no shipping options available"</h3>
+            </div>
+            <div class="cause-tag app">APP</div>
+            <p>
+              Apps that provide real-time carrier shipping rates (ShipStation, EasyPost, Shippo,
+              FedEx, UPS, DHL via third-party apps) use the Shopify Carrier Service API to inject
+              rates into the shipping step of checkout. When these apps' API servers time out,
+              return an error, or return zero rates for the customer's address, Shopify removes
+              those rates from checkout.
+            </p>
+            <p>
+              If the carrier app was your only shipping rate source, checkout shows "no shipping
+              options available" and the customer cannot proceed. The checkout URL still returns
+              HTTP 200. Every uptime monitor shows green. The failure is completely invisible
+              until a customer reports being unable to complete their order.
+            </p>
+            <div class="cause-fix">Fix:
+1. Admin → Settings → Shipping and delivery → Carrier-calculated shipping rates.
+   Find the carrier service that is failing. Click "Test connection" if available,
+   or check the app's own status page or support dashboard for outage reports.
+2. Immediately add a manual flat-rate shipping option as a backup:
+   Admin → Settings → Shipping → Shipping profiles → Add rate → Set amount.
+   This allows checkout to proceed while you investigate the carrier app.
+3. In the carrier app's settings, review which address zones it covers. If the
+   app is configured to only ship domestically and the customer has an international
+   address, zero rates are returned — not an app error, but a zone gap.
+4. Check the carrier app's API credential status — expired API keys and
+   suspended carrier accounts are the most common cause of sudden carrier
+   app failures after months of working correctly.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">03</div>
+              <h3>Post-purchase app blank screen after payment</h3>
+            </div>
+            <div class="cause-tag app">APP</div>
+            <p>
+              Post-purchase apps (upsell offers, surveys, loyalty opt-ins) appear between the
+              payment confirmation and the order thank-you page. They use Shopify's post-purchase
+              extension API. A blank screen at this step means the extension loaded but either
+              its backend API call failed (no offer to display) or its JavaScript threw an error
+              during render.
+            </p>
+            <p>
+              Critically: the payment has already completed before the post-purchase page appears.
+              The customer's order exists and is paid. The blank screen is a UX failure and a
+              lost upsell opportunity — not a payment failure. But customers may interpret the
+              blank screen as a checkout failure and contact support believing their payment didn't
+              process, generating unnecessary support tickets.
+            </p>
+            <div class="cause-fix">Fix:
+1. Open F12 → Console in the browser immediately after payment, on the
+   post-purchase blank page. Look for network errors (red entries in the
+   Network tab) showing failed API calls to the app vendor's domain.
+2. Admin → Online Store → Themes → Customize → look for a "Post-purchase"
+   section in the sidebar. If two apps are registered for post-purchase,
+   only one can be active — confirm which is the primary app and disable the other.
+3. In the post-purchase app's settings, verify its "offer display rules"
+   aren't too restrictive — some apps are configured to show only for specific
+   products or order values, returning an empty offer for orders that don't match.
+   An empty offer can render as a blank screen.
+4. Contact the app's support with the specific order ID and time. Most
+   post-purchase apps have server-side logs they can check to see
+   what happened at that moment for that specific checkout session.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">04</div>
+              <h3>Third-party payment app misconfiguration — checkout shows no payment or gateway error</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Third-party payment gateway apps (Klarna, Afterpay, PayPal via app, regional gateways)
+              add payment methods to Shopify checkout. When these apps are misconfigured — wrong
+              API keys, test mode enabled on a live store, expired merchant credentials, or a
+              currency mismatch — they fail at the payment step.
+            </p>
+            <p>
+              The failure type depends on the app: some silently hide the payment method (customer
+              never sees the option), some show the option but return an error when selected, and
+              some block the entire payment step. If the payment app is the only active payment
+              method (native Shopify Payments was disabled), checkout is completely blocked.
+            </p>
+            <div class="cause-fix">Fix:
+1. Admin → Settings → Payments → scroll down to "Third-party payment providers"
+   and "Additional payment methods". Identify which apps are installed.
+   Click the app → check whether it's in "Test mode" — this is the most
+   common cause of payment app failures on live stores after initial setup.
+2. Verify the app's API credentials match your production account, not
+   a sandbox or developer account. API keys from test environments return
+   errors when used on a live storefront.
+3. Check currency compatibility: if the payment app only supports USD and
+   your store sells in EUR via Shopify Markets, the payment method is
+   suppressed for EUR checkouts. Add currency support in the app's dashboard,
+   or restrict the app to the currency it supports.
+4. Ensure Shopify Payments (or another backup payment method) is always enabled
+   so that if a third-party payment app fails, customers still have a payment
+   option and checkout does not block entirely.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">05</div>
+              <h3>Loyalty or referral app discount conflict — cart becomes invalid, checkout blocks</h3>
+            </div>
+            <div class="cause-tag silent">SILENT FAILURE</div>
+            <p>
+              Loyalty apps and referral apps apply discount codes or automatic discounts to
+              checkout. When a loyalty reward discount is stacked with a Shopify automatic
+              discount, or when two loyalty apps both apply discounts simultaneously, the
+              cart total can become invalid — for example, negative after discounts exceed
+              the product price, or conflicting discount rules that Shopify's discount engine
+              cannot resolve.
+            </p>
+            <p>
+              The failure is often intermittent and customer-specific: only customers who have
+              earned rewards experience it, and only when a discount stack condition is met.
+              It looks like abandonment in checkout funnel analytics — no error is logged,
+              no alert fires, and the merchant sees nothing unusual.
+            </p>
+            <div class="cause-fix">Fix:
+1. Admin → Discounts → review all active automatic discounts. If you have
+   both a loyalty app applying discounts AND a Shopify automatic discount,
+   check whether "Combine with other discounts" is enabled. Disable stacking
+   on one of them to prevent conflicts.
+2. In the loyalty app's settings, look for "discount combination" or
+   "stack with automatic discounts" settings. Most apps allow you to
+   configure whether their rewards stack with native Shopify discounts.
+3. Reproduce the issue: create a test customer account, manually add a
+   loyalty reward, and complete a checkout to see the exact error.
+   Check the browser console for JavaScript errors and Admin → Orders
+   → Abandoned checkouts for the failed session details.
+4. If two loyalty apps are both installed, they will often conflict —
+   only one loyalty/rewards app should be active at a time.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">06</div>
+              <h3>Shopify Functions app (payment or delivery customization) hiding options silently</h3>
+            </div>
+            <div class="cause-tag silent">SILENT FAILURE</div>
+            <p>
+              Apps built on Shopify Functions run server-side logic that can hide, rename, or
+              reorder payment methods and delivery options at checkout. Unlike checkout extensions
+              (which run in the browser and produce console errors), Functions run entirely
+              server-side and produce no visible errors when their logic misbehaves.
+            </p>
+            <p>
+              A Functions-based Payment Customization app can silently hide a payment method
+              for all customers if a conditional rule has a logic bug — for example, a rule
+              intended to hide "Pay by invoice" for orders under $500 that, due to a unit
+              mismatch (comparing cents instead of dollars), hides it for all orders.
+              The payment method disappears from checkout without any error log.
+            </p>
+            <div class="cause-fix">Fix:
+1. Admin → Settings → Checkout → "Payment customizations" section.
+   Each active customization is listed. Disable them one at a time and
+   test checkout after each disable to identify which Function is hiding
+   the payment method.
+2. Admin → Settings → Checkout → "Delivery customizations" section.
+   Same process for missing or reordered shipping options.
+3. If you have two apps both operating on payment or delivery customizations,
+   their combined output is applied in sequence and can produce unexpected
+   results. Only one payment customization and one delivery customization
+   should be active at a time unless the apps are explicitly designed to stack.
+4. Review the Function's source code or ask the app vendor to check the
+   conditional logic. Specifically look for comparisons that involve order
+   amounts — verify whether the value is in cents or in the store's currency
+   unit, as this is the most common source of logic bugs in Functions apps.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">07</div>
+              <h3>App installed but checkout extension never published — app "works" but does nothing</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Shopify checkout extensions must be explicitly added to the checkout via the theme
+              editor — they don't activate automatically upon app installation. Many merchants
+              install an app, see no visible error, assume it's working, and never realize the
+              checkout extension was never placed. The app shows as "installed" in the app list.
+              The extension is silent. Features like trust badges, upsell blocks, consent
+              checkboxes, or gift wrap options never appear.
+            </p>
+            <p>
+              This is the inverse problem of the other causes: no checkout failure, but no
+              checkout functionality either. The symptom is checkout working normally but missing
+              the feature the app was supposed to add — which may not be noticed until the
+              merchant checks their analytics and sees zero interactions with the feature.
+            </p>
+            <div class="cause-fix">Fix:
+1. Admin → Online Store → Themes → Customize → select "Checkout" from
+   the page selector at the top of the theme editor.
+2. In the sidebar, you will see sections for "Header", "Main", "Order summary",
+   and "Footer" — and within each, any installed checkout extensions.
+   If the app's extension is not listed, it was never added.
+3. Click "Add block" in the relevant section to place the extension.
+   For apps that should appear in the information, shipping, or payment steps:
+   click "Add app block" → select the app's extension from the list.
+4. If the extension does not appear in the "Add app block" list, the app
+   either doesn't support Checkout Extensibility, or was built for the
+   legacy checkout (Script Editor) which is only available on Shopify Plus.
+   Contact the app vendor to confirm which checkout integration type they use.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ISOLATION GUIDE -->
+      <section class="section">
+        <div class="section-label">Isolation Method</div>
+        <h2>How to Find Which App Is Breaking Your Checkout</h2>
+        <p>
+          App conflict diagnosis is a process of systematic elimination. The goal is to identify
+          the specific app — and the specific failure mode — as quickly as possible.
+        </p>
+
+        <div class="cause-list">
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Step 1: Check install/update history against when the problem started</h3>
+            </div>
+            <p>
+              Admin → Settings → Apps and sales channels → review the app list. Sort by
+              "Date installed" if possible, or check your email for app install confirmation
+              messages. Match the install/update timestamps against when customers first
+              reported the checkout issue. If an app was installed or updated within 24–48 hours
+              of the regression, it is the first suspect.
+            </p>
+          </div>
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Step 2: Check browser console on the specific failing checkout step</h3>
+            </div>
+            <p>
+              Open your store's checkout in a private/incognito window. Press F12 → Console.
+              Navigate to the step where checkout breaks — information, shipping, payment,
+              or post-purchase. Look for red JavaScript errors or failed network requests
+              in the Console and Network tabs. App vendor domains in the error URLs identify
+              the culprit. Screenshot the console output before closing the tab.
+            </p>
+          </div>
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Step 3: Disable checkout extensions one by one in the theme editor</h3>
+            </div>
+            <p>
+              Admin → Online Store → Themes → Customize → Checkout. Remove checkout
+              extension blocks one at a time — start with the most recently installed.
+              After each removal, open a new incognito window and test the failing checkout
+              step. When the problem disappears after removing a specific extension,
+              that extension is the source of the conflict.
+            </p>
+          </div>
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Step 4: Check Functions and carrier services for the remaining conflict types</h3>
+            </div>
+            <p>
+              If checkout extensions are not the cause: check Admin → Settings → Checkout →
+              Payment customizations and Delivery customizations (Functions apps). Disable
+              each, test. Then Admin → Settings → Shipping → Carrier-calculated rates —
+              test the carrier service connection. Finally, Admin → Settings → Payments →
+              third-party providers — confirm no app is in test mode on the live store.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING BLINDSPOT -->
+      <section class="section">
+        <div class="section-label">Monitoring Gap</div>
+        <h2>Why App Conflicts Are Invisible to Standard Monitors</h2>
+        <p>
+          App-caused checkout failures are the category of failure most likely to go undetected
+          for hours or days — because they are not Shopify platform failures and every standard
+          monitoring tool treats them as healthy.
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What each tool actually checks</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom / Better Uptime</strong> — check whether the checkout URL returns HTTP 200. A checkout extension JS error, a carrier app timeout, or a Functions app hiding payment methods all leave the URL returning 200. These tools show green throughout the entire failure.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Shopify status page</strong> — reports Shopify platform degradation. Third-party app failures are not Shopify platform events. A carrier app going down, a checkout extension breaking, or a post-purchase app blank screen will never appear on shopifystatus.com.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Shopify Admin order volume analytics</strong> — app conflicts that block checkout reduce the order volume, but this shows up as decreased revenue — indistinguishable from a slow traffic day. No alert fires on reduced order volume in standard Shopify analytics.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">⚠️</div>
+            <div class="monitor-text"><strong>Browser console + manual checkout testing</strong> — surfaces JavaScript errors from checkout extensions and network failures. Only works if someone manually tests checkout in a browser at the time the failure is occurring. Not automated.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">✅</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation</strong> — navigates the full checkout flow, filling in address, selecting shipping, selecting payment, and completing checkout. Catches extension UI failures (missing blocks), carrier app failures (no shipping options), payment method hiding (Functions conflicts), and post-purchase app blank screens in a single automated test run.</div>
+          </div>
+        </div>
+
+        <p>
+          App conflicts typically surface when a customer reports "I can't complete checkout"
+          — which means the failure has already been running for however long it took that
+          customer to find your support channel. End-to-end monitoring that runs on a schedule
+          is the only way to catch these failures before customers do.
+        </p>
+      </section>
+
+      <!-- CTA -->
+      <div class="cta-block">
+        <h2>App conflicts don't trigger platform alerts</h2>
+        <p>
+          CheckPulse simulates end-to-end checkout — navigates the full checkout flow,
+          verifies shipping options appear, payment methods are available, and the order
+          confirms — so app-caused checkout failures show up as alerts within minutes,
+          not as a support ticket hours later.
+        </p>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">START MONITORING →</a>
+      </div>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Common Questions About Shopify App Checkout Conflicts</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why did my Shopify checkout break after installing an app?</div>
+            <div class="faq-a">The most common causes are: (1) a checkout extension app injected a JavaScript block that has an error — the extension fails silently; (2) a payment or shipping app was installed and configured incorrectly (test mode on live store, wrong API keys, currency mismatch); (3) a Shopify Functions app was installed and its conditional logic has a bug that hides payment or shipping options. First step: check the browser console on the failing checkout step for JavaScript errors, then check which app was installed or updated closest to when the regression started.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I find which Shopify app is breaking my checkout?</div>
+            <div class="faq-a">Systematic elimination: (1) check your browser console (F12) on the failing step for JavaScript errors or failed network requests; (2) go to Admin → Online Store → Themes → Customize → Checkout and remove checkout extension blocks one by one, testing after each; (3) Admin → Settings → Checkout → disable Payment customizations and Delivery customizations one by one; (4) Admin → Settings → Shipping → test carrier service connections; (5) Admin → Settings → Payments → verify no payment app is in test mode. Start with the most recently installed or updated app.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does my Shopify checkout show no shipping options after installing a carrier app?</div>
+            <div class="faq-a">The carrier app's API server timed out or returned an error, causing Shopify to remove those rates from checkout. Check the app's status page for outages. Check its API credentials — expired keys are the most common cause of sudden carrier app failures. Add a manual flat-rate backup shipping option immediately so checkout can proceed while you investigate. Admin → Settings → Shipping → Carrier-calculated shipping rates → test the carrier service connection.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does my Shopify post-purchase page show a blank screen or error?</div>
+            <div class="faq-a">The post-purchase extension loaded but its backend call failed (no offer to display) or its JavaScript threw an error during render. The payment has already completed — the customer's order exists and is paid. Check the browser console for network errors. In the theme editor, verify only one post-purchase app is active — two competing for the same hook produce unpredictable results. Contact the app vendor with the specific order ID and time for their server-side logs.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can a Shopify app break checkout without showing an error?</div>
+            <div class="faq-a">Yes — this is the most dangerous category. Checkout extension JS errors are caught internally and don't surface to the merchant. Shopify Functions logic bugs silently produce wrong outputs (hiding payment methods, removing shipping options) with no error log. Loyalty app discount conflicts show as abandoned checkouts, not errors. All of these look like normal abandonment in checkout funnel analytics.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do Shopify Functions apps break checkout?</div>
+            <div class="faq-a">Shopify Functions run server-side logic that can hide or reorder payment methods (Payment Customization) and delivery options (Delivery Customization). When a Function's conditional rules have a logic bug — for example, a unit mismatch comparing cents vs. dollars — it can silently hide options for all customers with no error log. Admin → Settings → Checkout → disable each Payment customization and Delivery customization one at a time to isolate which Function is the culprit.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATED -->
+      <section class="section">
+        <div class="section-label">Related Issues</div>
+        <h2>Other Shopify Checkout Errors</h2>
+        <p>
+          App conflicts are one category of checkout failure. These guides cover related problems:
+        </p>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">Shopify Checkout No Payment Methods</a> — native payment configuration failures</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">Shopify No Shipping Options at Checkout</a> — shipping calculation failures including carrier apps</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Shopify Checkout Error at Payment Step</a> — payment failures at the final checkout step</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-button-not-working">Shopify Checkout Button Not Working</a> — proceed button disabled or unresponsive</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Shopify Checkout Not Working</a> — comprehensive checkout failure guide</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 CheckPulse &middot; <a href="./">Home</a> &middot; <a href="./#pricing">Pricing</a> &middot; <a href="./free-check">Free Store Check</a> &middot; <a href="./shopify-payment-failed">Payment Failed</a> &middot; <a href="./shopify-checkout-redirect-loop">Redirect Loop</a> &middot; <a href="./shopify-checkout-not-working">Checkout Not Working</a> &middot; <a href="./shopify-checkout-testing-checklist">Testing Checklist</a> &middot; <a href="./shopify-checkout-payment-error">Payment Error</a> &middot; <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a> &middot; <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a> &middot; <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a> &middot; <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a> &middot; <a href="./shopify-checkout-session-expired">Session Expired</a> &middot; <a href="./shopify-store-password-protected">Store Password Protected</a> &middot; <a href="./shopify-checkout-inventory-error">Inventory Error</a> &middot; <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a> &middot; <a href="./shopify-checkout-tax-error">Tax Error</a> &middot; <a href="./shopify-checkout-currency-error">Currency Error</a> &middot; <a href="./shopify-checkout-app-conflict">App Conflict</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

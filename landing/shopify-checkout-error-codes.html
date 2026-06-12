@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Error Codes — Complete Reference (2026)</title>
+  <meta name="description" content="Every Shopify checkout error code explained: HTTP 422, 400, 403, 404, 500, Storefront API errors, and customer-facing messages. What each means, what causes it, and how to fix it." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-error-codes" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-error-codes" />
+  <meta property="og:title" content="Shopify Checkout Error Codes — Complete Reference" />
+  <meta property="og:description" content="HTTP 422, 400, 403, 404, 500, Storefront API error codes, and customer-facing error messages — all Shopify checkout errors explained with causes and fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Error Codes — Complete Reference Guide (2026)",
+    "description": "A complete reference for all Shopify checkout error codes: HTTP status codes returned at the checkout endpoint, Storefront API and GraphQL error codes for headless implementations, and the customer-facing error messages shoppers see. Each entry includes the cause, what triggers it, and how to resolve it.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-error-codes",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What does Shopify checkout error 422 mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "HTTP 422 (Unprocessable Entity) from Shopify checkout means the server understood the request format but could not process it because the submitted data failed validation. Common causes: the cart is empty, a line item variant is out of stock, the discount code is invalid or expired, the shipping address is in a country not supported by your shipping zones, or a required checkout field is missing. For headless implementations using the Storefront API, the GraphQL mutation will return specific error codes (NOT_ENOUGH_IN_STOCK, INVALID, DISCOUNT_NOT_FOUND, etc.) alongside the 422 response that pinpoint which field failed validation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What causes Shopify checkout error 500?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "HTTP 500 (Internal Server Error) from Shopify checkout indicates a server-side failure on Shopify's infrastructure. Common causes: a payment gateway API is timing out or returning errors, Shopify's checkout service is degraded during a platform incident, a third-party app injecting code into checkout is throwing an unhandled exception, or custom checkout.liquid code (on non-Plus plans: checkout.liquid is deprecated) contains a fatal error. Check status.shopify.com for active incidents. If the status page shows all systems normal, test checkout with all custom apps disabled to isolate whether an app is causing the 500."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Shopify error code NOT_ENOUGH_IN_STOCK?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "NOT_ENOUGH_IN_STOCK is a Shopify Storefront API GraphQL error returned when a customer tries to proceed through checkout with a quantity that exceeds available inventory. It is returned in the userErrors array of checkout mutations (checkoutLineItemsUpdate, checkoutCreate). The error object includes a field array pointing to the specific line item. Fix: update the line item quantity to a value at or below the available inventory count, or remove the line item and surface an 'out of stock' message to the customer. Standard Shopify checkout (non-headless) shows the customer-facing message 'This item is no longer available in the quantity you requested' without exposing the error code."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show 'Your cart has been modified'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "'Your cart has been modified' appears when inventory levels change between the time a customer adds items and the time they proceed to checkout or attempt to complete a purchase. Specifically: a product variant that was in stock when added to cart became out of stock while the customer was shopping (another buyer checked out first), or a merchant manually changed the price or availability of a product while customers had it in cart. Shopify detects the mismatch at the checkout creation or completion step and returns this notice. It is not an error — it is a cart notice that requires the customer to review their cart."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does Shopify error TOTAL_PRICE_MISMATCH mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "TOTAL_PRICE_MISMATCH is a Shopify Storefront API error returned when a checkoutCompleteWith* mutation is called with a presentmentCurrencyCode or total amount that no longer matches the actual checkout total. This can happen when: prices changed between cart creation and checkout completion (e.g., a flash sale ended), currency exchange rates updated and caused a rounding difference, or a discount was applied or removed between the price display step and the payment completion step. Fix: always re-fetch the checkout object immediately before displaying the final price and submitting the payment mutation — never use a cached total amount."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does Shopify error 403 Forbidden mean at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "HTTP 403 at Shopify checkout means access to checkout is blocked. Common causes: (1) Store password protection is active — checkout is inaccessible to visitors who haven't entered the store password (Admin → Online Store → Preferences → Password protection). (2) The store is in development mode and the customer is not an authenticated store collaborator. (3) Geographic restrictions via checkout.liquid or a third-party fraud prevention app are blocking access from the customer's IP or country. (4) The checkout URL has been manipulated or the token has expired. On Plus plans, checkout.liquid can explicitly return 403 for custom access control logic."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #8B5CF6;
+      --orange:      #F97316;
+      --text-primary:   #F0F4FF;
+      --text-secondary: #9BA8C0;
+      --text-dim:       #5A6580;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .nav-inner {
+      max-width: 860px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.9rem; color: var(--amber); font-weight: 700; }
+    .nav-cta {
+      background: var(--amber); color: #000; font-family: var(--sans);
+      font-weight: 600; font-size: 0.82rem; padding: 8px 16px; border-radius: 6px;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #FBBF24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-family: var(--mono); font-size: 0.72rem; color: var(--amber);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700; line-height: 1.2; margin-bottom: 20px;
+    }
+    .hero-lead {
+      font-size: 1.1rem; color: var(--text-secondary);
+      max-width: 680px; margin-bottom: 24px; line-height: 1.7;
+    }
+
+    .toc {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 24px; margin-top: 32px;
+    }
+    .toc-label {
+      font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 0.88rem; color: var(--text-secondary); line-height: 2; }
+    .toc a { color: var(--text-secondary); }
+    .toc a:hover { color: var(--amber); }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono); font-size: 0.7rem; color: var(--amber);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: 1.5rem; font-weight: 700; margin-bottom: 16px;
+    }
+    .section h3 {
+      font-size: 1.05rem; font-weight: 600; margin: 28px 0 10px;
+      color: var(--text-primary);
+    }
+    .section p { color: var(--text-secondary); margin-bottom: 14px; line-height: 1.75; }
+
+    /* ERROR CODE TABLE */
+    .code-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .code-table th {
+      font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim);
+      letter-spacing: 0.08em; text-transform: uppercase; text-align: left;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+    .code-table td {
+      font-size: 0.84rem; padding: 14px 14px;
+      border-bottom: 1px solid var(--border); vertical-align: top;
+      line-height: 1.65;
+    }
+    .code-table tr:last-child td { border-bottom: none; }
+    .code-table tr:hover td { background: rgba(255,255,255,0.015); }
+    .code-table td:first-child { white-space: nowrap; }
+    .code-cell { color: var(--text-secondary); }
+
+    .code-chip {
+      display: inline-block;
+      font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+      padding: 3px 9px; border-radius: 5px; white-space: nowrap;
+    }
+    .chip-red    { background: rgba(239,68,68,0.15);   color: var(--red);    border: 1px solid rgba(239,68,68,0.25);   }
+    .chip-amber  { background: rgba(245,158,11,0.15);  color: var(--amber);  border: 1px solid rgba(245,158,11,0.25);  }
+    .chip-orange { background: rgba(249,115,22,0.15);  color: var(--orange); border: 1px solid rgba(249,115,22,0.25);  }
+    .chip-blue   { background: rgba(59,130,246,0.15);  color: var(--blue);   border: 1px solid rgba(59,130,246,0.25);  }
+    .chip-purple { background: rgba(139,92,246,0.15);  color: var(--purple); border: 1px solid rgba(139,92,246,0.25);  }
+    .chip-green  { background: rgba(34,197,94,0.15);   color: var(--green);  border: 1px solid rgba(34,197,94,0.25);   }
+
+    /* API ERROR CARDS */
+    .api-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 14px; margin-top: 24px;
+    }
+    .api-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px 20px;
+    }
+    .api-card-code {
+      font-family: var(--mono); font-size: 0.72rem; font-weight: 700;
+      color: var(--purple); margin-bottom: 8px; display: block;
+    }
+    .api-card h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; }
+    .api-card p { font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+
+    /* MESSAGE CARDS */
+    .msg-list { margin-top: 20px; }
+    .msg-item {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0; border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .msg-customer {
+      padding: 16px 20px; border-right: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .msg-customer-label {
+      font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .msg-customer p {
+      font-size: 0.88rem; color: var(--amber); font-style: italic; margin: 0;
+    }
+    .msg-explain { padding: 16px 20px; background: var(--bg-surface); }
+    .msg-explain-label {
+      font-family: var(--mono); font-size: 0.62rem; color: var(--text-dim);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
+    }
+    .msg-explain p { font-size: 0.82rem; color: var(--text-secondary); margin: 0; line-height: 1.6; }
+
+    /* CTA BLOCK */
+    .cta-block {
+      background: var(--bg-card); border: 1px solid var(--border-mid);
+      border-radius: 12px; padding: 36px; margin: 40px 0; text-align: center;
+    }
+    .cta-block h2 { font-size: 1.4rem; margin-bottom: 12px; }
+    .cta-block p { color: var(--text-secondary); margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block; background: var(--amber); color: #000;
+      font-weight: 700; font-size: 0.95rem; padding: 14px 32px;
+      border-radius: 8px; text-decoration: none;
+    }
+    .cta-btn:hover { background: #FBBF24; text-decoration: none; }
+
+    /* FAQ */
+    .faq { margin-top: 28px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 600; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-primary); }
+    .faq-a { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.75; }
+
+    /* FOOTER */
+    .footer {
+      padding: 36px 0; border-top: 1px solid var(--border);
+      margin-top: 0; text-align: center;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .api-grid { grid-template-columns: 1fr; }
+      .msg-item { grid-template-columns: 1fr; }
+      .msg-customer { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor Checkout →</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <section class="hero">
+        <div class="hero-label">Reference Guide</div>
+        <h1>Shopify Checkout Error Codes</h1>
+        <p class="hero-lead">
+          Every error code Shopify checkout can return — HTTP status codes, Storefront API GraphQL errors,
+          and the messages your customers actually see. What each means, what triggers it, and how to fix it.
+        </p>
+
+        <div class="toc">
+          <div class="toc-label">On This Page</div>
+          <ol>
+            <li><a href="#http-errors">HTTP Status Error Codes (400, 403, 404, 422, 429, 500, 503)</a></li>
+            <li><a href="#storefront-api">Storefront API / GraphQL Error Codes</a></li>
+            <li><a href="#customer-messages">Customer-Facing Error Messages</a></li>
+            <li><a href="#monitoring">How Automated Monitoring Catches These Errors</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" id="http-errors">
+        <div class="section-label">HTTP Errors</div>
+        <h2>HTTP Status Error Codes at Shopify Checkout</h2>
+        <p>
+          These are the HTTP status codes Shopify's checkout endpoint returns. Developers see these in
+          network logs; standard merchants see a corresponding error page or message.
+        </p>
+
+        <table class="code-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>What It Means</th>
+              <th>Common Causes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="code-chip chip-orange">400</span></td>
+              <td>Bad Request</td>
+              <td class="code-cell">Shopify couldn't parse the request. The data format is malformed or a required parameter is missing.</td>
+              <td class="code-cell">Corrupted cart token, malformed checkout URL, invalid JSON in a Storefront API request body.</td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-amber">403</span></td>
+              <td>Forbidden</td>
+              <td class="code-cell">Access to checkout is blocked. The request is valid but the server refuses to fulfill it.</td>
+              <td class="code-cell">Store password protection active; geographic IP block; expired checkout session token; custom checkout.liquid access control on Plus plans.</td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-amber">404</span></td>
+              <td>Not Found</td>
+              <td class="code-cell">The checkout or cart referenced in the URL no longer exists on Shopify's servers.</td>
+              <td class="code-cell">Checkout session expired (abandoned carts expire after ~3 days); manually deleted cart; incorrect checkout token in URL.</td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-red">422</span></td>
+              <td>Unprocessable Entity</td>
+              <td class="code-cell">Shopify understood the request but the submitted data failed validation and cannot be processed.</td>
+              <td class="code-cell">Empty cart; out-of-stock variant; invalid discount code; shipping address outside supported zones; required field missing; currency mismatch. <strong>Most common developer-reported checkout error.</strong></td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-orange">429</span></td>
+              <td>Too Many Requests</td>
+              <td class="code-cell">Your app or integration has hit Shopify's rate limit and is being throttled.</td>
+              <td class="code-cell">Excessive Storefront API calls (burst limit: 50 req/s per app); aggressive polling of checkout status; multiple concurrent checkout mutations from the same app.</td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-red">500</span></td>
+              <td>Internal Server Error</td>
+              <td class="code-cell">Shopify's checkout service encountered an unexpected failure it could not handle.</td>
+              <td class="code-cell">Payment gateway API timeout; Shopify platform incident; fatal error in third-party checkout app; deprecated checkout.liquid with unhandled exception.</td>
+            </tr>
+            <tr>
+              <td><span class="code-chip chip-red">503</span></td>
+              <td>Service Unavailable</td>
+              <td class="code-cell">Shopify's checkout service is temporarily unavailable — either down for maintenance or under extreme load.</td>
+              <td class="code-cell">Shopify platform incident (check status.shopify.com); extreme traffic spike on Shopify's infrastructure; store-level traffic overwhelm (rare on Shopify's multi-tenant platform).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>How to diagnose HTTP errors</h3>
+        <p>
+          For standard Shopify stores (non-headless): open Chrome DevTools → Network tab → filter by
+          "checkout" → reproduce the error and look at the status column. The response body often includes
+          a JSON error description or an HTML error page with more detail.
+        </p>
+        <p>
+          For headless / Storefront API: HTTP errors are accompanied by a <code>errors</code> or
+          <code>userErrors</code> array in the GraphQL response body. Always inspect both — a 200 response
+          can still contain <code>userErrors</code> indicating a validation failure.
+        </p>
+      </section>
+
+      <section class="section" id="storefront-api">
+        <div class="section-label">Storefront API / GraphQL</div>
+        <h2>Storefront API Checkout Error Codes</h2>
+        <p>
+          These error codes appear in the <code>userErrors</code> array returned by Shopify Storefront API
+          GraphQL mutations (<code>checkoutCreate</code>, <code>checkoutLineItemsUpdate</code>,
+          <code>checkoutCompleteWithTokenizedPaymentV3</code>, etc.). They identify validation failures
+          with precision — always inspect them before surfacing a generic message to the customer.
+        </p>
+
+        <h3>Inventory &amp; Cart Errors</h3>
+        <div class="api-grid">
+          <div class="api-card">
+            <span class="api-card-code">NOT_ENOUGH_IN_STOCK</span>
+            <h4>Insufficient inventory</h4>
+            <p>Requested quantity exceeds available stock. The <code>field</code> array points to the specific line item index. Reduce quantity or remove the item.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">EMPTY</span>
+            <h4>Cart is empty</h4>
+            <p>A checkout mutation was attempted on a cart with no line items. Add at least one item before calling <code>checkoutCreate</code>.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">LINE_ITEM_NOT_FOUND</span>
+            <h4>Line item not found</h4>
+            <p>An update or remove mutation referenced a line item ID that no longer exists in the checkout. Re-fetch the checkout to get current line item IDs.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">VARIANTS_REQUIRE_SELECTING_OPTIONS</span>
+            <h4>Options not fully selected</h4>
+            <p>A product with multiple variants was added without fully selecting all required options (size + color, etc.). Surface option selectors before allowing add-to-cart.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">ALREADY_COMPLETED</span>
+            <h4>Checkout already completed</h4>
+            <p>A mutation was called on a checkout that already has an order associated with it. Create a new checkout; do not reuse completed checkout tokens.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">TOO_LONG</span>
+            <h4>Field value too long</h4>
+            <p>A string field (note, shipping address line) exceeds the maximum character limit. The <code>field</code> array identifies which field. Truncate or validate length client-side.</p>
+          </div>
+        </div>
+
+        <h3>Discount &amp; Gift Card Errors</h3>
+        <div class="api-grid">
+          <div class="api-card">
+            <span class="api-card-code">DISCOUNT_NOT_FOUND</span>
+            <h4>Discount code not found</h4>
+            <p>The discount code entered does not exist in the store. Check for typos; codes are case-insensitive but must match exactly.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">DISCOUNT_EXPIRED</span>
+            <h4>Discount has expired</h4>
+            <p>The code is valid but its end date has passed. The customer must use a different code.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">DISCOUNT_DISABLED</span>
+            <h4>Discount is disabled</h4>
+            <p>The discount exists but has been deactivated in the merchant's admin. Reactivate it in Admin → Discounts if it should still be valid.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">DISCOUNT_LIMIT_REACHED</span>
+            <h4>Usage limit reached</h4>
+            <p>The discount has been used the maximum number of times set by the merchant. No fix for the customer — the discount is exhausted.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">CUSTOMER_ALREADY_USED_ONCE_PER_CUSTOMER_DISCOUNT_NOTICE</span>
+            <h4>Already used (one-per-customer)</h4>
+            <p>This code has a one-per-customer limit and the logged-in customer has already redeemed it. Display a clear "already redeemed" message.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">DISCOUNT_NOT_APPLICABLE</span>
+            <h4>Cart doesn't qualify</h4>
+            <p>The discount has conditions (minimum order value, specific products, specific customer tags) that the current cart does not meet.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">CART_DOES_NOT_MEET_DISCOUNT_REQUIREMENTS_NOTICE</span>
+            <h4>Minimum requirements not met</h4>
+            <p>The cart total or item count is below the discount's minimum requirement. Display the gap to the customer ("Add $X more to qualify").</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">UNABLE_TO_APPLY</span>
+            <h4>Cannot apply discount</h4>
+            <p>Generic application failure — often conflicts with another already-applied discount. Remove existing discounts before applying a new one.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_NOT_APPLICABLE</span>
+            <h4>Gift card not applicable</h4>
+            <p>The gift card cannot be used in this context — common when a gift card currency doesn't match the checkout currency.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_DEPLETED</span>
+            <h4>Gift card balance is zero</h4>
+            <p>The gift card has been fully used. The balance is $0. Customer must use a different payment method for the full amount.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_EXPIRED</span>
+            <h4>Gift card has expired</h4>
+            <p>The gift card's expiry date has passed. Contact the merchant — Shopify gift cards do not expire by default unless the merchant set an expiry date.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_CODE_INVALID</span>
+            <h4>Gift card code invalid</h4>
+            <p>The code entered doesn't match any gift card in the store. Verify the code; gift card codes are case-sensitive in some implementations.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_ALREADY_APPLIED</span>
+            <h4>Gift card already applied</h4>
+            <p>The same gift card has already been added to this checkout. Each gift card can only be applied once per checkout.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">GIFT_CARD_CURRENCY_MISMATCH</span>
+            <h4>Currency mismatch</h4>
+            <p>The gift card was issued in a different currency than the current checkout. Shopify gift cards are currency-specific.</p>
+          </div>
+        </div>
+
+        <h3>Address &amp; Shipping Errors</h3>
+        <div class="api-grid">
+          <div class="api-card">
+            <span class="api-card-code">INVALID_FOR_COUNTRY</span>
+            <h4>Country not supported</h4>
+            <p>The shipping address country is not in any of the merchant's shipping zones. The merchant must add a shipping rate for that country, or the customer must use a different address.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">INVALID_FOR_COUNTRY_AND_PROVINCE</span>
+            <h4>Province not supported</h4>
+            <p>The country is supported but the specific province/state is excluded from shipping. Check shipping zones in Admin → Settings → Shipping and delivery.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">INVALID_PROVINCE_IN_COUNTRY</span>
+            <h4>Province invalid for country</h4>
+            <p>The province code doesn't exist in Shopify's database for the given country. Common cause: using a non-ISO province code in a Storefront API mutation.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">INVALID_REGION</span>
+            <h4>Invalid region</h4>
+            <p>Geographic region is not recognized. Verify the countryCode and provinceCode values against Shopify's supported regions list in the Storefront API schema.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">INVALID_COUNTRY_AND_CURRENCY</span>
+            <h4>Country / currency mismatch</h4>
+            <p>The checkout currency doesn't match what's available for the billing or shipping country. Occurs when using multi-currency with country-specific currency rules.</p>
+          </div>
+        </div>
+
+        <h3>Payment Errors</h3>
+        <div class="api-grid">
+          <div class="api-card">
+            <span class="api-card-code">TOTAL_PRICE_MISMATCH</span>
+            <h4>Price changed since last fetch</h4>
+            <p>The total amount submitted in the payment mutation no longer matches the actual checkout total. Always re-fetch the checkout total immediately before submitting payment.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">MISSING_PAYMENT_INPUT</span>
+            <h4>Payment data missing</h4>
+            <p>The payment mutation was called without valid payment data (card token, wallet payment token, etc.). Check that the payment gateway tokenization completed successfully before calling the mutation.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">SHOPIFY_PAYMENTS_REQUIRED</span>
+            <h4>Shopify Payments required</h4>
+            <p>The checkout requires Shopify Payments but the store's account doesn't support it in the current country, or the plan doesn't include it. Surfaces when using certain payment methods that only work with Shopify Payments.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">NOT_SUPPORTED</span>
+            <h4>Feature not supported</h4>
+            <p>The requested operation is not supported for this checkout configuration (plan level, store settings, or app context). Check the Storefront API changelog for feature availability by plan.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">INVALID</span>
+            <h4>Field value invalid</h4>
+            <p>Generic validation failure — a field value doesn't pass format validation. The <code>field</code> array specifies which field. Common for email format, phone number format, or custom attribute values.</p>
+          </div>
+          <div class="api-card">
+            <span class="api-card-code">PRESENT</span>
+            <h4>Already exists</h4>
+            <p>Attempt to add something (gift card, discount) that is already applied to the checkout. Remove the existing one first or skip the add if idempotency is needed.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="customer-messages">
+        <div class="section-label">Customer-Facing Messages</div>
+        <h2>Error Messages Your Customers See</h2>
+        <p>
+          These are the error messages Shopify surfaces to shoppers in the standard checkout UI.
+          Customers don't see error codes — they see these plain-language messages. The right column
+          explains what's actually happening and how to resolve it.
+        </p>
+
+        <div class="msg-list">
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Your cart has been modified"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Inventory changed between add-to-cart and checkout. Another customer checked out the last unit, or the merchant changed stock. Customer must review cart and remove or reduce the affected item.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"This item is no longer available in the quantity you requested"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Maps to NOT_ENOUGH_IN_STOCK. Available quantity dropped below the requested amount. Checkout forces a quantity reduction. Customer must accept the lower quantity or remove the item.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"We had trouble processing your payment. Please try again."</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Payment gateway declined the transaction or returned an error. Card details may be wrong, the issuing bank declined it, or the payment gateway is temporarily unavailable. Customer should retry with correct card details or a different payment method.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Your payment was declined"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>The card issuer (bank) declined the charge — not Shopify. Common reasons: insufficient funds, suspected fraud, card not authorized for online purchases, or billing address mismatch. Customer should contact their bank or use a different card.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"This payment method isn't available"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>The checkout loaded with no payment methods shown. Maps to NO_PAYMENT_METHODS_AVAILABLE. Causes: Shopify Payments suspended, all payment gateways have their country restrictions applied to this customer's country, or the store is in test mode. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">no payment methods guide</a>.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Your session has expired. Please go back to the store and try again."</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>The checkout session token has expired (typically after ~3 days of inactivity). Shopify cannot recover an expired checkout. Customer must start checkout again from the store. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-session-expired">checkout session expired guide</a>.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Sorry, this discount code isn't valid"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Maps to DISCOUNT_NOT_FOUND, DISCOUNT_EXPIRED, or DISCOUNT_DISABLED. Check the discount in Admin → Discounts: is it active, not expired, not at the usage limit, and applicable to the items in cart?</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"This discount has already been used"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Maps to CUSTOMER_ALREADY_USED_ONCE_PER_CUSTOMER_DISCOUNT_NOTICE. The one-per-customer limit applies and this customer has already redeemed the code once.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"No shipping options available for this address"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>No shipping rate in the merchant's shipping zones covers the customer's address. Merchant must add a shipping rate for that country/region, or the customer must use a different address. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">no shipping options guide</a>.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Address validation failed"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Shopify's address validator (or a third-party validator app) rejected the address as non-deliverable. Customer must verify street, city, postcode, and country. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">address validation guide</a>.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"Checkout is not available"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Store is password-protected or inaccessible. Maps to HTTP 403. For development stores: only staff and collaborators can access checkout. For live stores with password protection: the customer needs the store password. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-store-password-protected">password protected store guide</a>.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"You must agree to the terms of service to complete your order"</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>The store has "Require customers to agree to your terms of service and refund policy before purchase" enabled and the customer hasn't checked the box. A UX issue — the checkbox is often easy to miss on mobile.</p>
+            </div>
+          </div>
+
+          <div class="msg-item">
+            <div class="msg-customer">
+              <div class="msg-customer-label">Customer Sees</div>
+              <p>"There was a problem with your order. Please contact us."</p>
+            </div>
+            <div class="msg-explain">
+              <div class="msg-explain-label">What's Happening &amp; Fix</div>
+              <p>Generic fallback error — Shopify couldn't give a specific message. Usually indicates a server-side failure (HTTP 500/503), a payment gateway error, or an unhandled exception in a checkout app. Check Admin → Orders for any partial orders, and Shopify status for incidents.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <div class="cta-block">
+        <h2>Know When Checkout Errors Hit — Before Customers Do</h2>
+        <p>
+          CheckPulse runs a full 4-step browser checkout simulation every hour and alerts you
+          within 30 minutes when any step fails, returns an error, or slows below your threshold.
+          Stop learning about checkout errors from customer complaints.
+        </p>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">Start Monitoring Checkout →</a>
+      </div>
+
+      <section class="section" id="monitoring">
+        <div class="section-label">Error Detection</div>
+        <h2>How Automated Monitoring Catches These Errors</h2>
+        <p>
+          Standard uptime monitors send an HTTP request to a URL and record the status code.
+          This catches HTTP 500 and 503 errors when the server returns them on the first request —
+          but misses the vast majority of checkout errors.
+        </p>
+        <p>
+          Most Shopify checkout errors are not server errors. They are application-level errors that
+          appear <strong>during</strong> the checkout flow — at the cart step, the address step, the
+          shipping step, or the payment step. An uptime monitor that pings the checkout URL never
+          reaches any of these steps.
+        </p>
+
+        <table class="code-table" style="margin-top:24px">
+          <thead>
+            <tr>
+              <th>Error Type</th>
+              <th>Uptime Monitor (HTTP ping)</th>
+              <th>Checkout Simulation Monitor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>HTTP 500 / 503 (server down)</td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+            <tr>
+              <td>No payment methods loading</td>
+              <td><span class="code-chip chip-red">MISSES</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+            <tr>
+              <td>Checkout stuck loading (blank page)</td>
+              <td><span class="code-chip chip-red">MISSES</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+            <tr>
+              <td>Checkout redirect loop</td>
+              <td><span class="code-chip chip-red">MISSES</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+            <tr>
+              <td>Slow checkout (5–10s load time)</td>
+              <td><span class="code-chip chip-red">MISSES</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+            <tr>
+              <td>App conflict breaking checkout UI</td>
+              <td><span class="code-chip chip-red">MISSES</span></td>
+              <td><span class="code-chip chip-green">DETECTS</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top:20px">
+          CheckPulse runs a real browser through your checkout's actual 4 steps — cart initialization,
+          contact info, shipping selection, and payment method loading — and alerts you when any step
+          returns an error, takes too long, or doesn't load correctly. See how this compares to
+          standard uptime tools in our
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-monitoring-comparison">monitoring comparison guide</a>.
+        </p>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="section-label">FAQ</div>
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq">
+
+          <div class="faq-item">
+            <div class="faq-q">What does Shopify checkout error 422 mean?</div>
+            <p class="faq-a">HTTP 422 (Unprocessable Entity) means Shopify understood the request but the data failed validation. Common causes: empty cart, out-of-stock variant, invalid discount code, shipping address outside supported zones, or a required field missing. For headless stores using the Storefront API, the GraphQL <code>userErrors</code> array will contain a specific error code (NOT_ENOUGH_IN_STOCK, DISCOUNT_NOT_FOUND, etc.) alongside the 422 status code that pinpoints the exact failure.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">What causes Shopify checkout error 500?</div>
+            <p class="faq-a">HTTP 500 indicates a server-side failure. Common causes: payment gateway API timeout, Shopify platform incident (check status.shopify.com), a third-party app injecting checkout code that throws an unhandled exception, or deprecated checkout.liquid with a fatal Liquid error. If status.shopify.com shows no incident, disable all checkout apps one at a time to isolate the cause.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">What is Shopify error code NOT_ENOUGH_IN_STOCK?</div>
+            <p class="faq-a">NOT_ENOUGH_IN_STOCK appears in the Storefront API GraphQL <code>userErrors</code> array when a line item quantity exceeds available inventory. It includes a <code>field</code> array pointing to the specific line item. Standard Shopify checkout shows customers "This item is no longer available in the quantity you requested." Fix: reduce the quantity to available stock or remove the item.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify show "Your cart has been modified"?</div>
+            <p class="faq-a">This notice appears when inventory changes between add-to-cart and checkout. Another customer checked out the last unit while this customer was browsing, or the merchant changed availability. It's a cart notice, not an error — Shopify automatically adjusts the cart and asks the customer to review before continuing.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">What does TOTAL_PRICE_MISMATCH mean in Shopify's Storefront API?</div>
+            <p class="faq-a">TOTAL_PRICE_MISMATCH is returned when a checkout payment mutation is called with a total amount that no longer matches the current checkout total. This happens when prices change between the display step and payment submission (sale ends, discount applied/removed, currency rate updates). Always re-fetch the checkout object immediately before displaying the final price and submitting the payment mutation. Never cache the total amount.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">How do I find which Shopify checkout error is causing problems?</div>
+            <p class="faq-a">For standard stores: open Chrome DevTools (F12) → Network tab → reproduce the error → look for requests to checkout.shopify.com and inspect the response body. For headless/Storefront API: log the full <code>userErrors</code> array from every GraphQL mutation response — never assume a 200 response means success. For production monitoring without manual testing: use CheckPulse's automated checkout simulation, which detects errors at each step and sends alerts with the specific step that failed.</p>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow">Slow Checkout</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+    </p>
+    <p style="margin-top: 8px;">© 2026 CheckPulse · Shopify checkout monitoring</p>
+  </footer>
+
+</body>
+</html>

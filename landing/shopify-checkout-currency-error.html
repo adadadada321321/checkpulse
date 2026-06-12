@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Currency Error — "Cannot Process Payment in This Currency" (2026)</title>
+  <meta name="description" content="Shopify checkout showing wrong currency, 'cannot process payment in this currency', or charging customers in the wrong currency? 7 root causes: payment gateway currency gap, Shopify Markets mismatch, Shop Pay cache, zero-decimal currency rounding — exact diagnosis and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error" />
+  <meta property="og:title" content="Shopify Checkout Currency Error — Every Multi-Currency Failure Fixed" />
+  <meta property="og:description" content="Multi-currency checkout failures come in two types: visible (customer sees 'cannot process payment in this currency' and bounces) and silent (checkout completes but charges in the wrong currency — merchant is liable for the difference). 7 root causes and exact fix steps." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Currency Error — 7 Causes &amp; Fixes",
+    "description": "Shopify currency errors at checkout fall into two categories: visible failures (the customer sees 'cannot process payment in this currency' and cannot complete checkout) and silent failures (checkout completes but the customer is charged in the wrong currency, or the merchant receives settlement in a currency their account doesn't support). The silent category is more dangerous — orders complete, revenue appears to flow, but the merchant is potentially liable for currency differences and settlement failures. This guide covers all seven root causes, from Shopify Markets configuration gaps to payment gateway currency support mismatches, with exact admin diagnostic steps and fix instructions for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say 'cannot process payment in this currency'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This error appears when the currency displayed in the checkout does not match a currency your payment gateway is configured to accept. The most common cause: you've enabled multi-currency via Shopify Markets, so customers browse and add items in their local currency (e.g., EUR or GBP), but your payment gateway account is only configured to process payments in your store's default currency (e.g., USD). When Shopify tries to initiate the payment, the gateway rejects the currency code. To fix: (1) confirm your payment gateway explicitly supports multi-currency settlement — Shopify Payments does, but many third-party gateways (Authorize.net, PayPal legacy, some regional gateways) only process one currency; (2) if using Shopify Payments, go to Admin → Settings → Payments → Shopify Payments → Manage → ensure 'Multi-currency' is enabled and the currencies match your Shopify Markets configuration; (3) if using a third-party gateway, contact the gateway to enable multi-currency or restrict Shopify Markets to currencies the gateway supports."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify checkout showing prices in the wrong currency?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout displays currency based on three layers: (1) the Shopify Markets configuration for the customer's detected country, (2) the currency the customer explicitly selected via a currency switcher, and (3) the checkout session created when the customer first reached checkout. If any of these layers conflict — for example, a customer switches currency after the checkout session has already been initialized, or a headless storefront passes incorrect currency context to the Checkout API — the checkout may display one currency while attempting to process payment in another. The most common cause is a cached checkout session: Shopify stores checkout tokens in the customer's browser. If a customer started a checkout in USD, then the store's currency configuration changed (e.g., Shopify Markets was reconfigured), returning customers complete checkout in the old currency. Fix by clearing the cart and starting a fresh checkout session, or by programmatically invalidating old checkout tokens via the Storefront API."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix Shopify Markets currency issues at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Markets currency issues at checkout typically have one of four causes. (1) Markets is enabled but Shopify Payments multi-currency is not: go to Admin → Settings → Payments → Shopify Payments → Manage → scroll to Multi-currency → ensure the currencies in your Markets configuration are checked. Without this, Shopify Markets will show local prices but checkout will revert to your store's default currency. (2) A market has a currency assigned that your payment gateway doesn't support: verify each market's currency in Admin → Markets → [market] → Currency → confirm this currency is in your Shopify Payments supported list. (3) Rounding rules are causing price mismatches: Admin → Markets → [market] → Rounding → review whether 'Round to nearest whole number' is causing tax + price display to differ from expected. (4) The domain used for a market is not matching the checkout domain: if you use market-specific domains (e.g., uk.store.com), confirm the Shopify Payments account is associated with all domains, not just the primary."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout revert to my store's default currency?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout reverts to the store's default currency when the multi-currency stack is incomplete — one layer is configured but another is missing. The most common scenario: Shopify Markets is enabled (customers see local prices in the storefront), but Shopify Payments multi-currency is not activated. Without multi-currency enabled on Shopify Payments, the checkout cannot process local-currency payments and silently falls back to the default currency. This means customers browse in GBP, add to cart in GBP, reach checkout — and see USD. Conversion rate is applied by the gateway, not Shopify, often at unfavorable rates. A second common scenario: a third-party theme or custom storefront is not passing the 'presentment currency' parameter correctly when creating the checkout via the Storefront API. In headless setups, the checkout's presentment currency must be explicitly set at checkout creation — it does not inherit from the storefront session."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which payment gateways support multi-currency in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Multi-currency support in Shopify checkout depends entirely on the payment gateway. Shopify Payments: full multi-currency support for 130+ currencies, with settlement in the merchant's bank currency and automatic conversion. Stripe (via Shopify integration): supports multi-currency but requires manual currency configuration in the Stripe dashboard — each currency must be enabled, and settlement rules must be configured. PayPal (Express Checkout via Shopify): supports major currencies but requires your PayPal account to have a matching currency balance/bank account for settlement; currencies without a linked bank revert to the primary currency. Authorize.net, Braintree (legacy), and most regional gateways: typically single-currency only — they accept only the currency configured on the merchant account. For international merchants on non-Shopify-Payments gateways, the standard fix is to restrict Shopify Markets to the gateway's supported currencies only, rather than trying to force multi-currency processing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify currency errors go undetected by uptime monitors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — silent currency errors are completely invisible to standard uptime monitoring. When a Shopify checkout processes an order in the wrong currency, the checkout URL returns HTTP 200. The order is created. The customer receives a confirmation email. Uptime Robot, Pingdom, Better Uptime, and similar tools all show green. The only signals are: (1) orders in your Shopify admin show amounts in unexpected currencies; (2) Shopify Payments settlement reports show currency conversion fees on orders you expected to settle natively; (3) customer complaints about being charged in the wrong currency. Without end-to-end checkout monitoring that simulates a purchase from a specific geographic context and verifies the currency displayed at the payment step, these errors can run for the entire duration of a campaign or product launch before anyone notices."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-step.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-note {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(245,158,11,0.05);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 6px;
+      color: var(--text-mid);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-note strong { color: var(--amber); }
+
+    .section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+    }
+    .section h2 {
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .section-lead { color: var(--text-mid); font-size: 1.05rem; max-width: 640px; margin-bottom: 40px; }
+
+    .causes-list { display: flex; flex-direction: column; gap: 20px; }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+    }
+    .cause-card:hover { border-color: var(--border-mid); }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+    .cause-title { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause-body { color: var(--text-mid); font-size: 0.95rem; line-height: 1.7; }
+    .cause-body strong { color: var(--text); }
+    .cause-fix {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(34,197,94,0.05);
+      border: 1px solid rgba(34,197,94,0.15);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      color: var(--text-mid);
+    }
+    .cause-fix strong { color: var(--green); }
+
+    .silent-box {
+      background: rgba(239,68,68,0.04);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      padding: 28px;
+      margin: 40px 0;
+    }
+    .silent-box h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: var(--red); }
+    .silent-box p { color: var(--text-mid); font-size: 0.95rem; line-height: 1.7; }
+
+    .monitor-cta {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.04) 100%);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px;
+      padding: 36px 32px;
+      margin: 48px 0 0;
+    }
+    .monitor-cta h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; }
+    .monitor-cta p { color: var(--text-mid); font-size: 0.95rem; max-width: 560px; margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .cta-btn:hover { background: #FBBF24; text-decoration: none; }
+    .cta-sub { font-size: 0.8rem; color: var(--text-dim); margin-top: 12px; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .faq-a { color: var(--text-mid); font-size: 0.95rem; line-height: 1.7; }
+
+    .related { padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 28px; }
+    .related-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 0.88rem;
+    }
+    .related-card:hover { border-color: var(--border-mid); }
+
+    footer {
+      padding: 32px 0;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    footer a { color: var(--text-dim); margin: 0 10px; }
+    footer a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .hero { padding: 48px 0 40px; }
+      .flow-steps { gap: 6px; }
+      .flow-step { font-size: 0.68rem; padding: 6px 10px; }
+      .cause-card { padding: 18px 20px; }
+      .monitor-cta { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CHECKPULSE</a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/">Monitor →</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="hero">
+    <p class="hero-eyebrow">SHOPIFY CHECKOUT TROUBLESHOOTING</p>
+    <h1>Shopify Checkout <span>Currency Error</span></h1>
+    <p class="hero-lead">
+      "Cannot process payment in this currency" — or worse, checkout silently charges the wrong currency. Multi-currency failures are the most invisible checkout errors in Shopify: orders complete, revenue looks fine, but the merchant is liable for the currency mismatch. 7 root causes and exact fixes.
+    </p>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-num">7</div>
+        <div class="stat-label">root causes covered</div>
+      </div>
+      <div>
+        <div class="stat-num">2</div>
+        <div class="stat-label">failure types: visible &amp; silent</div>
+      </div>
+      <div>
+        <div class="stat-num">130+</div>
+        <div class="stat-label">currencies Shopify Markets supports</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="flow-visual">
+    <div class="flow-title">4-STEP CHECKOUT FLOW — WHERE CURRENCY ERRORS OCCUR</div>
+    <div class="flow-steps">
+      <div class="flow-step ok">✓ Step 1 — Cart &amp; Products</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step ok">✓ Step 2 — Checkout Init</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fail">✗ Step 3 — Payment Methods</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step dim">— Step 4 — Order Confirm</div>
+    </div>
+    <div class="flow-error-box">
+      HTTP 200 · payment_methods: [] · error: "currency_not_supported" — gateway rejected currency code EUR, store Shopify Payments multi-currency not activated
+    </div>
+    <div class="flow-note">
+      <strong>The silent variant:</strong> Step 3 succeeds — payment methods load — but in the store's default currency (USD), not the customer's expected currency (GBP). Checkout completes. Order created. Customer charged in wrong currency. No error, no alert, but the merchant owes a currency-difference refund and may face a chargeback.
+    </div>
+  </div>
+
+  <section class="section">
+    <p class="section-label">ROOT CAUSE ANALYSIS</p>
+    <h2>7 Causes of Shopify Checkout Currency Errors</h2>
+    <p class="section-lead">
+      Every Shopify currency failure traces back to a gap between what Shopify Markets shows and what your payment gateway can actually process. These are the seven distinct failure modes, ordered from most to least common.
+    </p>
+
+    <div class="causes-list">
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 01</span>
+          <div class="cause-title">Shopify Markets enabled, Shopify Payments multi-currency not activated</div>
+        </div>
+        <div class="cause-body">
+          <strong>The most common setup mistake.</strong> Shopify Markets allows you to assign currencies to geographic regions — customers in the UK see GBP prices, EU customers see EUR. But showing prices in a local currency and <em>processing payments</em> in that currency are two separate activations. If Shopify Payments multi-currency is not explicitly enabled, the checkout will display local prices but revert to your store's default currency at the payment step. Customers see "£89.00" in their cart and "USD $113.42" at checkout. Conversion happens at the gateway's rate, not Shopify's published rate.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> Admin → Settings → Payments → Shopify Payments → Manage → scroll to "Multi-currency" → enable it and check each currency your Markets configuration uses. This must match your Markets currency list exactly — a currency in Markets but not in Shopify Payments multi-currency will still revert at checkout.
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 02</span>
+          <div class="cause-title">Third-party payment gateway does not support the checkout currency</div>
+        </div>
+        <div class="cause-body">
+          <strong>The "cannot process payment in this currency" error.</strong> When you use a non-Shopify-Payments gateway (Authorize.net, PayPal legacy, Braintree, regional gateways), that gateway is typically configured for a single currency — the one linked to your merchant account. If Shopify sends a payment request for EUR or GBP, the gateway returns a currency_not_supported error. Shopify then shows the customer "cannot process payment in this currency." The checkout appears functional (Step 1 and 2 pass), but Step 3 fails for all customers outside the gateway's supported currency.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> Either (a) restrict your Shopify Markets currencies to only the currency your gateway supports, or (b) switch to Shopify Payments which supports 130+ currencies natively, or (c) contact your gateway to request multi-currency activation (available on Stripe, PayPal Commerce Platform, and some regional gateways with a separate agreement).
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 03</span>
+          <div class="cause-title">Checkout session cached in wrong currency (stale checkout token)</div>
+        </div>
+        <div class="cause-body">
+          <strong>A silent failure that traps returning customers.</strong> Shopify stores checkout sessions in the customer's browser as a checkout token. When a customer starts a checkout, the currency is locked into that session. If your store's currency configuration changes after the session was created — Shopify Markets reconfigured, a currency added or removed, a market deleted — returning customers complete checkout in the old currency. Their cart shows the new prices; their checkout processes at old rates. No error fires. Orders complete. The discrepancy only surfaces in settlement reports.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> After any Shopify Markets reconfiguration, programmatically invalidate existing checkout tokens via the Storefront API, or implement cart expiry logic that clears stale sessions. For immediate remediation, update your theme to clear the cart cookie when currency context changes. Admin → Markets configuration changes do not automatically clear existing checkout sessions.
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 04</span>
+          <div class="cause-title">Headless storefront not passing presentment currency to Checkout API</div>
+        </div>
+        <div class="cause-body">
+          <strong>Affects custom storefronts and headless Shopify builds.</strong> When creating a checkout via the Shopify Storefront API, the presentment currency (the currency the customer sees and pays in) must be explicitly passed in the <code>checkoutCreate</code> mutation using the <code>presentmentCurrencyCode</code> parameter. If this parameter is omitted, Shopify defaults to the store's base currency regardless of what currency the user has selected in the storefront. This creates a gap where users interact with prices in their local currency but are charged in USD (or whichever the base is). The checkout session itself succeeds — no error — making this a silent conversion failure.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> In your <code>checkoutCreate</code> mutation, include <code>presentmentCurrencyCode: $currencyCode</code> and pass the user's currently selected currency from your storefront state. Verify the returned <code>checkout.presentmentCurrencyCode</code> matches the expected value before rendering the checkout URL to the user.
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 05</span>
+          <div class="cause-title">Zero-decimal currency rounding conflict (JPY, KRW, TWD, ISK)</div>
+        </div>
+        <div class="cause-body">
+          <strong>Affects stores selling to Japan, South Korea, Taiwan, and Iceland.</strong> Some currencies do not use decimal places (¥1,200 is correct; ¥1,200.00 is wrong). Shopify's rounding rules in Markets can conflict with how payment gateways expect these amounts. The most common symptom: the payment gateway rejects the amount as invalid (e.g., an amount of "1200.00" for JPY when the gateway expects "1200" as an integer). Less commonly, Shopify's rounding causes small discrepancies between the displayed amount and the charged amount — customers are charged ¥1,201 when the product showed ¥1,200. This triggers chargebacks from detail-oriented customers.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> Admin → Markets → [market using JPY/KRW/TWD/ISK] → Rounding → set to "No rounding" or "Exact amount" — do not use "Round to nearest whole number" for zero-decimal currencies (they're already whole). Verify your payment gateway's API documentation for zero-decimal currency format requirements: most expect amounts as integers (120000 for ¥1,200), not floats.
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 06</span>
+          <div class="cause-title">Shop Pay / accelerated checkout in wrong currency</div>
+        </div>
+        <div class="cause-body">
+          <strong>Affects stores with Shop Pay, Apple Pay, or Google Pay enabled.</strong> Accelerated checkout methods (Shop Pay, Apple Pay, Google Pay) bypass the standard checkout flow and initiate payment directly from the product page or cart. They use the payment request API, which requires the exact amount and currency to be declared upfront. If the currency passed to the payment request does not match what Shopify Payments is configured to process, the accelerated checkout session fails silently — the button either greys out, shows no payment options, or completes but charges in the default currency. This is particularly confusing because the standard checkout (reached via "Checkout" button) works fine, while only Shop Pay fails.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> Verify that your theme's payment request button implementation (usually in <code>sections/main-cart.liquid</code> or <code>snippets/product-form.liquid</code>) is passing the correct currency from <code>cart.currency</code>, not a hardcoded value. For Shop Pay specifically, confirm in Admin → Settings → Payments → Accelerated checkouts that Shop Pay is active and that multi-currency is enabled on the underlying Shopify Payments account.
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-header">
+          <span class="cause-num">CAUSE 07</span>
+          <div class="cause-title">Currency switcher mismatch — display currency vs. settlement currency</div>
+        </div>
+        <div class="cause-body">
+          <strong>A UX failure that looks like a currency error but isn't a technical bug.</strong> Many Shopify themes include a currency switcher that changes the <em>displayed</em> prices using Shopify's currency conversion but does not change the <em>checkout</em> currency. When multi-currency is not fully enabled, the switcher updates prices in the storefront using client-side conversion but the checkout processes in the base currency. Customers switch to GBP, see GBP prices, reach checkout, and are charged in USD at whatever rate their card issuer applies. This is not technically a checkout error — the checkout is working as configured — but customers experience it as "I was charged in the wrong currency" and file chargebacks. Many merchants discover this only when they receive their first international chargeback.
+        </div>
+        <div class="cause-fix">
+          <strong>Fix:</strong> If your store uses a currency switcher without full Shopify Payments multi-currency, add a checkout disclaimer: "Prices shown in [local currency] for reference. You will be charged in [base currency] at checkout." Better fix: enable Shopify Payments multi-currency so the switcher changes both display and checkout currency. The theme's switcher mechanism (typically using <code>{% raw %}{{ cart.currency.iso_code }}{% endraw %}</code>) should only be active when multi-currency checkout is actually enabled.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="silent-box">
+      <h3>The silent currency failure: checkout completes, merchant owes a refund</h3>
+      <p>
+        The most dangerous currency errors are the ones that don't block checkout. A customer in the UK browses in GBP, reaches checkout, sees USD prices due to a multi-currency misconfiguration, and completes the purchase anyway — either not noticing or assuming the conversion is correct. The order is created in USD. The customer expects GBP charges. When they see the bank charge, they dispute it. The merchant faces a chargeback, a currency conversion refund, and a potential account flag. No alert fires. No uptime monitor catches it. The only signal is a chargeback notification days later, by which time hundreds of orders may have processed the same way.
+      </p>
+    </div>
+
+    <div class="monitor-cta">
+      <h3>Currency errors are invisible to uptime monitors</h3>
+      <p>
+        When a currency mismatch occurs, your store URL returns HTTP 200. Products load. The checkout flow appears functional. Standard monitoring tools show green. CheckPulse simulates the full 4-step checkout flow and verifies the payment methods step — including the currency context — every hour. When a currency error causes payment methods to fail or return empty, you get an email with the exact step and error code before customers see it.
+      </p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/">Start monitoring →</a>
+      <p class="cta-sub">From $39/mo · 14-day free trial · No credit card required</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="section-label">FREQUENTLY ASKED QUESTIONS</p>
+    <h2>Shopify Currency Error FAQ</h2>
+
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify say "cannot process payment in this currency"?</div>
+        <div class="faq-a">This error appears when the currency displayed in checkout does not match a currency your payment gateway is configured to accept. Most common cause: Shopify Markets is enabled (showing local prices) but Shopify Payments multi-currency is not activated, or your third-party gateway only supports a single currency. Fix: Admin → Settings → Payments → Shopify Payments → Manage → enable multi-currency and match your Markets currencies, or restrict Markets to only currencies your gateway supports.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why is my Shopify checkout showing prices in the wrong currency?</div>
+        <div class="faq-a">The most common causes: (1) a cached checkout session from before a currency configuration change, (2) a currency switcher that updates display prices but not the checkout currency, or (3) a headless storefront not passing the <code>presentmentCurrencyCode</code> parameter when creating the checkout. If the issue started after a recent Shopify Markets configuration change, stale checkout tokens are the likely cause — clear cart cookies or implement checkout session expiry.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How do I fix Shopify Markets currency issues at checkout?</div>
+        <div class="faq-a">Four-step checklist: (1) Admin → Settings → Payments → Shopify Payments → Manage → enable multi-currency, check every currency in your Markets configuration. (2) Admin → Markets → each market → confirm the assigned currency is in your Shopify Payments multi-currency list. (3) Admin → Markets → each market → Rounding → verify zero-decimal currencies (JPY, KRW) use exact rounding. (4) Test checkout from each market using a VPN or Shopify's preview market feature to confirm currency displays and processes correctly end to end.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Which payment gateways support multi-currency in Shopify?</div>
+        <div class="faq-a">Shopify Payments supports 130+ currencies natively with automatic settlement. Stripe (via Shopify integration) supports multi-currency but requires per-currency configuration in the Stripe dashboard. PayPal Commerce Platform supports major currencies with linked bank accounts. Most other gateways (Authorize.net, legacy Braintree, regional gateways) are single-currency only. If you're on a single-currency gateway and selling internationally, restrict Shopify Markets to that gateway's supported currency or switch to Shopify Payments.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify checkout revert to my store's default currency?</div>
+        <div class="faq-a">Most likely cause: Shopify Markets is enabled but Shopify Payments multi-currency is not activated — checkout reverts to the base currency because it cannot process local-currency payments. Second cause: a headless storefront omitting the <code>presentmentCurrencyCode</code> in the <code>checkoutCreate</code> Storefront API call. Third cause: a stale checkout session (browser cookie) initialized before a currency change. Check all three before assuming a theme or app bug.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Can Shopify currency errors go undetected by uptime monitors?</div>
+        <div class="faq-a">Yes — silent currency errors are completely invisible to standard uptime monitoring. When checkout processes in the wrong currency, the checkout URL returns HTTP 200, orders are created, and customers receive confirmation emails. Uptime Robot, Pingdom, and Better Uptime all show green. The only signals are settlement reports showing unexpected currency conversion fees, customer complaints about wrong-currency charges, or chargebacks. End-to-end checkout simulation that verifies the payment methods step and currency context is the only automated way to catch these before customers do.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="related">
+    <p class="section-label">RELATED CHECKOUT ERRORS</p>
+    <div class="related-grid">
+      <a class="related-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">
+        <strong>Payment error at checkout</strong><br>
+        <span style="color:var(--text-dim);font-size:0.82rem">General payment failure diagnosis</span>
+      </a>
+      <a class="related-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">
+        <strong>No payment methods showing</strong><br>
+        <span style="color:var(--text-dim);font-size:0.82rem">Payment options missing at checkout</span>
+      </a>
+      <a class="related-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error">
+        <strong>Tax error at checkout</strong><br>
+        <span style="color:var(--text-dim);font-size:0.82rem">Wrong tax or $0 tax on taxable orders</span>
+      </a>
+      <a class="related-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-3d-secure-failed">
+        <strong>3D Secure failed</strong><br>
+        <span style="color:var(--text-dim);font-size:0.82rem">SCA / 3DS authentication failures</span>
+      </a>
+      <a class="related-card" href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">
+        <strong>Shopify payment failed</strong><br>
+        <span style="color:var(--text-dim);font-size:0.82rem">Payment declined or gateway error</span>
+      </a>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <p>
+    © 2026 CheckPulse ·
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Troubleshooting</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+  </p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Custom Domain Redirect — Why It Redirects &amp; How to Fix (2026)</title>
+  <meta name="description" content="Shopify checkout redirecting to checkout.shopify.com, myshopify.com, or a wrong domain? 6 causes of custom domain checkout redirect failures — exact fixes for each, including SSL loops, subdomain misconfigs, and post-migration redirects." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-redirect" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-redirect" />
+  <meta property="og:title" content="Shopify Checkout Custom Domain Redirect — Causes &amp; Fixes" />
+  <meta property="og:description" content="When Shopify checkout redirects to an unexpected domain, customers see security warnings, browsers block the page, and orders don't complete. 6 root causes of checkout domain redirect failures and the exact fix steps for each." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Custom Domain Redirect — 6 Causes &amp; Fixes",
+    "description": "When Shopify checkout redirects customers to an unexpected domain — checkout.shopify.com, your-store.myshopify.com, or an HTTP URL on a store that should use HTTPS — browsers flag the connection as insecure, customers abandon, and orders are lost silently. This guide covers the six most common Shopify checkout custom domain redirect failures, what triggers each one, and the exact steps to fix them.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-redirect",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout redirect to checkout.shopify.com?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Since 2023, Shopify moved all checkout pages to checkout.shopify.com for stores on standard plans, replacing the old custom-subdomain checkout (e.g., checkout.mystore.com). This redirect is intentional and permanent for stores on the Basic, Shopify, and Advanced plans. Only Shopify Plus stores can configure a custom checkout domain (e.g., checkout.yourdomain.com) via the Shopify Plus admin under Settings → Domains → Checkout domain. If you are on a non-Plus plan and your checkout was previously on a custom subdomain, Shopify migrated you automatically. Customers will see checkout.shopify.com in the browser URL during checkout — this is expected behavior and does not affect conversion if SSL is valid and the checkout completes normally. If the redirect is failing (404, SSL error, or redirect loop), the issue is in your DNS configuration or Shopify domain settings, not in the platform migration itself."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout redirect to myshopify.com instead of my custom domain?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If Shopify checkout is redirecting to your-store.myshopify.com instead of your custom domain, it usually means one of three things: (1) Your custom domain is no longer set as the primary domain in Shopify Admin. Go to Settings → Domains — look for the 'Primary' label. If your custom domain is not marked as primary, click the three-dot menu next to it and select 'Set as primary'. Shopify uses the primary domain to generate checkout URLs. (2) Your custom domain's DNS records are not pointing to Shopify anymore — this happens after domain migrations, registrar changes, or expired DNS records. Check that your domain has a CNAME pointing to shops.myshopify.com (for subdomains like www) or the Shopify IP for root domain A records. (3) Your custom domain verification lapsed — Shopify periodically re-verifies that your domain's DNS still points to its servers. If verification fails, Shopify falls back to the myshopify.com domain. In Shopify Admin → Settings → Domains, a failed domain shows a red warning. Remove and re-add the domain to trigger a new verification."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is there a redirect loop on my Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A redirect loop on Shopify checkout (ERR_TOO_MANY_REDIRECTS in Chrome, or the checkout page loading indefinitely) is almost always caused by a conflict between Shopify's HTTPS enforcement and a CDN, proxy, or Cloudflare configuration in front of your store. The most common cause is Cloudflare SSL mode set to 'Flexible' instead of 'Full (strict)'. With Flexible SSL, Cloudflare connects to Shopify over HTTP while presenting HTTPS to the browser. Shopify sees the HTTP request and redirects to HTTPS, Cloudflare sends it again over HTTP, and the loop starts. Fix: In Cloudflare Dashboard → SSL/TLS → Overview, change SSL mode from Flexible to Full or Full (strict). Other causes: (1) A redirect rule in your Cloudflare page rules or your theme code that forces www → non-www or vice versa, conflicting with Shopify's own redirect. (2) An .htaccess or server-side redirect on a custom domain pointing to itself. (3) A browser security extension or corporate proxy intercepting HTTPS requests to checkout.shopify.com."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout show a security warning or 'not secure' after my domain change?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If your Shopify checkout shows a 'not secure' browser warning or an SSL certificate error after changing your domain, the SSL certificate for the new domain has not yet been issued or propagated. Shopify automatically provisions SSL certificates through Let's Encrypt for all connected custom domains, but this process takes between 15 minutes and 48 hours depending on DNS propagation speed. During this window, checkout may redirect to HTTP or show a certificate error. To check status: Shopify Admin → Settings → Domains → click your domain → the SSL status shows as 'Pending SSL' or 'SSL secured'. If it shows pending for more than 48 hours, the most common cause is that your DNS records have not fully propagated to all resolvers. Verify that your CNAME or A records are correct using a DNS checker (dns.google or dnschecker.org). Another cause: your domain registrar has CAA records that block Let's Encrypt from issuing certificates. Check for CAA DNS records and either remove them or add 'letsencrypt.org' as an allowed CA."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does changing my Shopify domain break checkout for existing customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, changing your Shopify primary domain can temporarily break checkout for customers who have bookmarked the old checkout URL or who have a checkout session open in their browser. When you change the primary domain, Shopify updates the checkout URL base, but active cart tokens from the old domain do not automatically carry over. Customers with open carts may see a 404 or be redirected to the store's homepage instead of picking up their cart. Additionally, if you change from a .myshopify.com fallback to a custom domain (or vice versa), any hardcoded checkout links in email templates, paid ads, or affiliate links will point to the old domain. After a domain change: (1) Update checkout links in Shopify email notifications (Admin → Settings → Notifications → every email template that includes a checkout recovery link). (2) Update paid ad destination URLs. (3) Test checkout from a fresh browser session (not a cached session) to confirm the new domain works end-to-end. (4) Monitor for 301/302 chains — more than one redirect hop adds latency and can break 3DS flows."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can uptime monitors detect a Shopify checkout domain redirect failure?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Standard uptime monitors — tools that check whether a URL returns HTTP 200 — cannot detect Shopify checkout domain redirect failures. Here is why: the storefront homepage (yourdomain.com) continues to return 200 even when checkout is redirecting to a broken or unexpected domain. The monitor never visits the checkout URL. Even monitors that check checkout.shopify.com cannot detect a redirect loop caused by a DNS misconfiguration on your custom domain, because the failure only occurs when the customer's browser follows the redirect chain from your domain. Detecting checkout domain redirect failures requires a monitor that simulates the full customer checkout journey — adding a product, proceeding to checkout, following all domain redirects, and verifying that each hop in the redirect chain resolves to a valid HTTPS endpoint with a valid SSL certificate. If any hop returns an unexpected domain, a certificate error, or a redirect loop, the monitor should alert immediately."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-step.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-note {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(245,158,11,0.05);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 6px;
+      color: var(--amber);
+      font-size: 0.73rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.dns { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.ssl { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .cause-tag.migration { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .monitor-row:first-of-type { border-top: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.85rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: clamp(1.2rem, 3vw, 1.6rem); margin-bottom: 14px; }
+    .cta-block p { font-size: 0.95rem; color: var(--text-mid); max-width: 560px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .faq-item {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 0.97rem; margin-bottom: 12px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify Checkout <span>Custom Domain Redirect</span> — Causes &amp; Fixes</h1>
+        <p class="hero-lead">
+          Checkout redirecting to the wrong domain — checkout.shopify.com, your myshopify.com URL, or an HTTP address — breaks customer trust instantly. Browsers flag it, customers abandon, and your uptime monitor stays green the whole time.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">6</div>
+            <div class="stat-label">redirect failure causes</div>
+          </div>
+          <div>
+            <div class="stat-num">0</div>
+            <div class="stat-label">detected by uptime tools</div>
+          </div>
+          <div>
+            <div class="stat-num">4+ hrs</div>
+            <div class="stat-label">avg. time to discover</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REDIRECT CHAIN VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">What the checkout redirect chain looks like when something goes wrong</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">mystore.com/cart</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step warn">mystore.com/checkout</div>
+          <span class="flow-arrow">→</span>
+          <div class="flow-step fail">HTTP redirect loop</div>
+        </div>
+        <div class="flow-error-box">
+          ERR_TOO_MANY_REDIRECTS — Chrome refused to connect after 10 redirect hops.<br>
+          Cause: Cloudflare SSL mode set to "Flexible" while Shopify enforces HTTPS. Each hop triggers another redirect.
+        </div>
+        <div class="flow-note">
+          Standard uptime monitors check mystore.com → 200 OK → "all green". They never follow the checkout redirect chain. The failure is completely invisible to ping-based monitoring.
+        </div>
+      </div>
+
+      <!-- CAUSES -->
+      <section class="section" id="causes">
+        <div class="section-label">Root causes</div>
+        <h2>6 Reasons Your Shopify Checkout Redirects to the Wrong Domain</h2>
+        <p>
+          Shopify checkout domain redirect failures fall into three groups: DNS misconfigurations (wrong records or expired verification), proxy/CDN conflicts (Cloudflare SSL mode, page rules), and post-migration issues (domain change left stale links or open sessions). Each has a specific fix. The six most common:
+        </p>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <div class="cause-tag config">Shopify Admin Config</div>
+            <div class="cause-header">
+              <span class="cause-num">01</span>
+              <h3>Custom domain is not set as the primary domain in Shopify</h3>
+            </div>
+            <p>
+              Shopify uses the primary domain to generate all checkout URLs. If your custom domain (e.g., <code style="font-family:var(--mono);font-size:0.85em;">www.mystore.com</code>) is connected but not set as primary, checkout URLs are built from your <code style="font-family:var(--mono);font-size:0.85em;">.myshopify.com</code> fallback domain instead. Customers reach the cart at your custom domain, then get redirected to <code style="font-family:var(--mono);font-size:0.85em;">your-store.myshopify.com/checkout</code> — an unexpected domain that looks suspicious to customers and may trigger browser security warnings.
+            </p>
+            <p>
+              This is the most common cause after a new custom domain is added without completing the setup. The domain connects (DNS propagates, Shopify verifies it) but the "Set as primary" step is skipped.
+            </p>
+            <div class="cause-fix">Fix: Shopify Admin → Settings → Domains
+→ Find your custom domain in the list
+→ Click the three-dot menu (⋯) next to it
+→ Select "Set as primary domain"
+→ Confirm — checkout URLs will now use your custom domain
+→ Test: add a product to cart → proceed to checkout → verify the URL bar shows your custom domain</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag dns">DNS Issue</div>
+            <div class="cause-header">
+              <span class="cause-num">02</span>
+              <h3>DNS records are no longer pointing to Shopify</h3>
+            </div>
+            <p>
+              Shopify periodically re-verifies that your custom domain's DNS records still point to its servers. If you changed DNS records (e.g., moved to a new DNS provider, modified A or CNAME records, or accidentally deleted the Shopify entry), Shopify's verification fails and the domain is flagged as disconnected. Checkout reverts to the <code style="font-family:var(--mono);font-size:0.85em;">.myshopify.com</code> domain automatically — often without any warning in the admin.
+            </p>
+            <p>
+              Also occurs after domain transfers between registrars, after adding a page builder or custom server in front of your store (which can override the DNS), or after a Cloudflare proxy record change that misroutes the checkout subdomain.
+            </p>
+            <div class="cause-fix">Correct DNS settings for Shopify:
+→ www subdomain: CNAME → shops.myshopify.com
+→ Root domain (@): A record → 23.227.38.65 (Shopify's IP)
+   OR: redirect root to www at your registrar, not via DNS A record
+
+After updating DNS:
+→ Allow 24–48 hours for full propagation
+→ Check status at Shopify Admin → Settings → Domains
+→ A green checkmark means Shopify verified the connection</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag ssl">SSL / HTTPS Conflict</div>
+            <div class="cause-header">
+              <span class="cause-num">03</span>
+              <h3>Cloudflare SSL mode set to "Flexible" — causes redirect loop</h3>
+            </div>
+            <p>
+              This is the #1 cause of <code style="font-family:var(--mono);font-size:0.85em;">ERR_TOO_MANY_REDIRECTS</code> on Shopify checkout. When Cloudflare is in front of your Shopify store with SSL mode set to "Flexible", it connects to Shopify over HTTP while presenting HTTPS to the visitor's browser. Shopify's HTTPS enforcement detects the incoming HTTP request and redirects to HTTPS. Cloudflare forwards the redirect over HTTP again. The loop continues until the browser gives up after 10 hops.
+            </p>
+            <p>
+              Flexible SSL is Cloudflare's default for new domains added without an existing SSL certificate. It works for some sites — but not for Shopify, which hard-enforces HTTPS on all URLs including checkout.
+            </p>
+            <div class="cause-fix">Fix:
+→ Cloudflare Dashboard → your domain → SSL/TLS → Overview
+→ Change SSL/TLS encryption mode from "Flexible" to "Full (strict)"
+→ "Full (strict)" means Cloudflare connects to Shopify over HTTPS and validates the certificate
+→ Shopify has a valid SSL cert on shops.myshopify.com, so this works without additional setup
+→ Clear browser cache and test checkout immediately after the change</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag dns">DNS / SSL Issue</div>
+            <div class="cause-header">
+              <span class="cause-num">04</span>
+              <h3>SSL certificate not yet issued — "Not Secure" warning after domain change</h3>
+            </div>
+            <p>
+              When you add or change a custom domain in Shopify, the platform automatically provisions an SSL certificate via Let's Encrypt. This takes between 15 minutes and 48 hours. During this window, your checkout may be accessible only over HTTP (no certificate), which causes browsers to show a "Not Secure" warning or a hard block on the checkout URL. Customers on Chrome or Safari with strict HTTPS settings will see an error page and be unable to proceed.
+            </p>
+            <p>
+              This failure is temporary, but it can cost significant revenue if it happens during a sale or after a scheduled domain migration that goes live during high-traffic hours.
+            </p>
+            <div class="cause-fix">Check and accelerate SSL provisioning:
+→ Shopify Admin → Settings → Domains → click your domain
+→ Look for SSL status: "Pending SSL" (still provisioning) or "SSL secured" (active)
+
+If pending for 48+ hours, common blockers:
+→ CAA DNS record blocking Let's Encrypt: check for CAA records at your registrar
+   Add: yourdomain.com. CAA 0 issue "letsencrypt.org"
+   or remove the restricting CAA record entirely
+→ DNS not fully propagated: verify with dns.google → enter domain → check all nameservers
+→ Cloudflare proxy (orange cloud) can delay Let's Encrypt validation:
+   Temporarily set the record to DNS-only (grey cloud) during provisioning</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag migration">Post-Migration</div>
+            <div class="cause-header">
+              <span class="cause-num">05</span>
+              <h3>Stale checkout links in emails, ads, or apps still point to the old domain</h3>
+            </div>
+            <p>
+              After a domain change, hardcoded checkout URLs across your Shopify setup continue pointing to the old domain. Shopify email notifications (abandoned cart, order confirmation), paid ad destination URLs, affiliate links, and checkout recovery links in SMS tools all generate checkout URLs based on the domain that was primary when they were created or last sent.
+            </p>
+            <p>
+              Customers who click a checkout recovery email sent before the domain change are routed to the old domain. Depending on whether the old domain still resolves, they may see a redirect (if you've set up forwarding), a 404, or a Shopify "this store doesn't exist" error page.
+            </p>
+            <div class="cause-fix">Post-domain-change audit checklist:
+→ Shopify Admin → Settings → Notifications
+   → Open every email template that contains a checkout or cart URL
+   → Click "Preview" — verify the checkout link uses the new domain
+   → Update any templates with hardcoded old-domain URLs
+
+→ Google Ads / Meta Ads → check destination URLs on all active campaigns
+   Update checkout-step destination URLs to new domain
+
+→ Shopify Apps: checkout recovery (Klaviyo, Omnisend, Postscript)
+   → Re-test flows with a real checkout to ensure links use the new domain
+
+→ Affiliate/referral links: notify affiliates of domain change, provide updated link format</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-tag config">Shopify Plus Only</div>
+            <div class="cause-header">
+              <span class="cause-num">06</span>
+              <h3>checkout.shopify.com redirect is intentional — but Shopify Plus stores can customize it</h3>
+            </div>
+            <p>
+              Since mid-2023, Shopify migrated all non-Plus checkout URLs to <code style="font-family:var(--mono);font-size:0.85em;">checkout.shopify.com</code>. The custom checkout subdomain (e.g., <code style="font-family:var(--mono);font-size:0.85em;">checkout.mystore.com</code>) is now a Shopify Plus-exclusive feature. If you are on a Basic, Shopify, or Advanced plan, your checkout will redirect to <code style="font-family:var(--mono);font-size:0.85em;">checkout.shopify.com/{token}</code> and this is expected behavior — not a failure.
+            </p>
+            <p>
+              For Shopify Plus merchants who want to maintain <code style="font-family:var(--mono);font-size:0.85em;">checkout.yourdomain.com</code>, the setup requires a CNAME record and domain configuration in Plus Admin. If the CNAME is missing or misconfigured, checkout falls back to the generic <code style="font-family:var(--mono);font-size:0.85em;">checkout.shopify.com</code> domain.
+            </p>
+            <div class="cause-fix">For Shopify Plus — custom checkout domain setup:
+→ Shopify Plus Admin → Settings → Domains → Checkout domain
+→ Add checkout.yourdomain.com as the checkout domain
+→ At your DNS provider, add:
+   CNAME: checkout.yourdomain.com → checkout.shopify.com
+
+→ Wait for Shopify to verify the CNAME (15 min – 24 hrs)
+→ Test by going through checkout and verifying the URL bar
+   shows checkout.yourdomain.com throughout the flow
+
+Note: Non-Plus plans cannot use a custom checkout domain.
+Upgrading to Plus is the only way to restore checkout.yourdomain.com.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- MONITORING BLINDSPOT -->
+      <section class="section" id="monitoring">
+        <div class="section-label">Why monitors miss this</div>
+        <h2>Why Your Uptime Monitor Won't Catch Checkout Domain Redirect Failures</h2>
+        <p>
+          Checkout domain redirect failures are invisible to standard uptime monitoring because monitors check whether a URL responds — they don't follow the full redirect chain from cart to payment confirmation. When a checkout domain redirect breaks, your store's homepage returns 200 OK. Your uptime monitor reports everything healthy. The failure only surfaces when a customer's browser follows the redirect chain and hits a loop, a certificate error, or an unexpected domain.
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What standard monitors see vs. what actually happens</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>Monitor check: mystore.com → 200 OK</strong><br>Uptime monitor reports store is up and healthy.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Reality: mystore.com/checkout → ERR_TOO_MANY_REDIRECTS</strong><br>Cloudflare Flexible SSL + Shopify HTTPS enforcement creates an infinite redirect loop. Every customer who reaches checkout gets a browser error.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>Monitor check: mystore.com → 200 OK</strong><br>No alert fires. No notification sent.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Reality: hours pass, customers abandon</strong><br>First indication: a spike in abandoned cart emails, or a customer support ticket that starts with "I couldn't check out on your website."</div>
+          </div>
+        </div>
+
+        <p>
+          Detecting checkout domain redirect failures requires a monitor that simulates the complete checkout flow — adding a product, proceeding from cart to checkout, following every redirect hop, and verifying each hop resolves to a valid HTTPS endpoint on the expected domain, with a valid SSL certificate, and returns a usable checkout page. If any hop in the chain fails, the monitor should alert immediately — not after a customer complaint.
+        </p>
+      </section>
+
+      <!-- CTA -->
+      <section class="section" style="border-bottom:none;">
+        <div class="cta-block">
+          <h2>Monitor Your Checkout Redirect Chain Automatically</h2>
+          <p>
+            CheckPulse simulates the full cart-to-payment checkout flow every hour — following every redirect, verifying SSL at each hop, and checking that checkout lands on the correct domain. When a domain redirect breaks, you get an email alert before customers hit the error.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">Start Monitoring — Free 14-Day Trial →</a>
+          <p style="font-size:0.8rem;color:var(--text-dim);margin-top:16px;margin-bottom:0;">
+            No credit card required. Detects redirect loops, SSL errors, and wrong-domain checkout failures.
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify Checkout Domain Redirect — Frequently Asked Questions</h2>
+        <div class="faq">
+
+          <div class="faq-item">
+            <div class="faq-q">Why does my Shopify checkout redirect to checkout.shopify.com?</div>
+            <div class="faq-a">Since 2023, Shopify moved all checkout pages to <code style="font-family:var(--mono);font-size:0.9em;">checkout.shopify.com</code> for non-Plus stores. This is intentional. Custom checkout subdomains (e.g., <code style="font-family:var(--mono);font-size:0.9em;">checkout.yourstore.com</code>) are now a Shopify Plus-exclusive feature. If you are on a Basic, Shopify, or Advanced plan, the <code style="font-family:var(--mono);font-size:0.9em;">checkout.shopify.com</code> redirect is expected and cannot be changed without upgrading to Plus.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why does my Shopify checkout redirect to myshopify.com instead of my custom domain?</div>
+            <div class="faq-a">Your custom domain is likely connected to Shopify but not set as the primary domain. Go to Shopify Admin → Settings → Domains → find your custom domain → click the three-dot menu → "Set as primary domain". Shopify builds all checkout URLs from the primary domain. If your custom domain is not primary, checkout redirects to the <code style="font-family:var(--mono);font-size:0.9em;">.myshopify.com</code> fallback.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why is there a redirect loop on my Shopify checkout?</div>
+            <div class="faq-a">The most common cause is Cloudflare SSL mode set to "Flexible" instead of "Full (strict)". With Flexible SSL, Cloudflare connects to Shopify over HTTP while presenting HTTPS to the browser. Shopify redirects to HTTPS, Cloudflare forwards it over HTTP again — and the loop starts. Fix: Cloudflare → SSL/TLS → change to "Full (strict)".</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify checkout show a "Not Secure" warning after I changed my domain?</div>
+            <div class="faq-a">Shopify automatically provisions an SSL certificate for new custom domains via Let's Encrypt. This takes 15 minutes to 48 hours. During this window, checkout may be served over HTTP, causing browser security warnings. Check status at Shopify Admin → Settings → Domains. If provisioning is stuck after 48 hours, look for a CAA DNS record blocking Let's Encrypt, or temporarily set the Cloudflare record to DNS-only during SSL issuance.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Does changing my Shopify domain break checkout for existing customers?</div>
+            <div class="faq-a">Yes, temporarily. Customers with open checkout sessions or who click old checkout links (in abandoned cart emails, ads, or affiliate links) will be routed to the old domain. After a domain change, audit your email notification templates, ad destination URLs, and any third-party checkout recovery apps — all need to be updated to use the new domain. Test checkout from a fresh browser session to confirm the new domain works end-to-end.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Can my uptime monitor detect a Shopify checkout domain redirect failure?</div>
+            <div class="faq-a">No. Standard uptime monitors check whether your homepage URL returns 200 OK — they don't follow the full checkout redirect chain. A redirect loop or SSL error on checkout is completely invisible to ping-based monitoring. You need a tool that simulates the complete checkout flow, follows every redirect hop, and verifies SSL at each step.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RELATED -->
+      <section class="section" style="border-bottom:none;padding-bottom:72px;">
+        <div class="section-label">Related guides</div>
+        <h2>More Shopify Checkout Troubleshooting</h2>
+        <p>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-redirect-loop">Shopify checkout redirect loop</a> — detailed diagnosis steps for the ERR_TOO_MANY_REDIRECTS error, including Cloudflare, theme, and app causes.<br><br>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Shopify checkout not working</a> — broad troubleshooting guide covering all checkout failure types.<br><br>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-3d-secure-failed">Shopify 3D Secure failed at checkout</a> — 3DS redirect failures, bank authentication loops, and payment declines during the 3DS step.<br><br>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Shopify payment failed</a> — payment step failures including gateway misconfigurations, card declines, and processor errors.<br><br>
+          <a href="https://adadadada321321.github.io/checkpulse/guide">Complete Shopify checkout monitoring guide</a> — how to set up proactive checkout monitoring so failures alert you before customers notice.
+        </p>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> — Shopify checkout monitoring.
+        &nbsp;·&nbsp;
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        &nbsp;·&nbsp;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        &nbsp;·&nbsp;
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

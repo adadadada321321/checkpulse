@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Address Validation Failed — 8 Causes &amp; Fixes (2026)</title>
+  <meta name="description" content="Shopify showing 'This address is not supported' or rejecting valid addresses at checkout? 8 causes: missing shipping zones, address app failures, PO Box restrictions, Markets geo-blocks, and more — with exact fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed" />
+  <meta property="og:title" content="Shopify Checkout Address Validation Failed — Every Cause Fixed" />
+  <meta property="og:description" content="When Shopify rejects a customer's address at checkout, they can't reach the shipping step at all. 8 root causes, exact fixes, and how to detect silent address API failures before customers report them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Address Validation Failed — 8 Causes &amp; Fixes",
+    "description": "When Shopify rejects a customer's address at checkout — showing 'This address is not supported for shipping,' 'Please enter a valid address,' or blocking checkout progression entirely — customers cannot reach the shipping step and abandon immediately. This guide covers all eight root causes, from missing shipping zones and PO Box restrictions to third-party address verification app failures, with exact admin steps to diagnose and fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say 'This address is not supported for shipping'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reason Shopify shows 'This address is not supported for shipping' is that the customer's country or region is not covered by any shipping zone in your store. Go to Admin → Settings → Shipping and Delivery → Shipping zones and check whether the customer's country appears in any zone. If it doesn't, no shipping rates will be returned and the address step will block them. Add the missing country to an appropriate zone to fix it immediately. A second cause: the customer is trying to enter a PO Box address but your only available shipping rates are from carriers (FedEx, UPS, DHL) that don't deliver to PO Boxes — add a flat-rate fallback that supports PO Box delivery to resolve this."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify saying my address is not valid even though it's a real address?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If Shopify is rejecting an address that is definitely real and deliverable, the most likely causes are: (1) a third-party address verification app (AddressFinder, EasyPost, Loqate, Shippo) is returning a 'not found' or 'undeliverable' result for the address — this is a false negative from the app's API, not a Shopify issue; (2) a Shopify checkout extension or Shopify Function installed on your store has custom address validation logic that doesn't handle all valid formats (e.g., it rejects non-US ZIP codes, or requires a specific format for the postal code field); (3) an international address format doesn't match Shopify's expected field structure for that country. To diagnose: temporarily disable any address verification apps and retest checkout. If the address is accepted without the app, the app's API or logic is the problem."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify address validation fail for some countries but not others?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Country-specific address validation failures usually have one of three causes: (1) your shipping zones don't include that country — the most common reason; go to Admin → Settings → Shipping and Delivery → Shipping zones to check; (2) your store uses Shopify Markets and the customer's country is not in an active market — check Admin → Settings → Markets to see which countries are enabled; (3) an address verification app or checkout extension uses a USPS/US-centric validation service that doesn't support international address formats, causing false validation failures for addresses in certain countries. If the issue is consistent for a specific country, start with Markets settings (are they enabled for that country?) and then Shipping zones."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix Shopify checkout address validation for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To fix Shopify checkout address validation for international customers: (1) First, go to Admin → Settings → Shipping and Delivery → Shipping zones and confirm the customer's country is in a zone with at least one active rate. Without a shipping zone, no rates are returned and the address step blocks the customer. (2) Check Admin → Settings → Markets — confirm the country is included in an active market with correct currency and tax settings. (3) Check installed apps for any address verification services — go to Admin → Apps and look for tools from EasyPost, AddressFinder, Loqate, Shippo, or similar. Some have limited international coverage and return false 'invalid' results for addresses in countries they don't support. (4) If you have custom Shopify checkout extensions, check whether they include address validation logic that assumes US address formats."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What causes Shopify to reject PO Box addresses at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify itself does not block PO Box addresses natively. PO Box addresses are rejected at checkout when: (1) your only shipping rates come from carrier-calculated services (FedEx, UPS, DHL Express) that don't deliver to PO Boxes — the carriers return no rates for that address type, so customers see no rates and cannot proceed; (2) a third-party shipping app has an explicit PO Box restriction in its rate rules; (3) a checkout extension includes custom validation that blocks PO Box entries. The fix for scenario 1: go to Admin → Settings → Shipping and Delivery → Shipping zones → add a flat-rate option (USPS, Canpar, or a generic flat rate) that supports PO Box delivery. This gives customers a checkout path even when carrier-calculated rates can't apply."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can address validation failures be invisible to standard monitoring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Address validation failures are invisible to standard monitoring because the checkout URL still returns HTTP 200 when an address is rejected. Uptime monitors (Uptime Robot, Pingdom, Better Uptime) check whether a URL responds — they don't simulate entering an address and verifying whether checkout progression is possible. A third-party address verification app outage, for example, can block all customers from completing the address step while every monitoring dashboard shows green. The only way to detect this automatically is end-to-end checkout simulation that actually tests address submission and verifies the checkout session is valid — which is what CheckPulse does every 5 minutes."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.geo { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+
+    .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .timeline-step { display: flex; gap: 20px; padding-bottom: 28px; position: relative; }
+    .timeline-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 36px;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .timeline-body h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .timeline-body p { font-size: 0.88rem; color: var(--text-mid); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+    .monitor-row { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .monitor-row:last-child { border-bottom: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.88rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px;
+      padding: 36px 32px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: 1.5rem; margin-bottom: 12px; }
+    .cta-block p { max-width: 520px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #0B0E14;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 14px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      letter-spacing: 0.01em;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 28px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q { font-weight: 600; margin-bottom: 10px; }
+    .faq-a { font-size: 0.9rem; color: var(--text-mid); }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <span class="nav-brand">CheckPulse</span>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify Checkout <span>Address Validation Failed</span><br>— 8 Causes &amp; Fixes</h1>
+        <p class="hero-lead">
+          When Shopify rejects a customer's address at checkout — showing "This address is not
+          supported for shipping," "Please enter a valid address," or blocking progress silently —
+          customers can't reach the shipping step and abandon immediately.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">8</div>
+            <div class="stat-label">distinct root causes</div>
+          </div>
+          <div>
+            <div class="stat-num">step 1</div>
+            <div class="stat-label">blocks customers before shipping</div>
+          </div>
+          <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">HTTP 200 during silent app failures</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHECKOUT FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Where address validation failure appears in the checkout flow</div>
+        <div class="flow-steps">
+          <div class="flow-step fail">⚠ Step 1 — Address Entry</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Step 2 — Shipping</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Step 3 — Payment</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step dim">Step 4 — Order Placed</div>
+        </div>
+        <div class="flow-error-box">
+          Common error messages: "This address is not supported for shipping" &bull;
+          "Please enter a valid address" &bull; "Delivery is not available at this address" &bull;
+          "We can't verify this address" &bull; "No shipping rates available for your address"
+        </div>
+      </div>
+
+      <!-- CAUSE LIST -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>8 Reasons Shopify Address Validation Fails at Checkout</h2>
+        <p>
+          Address validation failures block customers before they ever see a shipping rate or
+          payment form. The error appears at the first information step — and because the
+          checkout URL still returns HTTP 200, standard monitoring tools miss every one of these.
+        </p>
+
+        <div class="cause-list">
+
+          <!-- CAUSE 1 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">01</span>
+              <h3>Customer's country not covered by any shipping zone</h3>
+            </div>
+            <span class="cause-tag config">Configuration</span>
+            <p>
+              The most common cause of "This address is not supported for shipping": Shopify has
+              found the customer's country but cannot match it to any shipping zone in your store.
+              Without a matching zone, no rates are returned and checkout blocks at the address
+              step — not the shipping step. The customer never sees a "no rates available" message;
+              they see "this address is not supported" before even advancing.
+            </p>
+            <p>
+              This is distinct from the <em>shipping step</em> showing no rates: here, the failure
+              happens at the address entry form itself, before the customer can proceed to select
+              a shipping method.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Settings → Shipping and Delivery → Shipping zones → confirm
+the customer's country appears in at least one zone. If it doesn't, click
+"Create zone" or edit an existing zone to add the missing country/region.
+Also verify that the zone has at least one active rate — a zone with no rates
+attached behaves the same as having no zone at all.</div>
+          </div>
+
+          <!-- CAUSE 2 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">02</span>
+              <h3>Address verification app returning false "invalid" results</h3>
+            </div>
+            <span class="cause-tag silent">Silent failure risk</span>
+            <p>
+              Third-party address verification apps — AddressFinder, EasyPost, Loqate, Shippo
+              Address Validation, USPS CASS tools — inject into the checkout pipeline to validate
+              addresses before shipping rates are queried. When these apps have an API outage,
+              a coverage gap (addresses in certain countries or rural areas), or a configuration
+              error, they return "invalid" for legitimate addresses.
+            </p>
+            <p>
+              From the customer's perspective: their real, deliverable address is rejected with a
+              validation error. From your monitoring stack's perspective: the checkout URL returns
+              HTTP 200. No uptime alert fires. Customers abandon or contact support, and the
+              only trace is a support ticket spike — if you're watching for it.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Apps → locate your address verification app → check its
+dashboard/status page for API errors or outage notices. Temporarily disable
+the app from the app's settings (not by uninstalling it) and run a test
+checkout with the same address. If the address passes validation without the
+app, the app's API or address database is the problem. Contact the app's
+support with the specific address that failed.</div>
+          </div>
+
+          <!-- CAUSE 3 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">03</span>
+              <h3>PO Box address — carrier-calculated rates only</h3>
+            </div>
+            <span class="cause-tag config">Configuration</span>
+            <p>
+              Major carriers (FedEx, UPS, DHL Express) do not deliver to PO Boxes. When your
+              only shipping rates are carrier-calculated and a customer enters a PO Box address,
+              the carrier rate APIs return zero rates for that address — and Shopify surfaces this
+              as "This address is not supported" at the address step, not as "no shipping rates"
+              at the shipping step.
+            </p>
+            <p>
+              This affects a real segment of customers: rural customers, military APO/FPO
+              addresses, and customers in regions where PO Box delivery is the norm. These
+              customers cannot check out at all unless you have a non-carrier fallback.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Settings → Shipping and Delivery → Shipping zones → click into
+your zone → Add rate → add a flat-rate option (e.g., "Standard Shipping —
+$8.99") that doesn't exclude PO Boxes. USPS and Canada Post support PO Box
+delivery if you use carrier-calculated rates from those services. Having at
+least one non-carrier flat rate ensures customers with PO Box addresses have
+a checkout path.</div>
+          </div>
+
+          <!-- CAUSE 4 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">04</span>
+              <h3>International address format mismatch</h3>
+            </div>
+            <span class="cause-tag config">Configuration</span>
+            <p>
+              Shopify's default address form adapts field labels by country (e.g., "Postcode"
+              in the UK, "Prefecture" in Japan, "CPF/CNPJ" in Brazil). However, if you have a
+              custom Shopify checkout extension, a Shopify Script, or a headless checkout
+              implementation, the address form may have been written with US-centric validation
+              rules: requiring a 5-digit ZIP code, expecting a 2-letter US state abbreviation,
+              or using a regex that rejects non-US postal code formats.
+            </p>
+            <p>
+              The result: customers from certain countries enter a perfectly valid address but
+              the checkout form rejects it with "Please enter a valid address" or a field-level
+              error. The failure is consistent for that country and invisible until a customer
+              from that country attempts to check out.
+            </p>
+            <div class="cause-fix">
+FIX: If you have custom checkout extensions or Shopify Scripts, review the
+address validation logic for country-specific field requirements. Test checkout
+with representative addresses from your target international markets: UK
+(no ZIP, uses postcode), Japan (prefecture required), Australia (4-digit
+postcode), Germany (5-digit PLZ). Shopify's native checkout handles these
+correctly — the issue is in custom code you've added.</div>
+          </div>
+
+          <!-- CAUSE 5 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">05</span>
+              <h3>Shopify Markets geo-restriction blocking the country</h3>
+            </div>
+            <span class="cause-tag geo">Geo / Markets</span>
+            <p>
+              Shopify Markets lets you control which countries your store sells to, with custom
+              pricing, currencies, and tax rules per market. If a customer's country is not
+              included in any active market, or if the market covering their country has been
+              paused or misconfigured, they will be blocked at the address step when trying
+              to check out.
+            </p>
+            <p>
+              This is easy to trigger accidentally: when reorganizing markets, removing a
+              country from one market without adding it to another creates a gap where that
+              country is covered by neither any market nor any shipping zone — resulting in
+              address validation failure for all customers from that country.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Settings → Markets → verify that the customer's country appears
+in at least one active market. Check that the market is "Active" (not paused)
+and has the correct currency and domain settings. If you recently edited
+market configurations, cross-check the affected country's market membership.
+Also verify that your Shipping zones still include the country — Markets and
+Shipping zones are independent settings.</div>
+          </div>
+
+          <!-- CAUSE 6 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">06</span>
+              <h3>Custom checkout extension with overly strict validation logic</h3>
+            </div>
+            <span class="cause-tag silent">Silent failure risk</span>
+            <p>
+              Shopify Functions and checkout UI extensions allow developers to add custom logic
+              to the checkout flow, including address validation. A developer might add a
+              postcode format validator, a street address pattern check, or a business address
+              verification step — and if that logic has a bug, is too strict, or was only tested
+              against a narrow set of address formats, it will silently block legitimate customers.
+            </p>
+            <p>
+              These failures are particularly hard to diagnose because the extension runs
+              server-side or as part of the checkout render, and errors may not surface visibly
+              to the customer or to store admin logs. The customer just sees "invalid address"
+              and has no recourse.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Settings → Checkout → scroll to "Checkout rules" and "Functions"
+to see installed checkout customizations. Temporarily disable address-related
+functions and retest. If the checkout extension is installed via an app, check
+the app's admin for recent updates or error logs. If you developed the
+function in-house, review the address validation logic and test with edge-case
+address formats (PO Boxes, international, APO/FPO military).</div>
+          </div>
+
+          <!-- CAUSE 7 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">07</span>
+              <h3>Fraud prevention app blocking address as unverifiable</h3>
+            </div>
+            <span class="cause-tag silent">Silent failure risk</span>
+            <p>
+              Fraud prevention apps (NoFraud, Signifyd, Kount, Riskified) and address
+              verification services that integrate with checkout can block orders when they
+              cannot verify an address — returning an "address unverifiable" signal that the
+              app's checkout integration translates into a validation error.
+            </p>
+            <p>
+              This affects customers with newly constructed addresses (not yet in address
+              databases), rural addresses, or addresses in regions with poor geocoding coverage.
+              The app's decision is conservative by design — but the cost is real: legitimate
+              customers are rejected silently, often with a generic "invalid address" message
+              that gives no actionable information.
+            </p>
+            <div class="cause-fix">
+FIX: Admin → Apps → locate your fraud prevention app → check its dashboard
+for blocked orders or "address verification" settings. Most fraud apps have
+an "accept on review" fallback mode for addresses that can't be verified —
+enable this so orders proceed to review rather than being blocked at checkout.
+Contact the app developer to report false-positive address rejections with
+specific examples; this often improves their model for your region.</div>
+          </div>
+
+          <!-- CAUSE 8 -->
+          <div class="cause">
+            <div class="cause-header">
+              <span class="cause-num">08</span>
+              <h3>Third-party address validation API outage — all customers affected</h3>
+            </div>
+            <span class="cause-tag silent">Silent failure — monitoring required</span>
+            <p>
+              When a third-party address verification service (EasyPost, Loqate, Melissa Data,
+              Google Places Autocomplete) experiences an API outage or degraded performance,
+              the result depends on how the app handles failures. Apps configured to
+              <em>block on unverified</em> will prevent all customers from completing the
+              address step until the service recovers — because every address validation
+              request is timing out or returning an error.
+            </p>
+            <p>
+              Unlike causes 1–7 — which are configuration or partial failures — a full API
+              outage at Cause 8 can make checkout completely unavailable for every customer
+              attempting it during the outage window. The checkout URL returns HTTP 200.
+              Every uptime monitor shows green. You find out when support tickets arrive.
+            </p>
+            <p>
+              The revenue impact is proportional to traffic and order value: during a campaign
+              or peak sales period, even a 30-minute address validation API outage can mean
+              significant abandoned carts across all geographies.
+            </p>
+            <div class="cause-fix">
+FIX (immediate): Admin → Apps → locate the address verification app → disable
+it entirely from the app's settings to restore checkout for all customers.
+Verify checkout works without the app before re-enabling.
+
+FIX (preventive): Configure the address verification app to use "accept on
+timeout" or "fallback to unverified" mode — so that when its API is down,
+checkout proceeds without address verification rather than blocking all orders.
+Check the app's documentation for this setting; it may be called "failure
+mode," "fallback behavior," or "API timeout handling."
+
+DETECT EARLY: Standard monitoring misses this entirely because the checkout
+URL returns 200. End-to-end checkout simulation — which tests address
+submission and verifies checkout session validity — is the only automated way
+to catch this class of failure before customers report it.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TROUBLESHOOTING TIMELINE -->
+      <section class="section">
+        <div class="section-label">Troubleshooting Flow</div>
+        <h2>5-Step Diagnosis When Address Validation Is Failing</h2>
+        <p>
+          Work through these steps in order when a customer reports their address is being
+          rejected at checkout. Most causes are identified within 5 minutes.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-step">
+            <div class="timeline-num">1</div>
+            <div class="timeline-body">
+              <h4>Reproduce the failure with the exact address</h4>
+              <p>Open an incognito browser, go to your store, add a product to cart, and attempt checkout using the exact address the customer provided. Confirm whether the error appears for you too. If you can reproduce it, you have a store-level issue. If you can't, it may be account-specific (saved address mismatch, browser autofill conflict) or intermittent.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">2</div>
+            <div class="timeline-body">
+              <h4>Check Shipping zones for the customer's country</h4>
+              <p>Go to Admin → Settings → Shipping and Delivery → Shipping zones. Verify the customer's country is in a zone and that the zone has at least one active rate. This single check resolves the majority of "This address is not supported" reports. If the country is missing, add it and test immediately.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">3</div>
+            <div class="timeline-body">
+              <h4>Check Shopify Markets settings</h4>
+              <p>Go to Admin → Settings → Markets. Confirm the customer's country is in an active market. If you've recently reorganized markets, a country may have been removed from one market without being added to another — leaving a gap that blocks checkout for all customers from that country.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">4</div>
+            <div class="timeline-body">
+              <h4>Disable address verification and fraud prevention apps</h4>
+              <p>Go to Admin → Apps. Identify any address verification, shipping calculator, or fraud prevention apps. Temporarily disable them one at a time and retest checkout after each. When the address validation failure disappears, you've identified the app causing it. Check that app's dashboard for API errors or configuration issues.</p>
+            </div>
+          </div>
+          <div class="timeline-step">
+            <div class="timeline-num">5</div>
+            <div class="timeline-body">
+              <h4>Review checkout extensions and custom functions</h4>
+              <p>If steps 1–4 don't reveal the cause, go to Admin → Settings → Checkout and review installed checkout functions. Temporarily disable any address-related customizations and retest. For headless or custom checkout implementations, review the address validation code for format assumptions that don't apply to the customer's address type or country.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MONITORING GAP -->
+      <section class="section">
+        <div class="section-label">The Monitoring Gap</div>
+        <h2>Why Address Validation API Failures Are Invisible Until Customers Complain</h2>
+        <p>
+          Causes 1–7 are configuration and code issues — visible in Admin or the codebase,
+          fixable in minutes once identified, and preventable with proper testing. They don't
+          require ongoing monitoring.
+        </p>
+        <p>
+          Cause 8 — third-party address validation API outage — is different. It's a runtime
+          failure that can't be caught in configuration review or one-time testing. Here is
+          what your standard monitoring stack sees when an address verification API goes down:
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What monitoring tools see during an address validation API outage</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Ping monitor:</strong> the checkout URL returns HTTP 200. The address form renders. The API failure is application-layer — completely invisible to TCP/HTTP checks.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🔴</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom / Better Uptime:</strong> same limitation — they verify the HTTP handshake, not whether an address can be submitted and validated successfully.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Shopify Analytics:</strong> conversion rate drop is visible in your dashboard — after the damage is done. Checkout sessions start but never advance past the address step.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟡</div>
+            <div class="monitor-text"><strong>Address verification app dashboard:</strong> error logs appear there — but only if you're actively watching the app's own admin panel, which most merchants are not doing in real-time.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">🟢</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation:</strong> tests the full checkout session — including address submission — and verifies that checkout progression is possible. Catches API-layer failures that block the address step, before any customer is affected.</div>
+          </div>
+        </div>
+
+        <div class="cta-block">
+          <h2>Know When Your Checkout Breaks Before Customers Do</h2>
+          <p>
+            CheckPulse runs a 4-step checkout simulation every 5 minutes: product fetch,
+            cart creation, checkout session initialization, and payment methods verification.
+            When an address validation API failure corrupts the checkout session — making it
+            impossible to place orders — you get an email alert with the exact failure point
+            before orders are lost.
+          </p>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">
+            Start Free Monitoring →
+          </a>
+          <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dim);">
+            No credit card required &mdash; free instant checkout health check available
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify Address Validation Failed — Frequently Asked Questions</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify say "This address is not supported for shipping"?</div>
+            <div class="faq-a">
+              The most common reason: the customer's country is not in any shipping zone. Go to Admin → Settings → Shipping and Delivery → Shipping zones and confirm the customer's country appears in a zone with at least one active rate. A second cause: only carrier-calculated rates are available (FedEx, UPS, DHL) and the customer entered a PO Box — add a flat-rate fallback that supports PO Box delivery to fix this immediately.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify saying my address is not valid even though it's a real address?</div>
+            <div class="faq-a">
+              If a real, deliverable address is being rejected, the most likely causes are: (1) a third-party address verification app (AddressFinder, EasyPost, Loqate) is returning a false "invalid" result — disable the app temporarily and retest; (2) a custom checkout extension has address validation logic that doesn't handle all address formats correctly; (3) the address is in a country not covered by your address verification app's database. Start by disabling any address verification apps and testing — if the address passes without the app, the app's API or coverage is the problem.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify address validation fail for some countries but not others?</div>
+            <div class="faq-a">
+              Country-specific failures usually trace to: (1) missing shipping zones — go to Admin → Settings → Shipping and Delivery → Shipping zones and confirm the affected countries are covered; (2) Shopify Markets configuration — Admin → Settings → Markets shows which countries are enabled for checkout; (3) address verification app with limited international coverage. If the issue is consistent for a specific country and began recently, check whether a Markets configuration change was made that removed that country from an active market.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I fix Shopify checkout address validation for international customers?</div>
+            <div class="faq-a">
+              The fix checklist: (1) Admin → Settings → Shipping and Delivery → Shipping zones — confirm the customer's country is covered. (2) Admin → Settings → Markets — confirm the country is in an active market. (3) Admin → Apps — check for address verification apps and review their coverage settings. (4) If you have custom checkout extensions, test them with address formats from the affected countries. In most cases, step 1 (missing shipping zone) is the cause — it takes 60 seconds to check and fix.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">What causes Shopify to reject PO Box addresses at checkout?</div>
+            <div class="faq-a">
+              Shopify doesn't natively block PO Boxes. PO Box failures happen when: (1) your only shipping rates are from carriers that don't deliver to PO Boxes (FedEx, UPS, DHL) — add a flat-rate fallback that supports PO Box delivery; (2) a third-party shipping app has an explicit PO Box restriction in its rate rules. Resolving it is usually just adding a non-carrier flat rate to your shipping zone so customers with PO Box addresses have at least one checkout path.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How can address validation failures be invisible to standard monitoring?</div>
+            <div class="faq-a">
+              Because the checkout URL returns HTTP 200 even when address validation is failing. Standard uptime monitors check HTTP responses — they don't simulate entering an address and verifying that checkout can proceed. A third-party address validation API outage, for example, blocks all customers from progressing past the address step while Uptime Robot, Pingdom, and every other monitor shows all-green. End-to-end checkout simulation — which tests address submission and verifies checkout session validity — is the only way to catch this automatically before customer complaints arrive.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &mdash;
+        Shopify Checkout Monitor &mdash;
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+        &mdash;
+        Related: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+        &middot; <a href="https://adadadada321321.github.io/checkpulse/shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

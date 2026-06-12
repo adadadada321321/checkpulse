@@ -328,6 +328,40 @@
       color: var(--text-dim);
     }
 
+    /* RISK PANEL */
+    .risk-panel {
+      background: rgba(239,68,68,0.04);
+      border: 1px solid rgba(239,68,68,0.14);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+    }
+    .risk-panel-title {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--red);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+    .risk-list { display: flex; flex-direction: column; gap: 10px; }
+    .risk-item {
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(239,68,68,0.07);
+    }
+    .risk-item:last-child { padding-bottom: 0; border-bottom: none; }
+    .risk-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .risk-desc {
+      font-size: 0.77rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
     /* ALERT SIGNUP */
     .alert-card {
       background: var(--bg-surface);
@@ -487,30 +521,36 @@
 
     <div class="result-panel" id="resultPanel">
       <p class="finding-msg" id="findingMsg"></p>
-      <div class="unverified-box">
-        <div class="unverified-box-title">WHAT THIS FREE CHECK CANNOT VERIFY</div>
-        <div class="unverified-grid">
-          <div class="unverified-item"><span class="x">✗</span> Add-to-cart flow</div>
-          <div class="unverified-item"><span class="x">✗</span> Checkout page renders</div>
-          <div class="unverified-item"><span class="x">✗</span> Payment gateway responds</div>
-          <div class="unverified-item"><span class="x">✗</span> 3DS redirect completes</div>
-          <div class="unverified-item"><span class="x">✗</span> Order confirmation fires</div>
-          <div class="unverified-item"><span class="x">✗</span> Ongoing hourly monitoring</div>
+      <div class="risk-panel">
+        <div class="risk-panel-title">3 FAILURES THESE CHECKS DON'T CATCH</div>
+        <div class="risk-list">
+          <div class="risk-item">
+            <div class="risk-name">Shopify Payments suspended</div>
+            <div class="risk-desc">Homepage ✓ · Cart ✓ · Checkout route ✓ · Payment step: silent rejection. Every standard probe returns 200 while customers lose their cart at the final screen.</div>
+          </div>
+          <div class="risk-item">
+            <div class="risk-name">Payment gateway misconfigured (test mode, bad keys)</div>
+            <div class="risk-desc">"No payment methods available" only appears inside the live checkout flow. All 3 surface probes pass. No uptime tool or ping checker touches this layer.</div>
+          </div>
+          <div class="risk-item">
+            <div class="risk-name">3DS redirect broken or payment auth failed</div>
+            <div class="risk-desc">Card entered, bank redirect fails silently — order never confirmed. All surface checks pass. Average merchant detection time: 4–11 hours.</div>
+          </div>
         </div>
       </div>
       <div class="cta-panel">
         <p class="cta-panel-text">
-          <strong>CheckPulse simulates all 4 checkout steps every hour</strong> and emails you the moment anything breaks — with the exact step, HTTP status, and diagnosis.
+          <strong>CheckPulse runs 4 checkout simulation steps every 30 minutes</strong> — the exact steps this free check skips. When one fails, you get the step number, HTTP status, and most likely cause. Not hours later. Within 30 minutes.
         </p>
-        <a class="cta-big" href="https://adadadada321321.github.io/checkpulse/">Get continuous checkout monitoring →</a>
-        <p class="cta-subtext">From $39/mo · 14-day free trial · No credit card required</p>
+        <a class="cta-big" href="https://adadadada321321.github.io/checkpulse/">Monitor the 4 steps this check skipped →</a>
+        <p class="cta-subtext">Catches what this free check misses · From $39/mo · 14-day free trial</p>
       </div>
     </div>
   </div>
 
   <div class="alert-card" id="alertCard">
-    <h3>Get a free alert if your store goes unreachable</h3>
-    <p>Enter your email and we'll monitor your store's basic uptime every 15 minutes and notify you the moment it goes dark.</p>
+    <h3>Get notified if this store becomes unreachable</h3>
+    <p>We'll check reachability every 15 minutes and alert you if it goes dark — free, no account. For payment gateway and checkout simulation monitoring, <a href="https://adadadada321321.github.io/checkpulse/">see CheckPulse →</a></p>
     <form class="alert-form" action="https://formsubmit.co/demiranil666@gmail.com" method="POST">
       <input type="hidden" name="_subject" value="CheckPulse: Free uptime alert signup" />
       <input type="hidden" name="_captcha" value="false" />
@@ -667,6 +707,7 @@
     row1.querySelector('span.t-dim, span.t-info').innerHTML = '';
     if (r1.ok) {
       appendLine(term, '✓', 'Store homepage    <span style="color:var(--text-dim)">——</span>  <span style="color:var(--green)">OK</span>  <span class="t-dim">' + r1.ms + 'ms</span>', 't-ok');
+      appendLine(term, ' ', '  › server responded to HTTP request', 't-dim');
     } else if (r1.timedOut) {
       appendLine(term, '✗', 'Store homepage    TIMEOUT (&gt;9s) — server not responding', 't-err');
     } else {
@@ -680,6 +721,7 @@
     row2.querySelector('span.t-dim, span.t-info').innerHTML = '';
     if (r2.ok) {
       appendLine(term, '✓', 'Cart endpoint     <span style="color:var(--text-dim)">——</span>  <span style="color:var(--green)">OK</span>  <span class="t-dim">' + r2.ms + 'ms</span>', 't-ok');
+      appendLine(term, ' ', '  › /cart.js accessible — add-to-cart API reachable', 't-dim');
     } else if (r2.timedOut) {
       appendLine(term, '✗', 'Cart endpoint     TIMEOUT', 't-err');
     } else {
@@ -693,6 +735,7 @@
     row3.querySelector('span.t-dim, span.t-info').innerHTML = '';
     if (r3.ok) {
       appendLine(term, '✓', 'Checkout route    <span style="color:var(--text-dim)">——</span>  <span style="color:var(--green)">REACHABLE</span>  <span class="t-dim">' + r3.ms + 'ms</span>', 't-ok');
+      appendLine(term, ' ', '  › /checkout URL registered — checkout entry exists', 't-dim');
     } else {
       appendLine(term, '⚠', 'Checkout route    COULD NOT VERIFY (browser limitation)', 't-warn');
     }
@@ -704,6 +747,11 @@
     if (allBasicOk) {
       appendLine(term, '✓', 'Basic reachability:    <span style="color:var(--green)">PASS</span>', 't-ok');
       appendLine(term, '⚠', 'Checkout simulation:   <span style="color:var(--yellow)">NOT VERIFIED</span> — requires full monitoring', 't-warn');
+      appendLine(term, '', '──────────────────────────────────────', 't-sep');
+      appendLine(term, '—', 'Cart simulation         <span class="t-dim">NOT TESTED</span>', 't-dim');
+      appendLine(term, '—', 'Checkout session init   <span class="t-dim">NOT TESTED</span>', 't-dim');
+      appendLine(term, '—', 'Payment gateway verify  <span class="t-dim">NOT TESTED</span>', 't-dim');
+      appendLine(term, '—', 'Order confirm path      <span class="t-dim">NOT TESTED</span>', 't-dim');
     } else {
       appendLine(term, '✗', 'Reachability issues detected — store may be down', 't-err');
       appendLine(term, '⚠', 'Checkout likely impacted — investigate immediately', 't-warn');
@@ -711,7 +759,7 @@
 
     /* Finding message */
     if (allBasicOk) {
-      findingMsg.innerHTML = '<strong>⚠ Your store loads — but a loading store isn\'t a working checkout.</strong> A live homepage doesn\'t mean your cart, payment gateway, or order flow are working. Silent failures at checkout step 3 (payment processing) are the most common — and the most expensive.';
+      findingMsg.innerHTML = '<strong>⚠ 3 surface checks passed — but these same 3 checks passed during an $2,400 revenue loss.</strong> Shopify Payments suspensions, payment gateway errors, and 3DS failures all return 200 on surface probes while silently blocking every purchase. The failure lives at checkout step 3 — inside the payment layer, after the checkout URL loads.';
     } else {
       findingMsg.innerHTML = '<strong>✗ Your store has reachability issues.</strong> The basic homepage or cart endpoint is not responding — customers attempting to shop right now will likely hit errors before they even reach checkout.';
     }

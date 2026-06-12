@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Tax Error — Wrong Tax or No Tax Calculated (2026)</title>
+  <meta name="description" content="Shopify charging wrong tax at checkout, showing $0 tax on taxable orders, or blocking checkout with a tax calculation error? 7 root causes: Tax API degradation, nexus config, EU VAT OSS failure, TaxJar/Avalara timeout, B2B exemption failure — exact diagnosis and fix steps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error" />
+  <meta property="og:title" content="Shopify Checkout Tax Error — Every Tax Calculation Failure Fixed" />
+  <meta property="og:description" content="When Shopify's tax service degrades, it returns HTTP 200 with $0 tax — your checkout processes orders silently non-compliant while every monitor shows green. 7 root causes of Shopify tax errors and the monitoring blindspot that lets them run for hours undetected." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Tax Error — 7 Causes &amp; Fixes",
+    "description": "Shopify tax errors at checkout fall into two categories: visible failures (the customer sees a tax calculation error and cannot complete checkout) and silent failures (the checkout processes but charges $0 tax or the wrong tax rate). The silent category is more dangerous — your checkout appears healthy, orders complete, revenue flows, but every order is tax non-compliant. This guide covers all seven root causes, from Shopify's tax API degradation to EU VAT OSS misconfiguration, with exact admin diagnostic steps and fix instructions for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify showing the wrong tax amount at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify calculates tax at checkout based on four inputs: the customer's shipping address, your store's nexus locations (where you're registered to collect tax), the product's taxability code, and the tax rates configured in Admin → Settings → Taxes. If any of these inputs are wrong, the tax calculation is wrong. Common causes: (1) your nexus locations don't match where your inventory is physically located; (2) a product is marked as taxable when it's legally exempt (or vice versa); (3) your store's tax rates for a jurisdiction were changed or overridden by a third-party tax app; (4) Shopify Markets is enabled and a market-level tax rule is overriding the store-level setting. Check Admin → Settings → Taxes and verify nexus, product tax codes, and any tax overrides before assuming the calculation engine itself is broken."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify charging $0 tax on orders that should be taxable?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are three main reasons Shopify charges $0 tax on taxable orders. First, if your store's nexus is not configured for the customer's jurisdiction, Shopify correctly charges $0 — you've told it you don't have tax collection obligations there. Second, if a third-party tax app (TaxJar, Avalara, Quaderno) times out or returns an error, and the app is configured to fall back to $0 rather than Shopify's built-in rates, all orders process with no tax. Third, if Shopify's internal tax calculation service experiences a degradation event, it may return empty tax lines on a 200 response — checkout proceeds and orders complete with $0 tax across all jurisdictions. The third scenario is the most dangerous because it's completely invisible: no error, no failed order, just missing tax on every completed checkout until the degradation is resolved."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show a tax calculation error at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A visible tax calculation error at checkout (where the customer cannot proceed) is less common than silent tax failures but does occur. The most frequent causes are: (1) a third-party tax app is installed, configured as the primary tax source, and is returning an error — Shopify blocks the checkout rather than proceeding with potentially wrong rates; (2) EU VAT validation is failing — if your store is set up for EU VAT OSS and the customer's country requires a valid VAT number that isn't passing validation, checkout can block; (3) a tax override rule has a conflict (two rules applying to the same product in the same jurisdiction with incompatible rates). Check Admin → Apps → [tax app] for error logs, and Admin → Settings → Taxes for conflicting overrides."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix the EU VAT tax error at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "EU VAT errors at Shopify checkout are usually one of three issues. First, the store's EU VAT registration (OSS — One Stop Shop) hasn't been entered: Admin → Settings → Taxes → European Union → confirm your OSS registration number is entered and valid. Second, EU VAT validation for B2B customers is enabled, and the customer's entered VAT number is either wrong or the EU VIES validation service is temporarily unavailable — if VIES is down, legitimate VAT numbers fail validation. Third, post-Brexit UK VAT is missing: if you sell to UK customers and your store's UK VAT registration number isn't in Admin → Settings → Taxes → United Kingdom, UK orders will either block or charge wrong rates. For OSS, verify at ec.europa.eu/taxation_customs/vies/ that your registration is active."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify tax errors go undetected by uptime monitors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — silent tax failures are completely invisible to standard uptime monitors. When Shopify's tax API degrades, the checkout URL still returns HTTP 200. Orders complete. Customers receive confirmation emails. Uptime Robot, Pingdom, Better Uptime, and similar tools all show green. The only signal is in the orders themselves: tax lines show $0 across all orders placed during the degradation window. Unless you have revenue analytics that alert on anomalously low tax-to-revenue ratios, or you review recent orders manually, these events can run for hours. End-to-end checkout simulation that verifies the tax step — confirming a taxable order actually has a non-zero tax line — is the only automated way to catch this."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are tax-exempt customers being charged tax at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tax-exempt customers (B2B buyers, resellers, nonprofits, government entities with exemption certificates) are charged tax at checkout when their exemption hasn't been applied in Shopify. In Shopify, tax exemptions are applied at the customer account level: Admin → Customers → select the customer → Tax settings → mark as 'Exempt from all taxes' or select specific exemptions. If a B2B customer's account isn't marked exempt, they pay full tax. The Shopify Wholesale channel and some third-party B2B apps apply exemptions automatically based on customer tags, but if the tag is missing or the app isn't configured correctly, exemptions fail silently — the customer sees tax, abandons the order, and the merchant sees it as normal churn. There's no error, no alert, and no notification to either party."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .flow-visual {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px 24px;
+      margin: 48px 0;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .flow-title { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 20px; }
+    .flow-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+    .flow-step { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; }
+    .flow-step.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .flow-step.fail { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: var(--red); }
+    .flow-step.dim { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-dim); }
+    .flow-step.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .flow-arrow { color: var(--text-dim); font-size: 0.8rem; padding: 0 4px; }
+    .flow-error-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 6px;
+      color: var(--red);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+    .flow-note {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(245,158,11,0.05);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 6px;
+      color: var(--amber);
+      font-size: 0.73rem;
+      line-height: 1.6;
+    }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.config { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.silent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+    .cause-tag.app { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.user { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .cause-tag.browser { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+
+    .monitor-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+    .monitor-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .monitor-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+    .monitor-row:first-of-type { border-top: none; }
+    .monitor-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .monitor-text { font-size: 0.85rem; color: var(--text-mid); }
+    .monitor-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 40px 36px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: clamp(1.2rem, 3vw, 1.6rem); margin-bottom: 14px; }
+    .cta-block p { font-size: 0.95rem; color: var(--text-mid); max-width: 560px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .faq { display: flex; flex-direction: column; gap: 0; margin-top: 32px; }
+    .faq-item {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 0.97rem; margin-bottom: 12px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-mid); line-height: 1.75; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+        <h1>Shopify Checkout <span>Tax Error</span> — 7 Causes &amp; Fixes</h1>
+        <p class="hero-lead">
+          Your checkout processes orders. Every order shows $0 tax.
+          Your monitors show green. Shopify's tax service degraded hours ago —
+          returned HTTP 200 with empty tax lines — and every completed order
+          is now tax non-compliant. No alert. No error. No failed order.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">7</div>
+            <div class="stat-label">root causes covered</div>
+          </div>
+          <div>
+            <div class="stat-num">$0</div>
+            <div class="stat-label">tax charged during API degradation</div>
+          </div>
+          <div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">silent failures missed by HTTP monitors</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW VISUAL -->
+      <div class="flow-visual">
+        <div class="flow-title">Checkout Tax Calculation Flow — Where It Fails</div>
+        <div class="flow-steps">
+          <div class="flow-step ok">✓ Cart</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step ok">✓ Customer info</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step ok">✓ Shipping</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step warn">⚡ Tax calculation (API call)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step fail">✗ Wrong rate / $0 / blocked</div>
+        </div>
+        <div class="flow-error-box">
+          Tax calculation failed · Unable to calculate tax for this order · Wrong tax amount · $0.00 tax on taxable order
+        </div>
+        <div class="flow-note">
+          ⚠ Silent failure blindspot: Shopify's tax API degradation returns HTTP 200 with empty tax lines. Checkout completes. Orders confirm. Standard monitors show green. Tax compliance breaks silently across every order until the degradation resolves.
+        </div>
+      </div>
+
+      <!-- CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>7 Reasons Shopify Tax Calculation Fails at Checkout</h2>
+        <p>
+          Tax errors at Shopify checkout split into two types: <strong>visible</strong> (checkout blocks, customer sees an error)
+          and <strong>silent</strong> (checkout completes but with wrong or missing tax). The silent type is more dangerous —
+          orders process, revenue flows, and tax compliance breaks without any alert.
+        </p>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">01</div>
+              <h3>Shopify Tax API degradation — HTTP 200 with empty tax lines</h3>
+            </div>
+            <div class="cause-tag silent">SILENT FAILURE</div>
+            <p>
+              Shopify's internal tax calculation service handles every checkout. When it degrades,
+              it doesn't return an error code — it returns HTTP 200 with empty tax line items.
+              Checkout sees a valid response and processes the order with $0 tax.
+              No error is logged. No alert fires. Orders confirm normally.
+            </p>
+            <p>
+              This is the most dangerous tax failure mode. During a degradation window,
+              every order placed in every jurisdiction completes with $0 tax.
+              The only visible signal is $0 tax rows in your order history —
+              invisible unless you're actively reviewing orders or have revenue analytics
+              that monitor tax-to-revenue ratios.
+            </p>
+            <div class="cause-fix">Fix / Detection:
+  1. Check the Shopify Status page (shopifystatus.com) for "Tax Calculation" service status.
+     During degradation events, Shopify typically posts an update within 30–60 minutes.
+  2. In Shopify Admin → Orders → filter by date range of concern → export CSV →
+     check the "Tax" column. A row of $0.00 across all orders indicates API failure.
+  3. Set up an Shopify Flow automation: trigger on Order Created → condition
+     "Tax lines count equals 0" on taxable products → send merchant email alert.
+     This catches future events within minutes of the first affected order.
+  4. End-to-end checkout monitoring that verifies the order total includes a
+     non-zero tax line is the only automated pre-order detection method.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">02</div>
+              <h3>Nexus / tax collection location not configured for customer's jurisdiction</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Shopify only collects tax for jurisdictions where you've configured nexus
+              (economic presence — physical location, sales threshold, or registration).
+              If a customer's shipping address is in a US state or country where your store
+              has no nexus configured, Shopify correctly charges $0 — but this may be
+              legally wrong if your sales volume has crossed the economic nexus threshold
+              for that state.
+            </p>
+            <p>
+              This is the most common cause of "wrong tax" reports for growing stores:
+              the store worked correctly when small, but as sales volume grew across
+              additional states, new economic nexus obligations were triggered and
+              the admin tax settings were never updated.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Shopify Admin → Settings → Taxes and duties → United States → Manage.
+  2. Review which states have "Collect sales tax" enabled. Compare against your
+     actual sales volume per state (Admin → Analytics → Reports → Sales by region).
+  3. For states where sales exceeded $100,000 or 200 transactions in the prior
+     12 months, economic nexus typically applies — enable tax collection for those states.
+  4. For non-US jurisdictions: Admin → Settings → Taxes and duties → scroll to
+     country list → confirm each country where you ship has the correct tax settings.
+  5. If you're unsure about nexus obligations, TaxJar, Avalara, or a tax advisor
+     can audit your sales data against current thresholds.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">03</div>
+              <h3>EU VAT / OSS setup failure — wrong rates or checkout blocked for EU customers</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Since July 2021, the EU VAT One Stop Shop (OSS) regime requires merchants
+              selling to EU consumers to charge the destination country's VAT rate (not the
+              seller's country's rate) on all cross-border B2C digital and physical goods.
+              If your store sells to EU customers but your OSS registration number isn't
+              entered in Shopify — or your EU markets tax settings are wrong — EU customers
+              are either charged no VAT, charged the wrong country's rate, or blocked at
+              checkout when VAT validation fails.
+            </p>
+            <p>
+              Post-Brexit UK VAT is a separate issue: UK customers require UK VAT rates
+              (20% standard) independent of EU OSS, and a UK VAT registration number
+              is required if your UK sales exceed £90,000/year.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Shopify Admin → Settings → Taxes and duties → European Union.
+     Confirm "Charge VAT on digital goods" is enabled and your OSS registration
+     number (country prefix + 12 digits) is entered correctly.
+  2. Verify your OSS registration is active at:
+     ec.europa.eu/taxation_customs/vies/ → enter your registration number.
+  3. For each EU country you sell to, Admin → Taxes → EU → expand the country
+     and confirm the VAT rate matches the current rate (rates change; check
+     europa.eu/youreurope/business/taxation/vat/vat-rules-rates/ for current rates).
+  4. For UK: Admin → Settings → Taxes and duties → United Kingdom → enter
+     your UK VAT registration number if you're above the £90,000 threshold.
+  5. Test an EU order in a checkout simulator or Shopify's test mode to confirm
+     the correct country VAT rate is applied before going live.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">04</div>
+              <h3>Third-party tax app timeout — TaxJar, Avalara, or Quaderno returns error, fallback is $0</h3>
+            </div>
+            <div class="cause-tag app">APP</div>
+            <p>
+              Third-party tax apps (TaxJar, Avalara, Quaderno, TaxCloud) replace Shopify's
+              built-in tax calculation with their own API. When these apps time out, return
+              an error, or go down, Shopify's behavior depends on the app's fallback configuration:
+              some apps fall back to Shopify's native rates, others fall back to $0 tax,
+              and some block checkout entirely.
+            </p>
+            <p>
+              The $0-fallback variant is particularly dangerous: checkout continues, orders
+              complete, but every order during the outage window is tax non-compliant.
+              The app vendor's status page shows the outage; your Shopify dashboard shows
+              nothing. No orders fail. No alerts fire.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Check your tax app's status page for outages:
+     - TaxJar: status.taxjar.com
+     - Avalara: status.avalara.com
+     - Quaderno: status.quaderno.io
+  2. In your tax app's Shopify settings, find the "fallback" or "error handling"
+     configuration. Set fallback to "use Shopify rates" rather than "$0" to
+     prevent silent non-compliance during app outages.
+  3. In Shopify Admin → Apps → [your tax app] → review its error log or
+     audit trail for recent failures. Most apps log every API call result.
+  4. Consider enabling Shopify's native tax calculation as a verified baseline
+     and only layering the third-party app on top for jurisdictions the built-in
+     engine doesn't handle (specific state rules, exemption certificates, etc.).</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">05</div>
+              <h3>B2B / wholesale tax exemption not applied — exempt customers charged tax</h3>
+            </div>
+            <div class="cause-tag silent">SILENT FAILURE</div>
+            <p>
+              B2B buyers, resellers, nonprofits, and government entities with valid tax
+              exemption certificates should pay $0 tax at checkout. In Shopify, exemptions
+              are applied at the customer account level. If a customer's account isn't marked
+              exempt — or if the exemption is applied to the wrong tax category — they see
+              tax added at checkout. Most B2B buyers don't ask for a refund; they abandon
+              the order instead.
+            </p>
+            <p>
+              This failure is invisible to merchants: the customer leaves with no error
+              message, no complaint, no declined payment. The merchant sees normal churn.
+              B2B orders that should have been $0 tax simply never complete.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Shopify Admin → Customers → search the customer → scroll to "Tax" section
+     in the customer profile → enable "Collect tax" as "off" or select
+     "Exempt from all taxes" depending on your Shopify version.
+  2. For bulk exemptions: use Shopify's customer CSV import to update the
+     "Accepts Marketing" and "Tax Exempt" fields in bulk, or use the Admin API
+     (PUT /admin/api/customers/{id}.json with tax_exempt: true).
+  3. For B2B apps (Shopify B2B, Wholesale Club, Bold B2B): verify the app's
+     customer tag configuration — most exemption apps apply exemptions based
+     on a "wholesale" or "tax-exempt" customer tag. If the tag is missing,
+     the exemption doesn't apply.
+  4. After applying exemptions, have the customer log in and verify their
+     checkout shows $0 tax before confirming the setup is working.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">06</div>
+              <h3>Shopify Markets tax override conflict — wrong rate for international customers</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Shopify Markets is the international selling feature that lets you configure
+              different pricing, currencies, and tax rules for different markets (geographic
+              groups of countries). Markets-level tax settings override store-level and
+              product-level settings. If a Market is misconfigured — wrong tax rate, wrong
+              tax-included/excluded setting, or a rule that incorrectly exempts a taxable
+              jurisdiction — customers in that market are charged the wrong amount.
+            </p>
+            <p>
+              This typically manifests as correct tax for domestic customers (not in a
+              configured Market) and wrong tax for a specific subset of international
+              customers (in the misconfigured Market). It's easy to miss during testing
+              if you only test domestic checkouts.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Shopify Admin → Settings → Markets → select the affected market
+     → Tax settings. Review "Price includes tax" setting — if enabled, prices
+     are displayed with tax included, and the checkout deducts it from the total.
+     If enabled incorrectly for a tax-exclusive market, customers appear to be
+     charged wrong tax.
+  2. For each market, verify the tax rate matches the correct rate for the
+     countries in that market. EU markets after OSS should use destination-country
+     rates; some merchants accidentally apply a single rate to the whole EU market.
+  3. Test a checkout from the customer's perspective: use Shopify's checkout URL
+     with a different shipping address (in the affected country) and confirm the
+     tax line is correct before and after the Markets tax change.
+  4. If Markets tax overrides are too complex to maintain, consider disabling
+     market-level tax overrides and using a third-party tax app that handles
+     multi-jurisdiction automatically.</div>
+          </div>
+
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">07</div>
+              <h3>Product taxability code missing or incorrect — wrong rate per product category</h3>
+            </div>
+            <div class="cause-tag config">CONFIG</div>
+            <p>
+              Not all products are taxed at the same rate. Food, medicine, clothing, and
+              digital goods often have different tax rates or full exemptions depending on
+              the jurisdiction. Shopify uses product tax codes to determine which rate applies
+              to each product in each jurisdiction. If the tax code is missing or wrong,
+              the product is taxed at the standard rate — either overcharging customers
+              on exempt items, or undercharging on items that require a special rate.
+            </p>
+            <p>
+              Digital goods are especially prone to this: a SaaS subscription or
+              downloadable product sold to EU or US customers is taxable in most
+              jurisdictions at jurisdiction-specific rates, but many Shopify stores
+              don't configure digital goods tax codes at all.
+            </p>
+            <div class="cause-fix">Fix:
+  1. Shopify Admin → Products → select the product → scroll to "Pricing"
+     → "Charge taxes on this product" checkbox. Verify it's enabled for
+     taxable products and disabled for tax-exempt products.
+  2. For product tax codes (US only with Avalara or TaxJar integration):
+     in the product's pricing section, find "HSN code" or "Tax code" field
+     → enter the correct Avalara tax code for the product category.
+     Common codes: P0000000 (general tangible goods), DC010900 (SaaS),
+     DC020100 (downloadable digital goods).
+  3. For EU digital goods: Admin → Settings → Taxes → EU → enable
+     "Charge VAT on digital goods sold to EU countries" — this setting
+     applies EU VAT to all digital products regardless of product-level setting.
+  4. Review products in bulk: Admin → Products → export CSV → filter the
+     "Taxable" column for products where you're unsure of the correct setting.</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- MONITORING BLINDSPOT -->
+      <section class="section">
+        <div class="section-label">Monitoring Gap</div>
+        <h2>Why Standard Monitors Miss Silent Tax Failures</h2>
+        <p>
+          Tax errors split into visible (checkout blocked — a bad user experience but at least you know)
+          and silent (checkout proceeds with wrong or missing tax — compliant-looking orders, broken tax collection).
+          Standard monitoring tools only catch the visible category.
+        </p>
+
+        <div class="monitor-box">
+          <div class="monitor-label">What each tool actually checks</div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Uptime Robot / Pingdom / Better Uptime</strong> — verify checkout URL returns HTTP 200. During Shopify's tax API degradation, the checkout URL returns 200 throughout. These tools show green while every order is tax non-compliant.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Shopify status page</strong> — reports Shopify platform health. Tax API degradation events are listed under "Tax Calculation" — but typically 30–60 minutes after the degradation begins. Your orders are already non-compliant.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">❌</div>
+            <div class="monitor-text"><strong>Revenue analytics</strong> — track order count and GMV. Tax errors don't affect order completion rates or revenue totals. A tax API degradation event shows as a normal revenue day with orders completing on schedule.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">⚠️</div>
+            <div class="monitor-text"><strong>Shopify Flow order alerts</strong> — can be configured to flag orders where tax lines count equals zero. Catches the failure within minutes of the first affected order, but only after orders are already placed non-compliant.</div>
+          </div>
+          <div class="monitor-row">
+            <div class="monitor-icon">✅</div>
+            <div class="monitor-text"><strong>End-to-end checkout simulation</strong> — places a test order through the full checkout flow and verifies the order total includes a non-zero tax line for a taxable product. This is the only method that catches tax API degradation before real customer orders are affected.</div>
+          </div>
+        </div>
+
+        <p>
+          The B2B exemption failure variant (cause #5) is never visible in any monitoring tool —
+          it shows as normal abandonment in checkout funnel analytics. A 15% abandonment rate
+          at the payment step looks the same whether it's price sensitivity or a broken
+          tax exemption silently adding tax to every wholesale order.
+        </p>
+      </section>
+
+      <!-- DIAGNOSIS -->
+      <section class="section">
+        <div class="section-label">Diagnosis</div>
+        <h2>How to Identify Tax Errors in Your Shopify Store</h2>
+        <p>
+          Use these steps to confirm which type of tax error is affecting your store
+          before making configuration changes.
+        </p>
+
+        <div class="cause-list">
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Check recent orders for $0 tax on taxable products</h3>
+            </div>
+            <p>
+              Shopify Admin → Orders → filter by today or the suspected date range
+              → export CSV → open in a spreadsheet → sort by the "Tax" column.
+              A cluster of $0.00 tax on orders that should be taxable indicates
+              either API degradation (cause #1) or nexus misconfiguration (cause #2).
+              Compare the order timestamps against the Shopify status page to determine
+              whether it was a platform event.
+            </p>
+          </div>
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Test checkout with a specific jurisdiction address</h3>
+            </div>
+            <p>
+              Place a test order using a shipping address in the jurisdiction you're
+              investigating. Use Shopify's test mode (Admin → Settings → Payments →
+              enable test mode) to complete the checkout without charging a real card.
+              Verify the tax line in the order confirmation matches the expected rate.
+              If it's wrong, the issue is configuration (nexus, product code, Markets)
+              rather than an API failure.
+            </p>
+          </div>
+          <div class="cause">
+            <div class="cause-header">
+              <div class="cause-num">→</div>
+              <h3>Check your tax app's error log</h3>
+            </div>
+            <p>
+              If you're using TaxJar, Avalara, or another third-party tax app:
+              Admin → Apps → [tax app] → look for an audit log, error log, or
+              calculation history. Failed or timed-out API calls are recorded here.
+              Cross-reference the timestamps with your order history to see if
+              failed tax app calls correlate with $0 tax orders.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="cta-block">
+        <h2>Tax API degradation is invisible to HTTP monitors</h2>
+        <p>
+          CheckPulse simulates end-to-end checkout and verifies the order total
+          includes the expected tax line — so Shopify tax failures show up as
+          alerts, not as a compliance problem discovered during your quarterly tax review.
+        </p>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">START MONITORING →</a>
+      </div>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Common Questions About Shopify Tax Errors</h2>
+
+        <div class="faq">
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify showing the wrong tax amount at checkout?</div>
+            <div class="faq-a">Wrong tax at checkout is usually a nexus, product tax code, or Markets configuration issue. Shopify calculates tax based on your nexus locations, the product's taxability code, and any Markets-level overrides. If any of these are wrong, the tax is wrong. Check Admin → Settings → Taxes → verify nexus, product tax codes, and any tax overrides.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify charging $0 tax on orders that should be taxable?</div>
+            <div class="faq-a">Three main causes: (1) nexus not configured for the customer's jurisdiction — Shopify charges $0 because you haven't told it to collect there; (2) third-party tax app timed out and fell back to $0; (3) Shopify's tax API degraded and returned empty tax lines on a 200 response. The third cause is the most dangerous — it's completely silent. Check the Shopify status page and your recent orders CSV for $0 tax rows.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify show a tax calculation error at checkout?</div>
+            <div class="faq-a">A visible tax error (blocking checkout) usually means a third-party tax app returned an error and is configured to block checkout rather than fall back. Check your tax app's status page and its error handling configuration. EU VAT validation failures can also block checkout if the customer's VAT number fails VIES validation.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">How do I fix the EU VAT tax error at Shopify checkout?</div>
+            <div class="faq-a">For EU OSS: Admin → Settings → Taxes → European Union → confirm your OSS registration number is entered and validate it at ec.europa.eu/taxation_customs/vies/. For per-country EU VAT rates: verify each country's rate in the EU tax settings. For UK VAT: Admin → Taxes → United Kingdom → enter your UK VAT registration number if your UK sales exceed £90,000/year.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Can Shopify tax errors go undetected by uptime monitors?</div>
+            <div class="faq-a">Yes — completely. Silent tax failures (API degradation returning $0 tax, third-party app fallback to $0, B2B exemption failures) don't affect the checkout URL's HTTP status. Uptime monitors show green. The only automated detection is end-to-end checkout simulation that verifies the order total includes a non-zero tax line, or a Shopify Flow alert on orders with zero tax lines on taxable products.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-q">Why are tax-exempt customers being charged tax at Shopify checkout?</div>
+            <div class="faq-a">Tax exemptions in Shopify are applied at the customer account level, not automatically. If a B2B customer's account isn't marked "Exempt from all taxes" in Admin → Customers → [customer] → Tax settings, they're charged full tax. For B2B apps (Shopify B2B, Wholesale Club), verify the customer has the correct "tax-exempt" tag. B2B buyers rarely complain — they abandon the order, making this invisible without active monitoring.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATED -->
+      <section class="section">
+        <div class="section-label">Related Issues</div>
+        <h2>Other Shopify Checkout Errors</h2>
+        <p>
+          Tax errors are one layer of Shopify checkout failures. These guides cover related problems:
+        </p>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Shopify Checkout Error at Payment Step</a> — payment failures beyond tax issues</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">Shopify Checkout No Payment Methods</a> — checkout shows no payment options</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options">Shopify No Shipping Options at Checkout</a> — shipping calculation failures</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Shopify Discount Code Not Working at Checkout</a> — discount and coupon failures</li>
+          <li><a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Shopify Checkout Not Working</a> — comprehensive checkout failure guide</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 CheckPulse &middot; <a href="./">Home</a> &middot; <a href="./#pricing">Pricing</a> &middot; <a href="./free-check">Free Store Check</a> &middot; <a href="./shopify-payment-failed">Payment Failed</a> &middot; <a href="./shopify-checkout-redirect-loop">Redirect Loop</a> &middot; <a href="./shopify-checkout-not-working">Checkout Not Working</a> &middot; <a href="./shopify-checkout-testing-checklist">Testing Checklist</a> &middot; <a href="./shopify-checkout-payment-error">Payment Error</a> &middot; <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a> &middot; <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a> &middot; <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a> &middot; <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a> &middot; <a href="./shopify-checkout-session-expired">Session Expired</a> &middot; <a href="./shopify-store-password-protected">Store Password Protected</a> &middot; <a href="./shopify-checkout-inventory-error">Inventory Error</a> &middot; <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a> &middot; <a href="./shopify-checkout-tax-error">Tax Error</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

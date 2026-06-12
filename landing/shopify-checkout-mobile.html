@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Not Working on Mobile — iOS Safari &amp; Android Fixes (2026)</title>
+  <meta name="description" content="Shopify checkout not working on mobile? iOS Safari, iPhone, and Android all have specific causes. 9 mobile-specific checkout problems and exact fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" />
+  <meta property="og:title" content="Shopify Checkout Not Working on Mobile — iOS Safari &amp; Android Fixes" />
+  <meta property="og:description" content="Mobile accounts for 70%+ of Shopify traffic — and has twice as many checkout failure modes as desktop. iOS Safari alone has 4 unique failure patterns. Here's the complete mobile checkout troubleshooting guide." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Not Working on Mobile — iOS Safari and Android Fixes",
+    "description": "Mobile accounts for 70%+ of Shopify traffic but has unique checkout failure modes not present on desktop. This guide covers all mobile-specific Shopify checkout problems: iOS Safari ITP blocking payments, Apple Pay not appearing, keyboard covering form fields, third-party scripts failing on mobile connections, and Android Chrome-specific issues — with exact fix steps for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify checkout not working on mobile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Mobile checkout failures have different root causes than desktop failures. The most common mobile-specific causes: (1) iOS Safari's Intelligent Tracking Prevention (ITP) blocks cross-site cookies and storage that some payment gateways rely on — this causes the payment step to fail or loop. (2) Safari blocks third-party iframes in private browsing mode, breaking embedded payment widgets. (3) The mobile keyboard covers the checkout form fields in some themes, making it appear frozen when it's actually waiting for input. (4) Apple Pay requires specific domain verification and HTTPS configuration — merchants who recently added a custom domain often find Apple Pay breaks on mobile. (5) Third-party app scripts that work on desktop 4G fail on mobile due to larger script sizes and lower CPU speed on mid-range phones. (6) Mobile redirect flows for 3D Secure authentication often loop or fail because Safari's strict cookie policies block the handoff between Shopify and the bank. Check which issue you have by opening checkout in Safari on iPhone, then opening the same checkout in Chrome on the same phone — if Chrome works but Safari doesn't, the issue is Safari-specific (ITP, cookie, or iframe policy)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Apple Pay not show on Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay only shows in Safari on iOS and macOS — never in Chrome, Firefox, or other browsers. If Apple Pay is not appearing in Safari on iPhone: (1) Verify the domain is verified in Shopify Payments settings — Admin → Settings → Payments → Shopify Payments → Manage → Apple Pay → check domain verification status. Custom domains require a separate verification step. (2) Check that the customer's card is set up in Wallet on the device. Apple Pay won't show if no payment card is available. (3) Confirm the store is on HTTPS — Apple Pay requires TLS on all pages including checkout. (4) If you recently changed your domain or added a subdomain, re-verify the domain in Apple Pay settings — the verification file must be accessible at /.well-known/apple-pay-merchant-sessions. (5) For headless storefronts or custom checkout implementations, you must handle the Apple Pay JS API separately — Shopify's built-in Apple Pay does not automatically pass through to custom checkout implementations."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout loop or redirect on iPhone?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Checkout redirect loops on iPhone are almost always caused by Safari's cookie and storage restrictions interacting with Shopify's session management or 3D Secure authentication flows. Diagnosis steps: (1) Test the same checkout flow in Chrome on iPhone — if Chrome succeeds, the issue is Safari-specific. (2) Try disabling Safari's 'Prevent Cross-Site Tracking' (Settings → Safari → Privacy & Security → Prevent Cross-Site Tracking) on a test device. If checkout completes, a cross-site cookie or storage dependency is the cause. (3) For 3D Secure redirect loops: the bank's authentication page redirects back to Shopify, but Safari blocks the return cookie because the authentication domain is different from Shopify's. This is a known issue with some older payment gateways — switching to Shopify Payments (which uses native 3D Secure handling) typically resolves it. (4) Session expiry: Shopify checkout sessions expire after 24 hours — if a customer leaves and returns to an old checkout URL in a new Safari tab, the session is gone and they get a redirect loop. Clear Safari cache and restart from cart."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify checkout slow on mobile but fast on desktop?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Mobile checkout is almost always slower than desktop for three reasons: slower CPU (mobile JavaScript execution is 3–5x slower than desktop), slower network (4G is 20–60 Mbps vs home WiFi at 100–400 Mbps), and larger relative page weight (scripts load in parallel on desktop but queue on mobile). Third-party app scripts cause disproportionate slowdowns on mobile — a script that adds 300ms on desktop can add 800–1500ms on a mid-range Android phone on 4G. To diagnose: open Chrome DevTools on desktop, click the mobile simulation icon, set throttling to 'Mid-tier mobile' and measure checkout load time. That will show you what mid-range Android users experience. Common fixes: remove chat widgets from checkout (the single highest-ROI change for mobile speed), use Shopify's native payment methods (Apple Pay, Shop Pay) which initialize much faster than third-party payment widgets, and compress/defer any non-critical checkout scripts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why won't Shopify checkout accept my card on iPhone?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Card not accepted on iPhone specifically (works on desktop) usually has one of three causes: (1) Safari autofill interference — Safari sometimes autofills the card number with a saved card in a format that doesn't match the payment field's expected format, causing a validation error. Workaround: clear the form, disable autofill for the payment section (Settings → Safari → Autofill → Credit Cards → off), and re-enter the card manually. (2) Safari's content blockers — many iOS ad/tracker blockers also block payment-related scripts. Test in Safari with all content blockers disabled. If checkout works with blockers off, the customer needs to whitelist your store. (3) Virtual cards from bank apps — some bank-issued virtual card numbers are region-locked and will be declined by the payment processor even when the physical card works. This is a bank restriction, not a Shopify issue. If the customer can use Apple Pay or Shop Pay with the same underlying card, those methods bypass the virtual card restriction."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify checkout work differently in Safari vs Chrome on iPhone?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — significantly. Both use WebKit as the rendering engine on iOS (Apple's requirement), but Safari has stricter privacy features than Chrome on iOS: Safari enforces Intelligent Tracking Prevention (ITP) which deletes cross-site cookies after 7 days and localStorage from sites not actively visited — Chrome on iOS has fewer restrictions. Safari also blocks third-party iframes in private browsing mode (Private Window) while Chrome allows them. In practice: if a customer experiences checkout failure in Safari but not Chrome on the same device, the cause is almost certainly ITP blocking a cookie or storage item that a payment gateway or app depends on. The fix is usually on the merchant side — switching to a payment method that doesn't rely on cross-site cookies (Shopify Payments, Shop Pay, Apple Pay) rather than trying to work around Safari's security model."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 0.8rem; color: var(--text-mid); }
+
+    .hero {
+      padding: 72px 0 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-mid);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat-num { font-family: var(--mono); font-size: 1.5rem; color: var(--amber); font-weight: 700; }
+    .stat-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+    .section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .section p { color: var(--text-mid); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 28px; margin-top: 32px; }
+    .cause {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    .cause-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 3px;
+    }
+    .cause h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.3; }
+    .cause p { color: var(--text-mid); font-size: 0.93rem; margin-bottom: 12px; }
+    .cause-fix {
+      background: rgba(34,197,94,0.06);
+      border: 1px solid rgba(34,197,94,0.18);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--green);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .cause-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-family: var(--mono);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .cause-tag.safari { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: var(--blue); }
+    .cause-tag.ios { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); color: var(--purple); }
+    .cause-tag.android { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+    .cause-tag.all-mobile { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+    .cause-tag.high { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+
+    .fix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 24px;
+    }
+    .fix-table th {
+      text-align: left;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .fix-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-mid);
+      vertical-align: top;
+    }
+    .fix-table tr:last-child td { border-bottom: none; }
+    .fix-table td:first-child { color: var(--text); font-weight: 500; }
+
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+
+    .diag-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 28px;
+      margin-top: 28px;
+    }
+    .diag-box h3 {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .diag-steps { display: flex; flex-direction: column; gap: 12px; }
+    .diag-step { display: flex; gap: 14px; align-items: flex-start; font-size: 0.88rem; color: var(--text-mid); }
+    .diag-step-num {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--blue);
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 3px;
+      padding: 2px 7px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .faq { display: flex; flex-direction: column; gap: 24px; margin-top: 28px; }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .faq-q {
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 0.97rem;
+      color: var(--text);
+    }
+    .faq-a { color: var(--text-mid); font-size: 0.9rem; }
+
+    .cta-block {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02));
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px;
+      padding: 40px;
+      margin: 48px 0;
+      text-align: center;
+    }
+    .cta-block h2 { font-size: 1.5rem; margin-bottom: 12px; }
+    .cta-block p { color: var(--text-mid); margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 14px 28px;
+      border-radius: 7px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .guide-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: rgba(245,158,11,0.4); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .guide-card-title { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-mid); }
+
+    @media (max-width: 600px) {
+      .hero { padding: 48px 0 40px; }
+      .hero-stats { gap: 20px; }
+      .cause { padding: 20px; }
+      .cta-block { padding: 28px 20px; }
+      .nav-links { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="container">
+      <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CHECKPULSE</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <section class="hero">
+        <div class="hero-eyebrow">Mobile Checkout Troubleshooting · 2026</div>
+        <h1>Shopify Checkout <span>Not Working on Mobile</span> — iOS Safari &amp; Android Fixes</h1>
+        <p class="hero-lead">
+          Mobile drives 70%+ of Shopify traffic — but has twice as many checkout failure modes as desktop.
+          iOS Safari alone has 4 distinct failure patterns that never appear on desktop.
+          Here's the complete mobile-specific checkout guide.
+        </p>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">70%+</div>
+            <div class="stat-label">of Shopify traffic is mobile</div>
+          </div>
+          <div>
+            <div class="stat-num">2×</div>
+            <div class="stat-label">higher abandonment vs desktop checkout</div>
+          </div>
+          <div>
+            <div class="stat-num">4</div>
+            <div class="stat-label">Safari-specific failure patterns</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUICK DIAGNOSTIC -->
+      <section class="section">
+        <div class="section-label">Diagnosis First</div>
+        <h2>Is This a Mobile-Specific Problem or a General One?</h2>
+        <p>
+          Before diving into mobile fixes, confirm the issue is mobile-specific. This saves hours of debugging.
+        </p>
+
+        <div class="diag-box">
+          <h3>2-Minute Diagnosis Flow</h3>
+          <div class="diag-steps">
+            <div class="diag-step">
+              <span class="diag-step-num">01</span>
+              <span>Test checkout on desktop (any browser). If checkout <strong>also fails on desktop</strong>, the issue is not mobile-specific — see our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">general checkout troubleshooting guide</a>.</span>
+            </div>
+            <div class="diag-step">
+              <span class="diag-step-num">02</span>
+              <span>On the same mobile device, test checkout in <strong>Safari</strong> and then in <strong>Chrome</strong>. If one works but not the other → the issue is browser-specific (likely Safari ITP or cookie policy).</span>
+            </div>
+            <div class="diag-step">
+              <span class="diag-step-num">03</span>
+              <span>Test in Safari <strong>Private Browsing</strong>. If checkout fails in Private but works in regular Safari → a cross-site cookie or third-party iframe is blocked by Private mode.</span>
+            </div>
+            <div class="diag-step">
+              <span class="diag-step-num">04</span>
+              <span>Disable all Safari Content Blockers (Settings → Safari → Extensions). If checkout works → a content blocker is intercepting a payment or checkout script.</span>
+            </div>
+            <div class="diag-step">
+              <span class="diag-step-num">05</span>
+              <span>Test on a different iPhone or Android device. If only one device has the issue → device-specific (saved card conflict, OS version, iOS Content Restrictions).</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MOBILE PLATFORM COMPARISON -->
+      <section class="section">
+        <div class="section-label">Platform Differences</div>
+        <h2>Mobile Checkout: Safari vs Chrome vs Android</h2>
+        <p>
+          Not all mobile checkout problems are equal. The platform determines which fixes apply.
+        </p>
+        <table class="fix-table">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Safari iOS</th>
+              <th>Chrome iOS</th>
+              <th>Android Chrome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ITP blocks payment cookies</td>
+              <td><span class="badge badge-red">AFFECTED</span></td>
+              <td><span class="badge badge-red">AFFECTED</span></td>
+              <td><span class="badge badge-green">UNAFFECTED</span></td>
+            </tr>
+            <tr>
+              <td>3rd party iframes blocked in private mode</td>
+              <td><span class="badge badge-red">BLOCKED</span></td>
+              <td><span class="badge badge-amber">PARTIAL</span></td>
+              <td><span class="badge badge-green">ALLOWED</span></td>
+            </tr>
+            <tr>
+              <td>Apple Pay available</td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-red">NO</span></td>
+              <td><span class="badge badge-red">NO</span></td>
+            </tr>
+            <tr>
+              <td>Google Pay available</td>
+              <td><span class="badge badge-red">NO</span></td>
+              <td><span class="badge badge-amber">LIMITED</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+            </tr>
+            <tr>
+              <td>3D Secure redirect loops</td>
+              <td><span class="badge badge-red">COMMON</span></td>
+              <td><span class="badge badge-amber">OCCASIONAL</span></td>
+              <td><span class="badge badge-green">RARE</span></td>
+            </tr>
+            <tr>
+              <td>Keyboard covers form fields</td>
+              <td><span class="badge badge-red">COMMON</span></td>
+              <td><span class="badge badge-amber">OCCASIONAL</span></td>
+              <td><span class="badge badge-green">RARE</span></td>
+            </tr>
+            <tr>
+              <td>Checkout load time vs desktop</td>
+              <td>+60–120%</td>
+              <td>+50–100%</td>
+              <td>+40–90%</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- 9 CAUSES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>9 Mobile-Specific Checkout Problems — and Fixes</h2>
+
+        <div class="cause-list">
+
+          <div class="cause">
+            <span class="cause-tag safari">Safari · iOS</span>
+            <div class="cause-header">
+              <span class="cause-num">01</span>
+              <h3>Safari ITP Blocking Payment Cookies</h3>
+            </div>
+            <p>
+              Safari's Intelligent Tracking Prevention (ITP) treats cross-site cookies as trackers and deletes
+              or blocks them after 7 days. Some third-party payment gateways — particularly older ones or
+              those with complex redirect flows — depend on cross-site cookies to maintain session state
+              during the checkout-to-bank-to-checkout handoff. When ITP blocks these cookies, the payment step
+              fails, loops, or silently errors.
+            </p>
+            <p><strong>Symptoms:</strong> Payment fails in Safari on iPhone; succeeds in Chrome or on desktop. Card data enters correctly but "Place Order" either does nothing or shows a generic error.</p>
+            <div class="cause-fix">FIX:
+→ Switch to Shopify Payments as primary gateway — it uses first-party session handling that ITP doesn't block
+→ Ensure Shop Pay is enabled — Shop Pay handles auth natively without cross-site cookies
+→ For alternative payment gateways: contact the gateway's support and ask if they have an ITP-compatible integration mode
+→ As a temporary workaround: tell customers to disable "Prevent Cross-Site Tracking" in iPhone Settings → Safari → Privacy &amp; Security — but this is a customer-side change and not a real fix</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag safari">Safari · iOS</span>
+            <div class="cause-header">
+              <span class="cause-num">02</span>
+              <h3>Apple Pay Not Appearing or Failing to Authorize</h3>
+            </div>
+            <p>
+              Apple Pay only renders in Safari on iOS and macOS — never in Chrome, Firefox, or any
+              non-Safari browser on iOS. When Apple Pay fails to appear or fails after the Face ID / Touch ID
+              step, there are several distinct causes depending on the failure point.
+            </p>
+            <p><strong>Symptoms:</strong> Apple Pay button missing entirely; or Apple Pay sheet appears but authorization fails after biometric; or Apple Pay appears but "Payment not completed" error.</p>
+            <div class="cause-fix">FIX — button missing:
+→ Admin → Settings → Payments → Shopify Payments → Manage → Apple Pay
+→ Verify domain: every domain and subdomain must be verified separately
+→ Custom domains added after initial Shopify Payments setup need a re-verification step
+→ The .well-known/apple-pay-merchant-sessions path must return 200 on your domain
+
+FIX — authorization fails after Face ID:
+→ Check if the card in the customer's Wallet is expired or locked
+→ Check if the order total changed between Apple Pay sheet open and auth (discounts applied mid-flow can cause mismatch)
+→ Enable "Failed Apple Pay logs" in Shopify Admin → Analytics → Reports to see decline reasons
+
+FIX — headless / custom checkout:
+→ Shopify's built-in Apple Pay does not automatically pass through to Hydrogen or custom checkout implementations
+→ Must implement the Apple Pay JS API (PaymentRequest API) separately in your checkout code</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag safari">Safari · iOS</span>
+            <div class="cause-header">
+              <span class="cause-num">03</span>
+              <h3>3D Secure Redirect Loop in Safari</h3>
+            </div>
+            <p>
+              The 3D Secure flow redirects the customer from Shopify checkout → bank authentication page → back to Shopify. This round-trip sets a return cookie on the bank's domain that Shopify uses to confirm the completed authentication. Safari's ITP often deletes or blocks this cross-site cookie, causing the checkout to treat the authentication as incomplete and redirect again — creating an endless loop.
+            </p>
+            <p><strong>Symptoms:</strong> Checkout redirects to bank page, authentication succeeds (customer sees "approved"), then returns to checkout — which immediately redirects to bank again. Or: payment step hangs indefinitely after bank authentication.</p>
+            <div class="cause-fix">FIX:
+→ Switch to Shopify Payments — it uses a native 3DS2 implementation that doesn't rely on cross-site cookies
+→ If using a third-party gateway, ask them if they support 3DS2 (not 3DS1) — 3DS2 uses a different, ITP-compatible auth mechanism
+→ Customer workaround: clear Safari cache (Settings → Safari → Clear History and Website Data), then retry checkout — this resets the session state
+→ Test using Stripe's test card 4000002760003184 (3DS required) to reproduce the exact redirect loop in your dev store before going to production</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag ios">iOS · All Browsers</span>
+            <div class="cause-header">
+              <span class="cause-num">04</span>
+              <h3>Keyboard Covering Checkout Form Fields</h3>
+            </div>
+            <p>
+              On iOS, the virtual keyboard slides up from the bottom without resizing the viewport in older behavior — it overlaps the page content instead. This causes checkout form fields to appear "behind" the keyboard and forces the customer to scroll awkwardly, sometimes making the active field or the "Next" button inaccessible. iOS 15+ changed behavior slightly but the problem persists in certain viewport configurations.
+            </p>
+            <p><strong>Symptoms:</strong> Customer taps a field, keyboard appears, and the field is now hidden behind the keyboard. Page appears frozen — but is actually waiting for input. "Place Order" button inaccessible after entering payment details.</p>
+            <div class="cause-fix">FIX (for custom checkout implementations or checkout extensibility):
+→ Ensure the checkout page uses: &lt;meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" /&gt;
+→ Add padding-bottom equal to the keyboard height using the Visual Viewport API:
+  window.visualViewport.addEventListener('resize', () => {
+    document.body.style.paddingBottom = window.innerHeight - window.visualViewport.height + 'px';
+  })
+→ For Shopify's standard checkout: this is handled automatically by Shopify — if you're seeing this on standard checkout, it's a theme customization or app-injected script overriding the viewport
+→ For checkout extensibility blocks: test all custom UI blocks on iOS Safari specifically before launch</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag all-mobile">All Mobile</span>
+            <div class="cause-header">
+              <span class="cause-num">05</span>
+              <h3>Third-Party App Scripts Causing Mobile Failures</h3>
+            </div>
+            <p>
+              Apps that work adequately on desktop often break entirely on mobile. Mobile JavaScript execution is 3–5x slower than desktop (CPU speed), network is 3–10x slower (bandwidth and latency), and mobile browsers enforce stricter timeouts. A chat widget that loads in 400ms on desktop may take 2000ms on a mid-range Android on 4G — and some browsers abort scripts that take too long, causing dependent payment initializations to never complete.
+            </p>
+            <p><strong>Symptoms:</strong> Checkout works on desktop but payment step hangs or "Place Order" never responds on mobile. Or: checkout loads but is missing expected payment methods (because the payment init script timed out).</p>
+            <div class="cause-fix">FIX:
+→ Go to Admin → Settings → Checkout → App embeds — disable every embed you don't need at checkout
+→ Priority apps to remove from checkout: live chat (Gorgias, Tidio, Intercom), loyalty widgets (Smile.io, LoyaltyLion), review badges (Okendo, Judge.me)
+→ For each app: check if "checkout-only" embed can be disabled without removing the app from storefront pages — most apps support this via their settings
+→ Test after each removal on a real mid-range Android device on 4G (not just iPhone on WiFi)
+→ See the full app-by-app speed audit guide: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit">Shopify checkout app performance audit</a></div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag safari">Safari · Private Browsing</span>
+            <div class="cause-header">
+              <span class="cause-num">06</span>
+              <h3>Checkout Broken in Safari Private Browsing</h3>
+            </div>
+            <p>
+              Safari Private Browsing blocks all third-party cookies and sandboxes localStorage — meaning no cross-site data can be read or written during the session. Many payment widgets and some checkout apps rely on third-party storage to maintain their session, display personalized content, or initialize their SDK. In Private mode, these initializations fail silently, often causing the payment section to render empty or unresponsive.
+            </p>
+            <p><strong>Symptoms:</strong> Checkout broken in Safari Private window on iPhone. No payment methods show. Or: checkout appears to load but "Place Order" does nothing. Works in normal Safari on the same device.</p>
+            <div class="cause-fix">FIX:
+→ This is expected behavior in Private mode for apps that use cross-site storage — not a bug
+→ Switch payment handling to first-party methods: Shopify Payments, Shop Pay, Apple Pay — these work in Private mode
+→ Remove third-party payment widgets that depend on cross-site localStorage initialization
+→ If your checkout entirely breaks (not just optional features), a critical initialization script is using cross-site storage — contact your payment gateway about a first-party storage option
+→ Customer workaround: exit Private Browsing and retry. Explain to support agents to ask "Are you in Private/Incognito mode?" as a diagnostic question</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag android">Android · Chrome</span>
+            <div class="cause-header">
+              <span class="cause-num">07</span>
+              <h3>Google Pay Not Appearing or Failing on Android</h3>
+            </div>
+            <p>
+              Google Pay on Shopify requires specific configuration in both Shopify Payments and the customer's Google account. Unlike Apple Pay (which uses device hardware for biometric auth), Google Pay relies on a server-side API call to Google that can fail for several reasons.
+            </p>
+            <p><strong>Symptoms:</strong> Google Pay button missing on Android Chrome. Or: Google Pay sheet opens but "Pay now" fails with a generic error. Or: Google Pay only appears on some devices but not others.</p>
+            <div class="cause-fix">FIX — button missing:
+→ Google Pay only shows when: (1) customer is logged into Chrome with a Google account that has a saved payment method, AND (2) the domain is verified with Google Pay
+→ Admin → Settings → Payments → Shopify Payments → Manage → Google Pay — verify domain is listed and active
+→ Google Pay uses the browser's Payment Request API — it won't show if the customer is using Chrome in incognito mode
+
+FIX — authorization fails:
+→ Check if the customer's saved Google Pay card is expired
+→ Google Pay requires the order currency to match a currency supported by the customer's card — cross-currency orders fail
+→ If the order has a custom shipping rate or unusual tax calculation, the total may mismatch the authorized amount — switch to simpler shipping/tax config
+
+FIX — missing on some devices:
+→ Google Pay requires Android 5.0+, Chrome 61+, and the Google Pay app installed or Google Play Services up to date
+→ Older devices running Android 4.x will never show Google Pay — no fix, offer alternative methods</div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag all-mobile">All Mobile</span>
+            <div class="cause-header">
+              <span class="cause-num">08</span>
+              <h3>Slow Checkout on Mobile — Performance Gap vs Desktop</h3>
+            </div>
+            <p>
+              Mobile checkout is structurally slower than desktop due to CPU speed, network conditions, and the serial nature of mobile JavaScript parsing. What merchants experience as "checkout not working" on mobile is often checkout working — but taking 8–12 seconds, causing customers to tap away before it finishes. The checkout eventually loads, but for the customer it appeared broken.
+            </p>
+            <p><strong>Symptoms:</strong> Customers report "checkout doesn't work on phone" but you can't reproduce on desktop. Low mobile conversion rate despite desktop working fine. No error logs — just high abandonment at checkout.</p>
+            <div class="cause-fix">FIX:
+→ Run a mobile-specific checkout speed test: use Chrome DevTools → toggle Device Toolbar → set to "Mid-tier mobile" throttling → go through checkout and measure each step
+→ Target: under 3 seconds on Mid-tier mobile is acceptable; under 5 seconds is minimum viable; over 5 seconds loses most customers
+→ Highest-impact mobile speed fixes (in order):
+   1. Remove chat widget from checkout (saves 800–2000ms on mobile)
+   2. Remove loyalty/rewards widget from checkout (saves 400–900ms)
+   3. Remove any analytics pixels beyond GA4 (saves 200–500ms per pixel)
+→ Enable Shop Pay — it preloads customer data and eliminates most form-filling, cutting checkout time by 40–60% for returning customers
+→ Full guide: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow">Shopify checkout slow — all causes and fixes</a></div>
+          </div>
+
+          <div class="cause">
+            <span class="cause-tag ios">iOS</span>
+            <div class="cause-header">
+              <span class="cause-num">09</span>
+              <h3>iOS Content Restrictions Blocking Checkout</h3>
+            </div>
+            <p>
+              iOS Screen Time and Content Restrictions (parental controls) can block access to online shopping, payment pages, or specific domains. When a customer's device has these restrictions active, Shopify checkout may load but payment options won't appear, or the checkout page may redirect to a blocked-content warning. This affects children's devices and sometimes corporate iOS device management (MDM) policies.
+            </p>
+            <p><strong>Symptoms:</strong> Checkout appears to work but payment step is blank. "Web Content" restrictions in Screen Time prevent certain URLs. Or: checkout URL is redirected to a warning page. Only affects specific customers' devices.
+            </p>
+            <div class="cause-fix">FIX (customer-side):
+→ Settings → Screen Time → Content &amp; Privacy Restrictions → Content Restrictions → Web Content
+→ Change from "Limit Adult Websites" to "Unrestricted Access" — this is almost always what blocks checkout
+→ Or: add your store domain and checkout.shopify.com to the Always Allowed list in Screen Time
+→ For corporate MDM restrictions: the customer's IT department needs to whitelist *.shopify.com, *.myshopify.com, and the payment gateway domains
+→ These cases appear in your customer service queue as "checkout doesn't work" — adding a help article about Screen Time restrictions can deflect these tickets</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- MOBILE PAYMENT METHODS TABLE -->
+      <section class="section">
+        <div class="section-label">Payment Methods</div>
+        <h2>Mobile Payment Method Availability at a Glance</h2>
+        <p>
+          Different payment methods have very different mobile support profiles. Prioritize methods with the broadest mobile support.
+        </p>
+        <table class="fix-table">
+          <thead>
+            <tr>
+              <th>Payment Method</th>
+              <th>Safari iOS</th>
+              <th>Chrome iOS</th>
+              <th>Android Chrome</th>
+              <th>Mobile Reliability</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Shop Pay</td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">EXCELLENT</span></td>
+            </tr>
+            <tr>
+              <td>Apple Pay</td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-red">NO</span></td>
+              <td><span class="badge badge-red">NO</span></td>
+              <td><span class="badge badge-amber">SAFARI ONLY</span></td>
+            </tr>
+            <tr>
+              <td>Google Pay</td>
+              <td><span class="badge badge-red">NO</span></td>
+              <td><span class="badge badge-amber">LIMITED</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-amber">ANDROID BEST</span></td>
+            </tr>
+            <tr>
+              <td>Shopify Payments (card)</td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">EXCELLENT</span></td>
+            </tr>
+            <tr>
+              <td>PayPal</td>
+              <td><span class="badge badge-amber">PARTIAL</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-amber">GOOD</span></td>
+            </tr>
+            <tr>
+              <td>Third-party gateway (Stripe, etc.)</td>
+              <td><span class="badge badge-amber">ITP RISK</span></td>
+              <td><span class="badge badge-amber">ITP RISK</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-amber">VARIABLE</span></td>
+            </tr>
+            <tr>
+              <td>Buy Now Pay Later (Afterpay/Klarna)</td>
+              <td><span class="badge badge-amber">PARTIAL</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-green">YES</span></td>
+              <td><span class="badge badge-amber">GOOD</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="cta-block">
+        <h2>Is Mobile Checkout Breaking Without You Knowing?</h2>
+        <p>
+          Mobile checkout failures often go unreported — customers abandon silently instead of filing a support ticket.
+          CheckPulse runs checkout simulations every hour and alerts you the moment checkout fails or slows down,
+          so you catch issues before they drain revenue.
+        </p>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">Start Monitoring Checkout →</a>
+      </div>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Mobile Checkout — Frequently Asked Questions</h2>
+        <div class="faq">
+
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify checkout not working on mobile?</div>
+            <p class="faq-a">Mobile checkout failures have different root causes than desktop failures. The most common mobile-specific causes: iOS Safari's Intelligent Tracking Prevention (ITP) blocks cross-site cookies that some payment gateways rely on; Safari blocks third-party iframes in Private mode; mobile keyboards cover form fields in some configurations; Apple Pay requires separate domain verification; and third-party app scripts that work on desktop often time out on mobile CPUs. Start by testing in Safari vs Chrome on the same device — if Chrome works but Safari doesn't, the issue is Safari-specific (ITP or cookie policy).</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why does Apple Pay not show on my Shopify checkout?</div>
+            <p class="faq-a">Apple Pay only appears in Safari on iOS and macOS — never in Chrome, Firefox, or other browsers. If it's missing in Safari: check that your domain is verified in Admin → Settings → Payments → Shopify Payments → Manage → Apple Pay. Custom domains require separate verification. Also confirm the customer has a payment card set up in their Wallet app — Apple Pay won't appear if no card is configured. For headless storefronts, you must implement the Apple Pay JS API separately.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why does Shopify checkout redirect loop on iPhone?</div>
+            <p class="faq-a">iPhone redirect loops at checkout are almost always Safari's ITP blocking the cross-site cookie used during 3D Secure authentication. The 3DS flow sends the customer to a bank page and returns them — but the return cookie is cross-site and ITP deletes it, making Shopify think authentication never completed. Fix: switch to Shopify Payments (which uses native 3DS2 without cross-site cookies). Customer workaround: clear Safari cache and retry.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify checkout slow on mobile but fast on desktop?</div>
+            <p class="faq-a">Mobile checkout is structurally slower: JavaScript runs 3–5x slower on mobile CPUs, and 4G networks add latency that WiFi hides. Third-party app scripts (chat widgets, loyalty apps) cause the largest mobile slowdowns — a script adding 300ms on desktop can add 800–1500ms on a mid-range Android on 4G. Removing the chat widget from checkout is the single highest-ROI mobile speed fix. See our <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit">app audit guide</a> for per-app impact data.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Can I test mobile checkout without a real phone?</div>
+            <p class="faq-a">Partially. Chrome DevTools lets you simulate mobile screen size and network speed — open DevTools (F12) → click the device icon → select a mobile preset → set network throttling to "Mid-tier mobile". This gives accurate performance data. However, it cannot replicate Safari's ITP behavior, iOS keyboard behavior, or Apple/Google Pay — for those, you need real devices. Keep an iPhone (for Safari ITP testing) and a mid-range Android (for performance testing) as part of your QA workflow.</p>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">How do I monitor for mobile checkout failures I don't know about?</div>
+            <p class="faq-a">Mobile checkout failures often go unreported — customers silently abandon instead of filing a support ticket. The best approach: set up automated checkout monitoring that runs a real browser simulation (not just HTTP ping) every hour and alerts you to failures or slowdowns. CheckPulse runs a 4-step checkout simulation from external servers and alerts you via email when any step fails or degrades past your threshold — catching mobile-triggered regressions (like an app update breaking checkout) before customers notice.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RELATED GUIDES -->
+      <section class="section" style="border-bottom: none;">
+        <div class="section-label">Related Guides</div>
+        <h2>More Shopify Checkout Troubleshooting</h2>
+        <div class="guide-grid">
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+            <div class="guide-card-label">Troubleshooting</div>
+            <div class="guide-card-title">Shopify Checkout Not Working — All Causes &amp; Fixes</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow" class="guide-card">
+            <div class="guide-card-label">Performance</div>
+            <div class="guide-card-title">Shopify Checkout Slow — 8 Causes &amp; Fixes</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit" class="guide-card">
+            <div class="guide-card-label">Performance</div>
+            <div class="guide-card-title">Which Apps Slow Down Shopify Checkout — Audit Guide</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test" class="guide-card">
+            <div class="guide-card-label">Testing</div>
+            <div class="guide-card-title">Shopify Checkout Speed Test &amp; Benchmarks</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-3d-secure-failed" class="guide-card">
+            <div class="guide-card-label">Payment</div>
+            <div class="guide-card-title">Shopify 3D Secure Failed — Complete Fix Guide</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+            <div class="guide-card-label">Payment</div>
+            <div class="guide-card-title">Shopify Checkout Error at Payment Step — Fixes</div>
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow">Checkout Slow</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile">Mobile Checkout</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit">App Audit</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test">Speed Test</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+    </p>
+    <p style="margin-top: 8px;">© 2026 CheckPulse · Shopify checkout monitoring</p>
+  </footer>
+
+</body>
+</html>

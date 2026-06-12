@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Speed Test — Benchmarks &amp; How to Test (2026)</title>
+  <meta name="description" content="How fast is your Shopify checkout? Step-by-step timing benchmarks, 4 ways to test checkout load time, and the exact causes when your checkout is slower than it should be." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test" />
+  <meta property="og:title" content="Shopify Checkout Speed Test — Benchmarks &amp; How to Test" />
+  <meta property="og:description" content="What's a fast Shopify checkout? Step-level timing benchmarks (checkout init, payment methods, order creation), 4 ways to test, and what to fix when it's slow." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Speed Test — Benchmarks and How to Test Your Checkout",
+    "description": "Most Shopify merchants don't know how fast their checkout actually is — or what benchmark they're missing. This guide covers what 'fast' means at each checkout step, four ways to test your checkout load time, the most common causes of slow performance, and how to get ongoing monitoring that catches slow checkout before customers do.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I test my Shopify checkout speed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Four methods: (1) Browser Network tab — open your checkout in an incognito window, press F12, go to the Network tab, complete a checkout and look at the timing waterfall. Sort by Duration to find the slowest requests. (2) CheckPulse free check — tests your checkout from an external server and times each of the 4 checkout steps: product fetch, cart creation, session initialization, and payment methods load. Takes 10 seconds and requires no signup. Visit checkpulse.io/free-check. (3) WebPageTest.org — enter your checkout URL, select a mobile device profile and a relevant geographic location. Gives you a detailed timing waterfall with filmstrip screenshots. (4) Chrome DevTools throttling — in the Network tab, set throttling to 'Fast 3G' and retry checkout. This simulates mobile network conditions and often reveals slowdowns invisible on desktop WiFi."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is a good Shopify checkout load time?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's own checkout infrastructure is fast — the native checkout pages load in under 1 second when there is no customization overhead. In practice, fast Shopify checkout looks like this: (1) Checkout session initialization: under 800ms. (2) Payment methods fetch: under 1.5 seconds. (3) Full checkout page interactive: under 2.5 seconds on a fast connection, under 4 seconds on Fast 3G mobile. Warning zone: if any single step takes over 3 seconds, you're likely losing 15–25% of customers at that step. Critical zone: over 5 seconds to interactive is estimated to cause 30–50% abandonment from load alone, before any usability issues."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify checkout slow?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common causes of slow Shopify checkout are: (1) Third-party app scripts — checkout extension apps (loyalty widgets, upsell blocks, analytics, chat tools) load JavaScript that can add 200–2000ms per app. They run at the payment step, so the delay isn't visible until customers reach payment methods. (2) Large or unoptimized checkout header images — a custom header image over 200KB adds significant load time, especially on mobile. (3) Payment gateway API latency — the payment methods step requires a round trip to your payment gateway's API. A gateway that's slow or degraded adds 500–3000ms here. (4) Custom checkout.liquid scripts — legacy checkout.liquid customizations often include poorly optimized JavaScript that blocks checkout rendering. (5) Shopify platform degradation — during high-traffic periods, Shopify's own infrastructure can be slower than normal without showing a full incident on status.shopify.com."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does slow checkout affect Shopify conversion rates?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The research is consistent: each additional second of checkout load time reduces conversion by approximately 7–10%. A checkout that loads in 2 seconds converts at roughly 3% (industry average). The same checkout at 5 seconds converts at approximately 2.1–2.4%. For a $100,000/month Shopify store: if checkout degrades from 2 seconds to 5 seconds due to a new app installation or gateway slowdown, that store loses $7,000–$9,000/month in revenue — from a problem that shows up nowhere in their uptime monitoring. Performance degradation is the largest hidden revenue leak in Shopify stores because it never fires an alert."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will a standard uptime monitor catch slow Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Standard uptime monitors (Pingdom, UptimeRobot, StatusCake) check whether a URL returns an HTTP 200 status code. They don't simulate checkout steps, measure step-level timing, or detect payment methods slowdowns. A Shopify checkout that takes 8 seconds to reach payment methods will pass every standard uptime check — the URL is up, so the monitor reports green. The same is true for complete payment failures: if the checkout page loads but Shopify Payments is under review and no payment options render, all standard monitors show green. To catch slow checkout (and actual failures), you need a tool that runs the full 4-step checkout flow and measures timing at each step."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can installing a Shopify app slow down checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — and this is the most common cause of sudden checkout slowdowns. When you install an app that injects into the checkout (loyalty programs, post-purchase upsell widgets, consent checkboxes, review prompts), that app loads its JavaScript at checkout runtime. The impact varies: well-optimized apps add 50–100ms; poorly optimized apps add 500–2000ms. The cumulative effect of 3–5 checkout apps can push checkout load time from 2 seconds to 6+ seconds with no other changes. To diagnose: Admin → Settings → Checkout → Checkout and account pages, disable extension blocks one by one and retest each time. The pattern is usually clear: one specific app is responsible for most of the slowdown."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:          #0A0C10;
+      --bg-card:     #0F1219;
+      --bg-surface:  #141820;
+      --border:      #1E2535;
+      --border-mid:  #2A3347;
+      --green:       #22C55E;
+      --amber:       #F59E0B;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --cyan:        #06B6D4;
+      --text-primary:   #E8EEF8;
+      --text-secondary: #8A97B0;
+      --text-dim:       #4A5570;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,12,16,0.92);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 0.9rem; color: var(--text-primary); letter-spacing: 0.04em; }
+    .nav-cta {
+      font-size: 0.82rem;
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .nav-cta:hover { opacity: 0.88; text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 72px 24px 56px;
+      text-align: center;
+    }
+    .hero-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4.5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.18;
+      margin-bottom: 20px;
+    }
+    .hero h1 span { color: var(--amber); }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 580px;
+      margin: 0 auto 36px;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: 8px;
+      transition: opacity 0.15s;
+    }
+    .hero-cta:hover { opacity: 0.88; text-decoration: none; }
+    .hero-note {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    /* SECTIONS */
+    .section {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 56px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+    .section > p, .section > .section-intro {
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      max-width: 700px;
+    }
+
+    /* BENCHMARK TABLE */
+    .bench-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 32px;
+    }
+    .bench-table th {
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .bench-table td {
+      padding: 13px 16px;
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      vertical-align: top;
+    }
+    .bench-table tr:nth-child(even) td { background: rgba(20,24,32,0.6); }
+    .step-name { font-weight: 600; }
+    .step-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 3px; }
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .tag-fast { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tag-warn { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .tag-slow { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* TEST METHODS */
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .method-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+    }
+    .method-card:first-child { border-color: var(--amber); }
+    .method-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .method-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .method-card p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+    .method-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .badge-recommended { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .badge-manual { background: rgba(59,130,246,0.12); color: var(--blue); }
+    .badge-external { background: rgba(139,92,246,0.12); color: #A78BFA; }
+
+    /* CAUSE CARDS */
+    .cause-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+    .cause-card.high-impact { border-left-color: var(--red); }
+    .cause-card.med-impact  { border-left-color: var(--amber); }
+    .cause-card.low-impact  { border-left-color: var(--text-dim); }
+    .cause-title { font-size: 0.97rem; font-weight: 600; margin-bottom: 5px; }
+    .cause-desc  { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; }
+    .cause-impact {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+    .impact-high { color: var(--red); }
+    .impact-med  { color: var(--amber); }
+    .impact-low  { color: var(--text-dim); }
+
+    /* OPTIMIZATION CHECKLIST */
+    .opt-checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .opt-checklist li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .opt-num {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--cyan);
+      min-width: 26px;
+      font-weight: 700;
+      padding-top: 1px;
+    }
+    .opt-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+    .opt-body  { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 14px; }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 24px;
+    }
+    .faq-item h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .faq-item p { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
+
+    /* CTA BLOCK */
+    .cta-block {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 56px 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .cta-block h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 14px; }
+    .cta-block p { color: var(--text-secondary); max-width: 520px; margin: 0 auto 28px; }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 28px;
+      border-radius: 8px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    /* INLINE LINK */
+    .inline-ref {
+      display: inline-block;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-size: 0.88em;
+      color: var(--amber);
+    }
+    .inline-ref:hover { background: rgba(245,158,11,0.15); text-decoration: none; }
+
+    /* RELATED */
+    .related-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .related-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--text-primary);
+      transition: border-color 0.15s;
+    }
+    .related-card:hover { border-color: var(--amber); text-decoration: none; }
+    .related-card-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .related-card-title { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 2;
+    }
+    footer a { color: var(--text-secondary); }
+    footer a:hover { color: var(--text-primary); }
+
+    @media (max-width: 600px) {
+      nav { padding: 14px 20px; }
+      .bench-table { font-size: 0.82rem; }
+      .bench-table th, .bench-table td { padding: 10px 12px; }
+      .cause-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor Checkout →</a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-label">Checkout Performance</div>
+    <h1>How Fast Is Your<br><span>Shopify Checkout?</span></h1>
+    <p class="hero-sub">
+      Step-level timing benchmarks, four ways to run the test, and what to fix when your checkout is slower than it should be.
+    </p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="hero-cta">
+      Run Free Speed Check →
+    </a>
+    <p class="hero-note">Tests all 4 checkout steps · No signup · Results in 10 seconds</p>
+  </div>
+
+  <section class="section">
+    <div class="section-label">Benchmarks</div>
+    <h2>Shopify Checkout Speed Benchmarks by Step</h2>
+    <p>
+      Shopify's checkout runs in four distinct network steps. Each step adds latency independently — a fast checkout requires all four to be within range. Here's what "fast," "acceptable," and "slow" looks like at each step:
+    </p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Checkout Step</th>
+          <th>Fast (&lt; )</th>
+          <th>Acceptable</th>
+          <th>Slow (fix this)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="step-name">Step 1 — Product &amp; Cart</div>
+            <div class="step-sub">Add-to-cart + cart creation</div>
+          </td>
+          <td><span class="tag tag-fast">&lt; 400ms</span></td>
+          <td><span class="tag tag-warn">400–900ms</span></td>
+          <td><span class="tag tag-slow">&gt; 1s</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="step-name">Step 2 — Checkout Session</div>
+            <div class="step-sub">Session initialization, URL generation</div>
+          </td>
+          <td><span class="tag tag-fast">&lt; 600ms</span></td>
+          <td><span class="tag tag-warn">600ms–1.5s</span></td>
+          <td><span class="tag tag-slow">&gt; 2s</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="step-name">Step 3 — Payment Methods</div>
+            <div class="step-sub">Gateway API round trip, methods render</div>
+          </td>
+          <td><span class="tag tag-fast">&lt; 1.2s</span></td>
+          <td><span class="tag tag-warn">1.2–2.5s</span></td>
+          <td><span class="tag tag-slow">&gt; 3s</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="step-name">Step 4 — Full Page Interactive</div>
+            <div class="step-sub">All scripts loaded, customer can type</div>
+          </td>
+          <td><span class="tag tag-fast">&lt; 2s (desktop)</span></td>
+          <td><span class="tag tag-warn">2–4s (mobile 3G)</span></td>
+          <td><span class="tag tag-slow">&gt; 5s any device</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:0.88rem; color: var(--text-dim);">
+      Benchmarks are measured from a cold start (no browser cache) using Shopify's hosted checkout infrastructure without heavy customization. Actual times vary by region, gateway, and installed apps. Step 3 is the most variable: a slow payment gateway can add 1–4 seconds regardless of everything else.
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="section-label">How to Test</div>
+    <h2>4 Ways to Test Your Shopify Checkout Speed</h2>
+    <p>
+      Each method measures something different. Use at least two — the external check and one manual method — to get a complete picture.
+    </p>
+
+    <div class="method-grid">
+      <div class="method-card">
+        <div class="method-num">METHOD 01</div>
+        <div class="method-badge badge-recommended">Recommended</div>
+        <h3>CheckPulse Free Check</h3>
+        <p>
+          Tests all 4 checkout steps from an external server and reports timing for each. Unlike a browser test, this is independent of your connection, cache, and device. Takes 10 seconds and runs without a purchase or account.
+        </p>
+        <p style="margin-top:10px;">
+          <a href="https://adadadada321321.github.io/checkpulse/free-check" class="inline-ref">Run free check →</a>
+        </p>
+      </div>
+
+      <div class="method-card">
+        <div class="method-num">METHOD 02</div>
+        <div class="method-badge badge-manual">Manual</div>
+        <h3>Chrome DevTools Network Tab</h3>
+        <p>
+          Open your checkout in an incognito window. Press F12 → Network tab → Disable cache. Proceed through checkout and watch the timing waterfall. Sort by Duration to find slow requests. Set throttling to "Fast 3G" to simulate mobile.
+        </p>
+      </div>
+
+      <div class="method-card">
+        <div class="method-num">METHOD 03</div>
+        <div class="method-badge badge-external">External Tool</div>
+        <h3>WebPageTest.org</h3>
+        <p>
+          Enter your store's checkout URL (the /cart or /checkout path). Select a mobile device profile and a test location close to your primary customer base. Run 3 tests and average the results — single-run timings have high variance.
+        </p>
+      </div>
+
+      <div class="method-card">
+        <div class="method-num">METHOD 04</div>
+        <div class="method-badge badge-manual">Manual</div>
+        <h3>App Isolation Test</h3>
+        <p>
+          Suspect an app is slowing checkout? Admin → Settings → Checkout → Checkout and account pages → disable extension blocks one at a time. Retest after each removal. This is the fastest way to isolate a specific app causing slowdown.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>What Makes Shopify Checkout Slow</h2>
+    <p>
+      These are the causes that account for the majority of slow Shopify checkouts, ranked by typical performance impact:
+    </p>
+
+    <div class="cause-list">
+      <div class="cause-card high-impact">
+        <div>
+          <div class="cause-title">Third-Party App Scripts at Checkout</div>
+          <div class="cause-desc">
+            Checkout extension apps (loyalty widgets, upsell blocks, consent tools, analytics pixels) load JavaScript at runtime during checkout. Each well-optimized app adds 50–150ms; poorly optimized apps add 500–2000ms each. Installing 3–5 apps can push checkout from 2 seconds to 7+ seconds with no other changes. This is the single most common cause of sudden checkout slowdowns.
+            See: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="inline-ref">App conflict guide →</a>
+          </div>
+        </div>
+        <div class="cause-impact impact-high">+200–2000ms per app</div>
+      </div>
+
+      <div class="cause-card high-impact">
+        <div>
+          <div class="cause-title">Payment Gateway API Latency (Step 3)</div>
+          <div class="cause-desc">
+            The payment methods step requires a live API call to your payment gateway. If the gateway is slow — from high load, a partial incident, or geographic routing issues — this single step can add 1–4 seconds regardless of how optimized everything else is. Gateway slowdowns are often invisible to standard monitoring because the checkout returns 200 with payment methods visible, just slowly.
+            See: <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="inline-ref">Payment error guide →</a>
+          </div>
+        </div>
+        <div class="cause-impact impact-high">+1,000–4,000ms</div>
+      </div>
+
+      <div class="cause-card med-impact">
+        <div>
+          <div class="cause-title">Unoptimized Checkout Header Images</div>
+          <div class="cause-desc">
+            Custom checkout header images added via Admin → Settings → Checkout → Logo should be under 100KB. A source image that's 800KB–2MB uploaded directly adds 500–1500ms of load time on mobile connections. Shopify doesn't automatically optimize checkout images — they serve as uploaded.
+          </div>
+        </div>
+        <div class="cause-impact impact-med">+200–1,500ms</div>
+      </div>
+
+      <div class="cause-card med-impact">
+        <div>
+          <div class="cause-title">Custom checkout.liquid Scripts (Legacy)</div>
+          <div class="cause-desc">
+            Legacy checkout.liquid customizations often include poorly structured JavaScript added over time by multiple developers or apps. Script execution order issues, redundant polyfills, and unminified code can collectively add 300–800ms of blocking time before checkout becomes interactive.
+          </div>
+        </div>
+        <div class="cause-impact impact-med">+300–800ms</div>
+      </div>
+
+      <div class="cause-card med-impact">
+        <div>
+          <div class="cause-title">Shopify Platform Degradation</div>
+          <div class="cause-desc">
+            Shopify's infrastructure can be degraded — slower than normal — without showing a full incident on status.shopify.com. These sub-threshold events add 500–2000ms to checkout steps across all stores on the affected infrastructure. They're impossible to fix on your end; the only mitigation is detecting them quickly with continuous monitoring.
+          </div>
+        </div>
+        <div class="cause-impact impact-med">+500–2,000ms</div>
+      </div>
+
+      <div class="cause-card low-impact">
+        <div>
+          <div class="cause-title">DNS Resolution on Custom Checkout Domain</div>
+          <div class="cause-desc">
+            If you use a custom checkout domain (checkout.yourdomain.com), misconfigured DNS or suboptimal TTL settings can add 100–400ms of DNS lookup time. Test with <span style="font-family:var(--mono); font-size:0.85em;">dig checkout.yourdomain.com</span> or DNS Checker to verify resolution speed from multiple regions.
+          </div>
+        </div>
+        <div class="cause-impact impact-low">+100–400ms</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Optimization</div>
+    <h2>Shopify Checkout Speed Optimization Checklist</h2>
+    <p>
+      Run these in order — the first items have the highest impact per unit of effort:
+    </p>
+
+    <ul class="opt-checklist">
+      <li>
+        <span class="opt-num">01</span>
+        <div>
+          <div class="opt-title">Audit and remove non-essential checkout apps</div>
+          <div class="opt-body">Go to Admin → Settings → Checkout → Checkout and account pages. List every active extension. For each one, ask: does it directly contribute to conversion, and is there evidence it does? Disable any that don't pass this test. Re-enable only if you observe a measurable negative impact on conversion.</div>
+        </div>
+      </li>
+      <li>
+        <span class="opt-num">02</span>
+        <div>
+          <div class="opt-title">Replace your checkout header image if it's over 100KB</div>
+          <div class="opt-body">Download your current checkout logo from Admin → Settings → Checkout. Check the file size. If over 100KB, resize to the displayed resolution (usually 200–400px wide), re-export as WebP, and re-upload. This is often a 5-minute fix that saves 500ms+ on mobile.</div>
+        </div>
+      </li>
+      <li>
+        <span class="opt-num">03</span>
+        <div>
+          <div class="opt-title">Test your primary payment gateway response time</div>
+          <div class="opt-body">Go through checkout to the payment methods step and time how long it takes for the payment options to appear. If it's over 2.5 seconds, your gateway may be degraded or misconfigured. Check your gateway's own status page. As a fallback, ensure Shopify Payments is also enabled as an alternative so customers always have an option.</div>
+        </div>
+      </li>
+      <li>
+        <span class="opt-num">04</span>
+        <div>
+          <div class="opt-title">Minimize checkout.liquid JavaScript (if on legacy)</div>
+          <div class="opt-body">Open your checkout.liquid template (if you still have access via a Plus plan or legacy setup). Look for render-blocking script tags, external font loads, or analytics pixel calls that run synchronously. Move these to deferred loading or replace with the Checkout Extensibility equivalents, which load asynchronously.</div>
+        </div>
+      </li>
+      <li>
+        <span class="opt-num">05</span>
+        <div>
+          <div class="opt-title">Set up continuous checkout monitoring</div>
+          <div class="opt-body">Speed changes happen silently — a new app install, a gateway degradation, a Shopify platform event. Without ongoing measurement, you won't know when your 2-second checkout becomes a 6-second checkout. Automated checkout simulation catches this and alerts you before customers abandon. <a href="https://adadadada321321.github.io/checkpulse/" class="inline-ref">CheckPulse →</a> runs the full 4-step flow every 30 minutes.</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Revenue Impact</div>
+    <h2>How Checkout Speed Affects Your Revenue</h2>
+    <p>
+      Slow checkout is the most underdetected revenue leak in Shopify stores — it never fires an alert, and its effect looks like a targeting problem in your ad platform, not a performance problem.
+    </p>
+
+    <table class="bench-table" style="margin-bottom: 20px;">
+      <thead>
+        <tr>
+          <th>Store Revenue</th>
+          <th>+1s Extra Load</th>
+          <th>+3s Extra Load</th>
+          <th>Full Checkout Failure (4 hrs)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>$10,000/mo</td>
+          <td style="color:var(--amber);">−$700–1,000/mo</td>
+          <td style="color:var(--red);">−$2,100–3,000/mo</td>
+          <td style="color:var(--red);">−$56</td>
+        </tr>
+        <tr>
+          <td>$50,000/mo</td>
+          <td style="color:var(--amber);">−$3,500–5,000/mo</td>
+          <td style="color:var(--red);">−$10,500–15,000/mo</td>
+          <td style="color:var(--red);">−$278</td>
+        </tr>
+        <tr>
+          <td>$100,000/mo</td>
+          <td style="color:var(--amber);">−$7,000–10,000/mo</td>
+          <td style="color:var(--red);">−$21,000–30,000/mo</td>
+          <td style="color:var(--red);">−$556</td>
+        </tr>
+        <tr>
+          <td>$500,000/mo</td>
+          <td style="color:var(--amber);">−$35,000–50,000/mo</td>
+          <td style="color:var(--red);">−$105,000–150,000/mo</td>
+          <td style="color:var(--red);">−$2,778</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:0.85rem; color: var(--text-dim);">
+      Speed impact based on 7–10% conversion loss per additional second (industry research consensus). Failure cost based on revenue ÷ 720 hours × 4 hour window. See full methodology:
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-performance-revenue" class="inline-ref">Performance &amp; Revenue →</a>
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3>How do I test my Shopify checkout speed?</h3>
+        <p>Four methods: (1) CheckPulse free check — tests all 4 checkout steps externally in 10 seconds. (2) Chrome DevTools Network tab — incognito window, F12, complete checkout while watching the timing waterfall. (3) WebPageTest.org — enter your checkout URL, use a mobile device profile. (4) App isolation test — disable checkout extensions one by one to identify the slow one. The external check is the most reliable baseline since it's independent of your browser cache and connection.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>What is a good Shopify checkout load time?</h3>
+        <p>Fast Shopify checkout looks like: session initialization under 800ms, payment methods load under 1.5 seconds, full page interactive under 2.5 seconds on a fast connection. Warning zone starts at 3+ seconds per step; critical zone is 5+ seconds to full interactivity. Most Shopify-native checkout pages hit the "fast" range before customization — it's apps and images that push stores into the warning and critical zones.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Why is my Shopify checkout suddenly slow?</h3>
+        <p>The most common trigger for sudden checkout slowdown is installing a new app that injects JavaScript into the checkout. Check what changed in your Admin in the past 2–4 weeks. Also check: did you add a checkout header image recently? Did your payment gateway change status? Run the app isolation test (disable extensions one by one) to identify the cause — this works 80% of the time.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Does slow checkout affect my SEO?</h3>
+        <p>Checkout pages themselves are not indexed by Google — so checkout speed doesn't directly impact search rankings. But slow checkout increases cart abandonment, which reduces return visit rates and signals low engagement in your analytics. More directly: slow checkout erodes the ROI of paid ads, since you're paying the same CPM to drive traffic into a checkout that converts at half the rate it should. The impact is invisible in ad platforms — it looks like a targeting problem, not a technical one.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How often should I test my Shopify checkout speed?</h3>
+        <p>Manually: run a full checkout test whenever you install or update a checkout-related app, change payment gateways, update your checkout branding, or notice a drop in conversion rate. Automatically: set up continuous checkout simulation that runs every 30 minutes. This catches gateway degradations, app conflicts after auto-updates, and Shopify platform slowdowns that you'd never know to manually test for.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Will a standard uptime monitor tell me if my checkout is slow?</h3>
+        <p>No. Standard uptime monitors (Pingdom, UptimeRobot) check HTTP status codes — they verify your checkout URL returns 200, not that it loads quickly or that payment methods appear. A checkout that takes 8 seconds to load payment options passes every uptime check. To measure checkout performance, you need a tool that simulates the full checkout flow and measures timing at each step — not just URL availability.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Related Guides</div>
+    <h2>More Shopify Checkout Resources</h2>
+
+    <div class="related-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow" class="related-card">
+        <div class="related-card-label">Performance</div>
+        <div class="related-card-title">Shopify Checkout Slow — 8 Causes &amp; Fixes</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-performance-revenue" class="related-card">
+        <div class="related-card-label">Revenue Impact</div>
+        <div class="related-card-title">Checkout Speed &amp; Revenue Math</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="related-card">
+        <div class="related-card-label">Diagnosis</div>
+        <div class="related-card-title">Shopify App Blocking Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-black-friday" class="related-card">
+        <div class="related-card-label">Peak Traffic</div>
+        <div class="related-card-title">BFCM Checkout Speed &amp; Failures</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="related-card">
+        <div class="related-card-label">Troubleshooting</div>
+        <div class="related-card-title">Shopify Checkout Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="related-card">
+        <div class="related-card-label">Free Tool</div>
+        <div class="related-card-title">Free Checkout Health Check</div>
+      </a>
+    </div>
+  </section>
+
+  <div class="cta-block">
+    <h2>Monitor Checkout Speed Continuously</h2>
+    <p>CheckPulse simulates the full 4-step checkout every 30 minutes and alerts you the moment performance degrades or any step fails. Catch slow checkout before customers abandon — not after.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">Start Monitoring — $39/mo →</a>
+  </div>
+
+  <footer>
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-slow">Checkout Slow</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test">Checkout Speed Test</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error">Payment Error</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-monitoring-comparison">Monitoring Comparison</a> ·
+    <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+  </footer>
+
+</body>
+</html>

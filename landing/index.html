@@ -2318,10 +2318,10 @@
         </svg>
       </div>
 
-      <h2 class="cta-headline reveal reveal-delay-1">Start monitoring free for 14 days</h2>
+      <h2 class="cta-headline reveal reveal-delay-1">Stop losing revenue to silent checkout failures</h2>
       <p class="cta-sub reveal reveal-delay-2">
-        Takes 30 seconds to set up. No installs, no API tokens, no code changes.
-        Just your Shopify domain and an email address.
+        Shopify Payments suspended, 3DS redirect broken, payment gateway misconfigured —
+        CheckPulse catches these within the hour, not after a customer complaint.
       </p>
 
       <form class="cta-email-form reveal reveal-delay-3" onsubmit="return false;">
@@ -2500,13 +2500,34 @@
         resultEl.className = 'checker-result-panel visible ' + cls;
         var icon = passed ? '✓' : '✗';
         document.getElementById('cr-headline').textContent =
-          icon + ' ' + (passed ? 'Checkout is healthy' : 'Checkout issue detected') +
+          icon + ' ' + (passed ? '4 of 4 surface checks passed' : 'Checkout issue detected') +
           (totalMs ? ' — ' + (totalMs / 1000).toFixed(1) + 's' : '');
-        document.getElementById('cr-diag').textContent = diagnosis || '';
+
+        var diagEl = document.getElementById('cr-diag');
+        if (passed) {
+          diagEl.innerHTML = 'HTTP surface checks passed. But 3 failure modes that cause $2,400+ in silent revenue loss still return 200 to these probes: <strong style="color:var(--text-primary)">Shopify Payments suspended, payment gateway misconfigured, 3DS redirect broken.</strong>';
+        } else {
+          diagEl.textContent = diagnosis || '';
+        }
+
         var actions = document.getElementById('cr-actions');
-        var monitorBtn = '<a class="cr-btn-primary" href="#cta">Get 24/7 monitoring →</a>';
         var againBtn = '<button class="cr-btn-secondary" id="cr-again">Check another store</button>';
-        actions.innerHTML = monitorBtn + againBtn;
+
+        if (passed) {
+          var notTested = '<div style="margin:0 0 14px;padding:12px 14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:6px;">'
+            + '<div style="font-family:var(--mono);font-size:10px;letter-spacing:0.12em;color:var(--red);text-transform:uppercase;margin-bottom:8px;">NOT TESTED BY THIS CHECK</div>'
+            + '<div style="display:flex;flex-direction:column;gap:5px;">'
+            + '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">— Shopify Payments account status</div>'
+            + '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">— Payment gateway active &amp; configured</div>'
+            + '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">— 3DS redirect flow</div>'
+            + '<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);">— Real order completion path</div>'
+            + '</div></div>'
+            + '<div style="font-family:var(--sans);font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Catches what this check misses · From $39/mo · 14-day free trial</div>';
+          actions.innerHTML = notTested + '<a class="cr-btn-primary" href="#cta">Monitor the 4 steps this check skipped →</a>' + againBtn;
+        } else {
+          actions.innerHTML = '<a class="cr-btn-primary" href="#cta">Get 24/7 monitoring →</a>' + againBtn;
+        }
+
         document.getElementById('cr-again').addEventListener('click', function () {
           reset();
           input.value = '';

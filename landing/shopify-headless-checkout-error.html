@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Headless Checkout Error — Hydrogen &amp; Storefront API Fixes (2026)</title>
+  <meta name="description" content="Shopify headless checkout not working? Hydrogen checkout error, Storefront API token invalid, CORS domain mismatch, cartCreate mutation failing? 6 root causes of headless checkout failures — diagnosis and exact fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-headless-checkout-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-headless-checkout-error" />
+  <meta property="og:title" content="Shopify Headless Checkout Error — Hydrogen &amp; Storefront API Fixes" />
+  <meta property="og:description" content="Headless Shopify checkout errors are harder to diagnose than standard checkout issues — the failure point is in your frontend code, the Storefront API, or the checkout domain configuration, not Shopify Admin. 6 root causes and exact fixes for Hydrogen, custom storefronts, and Storefront API integrations." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Headless Checkout Error — 6 Root Causes &amp; Fixes",
+    "description": "Headless Shopify storefronts built on Hydrogen, Remix, Next.js, or custom Storefront API integrations introduce a new class of checkout failures that don't appear in Shopify Admin and aren't detected by standard uptime monitors. The failure may be in the Storefront API token, the checkout domain configuration, a GraphQL mutation, CORS settings, or a payment method not enabled for headless use. This guide covers the six most common causes of headless checkout errors and the exact diagnostic and fix steps for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-headless-checkout-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-12",
+    "dateModified": "2026-06-12"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify headless checkout not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify headless checkout failures typically occur in one of six places: (1) the Storefront API access token is invalid, expired, or missing the required 'Checkout' permission scope; (2) the checkout domain (the domain Shopify uses to serve the hosted checkout page) doesn't match the domain configured in Shopify Admin — Hydrogen requires PUBLIC_CHECKOUT_DOMAIN to match the domain set under Settings → Domains; (3) a GraphQL mutation error in cartCreate, checkoutCreate, or checkoutShippingAddressUpdateV2 — the mutation is returning a userErrors array that your code isn't surfacing; (4) CORS is blocking a request from your headless frontend domain to Shopify's checkout or API endpoint; (5) a payment method (like Shop Pay or PayPal Express) isn't enabled for the Storefront API in Shopify Admin; (6) environment variables in your Hydrogen or Next.js app are wrong or missing (PUBLIC_STORE_DOMAIN, PUBLIC_STOREFRONT_API_TOKEN, PUBLIC_CHECKOUT_DOMAIN). The key diagnostic step is to open your browser's Network tab (F12 → Network), attempt a checkout, and look for any API request returning 401, 403, 422, or a non-200 status."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix a Shopify Storefront API token error at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Storefront API token error at checkout means the API token your headless storefront uses is invalid, rotated, or missing the required access scope. To fix: (1) Go to Shopify Admin → Settings → Apps and sales channels → Develop apps → your headless app → API credentials. (2) Verify that the Storefront API access token is active and has not been revoked. (3) Check the API access scopes — for checkout, you need at minimum: unauthenticated_read_checkouts, unauthenticated_write_checkouts, unauthenticated_read_product_listings, unauthenticated_read_product_inventory. (4) If you're using the Cart API (recommended for Hydrogen 2+), you also need unauthenticated_read_selling_plans and unauthenticated_write_checkouts. (5) After verifying scopes, regenerate the token and update your environment variable (PUBLIC_STOREFRONT_API_TOKEN in Hydrogen, NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN in Next.js Commerce). (6) Redeploy your frontend. The old token is invalidated immediately after regeneration — any cached version of the old token in your deployment will cause 401 errors until the new deployment propagates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify Hydrogen checkout show a blank page or redirect error?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A blank page or redirect error in Hydrogen checkout is almost always caused by a domain mismatch. Shopify serves the actual checkout page on its hosted checkout domain (by default yourstorename.myshopify.com/checkout, or a custom checkout domain if you've configured one). Your Hydrogen app generates the checkout URL via the Cart API — the webUrl field returns the URL Shopify will redirect the customer to. If the checkout domain in your Hydrogen environment variables (PUBLIC_CHECKOUT_DOMAIN) doesn't match the domain set in Shopify Admin → Settings → Domains → Primary domain, the redirect goes to the wrong host and shows a blank page or 'page not found' error. To fix: (1) In Shopify Admin, go to Settings → Domains. Note your primary domain exactly (including or excluding www). (2) In your Hydrogen app, open .env (or .env.production) and set PUBLIC_CHECKOUT_DOMAIN to exactly match the primary domain. (3) Redeploy. If you're on Shopify Plus with a custom checkout subdomain (checkout.yourdomain.com), use that subdomain as PUBLIC_CHECKOUT_DOMAIN, and make sure it's added as a domain in Shopify Admin."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does a Shopify cartCreate or checkoutCreate GraphQL error mean?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a cartCreate or checkoutCreate GraphQL mutation returns errors, they appear in two distinct places: (1) the top-level 'errors' array (API-level errors — bad syntax, wrong field type, invalid token, rate limit exceeded) and (2) the 'userErrors' array inside the mutation response (domain-level errors — the request was syntactically valid but the data was rejected). Common userErrors at checkoutCreate: 'Variant is not available' (the product variant is out of stock or removed), 'Line item quantity must be less than or equal to X' (inventory cap exceeded), 'Email is invalid' (malformed email passed in input), 'Province code is not valid for country' (shipping address field mismatch). Common userErrors at cartCreate: 'Merchandise ID does not exist' (product deleted after cart was created), 'Lines input contains items that are not purchasable' (product set to draft or archived). To diagnose: log the full GraphQL response body in your frontend. The mutation will return HTTP 200 even when userErrors is non-empty — this is the most common reason headless checkout errors are invisible: your frontend sees a 200 response and doesn't check the userErrors field."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shop Pay or PayPal not showing at my headless Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Some payment methods require explicit enablement for headless (Storefront API) use and are not available by default even if they're enabled for your standard checkout. Shop Pay on headless: Shop Pay works at the hosted Shopify checkout page and does not require special configuration for headless storefronts that redirect to Shopify's hosted checkout — if it's not showing, the issue is likely that your checkout URL isn't reaching Shopify's hosted checkout (see the domain mismatch issue above). PayPal Express on headless: PayPal Express requires the 'Storefront API' permissions to be enabled in the PayPal app in Shopify Admin → Apps. Go to the PayPal app settings and look for a 'Headless' or 'Storefront API' toggle. Buy Now Pay Later options (Affirm, Klarna, Afterpay): these show at the hosted Shopify checkout based on cart value thresholds and are not configurable from the headless frontend. If they're not showing, verify the cart total meets the minimum threshold for each provider. Custom payment methods: payment methods built with Shopify Functions or third-party gateway apps follow the same rules as standard checkout — they show at the hosted checkout page if they're enabled in Shopify Admin → Settings → Payments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I monitor headless Shopify checkout errors automatically?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Headless Shopify checkout failures are harder to monitor than standard checkout failures because: (1) they often return HTTP 200 from the Storefront API while the GraphQL response body contains errors; (2) they may only affect specific customer paths (certain addresses, certain payment methods, certain product types); (3) standard uptime monitors that ping a URL don't execute GraphQL mutations and can't detect API-level failures. Effective monitoring for headless checkout requires a monitor that actually simulates the checkout flow: adds a product to the cart via the Storefront API, calls cartCreate or checkoutCreate, verifies the returned webUrl is reachable and points to a valid hosted checkout page, and confirms payment methods are available at that checkout URL. CheckPulse monitors the full checkout flow — including Storefront API calls and the hosted checkout page — every 30 minutes, and sends an alert with the specific step that failed when the checkout breaks. This is the only way to catch silent headless checkout failures before customers do."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A855F7;
+      --text:        #E8EAF0;
+      --text-mid:    #9BA3B2;
+      --text-dim:    #5A6275;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0;
+      background: rgba(11,14,20,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    .nav .container { display: flex; align-items: center; gap: 16px; }
+    .nav-brand { font-family: var(--mono); font-size: 0.85rem; color: var(--amber); letter-spacing: 0.02em; }
+    .nav-sep { color: var(--text-dim); }
+    .nav-crumb { font-size: 0.82rem; color: var(--text-mid); }
+    .nav-cta {
+      margin-left: auto;
+      padding: 7px 16px;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .nav-cta:hover { background: #FBBF24; text-decoration: none; }
+
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+
+    .article-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+    h1 span { color: var(--amber); }
+
+    .article-meta {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 52px 0 16px;
+      padding-top: 8px;
+    }
+    h2 .num {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--amber);
+      display: block;
+      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      color: var(--text);
+    }
+
+    p { margin-bottom: 16px; color: var(--text-mid); }
+    p strong { color: var(--text); }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 16px;
+      color: var(--text-mid);
+    }
+    li { margin-bottom: 8px; }
+    li strong { color: var(--text); }
+
+    /* callouts */
+    .callout {
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin: 24px 0;
+      font-size: 0.9rem;
+    }
+    .callout-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .callout p { margin-bottom: 0; }
+    .callout-danger {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+    }
+    .callout-danger .callout-label { color: var(--red); }
+    .callout-amber {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+    }
+    .callout-amber .callout-label { color: var(--amber); }
+    .callout-green {
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+    .callout-green .callout-label { color: var(--green); }
+    .callout-blue {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+    .callout-blue .callout-label { color: var(--blue); }
+
+    /* code block */
+    .code-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 20px 22px;
+      margin: 20px 0;
+      overflow-x: auto;
+    }
+    .code-block pre {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: var(--text-mid);
+      white-space: pre;
+    }
+    .hl-green  { color: var(--green); }
+    .hl-red    { color: var(--red); }
+    .hl-amber  { color: var(--amber); }
+    .hl-blue   { color: var(--blue); }
+    .hl-dim    { color: var(--text-dim); }
+
+    /* root-cause cards */
+    .cause-grid {
+      display: grid;
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .cause-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 24px;
+    }
+    .cause-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .cause-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 4px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .cause-title { font-weight: 700; font-size: 1rem; color: var(--text); }
+    .cause-symptom {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      font-family: var(--mono);
+    }
+    .cause-body { font-size: 0.88rem; color: var(--text-mid); line-height: 1.65; }
+    .cause-body strong { color: var(--text); }
+
+    /* comparison table */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 0.85rem;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-mid);
+    }
+    .compare-table td {
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      color: var(--text-mid);
+      vertical-align: top;
+    }
+    .compare-table td:first-child { color: var(--text); font-weight: 600; }
+    .tag-yes { color: var(--green); font-family: var(--mono); font-size: 0.75rem; }
+    .tag-no  { color: var(--red);   font-family: var(--mono); font-size: 0.75rem; }
+    .tag-partial { color: var(--amber); font-family: var(--mono); font-size: 0.75rem; }
+
+    /* CTA */
+    .cta-strip {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px;
+      padding: 32px 36px;
+      margin: 56px 0;
+      text-align: center;
+    }
+    .cta-strip h3 { margin: 0 0 10px; font-size: 1.25rem; color: var(--text); }
+    .cta-strip p  { margin: 0 0 20px; font-size: 0.92rem; }
+    .cta-strip-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: 8px;
+    }
+    .cta-strip-btn:hover { background: #FBBF24; text-decoration: none; }
+
+    /* related links */
+    .related-links {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 26px;
+      margin: 40px 0;
+    }
+    .related-links-title {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+    .related-links ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 8px;
+    }
+    .related-links li::before { content: '→ '; color: var(--amber); font-size: 0.8rem; }
+    .related-links a { font-size: 0.88rem; }
+
+    /* footer */
+    .guide-footer {
+      margin-top: 80px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.9;
+    }
+    .guide-footer a { color: var(--text-mid); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a class="nav-brand" href="./">CheckPulse</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">Headless Checkout Error</span>
+    <a class="nav-cta" href="./#pricing">Monitor free →</a>
+  </div>
+</nav>
+
+<main class="page-wrap">
+
+  <div class="article-label">Troubleshooting · Shopify Headless</div>
+  <h1>Shopify Headless Checkout Error<br><span>Hydrogen &amp; Storefront API Fixes</span></h1>
+  <div class="article-meta">Updated June 2026 &middot; 9 min read &middot; By CheckPulse &middot;
+    <a href="./shopify-checkout-not-working">Standard checkout not working?</a> &middot;
+    <a href="./shopify-checkout-app-conflict">App conflict?</a> &middot;
+    <a href="./shopify-checkout-redirect-loop">Redirect loop?</a>
+  </div>
+
+  <p>
+    Headless Shopify storefronts — built on Hydrogen, Remix, Next.js Commerce, or a custom Storefront API integration —
+    introduce a distinct class of checkout failures. The standard Shopify Admin gives you no visibility into them.
+    HTTP uptime monitors stay green. Shopify's status page is clean. And your checkout is silently broken.
+  </p>
+  <p>
+    This guide covers the <strong>six most common causes of headless checkout errors</strong> and the exact
+    diagnostic and fix steps for each.
+  </p>
+
+  <div class="callout callout-amber">
+    <div class="callout-label">Key difference from standard checkout</div>
+    <p>In a standard Shopify store, checkout errors often surface as visible error messages in Shopify Admin or
+    in the customer-facing checkout UI. In a headless storefront, <strong>the Storefront API returns HTTP 200
+    even when the mutation fails</strong> — errors live inside the GraphQL response body under the <code>userErrors</code>
+    field, which your frontend code may not be logging or displaying.</p>
+  </div>
+
+  <!-- ── CAUSE GRID ── -->
+  <h2><span class="num">ROOT CAUSES</span>Six reasons headless checkout breaks</h2>
+
+  <div class="cause-grid">
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">01</span>
+        <span class="cause-title">Storefront API token invalid or missing checkout scope</span>
+      </div>
+      <div class="cause-symptom">Symptom: all checkout API calls return 401 Unauthorized or "Access denied"</div>
+      <div class="cause-body">
+        <p>Your headless storefront authenticates Storefront API requests with a public access token. If this
+        token is revoked, regenerated, or missing the checkout permission scope, every <code>cartCreate</code>,
+        <code>checkoutCreate</code>, or <code>checkoutLineItemsAdd</code> call silently fails.</p>
+        <strong>Diagnosis:</strong> open the browser Network tab, attempt to add to cart and proceed to checkout.
+        Look for any Storefront API request returning 401 or a JSON body containing
+        <code>"message": "Access denied"</code>.<br><br>
+        <strong>Fix:</strong> Shopify Admin → Settings → Apps and sales channels → Develop apps → your app →
+        API credentials. Verify the Storefront API token has:
+        <code>unauthenticated_write_checkouts</code>, <code>unauthenticated_read_checkouts</code>,
+        <code>unauthenticated_read_product_listings</code>, <code>unauthenticated_read_product_inventory</code>.
+        If scopes are missing, add them and regenerate the token. Update your environment variable and redeploy.
+      </div>
+    </div>
+
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">02</span>
+        <span class="cause-title">Checkout domain mismatch (Hydrogen PUBLIC_CHECKOUT_DOMAIN)</span>
+      </div>
+      <div class="cause-symptom">Symptom: checkout redirects to a blank page, 404, or redirect loop</div>
+      <div class="cause-body">
+        <p>Hydrogen generates the checkout URL using the Cart API's <code>checkoutUrl</code> field. This URL
+        uses the domain set in <code>PUBLIC_CHECKOUT_DOMAIN</code>. If this doesn't match the primary domain
+        in Shopify Admin → Settings → Domains, the redirect goes to the wrong host.</p>
+        <strong>Diagnosis:</strong> in your browser's Network tab, find the checkout redirect and inspect the
+        <code>Location</code> header. Does the domain match what's in Shopify Admin → Settings → Domains?<br><br>
+        <strong>Fix:</strong> in your Hydrogen <code>.env</code>:
+        <pre style="font-family:monospace;font-size:0.78rem;background:rgba(255,255,255,0.04);padding:10px 14px;border-radius:6px;margin-top:10px;overflow-x:auto;">
+PUBLIC_STORE_DOMAIN=yourstore.myshopify.com
+PUBLIC_CHECKOUT_DOMAIN=www.yourcustomdomain.com</pre>
+        <code>PUBLIC_CHECKOUT_DOMAIN</code> must exactly match the primary domain in Shopify Admin — including
+        or excluding <code>www</code>. If you're on Shopify Plus with a custom checkout subdomain
+        (<code>checkout.yourdomain.com</code>), use that as <code>PUBLIC_CHECKOUT_DOMAIN</code>.
+      </div>
+    </div>
+
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">03</span>
+        <span class="cause-title">GraphQL mutation userErrors not surfaced (silent cart failure)</span>
+      </div>
+      <div class="cause-symptom">Symptom: cart appears to work but checkout never opens, or checkout page is empty</div>
+      <div class="cause-body">
+        <p>The Storefront API returns HTTP 200 even when <code>cartCreate</code> or <code>checkoutCreate</code>
+        fails — the error lives inside the response JSON under <code>userErrors</code>. If your frontend code
+        doesn't check and surface this field, the failure is completely invisible.</p>
+        <strong>Diagnosis:</strong> in the Network tab, find the Storefront API GraphQL request
+        (POST to <code>yourstorename.myshopify.com/api/2024-10/graphql.json</code>). Inspect the response body.
+        Does the <code>cartCreate</code> or <code>checkoutCreate</code> object contain a non-empty
+        <code>userErrors</code> array?<br><br>
+        Common <code>userErrors</code> codes:
+        <ul style="margin-top:10px;">
+          <li><code>INVALID</code> — invalid field value (malformed address, bad variant ID)</li>
+          <li><code>BLANK</code> — required field missing</li>
+          <li><code>CART_DOES_NOT_MEET_DISCOUNT_REQUIREMENTS_NOTICE</code> — discount not applicable</li>
+          <li><code>MERCHANDISE_NOT_APPLICABLE</code> — variant archived or not in current publication</li>
+        </ul>
+        <strong>Fix:</strong> check and log <code>userErrors</code> in every mutation. If
+        <code>userErrors.length > 0</code>, do not redirect to checkout — display the error to the customer or
+        log it server-side for debugging.
+      </div>
+    </div>
+
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">04</span>
+        <span class="cause-title">CORS blocking Storefront API requests</span>
+      </div>
+      <div class="cause-symptom">Symptom: browser console shows "CORS policy" error; API call fails with network error</div>
+      <div class="cause-body">
+        <p>Shopify's Storefront API supports CORS for browser-side requests, but only from domains added as
+        "Headless channels" in Shopify Admin. If your headless domain is not registered, the browser blocks
+        the preflight request.</p>
+        <strong>Diagnosis:</strong> browser console shows:
+        <code>Access to fetch at 'https://yourstore.myshopify.com/api/...' from origin
+        'https://yourheadlessdomain.com' has been blocked by CORS policy</code>.<br><br>
+        <strong>Fix:</strong> Shopify Admin → Settings → Apps and sales channels → Add apps →
+        Headless → Add your storefront domain(s). Each domain (including staging and preview URLs) must be
+        added separately. Note: Hydrogen's server-side Storefront API calls are not affected by CORS — only
+        browser-side fetch calls (typically used in Remix loaders running client-side or in client components).
+      </div>
+    </div>
+
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">05</span>
+        <span class="cause-title">Payment method not enabled for headless / Storefront API</span>
+      </div>
+      <div class="cause-symptom">Symptom: no payment methods shown at checkout, or specific methods (Shop Pay, PayPal) missing</div>
+      <div class="cause-body">
+        <p>Most payment methods work at the hosted Shopify checkout regardless of whether the storefront is
+        headless — the checkout page itself is served by Shopify. However, specific configurations can cause
+        payment methods to disappear for headless storefronts.</p>
+        <strong>Common causes:</strong>
+        <ul style="margin-top:10px;">
+          <li><strong>Checkout domain mismatch (see cause 02):</strong> if the customer never reaches the
+          actual Shopify hosted checkout, no payment methods show. This is the most frequent reason.</li>
+          <li><strong>PayPal Express not enabled for Storefront API:</strong> go to the PayPal app in
+          Shopify Admin → check for a "Headless" or "Buy Button" toggle.</li>
+          <li><strong>Shopify Payments suspended:</strong> check Admin → Settings → Payments for any
+          banner — <a href="./shopify-payments-suspended">see full guide</a>.</li>
+          <li><strong>Test mode active:</strong> if your store is in test mode but using real payment methods,
+          or vice versa, payment methods may be hidden.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cause-card">
+      <div class="cause-card-header">
+        <span class="cause-num">06</span>
+        <span class="cause-title">Wrong or missing environment variables (Hydrogen / Next.js)</span>
+      </div>
+      <div class="cause-symptom">Symptom: checkout works locally but breaks in production (or vice versa)</div>
+      <div class="cause-body">
+        <p>Headless storefronts depend on environment variables for API tokens, store domains, and checkout
+        domains. A missing or mismatched variable in your production deployment is one of the most common
+        causes of "works on my machine, broken in prod" checkout failures.</p>
+        <strong>Required Hydrogen variables:</strong>
+        <pre style="font-family:monospace;font-size:0.75rem;background:rgba(255,255,255,0.04);padding:10px 14px;border-radius:6px;margin-top:10px;overflow-x:auto;">
+PUBLIC_STORE_DOMAIN=yourstore.myshopify.com
+PUBLIC_STOREFRONT_API_TOKEN=your_token_here
+PUBLIC_CHECKOUT_DOMAIN=www.yourcustomdomain.com
+PRIVATE_STOREFRONT_API_TOKEN=your_private_token  <span class="hl-dim"># server-side only</span></pre>
+        <strong>Diagnosis:</strong> in your Cloudflare Pages / Vercel / Oxygen deployment dashboard, compare
+        the environment variables against your local <code>.env</code>. A blank value is equivalent to the
+        variable not being set — the app won't throw an error at startup, it will just make broken API calls
+        silently.<br><br>
+        <strong>Fix:</strong> add all required variables to your deployment platform's environment
+        configuration. For Cloudflare Pages: Settings → Environment variables. For Vercel: Settings →
+        Environment Variables. Redeploy after updating.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MONITORING SECTION ── -->
+  <h2><span class="num">MONITORING</span>Why headless checkout is harder to monitor</h2>
+
+  <p>
+    Standard Shopify checkout failures are often detectable with a tool that simulates the buy flow —
+    add to cart, initiate checkout, check for payment methods. Headless checkout adds two layers that
+    most monitors don't reach:
+  </p>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>What to monitor</th>
+        <th>Standard checkout</th>
+        <th>Headless checkout</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Homepage HTTP status</td>
+        <td><span class="tag-yes">✓ COVERED</span></td>
+        <td><span class="tag-yes">✓ COVERED</span></td>
+      </tr>
+      <tr>
+        <td>Checkout URL reachability</td>
+        <td><span class="tag-yes">✓ STANDARD MONITORS</span></td>
+        <td><span class="tag-partial">~ PARTIAL (redirect must be verified)</span></td>
+      </tr>
+      <tr>
+        <td>Storefront API token validity</td>
+        <td><span class="tag-no">✗ NOT APPLICABLE</span></td>
+        <td><span class="tag-no">✗ REQUIRES API CALL</span></td>
+      </tr>
+      <tr>
+        <td>cartCreate / checkoutCreate userErrors</td>
+        <td><span class="tag-no">✗ NOT APPLICABLE</span></td>
+        <td><span class="tag-no">✗ REQUIRES GRAPHQL PARSING</span></td>
+      </tr>
+      <tr>
+        <td>Payment methods at checkout</td>
+        <td><span class="tag-yes">✓ CHECKOUT SIMULATION</span></td>
+        <td><span class="tag-yes">✓ CHECKOUT SIMULATION</span></td>
+      </tr>
+      <tr>
+        <td>Checkout domain redirect chain</td>
+        <td><span class="tag-partial">~ PARTIAL</span></td>
+        <td><span class="tag-no">✗ REQUIRES FULL REDIRECT TRACE</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    CheckPulse simulates the full buy flow including Storefront API calls and the hosted checkout page —
+    the same path a real customer takes. When any step fails, you get an alert within 30 minutes with the
+    exact failure point.
+  </p>
+
+  <div class="cta-strip">
+    <h3>Monitor your headless checkout automatically</h3>
+    <p>CheckPulse runs a full checkout simulation every 30 minutes — Storefront API, checkout redirect, payment methods.<br>
+    Email alert the moment something breaks. Setup in under 2 minutes.</p>
+    <a class="cta-strip-btn" href="./#pricing">Start monitoring free →</a>
+    <br><br>
+    <a href="./free-check" style="font-size:0.85rem;color:var(--text-mid)">Or run a free instant checkout health check →</a>
+  </div>
+
+  <!-- ── RELATED ── -->
+  <div class="related-links">
+    <div class="related-links-title">Related troubleshooting guides</div>
+    <ul>
+      <li><a href="./shopify-checkout-redirect-loop">Shopify checkout redirect loop</a></li>
+      <li><a href="./shopify-checkout-app-conflict">Shopify app blocking checkout</a></li>
+      <li><a href="./shopify-checkout-no-payment-methods">No payment methods at checkout</a></li>
+      <li><a href="./shopify-payments-suspended">Shopify Payments suspended</a></li>
+      <li><a href="./shopify-checkout-custom-domain-redirect">Custom domain redirect error</a></li>
+      <li><a href="./shopify-checkout-not-working">Shopify checkout not working</a></li>
+      <li><a href="./shopify-checkout-3d-secure-failed">3D Secure failed</a></li>
+      <li><a href="./shopify-payment-failed">Payment failed error</a></li>
+    </ul>
+  </div>
+
+</main>
+
+<footer class="guide-footer">
+  <p>&copy; 2026 CheckPulse &middot; <a href="./">Home</a> &middot; <a href="./#pricing">Pricing</a> &middot; <a href="./free-check">Free Store Check</a> &middot; <a href="./guide">Monitoring Guide</a> &middot; <a href="./shopify-checkout-not-working">Checkout Not Working</a> &middot; <a href="./shopify-payment-failed">Payment Failed</a> &middot; <a href="./shopify-checkout-redirect-loop">Redirect Loop</a> &middot; <a href="./shopify-checkout-app-conflict">App Conflict</a> &middot; <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a> &middot; <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a> &middot; <a href="./shopify-payments-suspended">Payments Suspended</a> &middot; <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a></p>
+</footer>
+
+</body>
+</html>

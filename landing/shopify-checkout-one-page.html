@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify One-Page Checkout — How to Enable It, Conversion Impact, and What Can Break (2026)</title>
+  <meta name="description" content="Shopify one-page checkout is the default since 2023. How to enable or disable it, what the conversion data shows vs. three-step checkout, and why it can break on some stores." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page" />
+  <meta property="og:title" content="Shopify One-Page Checkout — How to Enable It, Conversion Impact, and What Can Break" />
+  <meta property="og:description" content="Shopify made one-page checkout the default for all new stores in late 2023. This guide explains how to enable it on older stores, when three-step checkout is still better, and the failure modes unique to one-page that merchants need to monitor." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify One-Page Checkout — How to Enable It, Conversion Impact, and What Can Break",
+    "description": "Shopify launched one-page checkout in August 2023 and made it the default for all new stores in December 2023. It consolidates the traditional three-step flow (contact, shipping, payment) into a single scrollable page. This guide covers how to switch between layouts, what the real conversion data shows, which stores benefit most, and the failure modes that are unique to the one-page layout — particularly for stores with heavy app stacks or custom themes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I enable Shopify one-page checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To enable one-page checkout on Shopify, go to Admin → Settings → Checkout → scroll to 'Checkout layout' → select 'One-page checkout' → Save. One-page checkout is available on all Shopify plans — Basic, Shopify, Advanced, and Plus. For new stores created after December 2023, one-page checkout is the default and you may not see the toggle (the one-page layout is already active). For older stores created before August 2023, the default was three-step checkout and you need to manually switch to one-page in checkout settings. The change takes effect immediately with no republishing required. After switching, test in an incognito window to confirm the layout changed and that your apps and discount codes still work as expected."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between Shopify one-page checkout and three-step checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's traditional three-step checkout spreads the purchase flow across three separate pages: Step 1 (contact info + shipping address), Step 2 (shipping method selection), Step 3 (payment). Each step is a distinct page load with its own URL. Shopify one-page checkout consolidates all three steps into a single scrollable page — contact, shipping, and payment all appear at once (or reveal progressively as the customer fills in address info). The one-page layout has a different URL structure: instead of /checkout/step1, /checkout/step2, /checkout/step3, the entire flow happens at /checkout/. This changes how checkout abandonment is tracked in analytics: in a three-step checkout, you can see drop-off at each individual step. In one-page checkout, abandonment is less granular in Shopify's native analytics (though GA4 and other tools can still track form interactions). The visual change is significant: the order summary moves to a sticky sidebar (desktop) or accordion (mobile) and the full checkout form is visible on initial load."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify one-page checkout increase conversion?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's internal data from the one-page checkout launch (2023) reported a conversion rate improvement of approximately 1.6x for buyers who saw the one-page layout versus the three-step layout. Independent tests have shown smaller but consistent positive effects, typically in the range of 0.3–1.5% absolute conversion rate improvement. The effect is largest for mobile buyers: eliminating three sequential page loads (each with a potential load failure or timeout) reduces the number of points where a buyer can drop off or experience a technical failure. For desktop buyers, the effect is more variable — some store types see no significant change; others see improvement from the visual clarity of seeing all steps at once. Stores where one-page checkout tends to show less improvement: B2B stores with complex shipping logic, subscription stores where payment collection requires multi-step enrollment, and stores with custom checkout steps added via Shopify Checkout Extensibility that work better in a sequential flow. For the majority of DTC stores with standard shipping and payment, one-page checkout is the correct default."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify one-page checkout not working or showing errors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify one-page checkout failures have several common causes. (1) App conflicts: checkout apps built for the three-step layout (particularly older apps using checkout.liquid, deprecated for non-Plus stores since August 2024) do not automatically work with the one-page layout. These apps may inject scripts that conflict with the single-page rendering, causing buttons not to appear, the payment section not to load, or the checkout to error silently. (2) Custom theme modifications: themes with heavily customized checkout templates built for the three-step flow can produce visual or functional breakage in one-page mode. Switching themes to a default Shopify theme (Dawn) temporarily is the quickest way to confirm if the issue is theme-related. (3) Checkout UI Extensions not upgraded: if you use Checkout UI Extensions (for custom content blocks, upsells, or fields), verify they are compatible with the one-page layout version in the Shopify developer docs. (4) Analytics and tracking scripts: some pixel/tracking scripts that rely on checkout page URL changes to fire events (e.g., firing conversion events on URL change from /step2 to /step3) will break on one-page checkout since those URL transitions no longer exist. This is a tracking issue, not a purchase issue, but it affects your ability to measure abandonment. (5) Discount codes not applying: a small number of stores report discount code edge cases on one-page checkout where the code field behaves differently than on three-step. Test all active discount codes after switching."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Should I switch back to Shopify three-step checkout if I'm having problems?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Switching back to three-step checkout is a valid diagnostic step and a legitimate longer-term choice for some store types. For diagnosis: if you're experiencing checkout errors after switching to one-page, switching back to three-step temporarily can confirm whether the issue is one-page specific (errors stop) or affects all checkout layouts (errors continue). If the issues are one-page specific, you can investigate app and theme compatibility before re-enabling. As a permanent choice: three-step checkout is the better fit for stores with complex shipping rate logic that loads conditionally, B2B stores where buyers need to confirm rates before entering payment, subscription businesses where the checkout flow differs from a standard purchase, and stores that depend on step-by-step analytics for funnel optimization. For all other DTC stores: one-page checkout is Shopify's recommended default and the direction they are investing in. New checkout extensibility features are being built for the one-page layout first. Staying on three-step checkout long-term means future checkout capabilities will be unavailable sooner. The right call depends on your store's specific stack and customer base — test both and measure."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 1rem;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .nav-brand { font-weight: 700; font-size: 1rem; color: var(--text); }
+    .nav-cta {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--amber);
+      border: 1px solid var(--amber-dim);
+      padding: 6px 14px;
+      border-radius: 6px;
+    }
+    .nav-cta:hover { background: rgba(245,158,11,0.08); text-decoration: none; }
+
+    main { padding: 0 0 80px; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+
+    .hero {
+      padding: 60px 0 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 1.08rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    h3:first-child { margin-top: 0; }
+    p { margin-bottom: 16px; color: var(--text-dim); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 20px; color: var(--text-dim); }
+    li { margin-bottom: 8px; }
+
+    /* PLAN TABLE */
+    .plan-table-wrap { overflow-x: auto; margin: 28px 0; }
+    .plan-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .plan-table th {
+      background: var(--surface2);
+      color: var(--text);
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      vertical-align: top;
+    }
+    .plan-table tr:hover td { background: var(--surface); }
+    .tag-yes {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(16,185,129,0.15);
+      color: var(--green);
+    }
+    .tag-no {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+    }
+    .tag-partial {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(245,158,11,0.12);
+      color: var(--amber);
+    }
+
+    /* STEP LIST */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .step-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-num {
+      flex-shrink: 0;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+    .step-body { color: var(--text-dim); }
+    .step-body strong { color: var(--text); }
+
+    /* COMPARE CARDS */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 28px;
+    }
+    @media (max-width: 600px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+    .compare-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+    }
+    .compare-card-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-card ul { padding-left: 16px; }
+    .compare-card li { font-size: 0.875rem; margin-bottom: 7px; }
+
+    /* WARNING / INSIGHT BOXES */
+    .warning-box {
+      background: rgba(239,68,68,0.07);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .warning-box .warning-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .warning-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .warning-box p:last-child { margin-bottom: 0; }
+
+    .insight-box {
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .insight-box .insight-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .insight-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    .info-box {
+      background: rgba(59,130,246,0.06);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .info-box .info-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+    .info-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .info-box p:last-child { margin-bottom: 0; }
+
+    /* FAILURE LIST */
+    .failure-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 24px;
+    }
+    .failure-num {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 6px;
+    }
+    .failure-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .failure-body { color: var(--text-dim); font-size: 0.9rem; line-height: 1.6; }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .faq-a { color: var(--text-dim); }
+    .faq-a p { margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 0.88rem;
+      color: var(--text);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 { margin-bottom: 12px; }
+    .cta-block p { color: var(--text-dim); margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 40px 0 32px; }
+      .cta-block { padding: 28px 20px; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Checkout Check →</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › One-Page Checkout
+      </div>
+      <div class="hero-eyebrow">Shopify Checkout Layout</div>
+      <h1>Shopify One-Page Checkout: How to Enable It, What the Conversion Data Shows, and What Can Break</h1>
+      <p class="hero-sub">Shopify made one-page checkout the default for all new stores in December 2023. Older stores still run three-step checkout by default. This guide covers the switch, the real conversion impact, and the failure modes unique to the one-page layout.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>All Shopify plans</span>
+        <span>DTC and B2B covered</span>
+      </div>
+    </section>
+
+    <!-- WHAT IS ONE-PAGE CHECKOUT -->
+    <section class="section">
+      <div class="section-label">Background</div>
+      <h2>What Shopify One-Page Checkout Is (and Why It Exists)</h2>
+
+      <p>Shopify's traditional checkout was a three-step flow: a customer would move through three separate pages — contact information and address, shipping method selection, and payment. Each page was a distinct URL, a distinct page load, and a distinct opportunity for a buyer to drop off, hit a slow load, or encounter a technical error.</p>
+
+      <p>In August 2023, Shopify launched one-page checkout as an option across all plans. In December 2023, it became the default layout for all new stores. The change consolidates all three steps into a single scrollable page — a buyer sees the contact, shipping, and payment fields together, filling them in top to bottom without a page transition between steps.</p>
+
+      <div class="info-box">
+        <div class="info-label">Timeline</div>
+        <p><strong>August 2023:</strong> One-page checkout launched as opt-in for all stores on all plans.</p>
+        <p><strong>December 2023:</strong> One-page checkout becomes the default for all new Shopify stores.</p>
+        <p><strong>August 2024:</strong> checkout.liquid deprecated for non-Plus stores — legacy checkout customizations stop working. All non-Plus stores use Checkout Extensibility only.</p>
+        <p><strong>2026 and beyond:</strong> Shopify's checkout roadmap (new payment methods, extensibility features, checkout UI improvements) is one-page-first. New capabilities reach one-page checkout first or exclusively.</p>
+      </div>
+
+      <p>For older stores created before December 2023, the default layout is still three-step unless explicitly changed. Many merchants don't know the one-page option exists, or have heard of it but haven't switched because they're uncertain about the conversion impact or the risk of breaking their setup.</p>
+
+      <h3>Visual Difference</h3>
+      <p>On desktop, one-page checkout shows the full form on the left with a sticky order summary sidebar on the right. The three-step checkout shows only the current step's fields and a progress indicator at the top. On mobile, one-page checkout shows the order summary as a collapsible accordion at the top, with the full form below — buyers scroll through address, shipping, and payment in one continuous experience rather than tapping "Continue" between pages.</p>
+    </section>
+
+    <!-- HOW TO ENABLE -->
+    <section class="section">
+      <div class="section-label">Setup Guide</div>
+      <h2>How to Enable One-Page Checkout on Shopify</h2>
+
+      <p>The setting is in Shopify's checkout settings. Note: if you don't see the layout option, your store may already be on one-page checkout by default (stores created after December 2023).</p>
+
+      <div class="step-list">
+        <div class="step-item">
+          <span class="step-num">01</span>
+          <div class="step-body">Go to <strong>Shopify Admin → Settings → Checkout</strong></div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">02</span>
+          <div class="step-body">Scroll to the <strong>"Checkout layout"</strong> section</div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">03</span>
+          <div class="step-body">Select <strong>"One-page checkout"</strong> (the other option is "Three-page checkout")</div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">04</span>
+          <div class="step-body">Click <strong>Save</strong>. The change is immediate — test it in an incognito/private window right away</div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">05</span>
+          <div class="step-body">Test your most common purchase scenarios: standard product, product with discount code, subscription product (if applicable), Apple Pay / accelerated checkout</div>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">Plan Note</div>
+        <p>One-page checkout is available on <strong>every Shopify plan</strong> — Basic, Shopify, Advanced, and Plus. Switching between layouts is free and immediate. There is no plan restriction.</p>
+      </div>
+
+      <h3>How to Switch Back to Three-Step Checkout</h3>
+      <p>The same setting works in reverse. If you switch to one-page and encounter issues, go back to Admin → Settings → Checkout → Checkout layout → select "Three-page checkout" → Save. This is a safe rollback — switching back to three-step restores the previous behavior immediately and is the recommended diagnostic step if you're troubleshooting one-page issues.</p>
+    </section>
+
+    <!-- CONVERSION IMPACT -->
+    <section class="section">
+      <div class="section-label">Conversion Data</div>
+      <h2>What the Conversion Data Actually Shows</h2>
+
+      <p>Shopify's announcement of one-page checkout cited a 1.6x conversion rate improvement based on internal A/B test data. This figure is often quoted in third-party guides but needs context: it was measured across a broad range of stores during the initial rollout, and not all store types see the same effect.</p>
+
+      <h3>Where the Lift Comes From</h3>
+      <p>The conversion improvement from one-page checkout comes from two categories:</p>
+
+      <ul>
+        <li><strong>Fewer page loads = fewer load failures.</strong> Each step transition in three-step checkout is a page load with a potential timeout, JavaScript error, or slow response from a payment gateway. One-page checkout has one page load for the entire flow. Eliminating two mid-flow page loads meaningfully reduces the rate of "checkout not loading" type failures, particularly on mobile with variable connection quality.</li>
+        <li><strong>Reduced cognitive load on mobile.</strong> On mobile, three-step checkout requires three tap-to-continue interactions and three page scrolls-to-top after each transition. One-page eliminates these interruptions. Shopify's research (and independent CRO research by firms like Baymard Institute) shows that mobile checkout abandonment is strongly correlated with the number of steps and transitions in the flow.</li>
+      </ul>
+
+      <h3>Who Benefits Most</h3>
+      <ul>
+        <li><strong>High mobile traffic stores:</strong> If 60%+ of your checkout traffic is mobile, the single-page load and continuous scroll model is a meaningful improvement.</li>
+        <li><strong>High-velocity impulse purchases:</strong> Low-AOV, high-volume stores where buyers want to complete checkout quickly benefit from fewer barriers between "enter card" and "order placed."</li>
+        <li><strong>Cold traffic from ads:</strong> First-time buyers from paid ads have higher drop-off at each step transition. Fewer transitions = fewer drop-off opportunities.</li>
+      </ul>
+
+      <h3>Who Sees Little or No Lift</h3>
+      <ul>
+        <li><strong>B2B and wholesale stores:</strong> Buyers are often on desktop, comparing shipping options carefully before committing to payment. The deliberate step-by-step flow can work better for this purchase behavior.</li>
+        <li><strong>High-AOV stores:</strong> Luxury goods, furniture, or high-ticket categories where buyers expect a deliberate, multi-step process. Rapid single-page checkout can feel incongruent with a considered purchase.</li>
+        <li><strong>Subscription-heavy stores:</strong> Subscription checkout may have extra enrollment steps that work better in a staged flow.</li>
+      </ul>
+
+      <div class="warning-box">
+        <div class="warning-label">Important Caveat</div>
+        <p>Shopify's cited 1.6x improvement is a relative uplift across a large, heterogeneous sample — it does not mean your store will see a 60% increase in checkout conversion. Real-world results in independent merchant tests are typically 0.3–1.5% absolute improvement in checkout conversion rate. For a store converting at 3%, that means moving to 3.03–4.5%. Still meaningful at scale, but not a silver bullet.</p>
+        <p>If you want to measure the actual impact for your store, the only reliable method is an A/B test with statistical significance — which requires Shopify Plus (the only plan that offers native checkout A/B testing). On standard plans, switching and comparing before/after periods is confounded by seasonal and traffic mix changes.</p>
+      </div>
+    </section>
+
+    <!-- COMPARE -->
+    <section class="section">
+      <div class="section-label">Comparison</div>
+      <h2>One-Page vs. Three-Step Checkout: Feature and Behavior Differences</h2>
+
+      <div class="compare-grid">
+        <div class="compare-card">
+          <div class="compare-card-title">One-Page Checkout</div>
+          <ul>
+            <li>All steps visible on a single page</li>
+            <li>One page load for entire checkout flow</li>
+            <li>URL stays at /checkout/ throughout</li>
+            <li>Order summary in sticky sidebar (desktop)</li>
+            <li>Better mobile scroll experience</li>
+            <li>Default for stores created Dec 2023+</li>
+            <li>Shopify's primary checkout investment target</li>
+            <li>Checkout analytics less granular by step</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <div class="compare-card-title">Three-Step Checkout</div>
+          <ul>
+            <li>Contact → Shipping → Payment (separate pages)</li>
+            <li>Three page loads, three URL transitions</li>
+            <li>Granular step-by-step abandonment data</li>
+            <li>Familiar sequential flow</li>
+            <li>Better for deliberate/considered purchases</li>
+            <li>Default for stores created before Dec 2023</li>
+            <li>Legacy layout — fewer new features going forward</li>
+            <li>Each step load is a potential failure point</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="plan-table-wrap" style="margin-top: 28px;">
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>One-Page</th>
+              <th>Three-Step</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Available on all plans</td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td>Checkout UI Extensions (custom content blocks)</td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td>Native A/B testing in Shopify admin</td>
+              <td><span class="tag-partial">Plus only</span></td>
+              <td><span class="tag-partial">Plus only</span></td>
+            </tr>
+            <tr>
+              <td>Granular step-by-step funnel in Shopify Analytics</td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td>Accelerated checkout buttons (Shop Pay, Apple Pay, Google Pay)</td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td>Discount code field visible at start</td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-partial">Step 1 or 3 depending on config</span></td>
+            </tr>
+            <tr>
+              <td>New extensibility features (Shopify roadmap)</td>
+              <td><span class="tag-yes">First or exclusive</span></td>
+              <td><span class="tag-partial">Secondary or delayed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Modes</div>
+      <h2>Why One-Page Checkout Breaks: 5 Causes Unique to the Layout</h2>
+
+      <p>One-page checkout introduces failure modes that don't exist on three-step checkout. If you switched to one-page and saw an increase in checkout errors or a drop in conversion, one of these is the likely cause.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-num">Cause 01</div>
+          <div class="failure-title">Apps Built for checkout.liquid (Three-Step Only)</div>
+          <div class="failure-body">
+            Apps that customized checkout using checkout.liquid — the old template system deprecated in August 2024 for non-Plus stores — were built for the three-step URL structure and page-load cycle. If such an app is still installed (even if the code is no longer actively running), its scripts can conflict with one-page checkout rendering. Symptoms: payment section fails to appear, checkout buttons don't respond, or the page loads partially and stops. Fix: remove all apps that use checkout.liquid customizations and replace with Checkout UI Extensions where needed.
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Cause 02</div>
+          <div class="failure-title">Pixel and Tracking Scripts That Fire on URL Change</div>
+          <div class="failure-body">
+            Analytics pixels (Facebook Pixel, TikTok Pixel, Google Tag Manager custom tags) often track checkout funnel progress by listening for URL changes: the transition from /checkout to /checkout/shipping to /checkout/payment. On one-page checkout, these URL transitions don't happen — the URL stays at /checkout/ — so funnel tracking events for "reached payment step" or "initiated checkout" may fire incorrectly or not at all. This doesn't break the purchase, but it breaks your conversion reporting and can cause your ad platforms to optimize incorrectly. Fix: switch to event-based tracking using Shopify's checkout events API or Shopify's native server-side pixel (available via Web Pixels in the Shopify admin — the recommended approach for one-page checkout).
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Cause 03</div>
+          <div class="failure-title">Checkout UI Extensions Not Placed Correctly for One-Page Layout</div>
+          <div class="failure-body">
+            Checkout UI Extensions can be placed at specific "slots" in the checkout layout. The slot names and positions differ between one-page and three-step layouts. An extension placed at "checkout::dynamic::render" may appear in the correct location on three-step but in an incorrect or missing location on one-page, because the sectioning is different. Symptoms: custom fields, upsell blocks, or trust badge blocks disappear or appear in unexpected positions after switching. Fix: verify extension placement in Admin → Settings → Checkout → Customize, and reassign extension positions to the correct one-page slot names per Shopify's developer documentation.
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Cause 04</div>
+          <div class="failure-title">Theme Scripts That Intercept Checkout Navigation</div>
+          <div class="failure-body">
+            Some themes — particularly older premium themes and heavily customized themes — include JavaScript that intercepts the checkout navigation event (the click on "Continue to shipping" or "Complete order") to add custom validation or UI behavior. These scripts assume the checkout is multi-page and may block or conflict with one-page checkout's in-page form submission. Symptoms: clicking the payment button causes no visible action, or the page flickers without completing the order. Diagnosis: switch to a default Shopify theme (Dawn, Craft, or similar) and test one-page checkout — if it works, the issue is in your theme's JavaScript. Fix: identify and remove or update the conflicting theme script.
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Cause 05</div>
+          <div class="failure-title">Discount Code Field Behavior Differences</div>
+          <div class="failure-body">
+            One-page checkout and three-step checkout handle the discount code field differently. On one-page, the discount code field is visible and interactive from the start of the checkout flow — customers can apply a code before filling in their shipping address. Some discount logic (particularly discount codes that are conditional on product count, cart total after taxes, or customer segment) can behave unexpectedly when applied earlier in the flow than the three-step sequence expected. Symptoms: discount codes that worked on three-step checkout show as invalid or show incorrect amounts on one-page. Fix: test all active discount code types after switching — percentage discounts, fixed amount discounts, free shipping codes, BOGO codes, and customer-segment-specific discounts.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MONITORING -->
+    <section class="section">
+      <div class="section-label">Monitoring</div>
+      <h2>What to Monitor Differently After Switching to One-Page Checkout</h2>
+
+      <p>Switching checkout layouts changes what you need to watch for in ongoing operations. Three areas require updated monitoring:</p>
+
+      <h3>1. Checkout Error Rate (Not Just Abandonment Rate)</h3>
+      <p>One-page checkout errors are harder to catch from analytics alone because there are no mid-flow URL changes to track. A buyer who reaches the payment step and encounters a silent error (payment fields not rendering, 3DS authentication loop, Apple Pay not initializing) looks identical to a buyer who voluntarily abandoned. <strong>The only way to catch these failures reliably is external checkout monitoring</strong> — running a synthetic transaction from outside your store on a regular interval to confirm the checkout completes successfully end-to-end.</p>
+
+      <h3>2. App Compatibility After Updates</h3>
+      <p>Apps that are compatible with one-page checkout today may break after a Shopify platform update or after the app itself updates. Unlike three-step checkout where failures are often localized to one step, a one-page conflict can affect the entire checkout flow. Monitor checkout health continuously — don't assume it's working because it worked at launch.</p>
+
+      <h3>3. Accelerated Checkout Button Failures</h3>
+      <p>Apple Pay, Google Pay, and Shop Pay buttons appear at the top of one-page checkout (above the form) as well as in the sticky summary section on desktop. These accelerated checkout paths use a different technical flow than the standard form and can fail independently of the standard payment fields. A monitoring tool that only tests the standard card form won't catch Apple Pay failures — and Apple Pay is the most common mobile payment method for high-intent buyers.</p>
+
+      <div class="cta-block">
+        <h2>Monitor Your One-Page Checkout Automatically</h2>
+        <p>CheckPulse runs a full synthetic checkout transaction every 15 minutes — covering the complete one-page checkout flow, payment submission, and order confirmation. Get alerted before customers start abandoning.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check →</a>
+      </div>
+    </section>
+
+    <!-- SHOULD YOU SWITCH -->
+    <section class="section">
+      <div class="section-label">Decision Guide</div>
+      <h2>Should Your Store Switch to One-Page Checkout?</h2>
+
+      <p>For most DTC stores, the answer is yes — and the longer you wait, the more you diverge from Shopify's investment direction. But the decision depends on your stack, your buyers, and your risk tolerance for a layout change.</p>
+
+      <h3>Switch to One-Page if:</h3>
+      <ul>
+        <li>The majority of your checkout traffic is mobile</li>
+        <li>You sell to consumers (DTC) with no B2B segment</li>
+        <li>Your store doesn't rely on step-by-step checkout funnel analytics for optimization decisions</li>
+        <li>Your app stack is modern (Checkout UI Extensions, not checkout.liquid)</li>
+        <li>You don't have complex conditional shipping rate logic</li>
+        <li>You want access to future Shopify checkout features</li>
+      </ul>
+
+      <h3>Consider Staying on Three-Step if:</h3>
+      <ul>
+        <li>You have a significant B2B or wholesale segment that carefully reviews shipping before paying</li>
+        <li>You have custom checkout.liquid apps that haven't been migrated to Checkout Extensibility</li>
+        <li>Your step-by-step funnel analytics are essential to your CRO process and you don't have an alternative measurement solution</li>
+        <li>You sell high-AOV products where a deliberate multi-step process matches buyer expectations</li>
+        <li>You have a complex subscription checkout flow where staged enrollment is important</li>
+      </ul>
+
+      <div class="insight-box">
+        <div class="insight-label">Migration Approach</div>
+        <p>If you want to switch but are uncertain, the safest approach is:</p>
+        <p>1. Run a full checkout test on your current (three-step) setup to establish a baseline — what works, what apps and discounts are active.</p>
+        <p>2. Switch to one-page in a low-traffic window.</p>
+        <p>3. Immediately test the same scenarios: standard purchase, discount codes, subscription (if applicable), Apple Pay.</p>
+        <p>4. Monitor checkout error rates for 48–72 hours before declaring the switch stable.</p>
+        <p>5. If you see issues, switch back to three-step and diagnose — don't leave customers on a broken checkout while you investigate.</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Common Questions About Shopify One-Page Checkout</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">How do I enable Shopify one-page checkout?</div>
+          <div class="faq-a">
+            <p>Go to Admin → Settings → Checkout → scroll to "Checkout layout" → select "One-page checkout" → Save. Available on all plans. If you don't see the layout toggle, your store may already be on one-page checkout by default (new stores created after December 2023 start on one-page). Test in an incognito window after saving.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What is the difference between one-page and three-step Shopify checkout?</div>
+          <div class="faq-a">
+            <p>Three-step checkout spreads contact, shipping, and payment across three separate pages with distinct URLs. One-page checkout puts all three steps on a single scrollable page with one URL (/checkout/). One-page has fewer page loads (better mobile experience) but less granular step-by-step abandonment analytics in Shopify's native reporting.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Does Shopify one-page checkout increase conversion?</div>
+          <div class="faq-a">
+            <p>Shopify's internal data reported a 1.6x improvement in their rollout tests. In real-world independent merchant testing, typical results are 0.3–1.5% absolute improvement in checkout conversion rate. Mobile-heavy DTC stores see the most benefit. B2B, high-AOV, and subscription stores see smaller or no improvement. The only way to measure the actual impact for your store is an A/B test (requires Plus) or careful before/after analysis with controlled traffic.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why did my checkout break after switching to one-page?</div>
+          <div class="faq-a">
+            <p>The most common causes: apps built for the legacy checkout.liquid system that conflict with the one-page layout; analytics/tracking pixels that fire on URL changes (which no longer happen on one-page); Checkout UI Extensions placed at slot positions designed for three-step; theme JavaScript that intercepts checkout navigation events; or discount code edge cases from earlier field availability. The fastest diagnostic: switch back to three-step checkout temporarily to confirm the issue is one-page specific, then investigate by disabling apps one at a time.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can I A/B test one-page vs. three-step checkout on Shopify?</div>
+          <div class="faq-a">
+            <p>Native Shopify A/B testing for checkout layout requires Shopify Plus. On standard plans (Basic, Shopify, Advanced), the checkout layout is applied store-wide — you can't serve some customers one-page and others three-step. If you're on a standard plan and want to measure the impact, you'll need to switch fully and compare a before/after period — with the caveat that seasonal, campaign, and traffic mix differences will confound the comparison. For a precise measurement, Plus is the right tool. If you're not on Plus and don't want to switch without data, the pragmatic approach is to switch and monitor checkout error rates and overall conversion rate for 2–4 weeks, with a clear rollback plan if either metric declines.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">CRO</div>
+          <div class="guide-card-title">Shopify Checkout CRO Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing" class="guide-card">
+          <div class="guide-card-label">A/B Testing</div>
+          <div class="guide-card-title">Shopify Checkout A/B Testing</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Why Customers Abandon Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-guest-checkout" class="guide-card">
+          <div class="guide-card-label">Guest Checkout</div>
+          <div class="guide-card-title">Shopify Guest Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-trust-signals" class="guide-card">
+          <div class="guide-card-label">Trust</div>
+          <div class="guide-card-title">Checkout Trust Signals Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">Shopify App Conflicts at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" class="guide-card">
+          <div class="guide-card-label">Mobile</div>
+          <div class="guide-card-title">Mobile Checkout Issues</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro">Checkout CRO</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing">A/B Testing</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

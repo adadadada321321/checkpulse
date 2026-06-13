@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout A/B Testing — What's Possible, What Requires Plus (2026)</title>
+  <meta name="description" content="What you can and can't A/B test on Shopify checkout, which tools work, and why checkout bugs invalidate every test you run. Practical split testing guide for Shopify merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing" />
+  <meta property="og:title" content="Shopify Checkout A/B Testing — What's Possible, What Requires Plus" />
+  <meta property="og:description" content="Most Shopify merchants can't actually A/B test checkout the way they think. This guide covers what native testing options exist, which tools work on standard vs Plus plans, and why checkout reliability is a prerequisite for valid test results." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout A/B Testing — What's Possible and What Requires Plus",
+    "description": "Shopify checkout A/B testing is more constrained than most merchants expect. Standard Shopify plans have no native checkout split testing capability — Shopify protects checkout UI to maintain conversion rates across the platform. This guide explains what can be tested on any plan, what requires Shopify Plus, which third-party tools work, how to run valid before/after comparisons, and why checkout reliability must be validated before any test results can be trusted.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can you A/B test Shopify checkout without Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Native checkout A/B testing — splitting traffic between two different checkout UI variants — is not available on standard Shopify plans. Shopify locks down the checkout page to maintain platform-wide conversion rates and prevent merchants from accidentally breaking checkout with untested changes. What you CAN do on any Shopify plan: test product page CTAs, cart page layout, shipping cost display (with or without estimates before checkout), and trust badge placement before the checkout button. You can also use before/after comparison testing on checkout configuration changes — enable a new payment method, change guest checkout settings, or update shipping display, then compare conversion rates across a comparable time window. True simultaneous split testing of checkout UI elements requires Shopify Plus and either Shopify's native checkout extensibility or a third-party testing tool that uses Checkout UI Extensions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What Shopify checkout A/B testing tools are available?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For Shopify Plus merchants: Intelligems is the most checkout-specific testing tool — it integrates natively with Shopify's checkout and supports price testing, shipping rate testing, and checkout UI extension testing. Shoplift (formerly Intelligems split testing) supports checkout flow experiments. For standard Shopify plans: Google Optimize was deprecated in 2023. VWO, Optimizely, and AB Tasty can inject JavaScript into product and cart pages but cannot modify the Shopify-hosted checkout page at /checkout. They can test everything before checkout. The practical workaround for standard plans: test the cart page (the last pre-checkout touchpoint) and the post-purchase page, measure impact on order completion rate, and treat checkout itself as a black box that you optimize through configuration changes rather than UI splits."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify checkout A/B test results unreliable?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout A/B test results are commonly unreliable for three reasons. First, insufficient traffic: checkout tests need at minimum 1,000 checkout sessions per variant to reach statistical significance at 95% confidence with a 5% baseline conversion rate and 10% expected lift. Most small Shopify stores take 3–6 months to accumulate this. Second, seasonal and campaign noise: checkout conversion rates swing 20–40% between normal weeks and promotional periods. Running a test that spans a sale event invalidates the result. Third — and most commonly missed — silent checkout failures: if your checkout has a technical problem affecting a subset of users (specific browser, specific payment method, specific discount code), that failure corrupts the conversion signal in both variants. A checkout that fails for 5% of sessions introduces error that exceeds the typical lift you're testing for. Before running any checkout experiment, validate that your checkout works correctly across all conditions and browsers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I measure Shopify checkout performance without A/B testing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Before running true split tests, analyze your existing checkout data for high-value insights that require no testing infrastructure. In Shopify Analytics → Reports → Checkout behavior: look for step-by-step drop-off. Unusually high drop-off at the payment step (Step 3 or 4) relative to Step 1–2 typically indicates a technical problem or payment trust issue, not a UX problem. Segment by device: if mobile checkout conversion is 30–40% lower than desktop, mobile UX is the highest-ROI fix. Segment by payment method: if one payment method shows significantly lower completion rates, that method may have a configuration issue. In Google Analytics 4 with enhanced ecommerce: set up checkout step events and create audience comparisons by device, browser, and acquisition source. High drop-off from a specific traffic source often reveals a landing-page-to-checkout expectation mismatch rather than a checkout problem. These segmentation analyses typically surface 3–4 high-confidence improvement directions without running a single experiment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What can Shopify Plus merchants A/B test at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Plus merchants have significantly more testing surface. With checkout extensibility (the current Plus framework, replacing deprecated checkout.liquid): you can A/B test checkout UI extensions — custom content blocks, trust badges, loyalty point displays, upsell components, order summary customizations. Tools like Intelligems support shipping rate testing (which shipping option display drives the best checkout completion vs average order value trade-off), checkout field configuration tests (address validation on/off, phone required/optional), and post-purchase page experiments. With Shopify Functions (available on Plus): test discount eligibility rules, shipping rate logic, and payment method filtering at checkout. What Plus still cannot A/B test: the core checkout form layout, Shopify's native checkout step structure, or checkout URL patterns — these are platform-controlled regardless of plan."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    h3:first-child { margin-top: 0; }
+    p { margin-bottom: 16px; color: var(--text-dim); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 20px; color: var(--text-dim); }
+    li { margin-bottom: 8px; }
+
+    /* PLAN COMPARISON TABLE */
+    .plan-table-wrap { overflow-x: auto; margin: 28px 0; }
+    .plan-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .plan-table th {
+      background: var(--surface2);
+      color: var(--text);
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      vertical-align: top;
+    }
+    .plan-table tr:hover td { background: var(--surface); }
+    .tag-yes {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(16,185,129,0.15);
+      color: var(--green);
+    }
+    .tag-plus {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(59,130,246,0.15);
+      color: var(--blue);
+    }
+    .tag-no {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+    }
+
+    /* METHOD CARDS */
+    .method-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 28px;
+    }
+    .method-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .method-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .method-num {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .method-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .method-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* WARNING BOX */
+    .warning-box {
+      background: rgba(239,68,68,0.07);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .warning-box .warning-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .warning-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .warning-box p:last-child { margin-bottom: 0; }
+
+    /* INSIGHT BOX */
+    .insight-box {
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .insight-box .insight-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .insight-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    /* STEPS CHECKLIST */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .step-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-num {
+      flex-shrink: 0;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+    .step-body { color: var(--text-dim); }
+    .step-body strong { color: var(--text); }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .faq-a { color: var(--text-dim); }
+    .faq-a p { margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 0.88rem;
+      color: var(--text);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 { margin-bottom: 12px; }
+    .cta-block p { color: var(--text-dim); margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 40px 0 32px; }
+      .cta-block { padding: 28px 20px; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Checkout Check →</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> →
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Guide</a> →
+        Checkout A/B Testing
+      </div>
+      <div class="hero-eyebrow">Split Testing</div>
+      <h1>Shopify Checkout A/B Testing — What You Can Actually Do (2026)</h1>
+      <p class="hero-sub">
+        Most Shopify merchants can't A/B test checkout the way they expect. This guide covers
+        what's testable on any plan, what requires Plus, which tools work, and why your test
+        results may already be corrupted.
+      </p>
+      <div class="hero-meta">
+        <span>⏱ 9 min read</span>
+        <span>🗓 Updated June 2026</span>
+        <span>🎯 Standard Shopify + Plus</span>
+      </div>
+    </section>
+
+    <!-- CORE CONSTRAINT -->
+    <section class="section">
+      <div class="section-label">The Fundamental Problem</div>
+      <h2>Why Shopify Checkout A/B Testing Is Different</h2>
+
+      <p>
+        If you've run A/B tests on landing pages or product pages, your instinct is to bring
+        the same tooling — Google Optimize, VWO, Optimizely — to checkout. <strong>This doesn't work.</strong>
+        Shopify's checkout lives on a separate, Shopify-controlled domain
+        (<code style="font-family: var(--mono); font-size: 0.85rem; color: var(--amber);">checkout.shopify.com</code>)
+        where third-party JavaScript injection is blocked.
+      </p>
+      <p>
+        The restriction is intentional. Shopify maintains checkout as a trusted, consistent
+        experience across its platform — both to protect merchants from accidentally breaking
+        conversion and to protect customers from inconsistent payment security experiences.
+        The tradeoff: you get less testing surface, but the checkout you do have is
+        highly optimized by Shopify's engineering.
+      </p>
+
+      <div class="warning-box">
+        <div class="warning-label">Common Misconception</div>
+        <p>
+          Google Optimize, Optimizely, VWO, and AB Tasty can all be installed on your Shopify
+          store — but their JavaScript runs on <em>your</em> pages, not on
+          <code style="font-family: var(--mono); font-size: 0.85rem;">checkout.shopify.com</code>.
+          Any experiment you set up "at checkout" in these tools will either be silently ignored
+          or will fail to render. You're testing your cart page, not checkout.
+        </p>
+        <p>
+          Google Optimize was deprecated entirely in September 2023. If you're still reading
+          tutorials that reference it, they're outdated.
+        </p>
+      </div>
+    </section>
+
+    <!-- WHAT'S TESTABLE -->
+    <section class="section">
+      <div class="section-label">Capability Matrix</div>
+      <h2>What You Can Test on Every Shopify Plan</h2>
+
+      <div class="plan-table-wrap">
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th>What to Test</th>
+              <th>Standard Shopify</th>
+              <th>Shopify Plus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Product page CTAs (button copy, placement, color)</td>
+              <td><span class="tag-yes">Yes</span></td>
+              <td><span class="tag-yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td>Cart page layout (upsells, trust badges, shipping preview)</td>
+              <td><span class="tag-yes">Yes</span></td>
+              <td><span class="tag-yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td>Shipping cost display before checkout (with/without estimate)</td>
+              <td><span class="tag-yes">Yes</span></td>
+              <td><span class="tag-yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td>Guest checkout vs. account creation prompt configuration</td>
+              <td><span class="tag-yes">Config</span></td>
+              <td><span class="tag-yes">Config</span></td>
+            </tr>
+            <tr>
+              <td>Payment method availability (Shop Pay, Apple Pay, etc.)</td>
+              <td><span class="tag-yes">Config</span></td>
+              <td><span class="tag-yes">Config</span></td>
+            </tr>
+            <tr>
+              <td>Checkout branding (logo, brand colors, background)</td>
+              <td><span class="tag-yes">Basic</span></td>
+              <td><span class="tag-yes">Full</span></td>
+            </tr>
+            <tr>
+              <td>Checkout UI extensions (trust badges, loyalty, upsells)</td>
+              <td><span class="tag-yes">Yes</span></td>
+              <td><span class="tag-yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td>True simultaneous A/B splits of checkout UI extensions</td>
+              <td><span class="tag-no">No</span></td>
+              <td><span class="tag-plus">Plus + Tool</span></td>
+            </tr>
+            <tr>
+              <td>Shipping rate presentation testing (e.g., free vs. flat rate)</td>
+              <td><span class="tag-no">No native</span></td>
+              <td><span class="tag-plus">Intelligems</span></td>
+            </tr>
+            <tr>
+              <td>Price A/B testing (different prices for same product)</td>
+              <td><span class="tag-no">No native</span></td>
+              <td><span class="tag-plus">Intelligems</span></td>
+            </tr>
+            <tr>
+              <td>Checkout form field configuration (phone required, company field)</td>
+              <td><span class="tag-yes">Config</span></td>
+              <td><span class="tag-yes">Config + API</span></td>
+            </tr>
+            <tr>
+              <td>Custom checkout fields (subscription, B2B notes, etc.)</td>
+              <td><span class="tag-no">No</span></td>
+              <td><span class="tag-plus">Plus</span></td>
+            </tr>
+            <tr>
+              <td>Post-purchase page experiments</td>
+              <td><span class="tag-yes">Yes</span></td>
+              <td><span class="tag-yes">Yes</span></td>
+            </tr>
+            <tr>
+              <td>Discount logic A/B testing (via Shopify Functions)</td>
+              <td><span class="tag-no">No</span></td>
+              <td><span class="tag-plus">Plus</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The practical conclusion: <strong>standard Shopify merchants have meaningful testing
+        surface before and after checkout, but not inside checkout itself.</strong> Shopify Plus
+        unlocks UI extension testing, Checkout Functions, and integration with tools like
+        Intelligems — but even Plus has hard limits on the core checkout flow structure.
+      </p>
+    </section>
+
+    <!-- VALID METHODS -->
+    <section class="section">
+      <div class="section-label">Testing Methods</div>
+      <h2>4 Valid A/B Testing Approaches on Shopify</h2>
+
+      <div class="method-list">
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">1</div>
+            <div>
+              <div class="method-title">
+                Pre-Checkout Split Testing (Cart Page)
+                <span class="method-badge tag-yes">Any Plan</span>
+              </div>
+            </div>
+          </div>
+          <p>
+            The cart page at <code style="font-family: var(--mono); font-size: 0.85rem; color: var(--amber);">/cart</code>
+            is fully JavaScript-accessible and testable with any A/B testing tool. This is
+            where most real checkout optimization wins live anyway.
+          </p>
+          <p>
+            <strong>What to test on the cart page:</strong> Shipping cost estimates vs. no estimate;
+            upsell/cross-sell placement and copy; trust badge types and placement;
+            "Checkout" button copy, color, and position; cart abandonment recovery prompt timing;
+            free shipping progress bar presence and threshold display; discount code field
+            visibility (visible vs. collapsible reduces distraction for non-coupon shoppers).
+          </p>
+          <p>
+            <strong>How to measure:</strong> Use a tool like VWO, Shoplift, or even a simple
+            Shopify theme A/B app (Shoplift, Neat A/B Testing). Track checkout initiation rate
+            (cart → checkout button clicks) as the primary metric, and order completion rate
+            as the secondary. A cart-page change that lifts checkout initiation by 10%
+            translates directly to revenue even if checkout itself is unchanged.
+          </p>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">2</div>
+            <div>
+              <div class="method-title">
+                Configuration Before/After Testing
+                <span class="method-badge tag-yes">Any Plan</span>
+              </div>
+            </div>
+          </div>
+          <p>
+            Since you can't split traffic inside checkout, the practical alternative is
+            sequential testing: make one configuration change, run it for a statistically
+            meaningful period, compare to the equivalent prior period.
+          </p>
+          <p>
+            <strong>What to test this way:</strong> Enabling Shop Pay (before/after activation);
+            switching from required accounts to guest checkout; enabling Apple Pay and Google Pay;
+            adding or removing express checkout button placement; changing the phone field
+            from required to optional; enabling or disabling address autocomplete.
+          </p>
+          <p>
+            <strong>Validity rules for before/after testing:</strong> Run at least 2 weeks in
+            each period. Avoid periods containing a sale, holiday, or significant traffic event.
+            Compare same days of the week across periods. Watch for external confounders
+            (ad spend changes, seasonal shifts). A 10%+ lift with consistent week-over-week
+            trend is more trustworthy than a single week spike.
+          </p>
+          <p>
+            <strong>Tools:</strong> Shopify's built-in checkout funnel report (Analytics →
+            Checkout behavior) plus a spreadsheet is sufficient for most before/after analysis.
+            For more rigorous comparison, export session data and run a t-test on checkout
+            completion rates.
+          </p>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">3</div>
+            <div>
+              <div class="method-title">
+                Checkout UI Extension Testing
+                <span class="method-badge tag-yes">Any Plan</span>
+              </div>
+            </div>
+          </div>
+          <p>
+            Shopify's Checkout UI Extensions allow third-party apps to inject content into
+            specific checkout slots — the order summary, the information step footer, the
+            payment step header. These extensions run in Shopify's checkout sandbox and
+            are available on all plans.
+          </p>
+          <p>
+            <strong>What you can test with extensions:</strong> Trust badge copy and design
+            variants; loyalty point displays (earn X points on this order); product reviews
+            summaries in the order summary; upsell offers in the order confirmation sidebar;
+            estimated delivery date displays; return policy summaries near the payment step.
+          </p>
+          <p>
+            <strong>How to do it:</strong> Apps like ReConvert (post-purchase) and specific
+            checkout extension apps in the Shopify App Store provide A/B testing within their
+            extensions. The limitation: you're testing the extension's content, not the core
+            checkout flow. It's a real experiment with meaningful impact — trust signals at
+            checkout reliably lift completion rates by 3–8% — but the surface area is limited.
+          </p>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">4</div>
+            <div>
+              <div class="method-title">
+                Intelligems / Shoplift (Shopify Plus)
+                <span class="method-badge tag-plus">Plus Only</span>
+              </div>
+            </div>
+          </div>
+          <p>
+            For Shopify Plus merchants, Intelligems is the most checkout-native testing platform.
+            It integrates with Shopify's Plus APIs to support price testing (showing different
+            prices to different visitor segments), shipping rate testing (flat rate vs. tiered
+            vs. free threshold), and checkout UI extension split tests.
+          </p>
+          <p>
+            <strong>What Intelligems enables:</strong> Simultaneous price variants for the
+            same product shown to split-test cohorts; shipping rate presentation experiments
+            (does showing "Free over $75" improve order value or reduce checkout completion?);
+            discount offer testing at the checkout page; checkout UI extension variant testing
+            with proper statistical significance tracking.
+          </p>
+          <p>
+            <strong>What it still can't do:</strong> Modify the core Shopify checkout form
+            layout, change the checkout step structure, or run experiments on the contact
+            information step form. The platform-controlled checkout UI is off-limits even on Plus.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- THE HIDDEN PROBLEM -->
+    <section class="section">
+      <div class="section-label">Test Validity</div>
+      <h2>Why Your Checkout Test Results May Be Wrong</h2>
+
+      <p>
+        Even when you run a properly structured A/B test on Shopify checkout, three
+        factors routinely corrupt results. The third is the least discussed and
+        the most damaging.
+      </p>
+
+      <h3>Problem 1 — Insufficient Traffic Volume</h3>
+      <p>
+        A checkout test with a 55% baseline conversion rate, testing a change expected
+        to produce a 5% relative lift (55% → 57.75%), requires approximately <strong>7,800 sessions
+        per variant</strong> to reach 95% statistical confidence. That's 15,600 total checkout
+        sessions. A store completing 500 orders/month with 65% checkout conversion reaches
+        checkout ~770 sessions/month. This test would take 20 months.
+      </p>
+      <p>
+        Most Shopify stores that should be running checkout experiments don't have the
+        traffic to do it properly. The practical alternative: run larger, lower-precision
+        tests (accept 80% confidence, target 15%+ relative lifts) or focus on pre-checkout
+        improvements that affect a larger surface area.
+      </p>
+
+      <h3>Problem 2 — Seasonal and Campaign Contamination</h3>
+      <p>
+        Checkout conversion rates are not stable. A store running a 15% off sale sees
+        conversion rates spike 25–40% during the campaign regardless of checkout changes.
+        A test that spans a promotional period produces a result that's mostly measuring
+        the sale, not the checkout change. Always document campaigns running during tests
+        and plan test windows around promotional calendars.
+      </p>
+
+      <div class="warning-box">
+        <div class="warning-label">Problem 3 — Silent Checkout Failures (Most Damaging)</div>
+        <p>
+          If your checkout has a technical failure affecting a subset of users — payment methods
+          not loading for Safari users, checkout session expiring after 30 minutes on mobile,
+          a 3DS redirect failing for certain card types — those failures appear as abandonment
+          in your analytics. They corrupt the conversion signal in every test variant equally.
+        </p>
+        <p>
+          Here's why this is particularly destructive for A/B testing: a checkout failure
+          affecting 8% of sessions introduces a 8-percentage-point floor of "unconvertible"
+          sessions that inflates your sample size requirement and obscures real test signals.
+          If your checkout completion rate is 55% but 8% of that is technical abandonment,
+          you're starting from 47% real intent-based conversion — and your test baseline
+          is wrong.
+        </p>
+        <p>
+          <strong>The prerequisite rule:</strong> Before running any checkout experiment,
+          verify your checkout works correctly across all browsers, payment methods, and
+          discount code states. A test run on a broken checkout produces directionally
+          incorrect results.
+        </p>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">Diagnostic Technique</div>
+        <p>
+          Look at your checkout funnel in Shopify Analytics. If your drop-off at Step 3
+          (payment step) is significantly higher than Step 1–2, and you see no corresponding
+          spike in customer support contacts about payment errors, you likely have a silent
+          technical failure category. Payment-step drop-off without reported errors usually
+          means the payment step is loading but failing silently — no visible error, no
+          completion, just abandonment.
+        </p>
+        <p>
+          Run a full manual checkout simulation: add a product, go to checkout, enter a
+          test card, and verify you reach the confirmation screen. Do it on Chrome, Firefox,
+          Safari, and a mobile browser. If any step fails or behaves unexpectedly, you've
+          found your silent failure — and every A/B test you ran before fixing it was measuring
+          the wrong thing.
+        </p>
+      </div>
+    </section>
+
+    <!-- STEP BY STEP APPROACH -->
+    <section class="section">
+      <div class="section-label">Practical Playbook</div>
+      <h2>How to Run Valid Checkout Tests: Step by Step</h2>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <strong>Audit checkout health first.</strong> Run a full checkout simulation
+            on Chrome, Safari, Firefox, and mobile. Verify payment methods load, discount
+            codes apply, and the confirmation screen is reached. Fix any technical failures
+            before proceeding — they will corrupt your results.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <strong>Identify your highest-impact test hypothesis.</strong> Look at your
+            checkout funnel step drop-off rates. The step with the highest drop-off is
+            your best test target — but only if you can actually change what happens there.
+            Information step drop-off (email/address) → address autocomplete, guest checkout.
+            Payment step drop-off → payment method options, trust signals, shipping reveal.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">03</div>
+          <div class="step-body">
+            <strong>Calculate your required sample size.</strong> Use a calculator: enter
+            your baseline conversion rate, desired minimum detectable effect (15% relative
+            lift is a reasonable minimum for checkout tests), and target statistical confidence
+            (95%). Divide by your monthly checkout sessions to get months required. If it's
+            more than 3 months, either raise your detectable effect target or focus on
+            pre-checkout tests where traffic is higher.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">04</div>
+          <div class="step-body">
+            <strong>Choose the right testing method for your plan.</strong> Standard plan:
+            cart-page splits with a dedicated tool, or sequential before/after for checkout
+            configuration changes. Plus: Intelligems for shipping rate or price experiments,
+            or checkout UI extension A/B testing via a compatible app.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">05</div>
+          <div class="step-body">
+            <strong>Set start/end dates that avoid promotions and seasonality.</strong>
+            Do not run a test during a sale, product launch, or historically high/low traffic
+            period. Aim for a "normal" 4-week window. If you can't find one, push the test
+            out rather than collecting contaminated data.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">06</div>
+          <div class="step-body">
+            <strong>Monitor checkout health during the test.</strong> If a technical failure
+            starts mid-test — a payment app update breaks checkout, a new discount code
+            conflicts with the payment step — your test is compromised. Set up automated
+            checkout monitoring so failures surface within 30 minutes rather than after
+            the test window closes.
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">07</div>
+          <div class="step-body">
+            <strong>Analyze by segment, not just overall.</strong> When you have a result,
+            segment it: desktop vs. mobile, returning vs. new customer, paid vs. organic.
+            A change that lifts mobile by 20% and hurts desktop by 5% should only be
+            deployed to mobile. Segment-specific results are more actionable and more often
+            statistically significant than overall averages.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-block">
+      <h2>Validate Checkout Health Before Your Next Test</h2>
+      <p>
+        Every A/B test run on a checkout with silent technical failures is measuring noise.
+        CheckPulse simulates a full Shopify checkout every 30 minutes — cart creation,
+        checkout initialization, payment methods fetch, and checkout URL verification.
+        When something fails, you know within 30 minutes, not after weeks of corrupted
+        test data.
+      </p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+    </div>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Checkout A/B Testing — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Can you A/B test Shopify checkout without Shopify Plus?</div>
+          <div class="faq-a">
+            Native checkout split testing — running two different checkout UI variants simultaneously — is not available on standard Shopify plans. Shopify controls checkout UI to maintain consistent performance and security across the platform. What you can do on any plan: A/B test the cart page (full JavaScript access), run before/after configuration tests on checkout settings (guest checkout, payment methods, shipping display), and deploy checkout UI extensions that have their own analytics. True simultaneous splits of checkout elements require Shopify Plus and a tool like Intelligems.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What is the best A/B testing tool for Shopify checkout?</div>
+          <div class="faq-a">
+            For Shopify Plus: Intelligems is the most checkout-specific option — it supports price testing, shipping rate experiments, and checkout UI extension splits with proper statistical significance tracking. Shoplift is strong for checkout extensibility experiments. For standard Shopify plans: Shoplift (for cart and product page experiments), VWO (cart page only), or native analytics with before/after comparisons are the practical options. Google Optimize was deprecated in 2023. Any tool that claims to run tests inside Shopify's checkout on a non-Plus plan is either testing the cart page (not checkout) or injecting scripts that Shopify will block.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How long should I run a Shopify checkout A/B test?</div>
+          <div class="faq-a">
+            Run tests for a minimum of 2 full weeks (14 days) regardless of sample size, to capture day-of-week variation. For statistical significance at 95% confidence with a 10% relative lift target on a 55% baseline conversion: you need approximately 3,200 sessions per variant. Divide your monthly checkout sessions by 2 to get sessions per variant per month — that gives you required months. Many small Shopify stores need 3–6 months for a valid checkout test. If that's too long, raise the minimum detectable effect threshold (accept that you'll only detect large changes), focus on pre-checkout tests where you have more traffic, or expand marketing to increase checkout volume.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Does Shopify have native A/B testing built in?</div>
+          <div class="faq-a">
+            Shopify does not have native A/B testing for checkout or product pages on any plan. Shopify's built-in analytics (checkout funnel, session data, conversion reports) are analysis tools, not split testing tools. The closest native feature is Shopify's built-in checkout analytics segmentation, which lets you compare conversion across devices, markets, and customer types — this is observational analysis, not controlled experimentation. For true split testing, you need a third-party app. On standard plans, this means cart-page and pre-checkout tools. On Plus, checkout-specific tools become available.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why do my checkout A/B test results keep being inconclusive?</div>
+          <div class="faq-a">
+            Inconclusive checkout tests have three common causes. Insufficient traffic: most stores underestimate how many sessions a checkout test needs. Run a power calculator — your required sample is almost always larger than you expect. Seasonal noise: checkout conversion swings significantly around promotions, holidays, and campaigns. A test that spans a sale event will likely show noise rather than signal. Silent checkout failures: if a subset of your checkout sessions fail silently — payment methods not loading, sessions expiring, 3DS failing for specific card types — those failures inject non-convertible sessions into both test variants and reduce your signal-to-noise ratio. Check for checkout health issues before attributing inconclusive results to test design.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">Optimization</div>
+          <div class="guide-card-title">Shopify Checkout CRO Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Checkout Abandonment Analysis</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-performance-revenue" class="guide-card">
+          <div class="guide-card-label">Revenue</div>
+          <div class="guide-card-title">Checkout Performance &amp; Revenue Impact</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-speed-test" class="guide-card">
+          <div class="guide-card-label">Speed</div>
+          <div class="guide-card-title">Shopify Checkout Speed Test</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" class="guide-card">
+          <div class="guide-card-label">Mobile</div>
+          <div class="guide-card-title">Checkout Not Working on Mobile</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist" class="guide-card">
+          <div class="guide-card-label">Testing</div>
+          <div class="guide-card-title">Checkout Testing Checklist</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide" class="guide-card">
+          <div class="guide-card-label">Monitoring</div>
+          <div class="guide-card-title">Shopify Checkout Monitoring Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro">Checkout CRO</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

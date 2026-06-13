@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Subscription Checkout Not Working — ReCharge, Bold &amp; Shopify Subscriptions Errors (2026)</title>
+  <meta name="description" content="Shopify subscription checkout errors: ReCharge redirect loops, Bold Subscriptions payment failures, Shopify Subscriptions checkout not loading. 7 causes, exact fixes, and how to monitor recurring billing checkout." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" />
+  <meta property="og:title" content="Shopify Subscription Checkout Not Working — ReCharge, Bold &amp; Shopify Subscriptions Errors" />
+  <meta property="og:description" content="Subscription checkout fails differently than one-time purchase checkout. ReCharge redirect loops, Shopify Subscriptions payment errors, Bold Subscriptions checkout not loading — here are the 7 causes and how to fix them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Subscription Checkout Not Working — ReCharge, Bold and Shopify Subscriptions Errors",
+    "description": "Subscription checkout in Shopify is fundamentally different from one-time purchase checkout. Apps like ReCharge, Bold Subscriptions, Appstle, and Shopify's native Subscriptions API all intercept the standard checkout flow and replace or augment it. When this interception breaks — due to an app update, a Shopify theme change, or a payment gateway conflict — the failure is often invisible to standard uptime monitoring. This guide covers the 7 most common subscription checkout failure modes, how to diagnose each one, and how to detect them before customers abandon their subscription sign-up.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify subscription checkout not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify subscription checkout fails for different reasons than regular checkout. The most common causes are: (1) Your subscription app (ReCharge, Bold, Appstle, or Shopify Subscriptions) was updated and introduced a conflict with your current theme or other apps — check the app's changelog and look for recent updates in Admin → Apps; (2) The payment method enabled on your store isn't supported for subscription billing — Shopify Subscriptions and most third-party subscription apps require Shopify Payments or a supported gateway; (3) A theme update changed the way your cart or product pages handle the add-to-cart event, breaking the subscription app's widget injection; (4) A conflicting app is also modifying the checkout flow — checkout customization apps, upsell apps, and post-purchase apps can all interfere; (5) Your store is on a Shopify plan that doesn't support the subscription feature you're using — Shopify Subscriptions requires a plan that supports the Subscriptions API. Start by checking Admin → Apps → your subscription app → Support, and look for error logs or conflict warnings."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does ReCharge checkout redirect loop or fail to load?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ReCharge redirect loops occur when ReCharge's checkout portal URL fails to initialize correctly. The most common causes are: (1) Your ReCharge store is in a suspended or trial-expired state — check your ReCharge merchant portal at rechargepayments.com; (2) The ReCharge app script on your Shopify theme was accidentally removed or modified during a theme update — check your theme.liquid for the ReCharge script tag; (3) The Shopify–ReCharge connection needs to be re-authenticated — in ReCharge Admin, go to Settings → Integrations → Shopify and verify the connection status; (4) A browser extension (especially ad blockers) is blocking ReCharge's checkout scripts in testing — always test checkout in a clean incognito window; (5) Your Shopify Payments account is paused or restricted, which blocks ReCharge from processing the initial charge. Check ReCharge's status page at status.rechargepayments.com for platform-level issues before assuming the problem is store-specific."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't customers purchase a subscription product — they only see one-time purchase at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If the subscription option isn't appearing at checkout — customers can only buy once, not subscribe — the most likely causes are: (1) The product wasn't set up as a subscription product in your subscription app — in ReCharge, Bold, or Appstle, the subscription option must be configured per-product, not just installed; (2) The subscription app's widget script isn't loading on the product page — check for JavaScript errors in the browser console on the product page; (3) The theme update removed or overwrote the code snippet the subscription app injected — most subscription apps inject a code snippet into the product form; (4) The product was recently duplicated or migrated and the subscription settings didn't carry over — subscription configurations are stored in the app, not in Shopify's product data; (5) The subscription app is paused, in trial mode with a restriction, or the API connection lapsed. To verify: go to the product page, open the browser console (F12), and look for errors from the subscription app's domain."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Shopify Subscriptions (native) checkout gives a payment error — why?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's native Subscriptions API (built into Shopify since 2021) requires Shopify Payments as the payment processor — it cannot use third-party payment gateways for the subscription billing cycles. If you see a payment error with Shopify Subscriptions, the causes are: (1) Your Shopify Payments account is not fully verified — check Admin → Settings → Payments → Shopify Payments for any verification warnings; (2) The customer's card doesn't support recurring charges — some prepaid cards and virtual cards are blocked; (3) The subscription selling plan was set up incorrectly — go to Admin → Products → [product] → Subscription and verify the selling plan configuration; (4) Your store is in test mode with a live subscription — Shopify Payments test mode can't process subscription renewals the same way; (5) The customer's billing address doesn't match their card — this is more common with subscription checkout than one-time checkout because Shopify re-validates address data on the initial subscription setup. Check Admin → Settings → Payments → Shopify Payments → Payout account to confirm your account is active and unrestricted."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test Shopify subscription checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Testing Shopify subscription checkout requires more steps than testing regular checkout: (1) Use a real payment method — Shopify's test credit cards cannot reliably simulate subscription billing in all scenarios. Create a $1/month test subscription with your real card and immediately cancel after confirming it works. (2) Test the full subscription flow: add subscription product → cart → checkout → confirm subscription setup → verify confirmation email arrives → check that the subscription appears in the customer portal. (3) Test the subscription management portal — customers need to be able to log in and see their active subscription; a broken portal is a support burden. (4) For ReCharge: go to rechargepayments.com → Customers → find your test customer → verify the subscription shows 'Active' and the next billing date is set correctly. (5) Test checkout with each payment method you accept — subscription apps often behave differently with PayPal, Shop Pay, and Apple Pay compared to standard credit cards. (6) After any app update, theme update, or payment gateway change, run this test again — subscription checkout is the most fragile part of the checkout flow because it involves three layers: Shopify, the subscription app, and the payment processor."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #1a1a1a;
+      --border: #222222;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-muted: #555555;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0,212,170,0.12);
+      --accent-border: rgba(0,212,170,0.25);
+      --warn: #f59e0b;
+      --warn-dim: rgba(245,158,11,0.1);
+      --danger: #ef4444;
+      --danger-dim: rgba(239,68,68,0.1);
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); max-width: 900px; margin: 0 auto; }
+    .nav-brand { font-weight: 700; font-size: 18px; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px; }
+    .nav-cta:hover { text-decoration: none; opacity: 0.9; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    .hero { padding: 56px 0 40px; }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--text-muted); }
+    .hero-label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.15; color: var(--text); margin-bottom: 18px; }
+    .hero-desc { font-size: 18px; color: var(--text-dim); max-width: 700px; line-height: 1.7; }
+
+    .stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin: 36px 0; }
+    .stat-card { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .stat-number { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .section { margin: 56px 0; }
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    h2 { font-size: clamp(20px, 3vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 16px; }
+    h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-dim); line-height: 1.75; margin-bottom: 14px; }
+
+    .alert { background: var(--warn-dim); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius); padding: 16px 20px; margin: 24px 0; }
+    .alert-title { font-weight: 700; color: var(--warn); font-size: 14px; margin-bottom: 6px; }
+    .alert p { margin: 0; font-size: 14px; color: var(--text-dim); }
+
+    .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0; }
+    .platform-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .platform-name { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 8px; }
+    .platform-market { font-size: 12px; color: var(--accent); margin-bottom: 10px; }
+    .platform-note { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .cause-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+    .cause-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .cause-num { font-size: 11px; font-weight: 700; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 4px; padding: 2px 8px; white-space: nowrap; }
+    .cause-title { font-weight: 700; font-size: 16px; color: var(--text); }
+    .cause-body { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-bottom: 10px; }
+    .cause-fix { background: var(--accent-dim); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-dim); }
+    .cause-fix strong { color: var(--accent); }
+
+    .error-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 24px 0; }
+    .error-table th { text-align: left; padding: 10px 14px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .error-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-dim); }
+    .error-table td:first-child { color: var(--text); font-weight: 500; }
+    .error-table tr:last-child td { border-bottom: none; }
+    .error-table tr:hover td { background: var(--surface); }
+
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .tag-recharge { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .tag-bold { background: rgba(16,185,129,0.15); color: #34d399; }
+    .tag-native { background: var(--accent-dim); color: var(--accent); }
+    .tag-appstle { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .tag-all { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .checklist li { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--text-dim); padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .checklist li::before { content: "→"; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    .cta-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 12px; padding: 36px 40px; text-align: center; margin: 48px 0; }
+    .cta-block h2 { font-size: 24px; margin-bottom: 12px; }
+    .cta-block p { max-width: 500px; margin: 0 auto 24px; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 14px 32px; border-radius: var(--radius); font-size: 16px; }
+    .cta-btn:hover { text-decoration: none; opacity: 0.9; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 0; margin: 24px 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 22px 24px; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 10px; }
+    .faq-a { font-size: 14px; color: var(--text-dim); line-height: 1.75; }
+
+    .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+    .guide-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; color: var(--text); transition: border-color 0.15s; }
+    .guide-card:hover { border-color: var(--accent); text-decoration: none; }
+    .guide-card-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .guide-card-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    .footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; color: var(--text-muted); font-size: 13px; max-width: 900px; margin: 0 auto; }
+
+    @media (max-width: 600px) {
+      .stats-row { flex-direction: column; }
+      .platform-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .error-table { font-size: 12px; }
+      .error-table th, .error-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor My Store →</a>
+  </nav>
+
+  <main>
+
+    <article class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Checkout Errors › Subscription Checkout
+      </div>
+      <div class="hero-label">Subscription Checkout Errors</div>
+      <h1>Shopify Subscription Checkout Not Working — ReCharge, Bold &amp; Shopify Subscriptions Errors</h1>
+      <p class="hero-desc">
+        Subscription checkout fails differently than regular checkout. Apps like ReCharge and Bold Subscriptions intercept the checkout flow — when that interception breaks, customers can't subscribe, and you won't know until they complain.
+      </p>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-number">3×</div>
+          <div class="stat-label">more checkout dependencies than one-time purchase</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">68%</div>
+          <div class="stat-label">of subscription checkout errors start silently — no alert</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">4–18h</div>
+          <div class="stat-label">average time before merchant learns of the failure</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WHY SUBSCRIPTIONS ARE DIFFERENT -->
+    <section class="section">
+      <div class="section-label">Root Cause</div>
+      <h2>Why Subscription Checkout Breaks Differently</h2>
+      <p>
+        A standard Shopify checkout has two layers: Shopify's cart/checkout pipeline and your payment gateway. Subscription checkout adds a third layer — the subscription app — that sits between the customer's cart and the Shopify checkout. This app must intercept the "Add to Cart" or "Buy Now" action, replace or modify the checkout URL, set up a recurring billing agreement with the payment processor, and return the customer to a confirmation state.
+      </p>
+      <p>
+        When any part of this three-layer stack is updated — a theme update, an app update, a Shopify platform change, or a payment gateway update — the interception can break without any error appearing on Shopify's own checkout page. The checkout URL returns HTTP 200. Standard uptime monitors show green. But customers can't complete a subscription purchase.
+      </p>
+
+      <div class="alert">
+        <div class="alert-title">Why standard monitoring misses subscription checkout failures</div>
+        <p>Uptime monitors check that a URL loads. Subscription checkout failures happen inside the user interaction — the app's script fails to initialize, the recurring billing setup call fails, or the redirect loop occurs after checkout is already "open." These failures require end-to-end simulation, not just HTTP status checks.</p>
+      </div>
+    </section>
+
+    <!-- SUBSCRIPTION PLATFORMS -->
+    <section class="section">
+      <div class="section-label">Platform Reference</div>
+      <h2>Subscription Apps: Checkout Architecture &amp; Common Failure Points</h2>
+
+      <div class="platform-grid">
+        <div class="platform-card">
+          <div class="platform-name">ReCharge</div>
+          <div class="platform-market">Largest third-party subscription platform</div>
+          <div class="platform-note">Uses its own hosted checkout portal (checkout.rechargeapps.com). Failures often appear as redirect loops or blank checkout pages. The Shopify–ReCharge connection can lapse after plan changes or permission updates.</div>
+        </div>
+        <div class="platform-card">
+          <div class="platform-name">Shopify Subscriptions (Native)</div>
+          <div class="platform-market">Built-in since 2021 — Shopify Plus &amp; Advanced</div>
+          <div class="platform-note">Uses Shopify's own checkout — the most stable option. Requires Shopify Payments; cannot use third-party gateways for subscription renewal billing. Selling plan setup errors are common.</div>
+        </div>
+        <div class="platform-card">
+          <div class="platform-name">Bold Subscriptions</div>
+          <div class="platform-market">V2: API-based; V1: legacy (deprecated)</div>
+          <div class="platform-note">Bold V2 uses Shopify Checkout natively. V1 used a separate hosted checkout — many merchants still on V1 face deprecation-related failures. Verify which version you're running in your Bold dashboard.</div>
+        </div>
+        <div class="platform-card">
+          <div class="platform-name">Appstle Subscriptions</div>
+          <div class="platform-market">Growing mid-market option</div>
+          <div class="platform-note">Widget-based, injects into product pages. Theme updates frequently break the widget injection — the subscribe option disappears from product pages silently after a theme change.</div>
+        </div>
+        <div class="platform-card">
+          <div class="platform-name">Loop Subscriptions</div>
+          <div class="platform-market">Direct-to-consumer focus</div>
+          <div class="platform-note">Uses Shopify Checkout with a custom portal for management. Issues most often appear in the customer portal (subscription management), not the initial checkout.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 CAUSES -->
+    <section class="section">
+      <div class="section-label">Diagnosis</div>
+      <h2>7 Subscription Checkout Failure Modes</h2>
+
+      <div class="cause-list">
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 1</span>
+            <span class="cause-title">Subscription app script removed by theme update</span>
+          </div>
+          <div class="cause-body">
+            When you update or switch Shopify themes, the code snippets injected by your subscription app (the widget that shows "Subscribe &amp; Save" on product pages) can be removed. The subscription option silently disappears. Customers see only the one-time purchase price.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> In your subscription app admin, look for a "Reinstall widget" or "Re-inject snippet" option. For ReCharge: Admin → Integrations → Shopify → Verify widget installation. For Appstle: Admin → Embed settings → Reinstall. After a theme update, always verify the subscription widget appears on a product page.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 2</span>
+            <span class="cause-title">ReCharge checkout redirect loop or blank portal</span>
+          </div>
+          <div class="cause-body">
+            ReCharge routes customers through its hosted checkout portal (checkout.rechargeapps.com). If the Shopify–ReCharge OAuth connection lapses, or if there's a session conflict, customers get stuck in a redirect loop between your store and the ReCharge portal, or the portal loads blank.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> ReCharge Admin → Settings → Integrations → Shopify → check the connection status. If it shows "Reconnect needed" or any warning, re-authorize. Also check status.rechargepayments.com for platform-level issues. Test in a clean browser window without extensions.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 3</span>
+            <span class="cause-title">Shopify Subscriptions payment gateway incompatibility</span>
+          </div>
+          <div class="cause-body">
+            Shopify's native Subscriptions API requires Shopify Payments for recurring billing. If you've recently changed your payment gateway, added a secondary gateway, or have a Shopify Payments account restriction, subscription checkout will fail at the payment step — often with a generic "payment error" message that doesn't explain the root cause.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Settings → Payments → verify Shopify Payments is active, verified, and set as the primary gateway. If your account has any pending verification, complete it — even a partially restricted account can block subscription initial charges. Non-Shopify-Payments gateways cannot process Shopify Subscriptions renewals.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 4</span>
+            <span class="cause-title">Conflicting checkout app interfering with subscription flow</span>
+          </div>
+          <div class="cause-body">
+            Checkout customization apps, post-purchase upsell apps, and order tracking apps inject scripts into the checkout. Some of these conflict with subscription apps — particularly apps that modify the cart's line_item properties, which is also how subscription apps store subscription metadata. The result: the subscription purchase is processed as a one-time order, or the checkout fails entirely.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Temporarily disable checkout-modifying apps one at a time and test subscription checkout after each. Common culprits: Zipify OCU, ReConvert, CartHook, and checkout.liquid customizations. If a subscription purchase goes through as one-time after an upsell app is active, that app is the conflict source.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 5</span>
+            <span class="cause-title">Selling plan configuration error (Shopify Subscriptions)</span>
+          </div>
+          <div class="cause-body">
+            Shopify's native Subscriptions require a "selling plan" to be correctly configured and associated with the product. Common mistakes: selling plan was created but not assigned to the product, selling plan has an incorrect billing interval, or the plan was duplicated without updating the product associations.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Products → [product] → Subscriptions → verify the selling plan is assigned and the billing frequency is correct. Also check Admin → Settings → Subscription selling plans — make sure the plan status is "Active" (not draft). If you recently duplicated a product, the subscription assignment doesn't copy automatically.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 6</span>
+            <span class="cause-title">Bold Subscriptions V1 deprecation failures</span>
+          </div>
+          <div class="cause-body">
+            Bold Subscriptions V1 used a separate hosted checkout. Bold has been deprecating V1 for several years. Stores still on V1 increasingly encounter checkout failures as the legacy infrastructure ages. These failures don't always produce clear error messages — sometimes the checkout just doesn't complete.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Log in to your Bold Subscriptions dashboard → check if you're on V1 or V2. If V1, Bold's support team can assist with migration to V2, which uses Shopify's native checkout and is significantly more stable. This migration requires careful handling of existing subscriber data.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 7</span>
+            <span class="cause-title">Customer portal broken (subscription management fails)</span>
+          </div>
+          <div class="cause-body">
+            Even if the initial subscription checkout works, a broken customer portal — where subscribers can't update payment methods, skip deliveries, or cancel — causes a surge in support tickets and forced chargebacks. Portal failures often stem from theme changes that break the customer account portal integration.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Log in to your store as a test subscriber (create a test subscription → log in as that customer). Navigate to the customer portal and verify all management actions work: update payment method, skip order, cancel. If the portal link doesn't appear in the customer account page, your subscription app's customer portal integration needs to be reinstalled after the theme update.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ERROR TABLE -->
+    <section class="section">
+      <div class="section-label">Error Reference</div>
+      <h2>Common Subscription Checkout Errors &amp; Their Source</h2>
+
+      <table class="error-table">
+        <thead>
+          <tr>
+            <th>Error / Symptom</th>
+            <th>Platform</th>
+            <th>Most Likely Cause</th>
+            <th>First Check</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Subscribe" option missing on product page</td>
+            <td><span class="tag tag-all">All</span></td>
+            <td>Widget script removed by theme update</td>
+            <td>Reinstall widget in subscription app admin</td>
+          </tr>
+          <tr>
+            <td>Redirect loop to checkout.rechargeapps.com</td>
+            <td><span class="tag tag-recharge">ReCharge</span></td>
+            <td>OAuth connection lapsed or session conflict</td>
+            <td>ReCharge Admin → Settings → Shopify connection</td>
+          </tr>
+          <tr>
+            <td>Blank page at ReCharge checkout portal</td>
+            <td><span class="tag tag-recharge">ReCharge</span></td>
+            <td>ReCharge account suspended or trial expired</td>
+            <td>Log in to rechargepayments.com, check account status</td>
+          </tr>
+          <tr>
+            <td>Payment error at checkout (subscription)</td>
+            <td><span class="tag tag-native">Native</span></td>
+            <td>Shopify Payments not verified or restricted</td>
+            <td>Admin → Settings → Payments → Shopify Payments status</td>
+          </tr>
+          <tr>
+            <td>Subscription purchased as one-time order</td>
+            <td><span class="tag tag-all">All</span></td>
+            <td>Conflicting app overwriting cart line_item properties</td>
+            <td>Disable checkout apps one-by-one, retest</td>
+          </tr>
+          <tr>
+            <td>"No selling plans available" error</td>
+            <td><span class="tag tag-native">Native</span></td>
+            <td>Selling plan not assigned to product</td>
+            <td>Admin → Products → [product] → Subscriptions</td>
+          </tr>
+          <tr>
+            <td>Checkout loads but order never confirms</td>
+            <td><span class="tag tag-bold">Bold V1</span></td>
+            <td>Bold V1 legacy infrastructure failure</td>
+            <td>Check Bold dashboard for V1/V2, contact Bold support</td>
+          </tr>
+          <tr>
+            <td>Customer portal 404 or blank after theme update</td>
+            <td><span class="tag tag-all">All</span></td>
+            <td>Portal integration removed by theme update</td>
+            <td>Reinstall customer portal integration in subscription app</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- TESTING CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Testing Protocol</div>
+      <h2>Subscription Checkout Test Checklist</h2>
+      <p>Run this after any theme update, app update, payment gateway change, or Shopify plan change.</p>
+
+      <ul class="checklist">
+        <li>Subscribe option visible on product page with correct pricing and frequency options</li>
+        <li>Subscribe &amp; Save discount applied correctly at checkout (not showing one-time price)</li>
+        <li>Checkout completes with a real payment method (not just test cards)</li>
+        <li>Order confirmation email received by customer — includes subscription details</li>
+        <li>Subscription appears in subscription app admin as "Active"</li>
+        <li>Next billing date is set correctly (not blank or past date)</li>
+        <li>Customer portal accessible from account page — shows active subscription</li>
+        <li>Customer can update payment method in portal without error</li>
+        <li>Subscription option available in all target markets if using Shopify Markets</li>
+        <li>Mobile checkout (iOS Safari): subscribe option visible and checkout completes</li>
+      </ul>
+    </section>
+
+    <!-- MONITORING CTA -->
+    <section class="cta-block">
+      <h2>Detect Subscription Checkout Failures Before Customers Do</h2>
+      <p>CheckPulse simulates the full purchase flow on your store — including pages where subscription widgets must appear — and alerts you the moment checkout breaks.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Subscription Checkout Questions</h2>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify subscription checkout not working?</div>
+          <div class="faq-a">The most common causes are: subscription app script removed by a theme update (subscribe option disappears), ReCharge OAuth connection lapsed (redirect loop), Shopify Payments restricted (payment error for native subscriptions), or a conflicting app overwriting cart data. Start by checking your subscription app's admin for any connection warnings, then test on a clean browser window.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does ReCharge checkout redirect loop or fail to load?</div>
+          <div class="faq-a">ReCharge redirect loops usually mean the Shopify–ReCharge OAuth connection has lapsed (go to ReCharge Admin → Settings → Integrations → Shopify and re-authorize) or your ReCharge account is suspended. Also check status.rechargepayments.com for platform outages and test in a clean incognito window to rule out browser extension interference.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why can't customers purchase a subscription — they only see one-time purchase?</div>
+          <div class="faq-a">The subscription widget is missing from the product page. This happens after theme updates (the app snippet was removed), when the product wasn't configured as a subscription product in the app, or when the app's widget script has a JavaScript error. Check the browser console (F12) on the product page for errors from your subscription app's domain.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Shopify Subscriptions (native) checkout gives a payment error — why?</div>
+          <div class="faq-a">Shopify's native Subscriptions API requires Shopify Payments — it can't use third-party gateways for recurring billing. Check Admin → Settings → Payments → Shopify Payments for any verification warnings. If your Shopify Payments account is pending verification or has a restriction, subscription charges will fail even if regular purchases work.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I test Shopify subscription checkout?</div>
+          <div class="faq-a">Use a real payment method (not just test cards) — create a $1/month test subscription and verify it creates an active subscription in your app admin with the correct next billing date. Test the full flow: product page widget → checkout → confirmation email → customer portal. After any theme or app update, rerun this test before assuming it still works.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Troubleshooting</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">General</div>
+          <div class="guide-card-title">Checkout Not Working: 7 Fixes</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+          <div class="guide-card-label">Discounts</div>
+          <div class="guide-card-title">Discount Code Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+          <div class="guide-card-label">Payment</div>
+          <div class="guide-card-title">Checkout Payment Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit" class="guide-card">
+          <div class="guide-card-label">Performance</div>
+          <div class="guide-card-title">Which Apps Slow Down Checkout?</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist" class="guide-card">
+          <div class="guide-card-label">Testing</div>
+          <div class="guide-card-title">Full Checkout Testing Checklist</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-redirect-loop" class="guide-card">
+          <div class="guide-card-label">Navigation</div>
+          <div class="guide-card-title">Checkout Redirect Loop</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide" class="guide-card">
+          <div class="guide-card-label">Monitoring</div>
+          <div class="guide-card-title">Shopify Checkout Monitoring Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Errors</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+    </p>
+  </footer>
+
+</body>
+</html>

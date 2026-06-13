@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify B2B Checkout Not Working — Wholesale, Company Accounts &amp; Net Terms Errors (2026)</title>
+  <meta name="description" content="Shopify B2B checkout errors: company account pricing not applying, net payment terms missing, draft order checkout failing, wholesale login loop. 8 root causes with exact fixes for Shopify Plus B2B merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working" />
+  <meta property="og:title" content="Shopify B2B Checkout Not Working — Wholesale, Company Accounts &amp; Net Terms Errors" />
+  <meta property="og:description" content="Shopify B2B checkout fails differently than consumer checkout. Company accounts, custom price lists, net payment terms, and draft orders each add a failure point that standard monitoring never catches." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify B2B Checkout Not Working — Wholesale, Company Accounts and Net Terms Errors",
+    "description": "Shopify B2B checkout (available on Shopify Plus since 2022) uses a fundamentally different architecture than consumer checkout. Company accounts, custom price lists, net payment terms, draft order flows, and tax exemptions each add a layer that can fail invisibly. This guide covers the 8 most common Shopify B2B checkout failures, how to diagnose each one, and how to monitor a B2B checkout that standard uptime tools can't reach.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify B2B checkout not working for my wholesale customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify B2B checkout requires several layers to work correctly simultaneously — and each is a distinct failure point. The most common causes are: (1) The customer isn't logged into their Shopify company account — B2B pricing, net terms, and tax exemptions are all tied to authenticated company account sessions. If the login fails or the session expires, customers see retail pricing or get blocked at checkout. Check Admin → Customers → Companies and verify the customer's company account is active and their contact has the Ordering permission. (2) The price list assigned to the company isn't applying at checkout — this happens when price list rules don't cover all products in the order, or when a recent price list update didn't propagate. (3) Net payment terms aren't appearing at checkout — Shopify B2B net terms (Net 30, Net 60, Net 90) only appear when Shopify Payments is the active gateway AND the customer's company account has net terms enabled. (4) The B2B store is on a Shopify plan that doesn't include B2B features — Shopify B2B requires Shopify Plus. On lower plans, B2B features are silently unavailable. Start by verifying the company account setup in Admin → Customers → Companies."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify B2B custom pricing not showing at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When B2B custom pricing (company-specific prices or price lists) isn't appearing at checkout, the most common causes are: (1) The customer isn't logged in with their company account — B2B prices are session-scoped to the authenticated company account. Ask the customer to log out and log back in with their company account email. (2) The price list isn't assigned to the company — go to Admin → Customers → Companies → [Company] → Price Lists and verify a price list is attached. If no price list is assigned, Shopify falls back to the product's retail price. (3) The price list exists but doesn't include the product being purchased — price lists can be configured to cover specific products or collections only. Check that the ordered product SKU or collection is included in the price list scope. (4) A price list update was made recently and the customer is viewing a cached version — have the customer clear cookies and log in fresh. (5) The store has multiple currencies active and the price list currency doesn't match the customer's selected currency — Shopify B2B price lists are currency-specific. Verify the price list is configured in the correct currency in Admin → Settings → Markets."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are net payment terms not appearing at Shopify B2B checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify B2B net payment terms (Net 30, Net 60, Net 90) have strict requirements that must all be met simultaneously: (1) Your store must be on Shopify Plus — net terms are a Shopify Plus-only feature. (2) Shopify Payments must be your active payment gateway — net terms are only available with Shopify Payments as the primary processor; third-party gateways (Authorize.net, Stripe direct, PayPal) do not support Shopify net terms. (3) The customer must be logged in with a company account that has net terms enabled — go to Admin → Customers → Companies → [Company] → Payment Terms and verify net terms are assigned. (4) The customer's company account must not have any outstanding overdue invoices — Shopify blocks new net term orders when the company has overdue balances. Check Admin → Customers → Companies → [Company] → Orders for outstanding balances. (5) The products in the cart must be eligible — some product types (digital goods, certain subscription products) may not qualify for net terms. If all conditions are met and net terms still don't appear, contact Shopify Plus support — this is sometimes a Shopify Payments account verification issue."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the Shopify draft order checkout link not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify draft order checkout links expire and can fail in several ways: (1) The checkout link expired — draft order checkout links expire after a set period (typically 72 hours by default, but configurable). The customer must request a new link. In Admin → Orders → Drafts, find the draft and click 'Send invoice' to generate a fresh checkout link. (2) The draft was converted to a pending order already — once a customer starts the checkout process from a draft link, the draft may be locked. Check if an order was already created from this draft. (3) The invoice email was sent but the store's Shopify plan changed or the draft was edited after the link was sent — any edit to a draft order (price, quantity, discount) invalidates the existing checkout link. Resend the invoice after any edits. (4) The customer's B2B login session doesn't match the company account the draft was created under — draft order checkout is tied to the company account that was used when creating the draft. Ask the customer to log out and log back in before using the link. (5) The draft includes a product that has since become unavailable (inventory reached zero, product unpublished) — Shopify will block draft checkout when a line item is no longer purchasable."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I monitor Shopify B2B checkout automatically?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify B2B checkout is harder to monitor than consumer checkout because it requires an authenticated company account session. Standard uptime tools that ping your homepage or even your regular checkout URL won't detect B2B-specific failures — they can't log in as a B2B buyer and verify that company pricing, net terms, and tax exemptions are correctly applied. The most practical approach is a combination of: (1) CheckPulse for automated checkout flow monitoring — CheckPulse simulates the full checkout process every 30 minutes and alerts you when any step fails, including payment method availability and checkout URL verification that catches many B2B gateway issues; (2) A weekly manual B2B checkout test: use a test company account with a $1 order, verify pricing applies correctly, verify payment terms appear if applicable, and verify the confirmation email arrives; (3) Set up a Shopify webhook for order creation failures — any draft order that fails to convert to an order will surface as an anomaly in your order volume. Configure an alert in Admin → Settings → Notifications if your average daily B2B order volume drops significantly. Monitor both the B2B checkout path and the regular checkout path, as they can fail independently."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #1a1a1a;
+      --border: #222222;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-muted: #555555;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0,212,170,0.12);
+      --accent-border: rgba(0,212,170,0.25);
+      --warn: #f59e0b;
+      --warn-dim: rgba(245,158,11,0.1);
+      --danger: #ef4444;
+      --danger-dim: rgba(239,68,68,0.1);
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); max-width: 900px; margin: 0 auto; }
+    .nav-brand { font-weight: 700; font-size: 18px; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px; }
+    .nav-cta:hover { text-decoration: none; opacity: 0.9; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    .hero { padding: 56px 0 40px; }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--text-muted); }
+    .hero-label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.15; color: var(--text); margin-bottom: 18px; }
+    .hero-desc { font-size: 18px; color: var(--text-dim); max-width: 700px; line-height: 1.7; }
+
+    .stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin: 36px 0; }
+    .stat-card { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .stat-number { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .section { margin: 56px 0; }
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    h2 { font-size: clamp(20px, 3vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 16px; }
+    h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-dim); line-height: 1.75; margin-bottom: 14px; }
+
+    .alert { background: var(--warn-dim); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius); padding: 16px 20px; margin: 24px 0; }
+    .alert-title { font-weight: 700; color: var(--warn); font-size: 14px; margin-bottom: 6px; }
+    .alert p { margin: 0; font-size: 14px; color: var(--text-dim); }
+
+    .layer-stack { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+    .layer-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; display: flex; gap: 16px; align-items: flex-start; }
+    .layer-num { font-size: 11px; font-weight: 700; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 4px; padding: 3px 10px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+    .layer-content { flex: 1; }
+    .layer-title { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+    .layer-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .cause-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+    .cause-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .cause-num { font-size: 11px; font-weight: 700; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 4px; padding: 2px 8px; white-space: nowrap; }
+    .cause-title { font-weight: 700; font-size: 16px; color: var(--text); }
+    .cause-body { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-bottom: 10px; }
+    .cause-fix { background: var(--accent-dim); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-dim); }
+    .cause-fix strong { color: var(--accent); }
+
+    .error-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 24px 0; overflow-x: auto; display: block; }
+    .error-table th { text-align: left; padding: 10px 14px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .error-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-dim); }
+    .error-table td:first-child { color: var(--text); font-weight: 500; white-space: nowrap; }
+    .error-table tr:last-child td { border-bottom: none; }
+    .error-table tr:hover td { background: var(--surface); }
+
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .tag-plus { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .tag-all { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+    .tag-warn { background: var(--warn-dim); color: var(--warn); }
+
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .checklist li { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--text-dim); padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .checklist li::before { content: "→"; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    .cta-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 12px; padding: 36px 40px; text-align: center; margin: 48px 0; }
+    .cta-block h2 { font-size: 24px; margin-bottom: 12px; }
+    .cta-block p { max-width: 500px; margin: 0 auto 24px; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 14px 32px; border-radius: var(--radius); font-size: 16px; }
+    .cta-btn:hover { text-decoration: none; opacity: 0.9; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 0; margin: 24px 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 22px 24px; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 10px; }
+    .faq-a { font-size: 14px; color: var(--text-dim); line-height: 1.75; }
+
+    .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+    .guide-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; color: var(--text); transition: border-color 0.15s; }
+    .guide-card:hover { border-color: var(--accent); text-decoration: none; }
+    .guide-card-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .guide-card-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    .footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; color: var(--text-muted); font-size: 13px; max-width: 900px; margin: 0 auto; }
+
+    @media (max-width: 600px) {
+      .stats-row { flex-direction: column; }
+      .cta-block { padding: 28px 20px; }
+      .error-table th, .error-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor My Store →</a>
+  </nav>
+
+  <main>
+
+    <article class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Checkout Errors › B2B &amp; Wholesale Checkout
+      </div>
+      <div class="hero-label">B2B &amp; Wholesale Checkout Errors</div>
+      <h1>Shopify B2B Checkout Not Working — Wholesale, Company Accounts &amp; Net Terms Errors</h1>
+      <p class="hero-desc">
+        Shopify B2B checkout has more failure points than consumer checkout. Company accounts, custom price lists, net payment terms, draft order links, and tax exemptions each add a layer — and each can break silently without any error appearing on your dashboard.
+      </p>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-number">4+</div>
+          <div class="stat-label">additional checkout layers vs. consumer checkout</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">Plus</div>
+          <div class="stat-label">Shopify Plus required for native B2B — lower plans silently unsupported</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">72h</div>
+          <div class="stat-label">draft order checkout links expire — most merchants don't know</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WHY B2B IS DIFFERENT -->
+    <section class="section">
+      <div class="section-label">Root Cause</div>
+      <h2>Why Shopify B2B Checkout Breaks Differently</h2>
+      <p>
+        Shopify's native B2B functionality (available on Shopify Plus since 2022) runs on a completely different checkout architecture than consumer checkout. A B2B checkout session must resolve six layers in sequence before a buyer can complete their purchase — and a failure in any one layer presents as a confusing error or silent block to the customer, not a clear "checkout is down" signal.
+      </p>
+
+      <div class="layer-stack">
+        <div class="layer-item">
+          <div class="layer-num">Layer 1</div>
+          <div class="layer-content">
+            <div class="layer-title">Company Account Authentication</div>
+            <div class="layer-desc">B2B buyers must be logged in with their company account — not a personal customer account. If the company account login fails, session expires, or the customer accidentally logs in with a personal account, they see retail pricing and lose access to B2B features.</div>
+          </div>
+        </div>
+        <div class="layer-item">
+          <div class="layer-num">Layer 2</div>
+          <div class="layer-content">
+            <div class="layer-title">Price List Resolution</div>
+            <div class="layer-desc">Shopify must resolve which price list applies to this company account at checkout. If no price list is assigned, the product's retail price is used. If the price list doesn't cover all products in the cart, mixed pricing occurs.</div>
+          </div>
+        </div>
+        <div class="layer-item">
+          <div class="layer-num">Layer 3</div>
+          <div class="layer-content">
+            <div class="layer-title">Payment Terms Eligibility</div>
+            <div class="layer-desc">Net payment terms (Net 30/60/90) require Shopify Plus, Shopify Payments, and explicit net terms enabled on the company account — all three simultaneously. If any condition is unmet, net terms silently disappear from checkout.</div>
+          </div>
+        </div>
+        <div class="layer-item">
+          <div class="layer-num">Layer 4</div>
+          <div class="layer-content">
+            <div class="layer-title">Tax Exemption Application</div>
+            <div class="layer-desc">B2B company accounts can be configured with tax exemptions. Shopify must apply these at checkout based on the shipping address jurisdiction. A misconfigured exemption or a recent address change can cause the wrong tax to be charged.</div>
+          </div>
+        </div>
+        <div class="layer-item">
+          <div class="layer-num">Layer 5</div>
+          <div class="layer-content">
+            <div class="layer-title">Quantity Rules &amp; Minimums</div>
+            <div class="layer-desc">B2B price lists can enforce minimum order quantities, quantity increments, and case pack rules. When a buyer's cart doesn't meet these rules, checkout is blocked — but the error message is often unclear about why.</div>
+          </div>
+        </div>
+        <div class="layer-item">
+          <div class="layer-num">Layer 6</div>
+          <div class="layer-content">
+            <div class="layer-title">Payment Method &amp; Gateway</div>
+            <div class="layer-desc">For immediate payment, Shopify Payments handles B2B transactions. For net terms orders, Shopify generates an invoice for offline payment. Gateway configuration errors surface here — especially if Shopify Payments isn't fully verified.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert">
+        <div class="alert-title">Why standard monitoring misses B2B checkout failures</div>
+        <p>Standard uptime tools ping your storefront URL or even simulate a consumer checkout. They cannot log in as a B2B company account buyer, resolve price list pricing, verify net terms availability, or detect tax exemption failures. B2B checkout failures require B2B-specific simulation — they're invisible to any tool that doesn't authenticate as a company account.</p>
+      </div>
+    </section>
+
+    <!-- 8 FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Modes</div>
+      <h2>8 Common Shopify B2B Checkout Failures</h2>
+
+      <div class="cause-list">
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 1</span>
+            <span class="cause-title">Company account not recognized — buyer sees retail pricing</span>
+          </div>
+          <p class="cause-body">
+            The B2B buyer reaches checkout and sees full retail pricing instead of their negotiated rates. This happens when they're not logged in with their company account, when their company account contact lacks the Ordering permission, or when the company account was recently deactivated or modified. It can also occur when a buyer creates a personal customer account instead of using their company account invitation link.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Go to Admin → Customers → Companies → [Company Name] → Contacts and verify: (1) the buyer's email is listed as a contact, (2) the contact has the "Ordering" location permission enabled, (3) the company account is not paused. Send the buyer a new login invitation via the company account page if their session was lost. If the account was recently migrated from a third-party wholesale app, company account permissions may need to be re-granted manually.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 2</span>
+            <span class="cause-title">Custom B2B pricing not applying at checkout</span>
+          </div>
+          <p class="cause-body">
+            The buyer is logged in but sees retail prices at checkout. Price list assignments can fail silently when: a price list was edited and not re-saved correctly, a product was added to the catalog after the price list was created (so it's not covered), the price list currency doesn't match the store's active market currency, or the price list was accidentally unassigned from the company during an admin bulk edit.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Customers → Companies → [Company] → Price Lists — verify a price list is attached. Open the price list and check: (1) the product in question is included (not filtered out by collection or product tag), (2) the pricing rule applies (percentage discount, fixed price, or volume tier), (3) the currency matches. After any price list change, test with a fresh browser session as the B2B buyer — cached checkout sessions can hold stale pricing.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 3</span>
+            <span class="cause-title">Net payment terms missing from checkout</span>
+          </div>
+          <p class="cause-body">
+            The buyer reaches the payment step and net terms (Net 30, Net 60, Net 90) don't appear — only immediate payment options are shown. Net terms require four conditions to be met simultaneously: Shopify Plus plan, Shopify Payments as the active gateway, net terms explicitly enabled on the company account, and no outstanding overdue invoices on the account. If any one condition fails, net terms silently disappear with no error shown.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Check each condition in order. (1) Confirm Shopify Plus: Admin → Settings → Plan. (2) Confirm Shopify Payments: Admin → Settings → Payments → Shopify Payments must be active, not a third-party gateway. (3) Enable net terms on the company: Admin → Customers → Companies → [Company] → Payment Terms → assign Net 30/60/90. (4) Check outstanding invoices: Admin → Customers → Companies → [Company] → Orders — filter by "Payment pending." Clear any overdue amounts before net terms will re-appear.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 4</span>
+            <span class="cause-title">Draft order checkout link expired or invalid</span>
+          </div>
+          <p class="cause-body">
+            The buyer clicks the checkout link from a draft order invoice email and gets an error ("This link has expired," "Order not found," or a blank page). Draft order checkout links expire after approximately 72 hours by default. Any edit to the draft order after the link was sent — adding a product, changing quantity, applying a discount — also invalidates the previous link. A buyer who starts checkout from the link but doesn't complete it can sometimes lock the draft temporarily.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> In Admin → Orders → Drafts, locate the draft and click "Send invoice" to generate and email a fresh checkout link. If the draft was edited, always resend the invoice after edits — never ask the buyer to use an old link. For high-value or time-sensitive orders, note the 72-hour window in the invoice email. If you need longer-lived draft orders, set a custom expiration in Shopify Admin → Settings → Checkout → Draft orders.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 5</span>
+            <span class="cause-title">Tax exemption not applied — wrong tax charged</span>
+          </div>
+          <p class="cause-body">
+            A B2B buyer who is tax-exempt (e.g., a registered reseller or nonprofit) is charged sales tax at checkout. Shopify B2B tax exemptions are configured per-company and applied based on the shipping address jurisdiction. Common failure modes: the exemption wasn't configured on the company account, the exemption is set for one state/province but the order ships to a different jurisdiction, or a recent Shopify Markets configuration change affected tax overrides.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Customers → Companies → [Company] → Tax Exemptions. Verify the correct exemption type is applied (e.g., "Reseller" for B2B resellers) and that it covers the correct jurisdictions. If the buyer ships to multiple states, confirm the exemption covers all shipping destinations. Note: Shopify B2B tax exemptions apply at the company level, not per-order — a buyer cannot override tax status at checkout themselves.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 6</span>
+            <span class="cause-title">Quantity rules blocking checkout silently</span>
+          </div>
+          <p class="cause-body">
+            The buyer adds items to cart and reaches checkout, but can't proceed or sees an error about quantities. B2B price lists support quantity rules: minimum order quantities (MOQ), quantity increments (e.g., must buy in multiples of 6), and case pack enforcement. When a buyer's cart doesn't meet these rules, Shopify blocks checkout — but the error message is often a generic "There's a problem with your order" without specifying which product or rule is the issue.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Products → [Product] → B2B Price Lists — check if quantity rules are configured. Communicate MOQ requirements clearly on product pages and in the cart. If buyers are hitting quantity errors without understanding why, add a cart validation app or use Shopify's theme customization to display B2B quantity requirements on product pages. For the immediate error: identify which product in the cart has a quantity rule and have the buyer adjust their order quantity to meet the minimum or increment.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 7</span>
+            <span class="cause-title">B2B store login loop — customer can't authenticate</span>
+          </div>
+          <p class="cause-body">
+            The buyer tries to log in to access B2B pricing but gets stuck in a login loop, receives "Account not found," or is redirected to a retail-facing login page instead of the B2B portal. This happens when: the store is using a password-protected B2B-only storefront that's improperly configured, the Shopify B2B customer accounts setting redirects to the wrong URL, or the buyer tries to log in through a bookmark that points to the consumer login instead of the B2B company account login.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Verify the B2B login URL is correct — the Shopify B2B company account login is at <code>/a/login</code> or your custom B2B store domain, not the standard Shopify customer login at <code>/account/login</code>. In Admin → Settings → Customer Accounts, confirm "New customer accounts" is enabled for B2B (required for company accounts). Send the buyer a direct login link generated from Admin → Customers → Companies → [Company] → [Contact] → "Send login link" to bypass the login form entirely.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">Failure 8</span>
+            <span class="cause-title">B2B features unavailable — store on wrong Shopify plan</span>
+          </div>
+          <p class="cause-body">
+            After a Shopify plan change or trial expiration, B2B features silently stop working. Shopify's native B2B (company accounts, price lists, net terms) requires Shopify Plus. If a store downgrades from Plus to a lower plan — even temporarily — company accounts become inaccessible, custom pricing stops applying, and net terms disappear. This failure is particularly insidious because the storefront still works for consumer orders, making the problem easy to miss.
+          </p>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Admin → Settings → Plan — confirm the store is on Shopify Plus. If a plan downgrade occurred, upgrading back to Plus restores B2B functionality, but may require re-verifying company account settings. After any plan change, run a full B2B checkout test immediately: log in as a test company account, add a product, verify pricing applies, and attempt checkout through to the payment step.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ERROR REFERENCE TABLE -->
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>B2B Checkout Error Symptom Lookup</h2>
+
+      <table class="error-table">
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Most Likely Cause</th>
+            <th>First Check</th>
+            <th>Scope</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Buyer sees retail pricing</td>
+            <td>Not logged in as company account, or no price list assigned</td>
+            <td>Admin → Companies → Contacts → Ordering permission</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+          <tr>
+            <td>Net terms don't appear at payment</td>
+            <td>Shopify Payments not active, net terms not enabled on company, or overdue invoice</td>
+            <td>Admin → Companies → [Company] → Payment Terms</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+          <tr>
+            <td>Draft order link expired / error</td>
+            <td>Link older than 72h, or draft was edited after sending</td>
+            <td>Admin → Orders → Drafts → Send Invoice (resend)</td>
+            <td><span class="tag tag-all">All plans</span></td>
+          </tr>
+          <tr>
+            <td>Wrong tax charged</td>
+            <td>Tax exemption not configured on company, wrong jurisdiction</td>
+            <td>Admin → Companies → [Company] → Tax Exemptions</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+          <tr>
+            <td>Checkout blocked, quantity error</td>
+            <td>Minimum order quantity or increment rule not met</td>
+            <td>Admin → Products → [Product] → B2B Price Lists → Quantity rules</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+          <tr>
+            <td>Login loop / "account not found"</td>
+            <td>Wrong login URL, customer accounts not set to "New" mode</td>
+            <td>Admin → Settings → Customer Accounts → New customer accounts</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+          <tr>
+            <td>All B2B features missing</td>
+            <td>Plan downgrade from Shopify Plus</td>
+            <td>Admin → Settings → Plan</td>
+            <td><span class="tag tag-warn">Plan check</span></td>
+          </tr>
+          <tr>
+            <td>Custom pricing partially wrong</td>
+            <td>Price list doesn't cover all products or wrong currency</td>
+            <td>Admin → Price Lists → verify product scope and currency</td>
+            <td><span class="tag tag-plus">Shopify Plus</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- B2B CHECKOUT TEST CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Testing Protocol</div>
+      <h2>B2B Checkout Test Checklist</h2>
+      <p>Run this after any theme update, app change, plan change, or Shopify platform update. Use a dedicated test company account with a low-value product.</p>
+
+      <ul class="checklist">
+        <li>Log in as the test B2B company account (not a personal customer account)</li>
+        <li>Verify the product page shows company-specific pricing, not retail price</li>
+        <li>Add to cart — verify cart reflects B2B price and any quantity rules are shown</li>
+        <li>Proceed to checkout — verify company name and billing address pre-populate</li>
+        <li>At payment step: verify net terms appear (if configured) alongside immediate payment</li>
+        <li>Verify tax exemption is applied (no tax line, or correct exempt amount)</li>
+        <li>Complete checkout — verify confirmation email arrives within 2 minutes</li>
+        <li>Log in to the B2B portal — verify the order appears under the company account</li>
+        <li>Test with a draft order invoice: create draft → send invoice → complete checkout from link</li>
+        <li>Verify draft link works within 1 hour of sending (test expiry by waiting 73h separately)</li>
+      </ul>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-block">
+      <h2>Monitor Your Shopify Checkout — B2B and Consumer</h2>
+      <p>CheckPulse runs a full 4-step checkout simulation every 30 minutes and emails you the moment a step fails — before your buyers notice.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="cta-btn">Start Monitoring Free →</a>
+    </div>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Troubleshooting</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+          <div class="guide-card-label">Subscriptions</div>
+          <div class="guide-card-title">Shopify Subscription Checkout Errors</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="guide-card">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">Shopify Markets Checkout Errors</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+          <div class="guide-card-label">Discounts</div>
+          <div class="guide-card-title">Discount Code Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods" class="guide-card">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">No Payment Methods at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error" class="guide-card">
+          <div class="guide-card-label">Tax</div>
+          <div class="guide-card-title">Shopify Checkout Tax Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-agencies" class="guide-card">
+          <div class="guide-card-label">Agencies</div>
+          <div class="guide-card-title">Checkout Testing for Agencies</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide" class="guide-card">
+          <div class="guide-card-label">Complete Guide</div>
+          <div class="guide-card-title">Shopify Checkout Monitoring Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify B2B Checkout — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify B2B checkout not working for my wholesale customers?</div>
+          <div class="faq-a">Shopify B2B checkout requires several layers to work correctly simultaneously — and each is a distinct failure point. The most common causes are: (1) The customer isn't logged into their Shopify company account — B2B pricing, net terms, and tax exemptions are all tied to authenticated company account sessions. If the login fails or the session expires, customers see retail pricing or get blocked at checkout. Check Admin → Customers → Companies and verify the customer's company account is active and their contact has the Ordering permission. (2) The price list assigned to the company isn't applying — this happens when price list rules don't cover all products, or when a recent update didn't propagate. (3) Net payment terms aren't appearing — Shopify B2B net terms only appear when Shopify Payments is the active gateway AND the customer's company account has net terms enabled. (4) The B2B store is on a Shopify plan that doesn't include B2B features — Shopify B2B requires Shopify Plus.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify B2B custom pricing not showing at checkout?</div>
+          <div class="faq-a">When B2B custom pricing isn't appearing at checkout, the most common causes are: (1) The customer isn't logged in with their company account — B2B prices are session-scoped. (2) The price list isn't assigned to the company — verify in Admin → Customers → Companies → [Company] → Price Lists. (3) The price list exists but doesn't include the specific product being purchased — price lists can be scoped to specific products or collections. (4) A price list update was made and the customer is viewing a cached version — have them clear cookies and log in fresh. (5) The store has multiple currencies and the price list currency doesn't match the buyer's selected currency.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why are net payment terms not appearing at Shopify B2B checkout?</div>
+          <div class="faq-a">Shopify B2B net payment terms have strict requirements that must all be met simultaneously: (1) Your store must be on Shopify Plus. (2) Shopify Payments must be your active payment gateway — third-party gateways do not support Shopify net terms. (3) The customer must be logged in with a company account that has net terms enabled — configure in Admin → Customers → Companies → [Company] → Payment Terms. (4) The customer's company account must not have any outstanding overdue invoices. If all conditions are met and net terms still don't appear, contact Shopify Plus support — this is sometimes a Shopify Payments account verification issue.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why is the Shopify draft order checkout link not working?</div>
+          <div class="faq-a">Draft order checkout links expire and can fail in several ways: (1) The checkout link expired — draft links typically expire after 72 hours. Resend the invoice from Admin → Orders → Drafts to generate a fresh link. (2) The draft was edited after the link was sent — any edit to a draft order invalidates the existing checkout link. Always resend the invoice after edits. (3) The buyer's B2B login session doesn't match the company account the draft was created under. (4) A product in the draft became unavailable (inventory hit zero, product unpublished). Check each line item is still purchasable.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I monitor Shopify B2B checkout automatically?</div>
+          <div class="faq-a">Shopify B2B checkout is harder to monitor than consumer checkout because it requires an authenticated company account session. Standard uptime tools that ping your homepage won't detect B2B-specific failures — they can't log in as a B2B buyer or verify company pricing. The most practical approach: (1) CheckPulse for automated checkout flow monitoring — it simulates the full checkout process every 30 minutes and alerts you when any step fails, catching payment method failures and checkout URL issues that affect all customers including B2B; (2) A weekly manual B2B checkout test using a test company account; (3) Monitor your average B2B order volume — a sudden drop often indicates a B2B checkout failure before support tickets arrive.</div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Errors</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Health Check</a>
+    </p>
+    <p style="margin-top: 12px;">© 2026 CheckPulse — Shopify checkout monitoring</p>
+  </footer>
+
+</body>
+</html>

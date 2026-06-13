@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Testing for Agencies — QA Checklist &amp; Monitoring Guide (2026)</title>
+  <meta name="description" content="Shopify agencies managing client stores need a systematic checkout QA process — not just one-time testing. Pre-launch checklist, post-update protocol, and ongoing monitoring for multi-store agencies." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-agencies" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-agencies" />
+  <meta property="og:title" content="Shopify Checkout Testing for Agencies — QA Checklist &amp; Monitoring Guide" />
+  <meta property="og:description" content="Agencies managing Shopify client stores face a checkout QA problem individual merchants don't: when 1 of your 10 client stores breaks at checkout, you find out from the client, not from monitoring. Here's the systematic process to fix that." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Testing for Agencies — QA Checklist and Monitoring Guide",
+    "description": "Shopify agencies managing 3–50 client stores face a checkout QA challenge individual merchants don't: checkout failures in a client store are invisible until the client calls. This guide covers the pre-launch checkout QA checklist, post-update verification protocol, and how to set up automated monitoring across all client stores so you find checkout failures before clients do.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-agencies",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How should a Shopify agency test checkout before launching a client store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify agency pre-launch checkout test should cover 12 specific areas: (1) Full purchase simulation with a real payment method — not just a Shopify test order — to verify payment processing end-to-end. (2) Every payment method enabled in the store: credit card, Shop Pay, PayPal Express, Apple Pay, Google Pay, and any BNPL options. (3) Guest checkout and customer account checkout separately — each has different session handling. (4) Discount codes: percentage, fixed amount, free shipping, and buy-X-get-Y. (5) Shipping rates: verify all configured shipping zones return correct rates and don't produce 'no shipping options' at checkout. (6) Address validation in the target market — especially if the store ships internationally. (7) 3D Secure flow: card authentication redirect should complete and return to checkout, not loop or produce an error. (8) Mobile checkout on iOS Safari — the most common failure environment. (9) Checkout with and without apps disabled — isolate whether any installed app breaks the checkout flow. (10) Cart with maximum cart value (discount caps, free shipping thresholds). (11) Checkout with variant combinations that were recently added or modified. (12) Post-checkout email confirmation delivery. This 12-point test should be documented in a client-facing pre-launch sign-off report."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should a Shopify agency check after installing a new app on a client store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After installing any app on a client Shopify store, agencies should run a minimum 4-point checkout verification before considering the installation complete: (1) Full checkout simulation — add to cart, reach payment step, verify payment methods load, and complete a test transaction. Some apps inject scripts that interfere with payment method loading or the checkout submit button. (2) Page load speed check — some apps add render-blocking scripts that slow checkout. Use Shopify's Speed Report or Google PageSpeed Insights on the checkout URL immediately after install. (3) Mobile checkout test — specifically iOS Safari, since many app scripts behave differently on mobile WebKit. (4) Checkout in the specific context the app was installed for — if it's a discount app, test discount codes; if it's a loyalty app, test loyalty redemption at checkout. The most dangerous apps for checkout stability are those that inject JavaScript into the checkout page: post-purchase offer apps, checkout upsell apps, checkout customization apps, and some tracking scripts. Any app in these categories should be tested immediately after install, not assumed to work correctly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do Shopify agencies find out when a client checkout breaks?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Without automated monitoring, Shopify agencies typically find out about client checkout failures in one of three ways: the client calls or emails reporting lost sales, a customer complaint reaches the client and they forward it to the agency, or the agency notices it during a routine check. All three methods have the same problem: there is a lag between when the checkout breaks and when the agency learns about it. This lag is typically 2–24 hours for checkout errors that affect a significant percentage of transactions. During that lag, every customer who tries to check out encounters the failure. The most proactive agencies run periodic manual checkout tests on each client store — but at 10+ stores, daily manual testing across all stores is impractical. Automated checkout monitoring solves this by running a full checkout simulation on each store every hour and alerting immediately when any step fails. The alert goes to the agency before the client notices."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are the most common checkout failures in Shopify client stores?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Based on recurring patterns across agency-managed Shopify stores, the five most common checkout failures are: (1) App conflicts after a new app install — a checkout customization, upsell, or post-purchase app injects a script that breaks the payment submit button or payment method loading. This is the leading cause of sudden checkout failures in otherwise-stable stores. (2) Payment gateway credential expiry — Stripe, PayPal, or other gateways go through a re-authentication cycle and checkout payments start failing. The checkout page loads fine but transactions don't complete. (3) Shopify Payments suspension — Shopify may suspend a store's Shopify Payments account due to a policy review. The store owner may not see the suspension email immediately. (4) Shipping rate misconfiguration after a carrier rate change — if the store uses carrier-calculated shipping, a change in the carrier's API rate format can cause 'no shipping options' to appear at checkout. (5) Theme update breaking checkout extensions — when the theme is updated, custom checkout UI extensions or checkout-specific Liquid code may need to be reapplied. Each of these failures has a distinct signature in checkout monitoring data."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How should Shopify agencies report checkout health to clients?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A monthly checkout health report for a Shopify client should include: (1) Checkout uptime percentage for the month — calculated as the percentage of time when checkout was fully functional. (2) Number of checkout incidents and their duration — each period when checkout was impaired, how long it lasted, and what caused it. (3) Mean time to detection (MTTD) — how quickly the agency identified the incident. Clients appreciate seeing this number improve over time as monitoring improves. (4) Resolution actions — what was done to resolve each incident. (5) Checkout speed trend — average page load time for the checkout step, month over month. (6) Payment method coverage — confirmation that all configured payment methods are active and verified. This report format positions the agency as proactively managing checkout reliability, not just reacting to client complaints. It also justifies the ongoing retainer by making the agency's checkout monitoring value visible."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A78BFA;
+      --text:        #E2E8F0;
+      --text-muted:  #94A3B8;
+      --text-dim:    #64748B;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+      --radius:      12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: .9rem; color: var(--amber); font-weight: 700; }
+    .nav-links { display: flex; gap: 1.5rem; font-size: .85rem; color: var(--text-muted); }
+    .nav-links a { color: var(--text-muted); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 5rem 1.5rem 3.5rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--purple);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 1.25rem;
+      color: #fff;
+    }
+    .hero h1 em { font-style: normal; color: var(--purple); }
+    .hero-lead {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin-bottom: 2rem;
+    }
+    .hero-meta {
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--text-dim);
+    }
+
+    /* MAIN */
+    .main-content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    /* SECTION */
+    .section { margin-bottom: 4rem; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: .75rem;
+    }
+    .section h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: #fff;
+    }
+    .section p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      max-width: 720px;
+    }
+
+    /* CALLOUT BOX */
+    .callout {
+      background: var(--bg-card);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--purple);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin: 1.5rem 0;
+      color: var(--text-muted);
+      font-size: .95rem;
+    }
+    .callout strong { color: var(--text); }
+
+    /* CHECKLIST */
+    .checklist {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .checklist-title {
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--purple);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .95rem;
+      color: var(--text-muted);
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .check-num {
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--purple);
+      background: rgba(167,139,250,0.1);
+      border-radius: 4px;
+      padding: .15rem .45rem;
+      min-width: 2rem;
+      text-align: center;
+      margin-top: .1rem;
+      flex-shrink: 0;
+    }
+    .check-label { color: var(--text); font-weight: 600; }
+    .check-desc { color: var(--text-muted); font-size: .88rem; margin-top: .2rem; }
+
+    /* FAILURE TABLE */
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: .9rem;
+    }
+    .failure-table th {
+      background: var(--bg-surface);
+      padding: .75rem 1rem;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .failure-table td {
+      padding: .75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    .failure-table tr:last-child td { border-bottom: none; }
+    .failure-table td:first-child { color: var(--text); font-weight: 600; }
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: .65rem;
+      padding: .15rem .45rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .tag-app { background: rgba(239,68,68,.15); color: var(--red); }
+    .tag-payment { background: rgba(59,130,246,.15); color: var(--blue); }
+    .tag-config { background: rgba(245,158,11,.15); color: var(--amber); }
+
+    /* PHASE BLOCK */
+    .phase-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+    .phase-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: .5rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .phase-tag {
+      font-family: var(--mono);
+      font-size: .65rem;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      background: rgba(167,139,250,.15);
+      color: var(--purple);
+    }
+    .phase-block p { margin-bottom: .5rem; font-size: .93rem; }
+    .phase-block ul {
+      padding-left: 1.25rem;
+      color: var(--text-muted);
+      font-size: .9rem;
+    }
+    .phase-block ul li { margin-bottom: .3rem; }
+
+    /* CTA */
+    .cta-box {
+      background: linear-gradient(135deg, rgba(167,139,250,.08) 0%, rgba(59,130,246,.06) 100%);
+      border: 1px solid rgba(167,139,250,.25);
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      margin: 3rem 0;
+    }
+    .cta-box h3 { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: .75rem; }
+    .cta-box p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: .95rem; }
+    .btn {
+      display: inline-block;
+      background: var(--purple);
+      color: #fff;
+      padding: .75rem 1.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: .95rem;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; text-decoration: none; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-mid);
+      color: var(--text-muted);
+      margin-left: 1rem;
+    }
+
+    /* GUIDE GRID */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: .75rem;
+      margin-top: 1rem;
+    }
+    .guide-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      transition: border-color .2s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: .65rem;
+      color: var(--purple);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .3rem;
+    }
+    .guide-card-title { font-size: .88rem; color: var(--text); font-weight: 600; }
+
+    /* FAQ */
+    .faq-list { margin-top: 1rem; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: .5rem;
+      font-size: 1rem;
+    }
+    .faq-a { color: var(--text-muted); font-size: .93rem; line-height: 1.65; }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      font-size: .8rem;
+      color: var(--text-dim);
+      line-height: 2;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-muted); }
+
+    @media (max-width: 600px) {
+      .hero { padding: 3rem 1rem 2.5rem; }
+      .main-content { padding: 0 1rem 3rem; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+      .btn-secondary { margin-left: 0; margin-top: .75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+  <div class="nav-links">
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    <a href="https://adadadada321321.github.io/checkpulse/">Monitor</a>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <div class="hero-eyebrow">Shopify Agencies</div>
+    <h1>Checkout Testing for <em>Shopify Agencies</em> — QA Checklist &amp; Multi-Store Monitoring</h1>
+    <p class="hero-lead">Agencies managing client stores have a checkout risk individual merchants don't: when one of your 10 client stores breaks at checkout, you find out from the client, not from monitoring. Here's the systematic process to fix that.</p>
+    <div class="hero-meta">Last updated June 2026 · 12-point pre-launch checklist · 5 most common agency checkout failures</div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- THE AGENCY CHECKOUT PROBLEM -->
+    <section class="section">
+      <div class="section-label">The Problem</div>
+      <h2>Why Checkout QA Is Different for Agencies</h2>
+      <p>A merchant managing their own store will notice something is wrong when their own revenue stops. They're watching their dashboard, they get customer complaints directly, and they have context about what changed.</p>
+      <p>An agency managing 10, 20, or 50 client stores has none of those signals. You don't watch each client's revenue dashboard. Client complaints go to the client first, then get forwarded to you. And you may have deployed a change to several stores at once — an app install, a theme update, a configuration change — without knowing which store it affected.</p>
+
+      <div class="callout">
+        <strong>The detection gap problem:</strong> The average time between when a Shopify checkout breaks and when an agency learns about it (without monitoring) is 4–18 hours. Every checkout attempt during that window fails silently. The client loses revenue. The agency gets a damage-control call instead of a report.
+      </div>
+
+      <p>The solution has two parts: a systematic QA process that catches failures before they go live, and automated monitoring that catches them after.</p>
+    </section>
+
+    <!-- PRE-LAUNCH CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Pre-Launch Protocol</div>
+      <h2>12-Point Pre-Launch Checkout QA Checklist</h2>
+      <p>Every Shopify store you launch for a client should pass this checklist before going live. Run it in order — some later tests depend on earlier ones passing.</p>
+
+      <div class="checklist">
+        <div class="checklist-title">Pre-Launch Checkout QA — 12 Points</div>
+
+        <div class="checklist-item">
+          <div class="check-num">01</div>
+          <div>
+            <div class="check-label">Full purchase simulation with a live payment method</div>
+            <div class="check-desc">Place a real $1 test order using a real card or Shop Pay. Shopify test mode does not test the actual payment gateway. Refund immediately after. This is the only way to confirm end-to-end payment processing works.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">02</div>
+          <div>
+            <div class="check-label">Every enabled payment method</div>
+            <div class="check-desc">Verify each payment method shows at checkout: credit/debit card, Shop Pay, PayPal Express, Apple Pay (mobile), Google Pay (Android/Chrome), any BNPL options. A missing payment method at checkout is invisible to you but visible to every customer.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">03</div>
+          <div>
+            <div class="check-label">Guest checkout and account checkout separately</div>
+            <div class="check-desc">Guest and account checkout have different session handling. Test both paths. Some stores have guest checkout disabled unintentionally — verify the setting matches the client's intent.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">04</div>
+          <div>
+            <div class="check-label">All discount code types</div>
+            <div class="check-desc">Test: percentage discount, fixed amount, free shipping code, and buy-X-get-Y. Each has different application logic. Confirm the code applies before and after entering shipping details.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">05</div>
+          <div>
+            <div class="check-label">Shipping rate coverage for all target markets</div>
+            <div class="check-desc">Enter shipping addresses in every major market the store ships to. Confirm that shipping options appear — not "No shipping options available." Carrier-calculated rates are especially prone to this issue.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">06</div>
+          <div>
+            <div class="check-label">3D Secure authentication flow</div>
+            <div class="check-desc">Use a card that triggers 3DS (most European cards, or Stripe's 3DS test cards in Shopify Payments test mode for flow verification). Confirm the redirect completes and returns to checkout — not a loop or error.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">07</div>
+          <div>
+            <div class="check-label">Mobile checkout on iOS Safari</div>
+            <div class="check-desc">iOS Safari is the highest-friction checkout environment. Test on an actual iPhone, not just browser dev tools. Check: payment methods load, address autofill works, submit button responds, Apple Pay sheet appears if enabled.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">08</div>
+          <div>
+            <div class="check-label">Checkout speed (page load at payment step)</div>
+            <div class="check-desc">Time from checkout initiation to payment methods appearing should be under 3 seconds. Use Chrome DevTools Network tab or Shopify's Speed Report. Slow checkout directly reduces conversion — 7% per additional second.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">09</div>
+          <div>
+            <div class="check-label">App conflict test (checkout with apps disabled)</div>
+            <div class="check-desc">Temporarily deactivate checkout-injecting apps one by one and test checkout at each step. Identifies which apps (if any) are adding render time or breaking functionality. Document the results for the client's app record.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">10</div>
+          <div>
+            <div class="check-label">Edge-case cart states</div>
+            <div class="check-desc">Test checkout with: a cart at the free shipping threshold, a cart containing a product on sale, a cart with a product that has limited inventory (&lt;5 units), and a cart with a digital product (no shipping). Each can trigger edge-case failures.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">11</div>
+          <div>
+            <div class="check-label">Post-checkout order confirmation email</div>
+            <div class="check-desc">After a test purchase, confirm the order confirmation email is received within 5 minutes. Check sender domain, subject line, order details, and links. Email delivery failure is a common post-launch surprise.</div>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <div class="check-num">12</div>
+          <div>
+            <div class="check-label">Client sign-off documentation</div>
+            <div class="check-desc">Document the completed checklist with test date, tester name, and results for each point. Send to the client as part of the launch handoff. This protects the agency if checkout issues are later attributed to the launch.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- POST-UPDATE PROTOCOL -->
+    <section class="section">
+      <div class="section-label">Change Management</div>
+      <h2>Post-Update Checkout Verification Protocol</h2>
+      <p>Most checkout failures in live client stores happen after a change: a new app, a theme update, a shipping rate modification, a payment method configuration change. The checklist for post-update verification is shorter than pre-launch, but it must happen immediately after every significant change.</p>
+
+      <div class="phase-block">
+        <div class="phase-title">After any app install <span class="phase-tag">App</span></div>
+        <p>Run a full checkout simulation immediately after installing any app. Priority check: does the payment methods section still load at the checkout payment step? Is the checkout submit button still responsive? Check mobile and desktop separately. Apps that inject JavaScript into checkout (post-purchase offers, upsells, loyalty, tracking) are highest risk.</p>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-title">After a theme update <span class="phase-tag">Theme</span></div>
+        <p>Theme updates can reset checkout-specific customizations and Liquid code. Verify: checkout branding (logo, colors) is still applied, any checkout UI extensions are still active, checkout-specific CSS overrides are intact. Run the mobile checkout test — theme updates frequently affect mobile layout.</p>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-title">After shipping rate changes <span class="phase-tag">Config</span></div>
+        <p>Test checkout with shipping addresses in every affected zone after any shipping configuration change. Carrier-calculated rates are fragile — a change in a carrier's API or a zone misconfiguration surfaces as "No shipping options" at checkout, which silently blocks all transactions.</p>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-title">After payment gateway changes <span class="phase-tag">Payment</span></div>
+        <p>After adding, removing, or reconfiguring a payment method: verify all remaining methods still appear at checkout, run a live test transaction if accessible, and confirm the 3DS flow still completes. Payment gateway changes can invalidate webhook endpoints that are needed for payment confirmation.</p>
+      </div>
+
+      <div class="phase-block">
+        <div class="phase-title">After any Shopify plan change <span class="phase-tag">Account</span></div>
+        <p>Plan changes can alter which payment methods are available (Shopify Payments has plan-based restrictions), which checkout customization features are accessible, and what checkout analytics are captured. Run a full payment method coverage test after any plan upgrade or downgrade.</p>
+      </div>
+    </section>
+
+    <!-- COMMON FAILURES -->
+    <section class="section">
+      <div class="section-label">Failure Patterns</div>
+      <h2>5 Most Common Checkout Failures in Agency-Managed Stores</h2>
+      <p>These failures appear repeatedly across agency-managed Shopify stores. Recognizing the pattern cuts diagnosis time from hours to minutes.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Cause</th>
+            <th>Category</th>
+            <th>How to Confirm</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Payment methods empty at checkout</td>
+            <td>App script blocking payment method render, or Shopify Payments suspended</td>
+            <td><span class="tag tag-app">App</span> <span class="tag tag-payment">Payment</span></td>
+            <td>Check Shopify Admin → Settings → Payments for suspension notice. Disable checkout apps one by one to isolate the conflict.</td>
+          </tr>
+          <tr>
+            <td>Payment error after card submission</td>
+            <td>Payment gateway credential expired, webhook misconfiguration, or currency mismatch</td>
+            <td><span class="tag tag-payment">Payment</span></td>
+            <td>Check Shopify Admin → Settings → Payments → View payouts for error notices. Test with a second card type. Check gateway dashboard for failed transaction logs.</td>
+          </tr>
+          <tr>
+            <td>No shipping options at checkout</td>
+            <td>Carrier-calculated rate API error, zone misconfiguration, or weight/dimension outside rate rules</td>
+            <td><span class="tag tag-config">Config</span></td>
+            <td>Test with multiple address/product combinations. Check Shopify Admin → Settings → Shipping for carrier status. Verify product weight is set on all products.</td>
+          </tr>
+          <tr>
+            <td>Checkout submit button unresponsive</td>
+            <td>App JavaScript error at payment step — typically post-purchase offer or checkout upsell app</td>
+            <td><span class="tag tag-app">App</span></td>
+            <td>Open browser console at the payment step. Look for JavaScript errors. Disable checkout-injecting apps one by one until the button responds.</td>
+          </tr>
+          <tr>
+            <td>Shopify Payments suspended</td>
+            <td>Policy review triggered by transaction patterns, high chargeback rate, or product policy flag</td>
+            <td><span class="tag tag-payment">Payment</span></td>
+            <td>Check Shopify Admin → Settings → Payments for a suspension notice. Check the email address on the account for Shopify notification. Backup payment methods should be pre-configured as a contingency.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- MONITORING -->
+    <section class="section">
+      <div class="section-label">Ongoing Monitoring</div>
+      <h2>Automated Checkout Monitoring for Multi-Store Agencies</h2>
+      <p>Manual QA catches failures before launch. Automated monitoring catches failures that happen in live stores — after an app auto-updates, after Shopify makes a platform change, after a payment gateway experiences an outage.</p>
+      <p>The monitoring requirement for agencies is different from individual merchants: you need coverage across multiple client stores with centralized alerting, so you don't have to log into each store's analytics separately to spot a problem.</p>
+
+      <div class="callout">
+        <strong>What automated checkout monitoring does:</strong> Runs a full checkout simulation on each store at a set interval (every hour for CheckPulse's agency plan). Tests each step: product page → cart → checkout initiation → payment methods loading. Sends an immediate alert when any step fails — before the client notices.
+      </div>
+
+      <p>For agencies, the key capabilities are:</p>
+      <ul style="padding-left:1.5rem; color:var(--text-muted); margin-bottom:1rem;">
+        <li style="margin-bottom:.5rem;">Multi-store coverage from one account — not one account per client store</li>
+        <li style="margin-bottom:.5rem;">Immediate email alerts with the specific step that failed and the error detail</li>
+        <li style="margin-bottom:.5rem;">Incident history that can be included in client monthly reports</li>
+        <li style="margin-bottom:.5rem;">Checkout health status you can check in 30 seconds without logging into each Shopify admin</li>
+      </ul>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-box">
+      <h3>Monitor All Client Stores From One Dashboard</h3>
+      <p>CheckPulse Agency plan monitors up to 3 Shopify stores with hourly checkout checks, instant email alerts, step-by-step failure diagnosis, and client-ready status reports. $99/month · 14-day free trial · No credit card required.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="btn">Start Agency Trial →</a>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn btn-secondary">Run Free Checkout Check</a>
+    </div>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Specific Checkout Failures &amp; Fixes</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist" class="guide-card">
+          <div class="guide-card-label">Testing</div>
+          <div class="guide-card-title">Shopify Checkout Testing Checklist</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">App Conflicts at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-audit" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">Which Apps Slow Down Checkout?</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods" class="guide-card">
+          <div class="guide-card-label">Payment</div>
+          <div class="guide-card-title">No Payment Methods at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+          <div class="guide-card-label">Payment</div>
+          <div class="guide-card-title">Checkout Payment Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payments-suspended" class="guide-card">
+          <div class="guide-card-label">Payment</div>
+          <div class="guide-card-title">Shopify Payments Suspended</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-shipping-options" class="guide-card">
+          <div class="guide-card-label">Shipping</div>
+          <div class="guide-card-title">No Shipping Options at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" class="guide-card">
+          <div class="guide-card-label">Mobile</div>
+          <div class="guide-card-title">Checkout Not Working on Mobile</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-3d-secure-failed" class="guide-card">
+          <div class="guide-card-label">Authentication</div>
+          <div class="guide-card-title">3D Secure Failed at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Analytics</div>
+          <div class="guide-card-title">Checkout Abandonment — Technical Causes</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide" class="guide-card">
+          <div class="guide-card-label">Monitoring</div>
+          <div class="guide-card-title">Shopify Checkout Monitoring Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Agency Checkout QA — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">How should a Shopify agency test checkout before launching a client store?</div>
+          <div class="faq-a">A Shopify agency pre-launch checkout test should cover 12 specific areas: full purchase simulation with a real payment method (not just a Shopify test order), every enabled payment method, guest and account checkout separately, all discount code types, shipping rates for all target markets, 3D Secure authentication flow, mobile checkout on iOS Safari, checkout load speed, app conflict isolation test, edge-case cart states, post-checkout email confirmation delivery, and client sign-off documentation. Each point should be documented in a pre-launch sign-off report sent to the client as part of the launch handoff.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What should a Shopify agency check after installing a new app on a client store?</div>
+          <div class="faq-a">After installing any app on a client Shopify store, run a minimum 4-point checkout verification: full checkout simulation to confirm payment methods load and transactions complete, page load speed check to confirm the app didn't add render-blocking scripts, mobile checkout test on iOS Safari, and a checkout test in the specific context the app operates. Apps that inject JavaScript into checkout (post-purchase offers, upsells, loyalty, tracking scripts) are the highest risk category and should be tested immediately after install — not assumed to work correctly.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do Shopify agencies find out when a client checkout breaks?</div>
+          <div class="faq-a">Without automated monitoring, agencies typically find out about client checkout failures when: the client calls reporting lost sales, a customer complaint gets forwarded to the agency, or the agency notices it during a routine check. All three involve a lag between the failure and detection — typically 4–18 hours. During that lag, every checkout attempt fails. Automated checkout monitoring runs a checkout simulation on each store every hour and alerts immediately when a step fails — before the client notices. For agencies managing 3+ stores, this detection gap is the highest-risk single point in client delivery.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What are the most common checkout failures in Shopify client stores?</div>
+          <div class="faq-a">The five most common checkout failures in agency-managed Shopify stores are: app conflicts causing payment methods to not load (highest frequency), payment gateway credential expiry causing transactions to fail, shipping rate misconfiguration causing "no shipping options" at checkout, app JavaScript errors making the checkout submit button unresponsive, and Shopify Payments suspension. The first three account for roughly 80% of agency checkout incident calls. All five are detectable by automated monitoring before the client reports them.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How should Shopify agencies report checkout health to clients?</div>
+          <div class="faq-a">A monthly checkout health report for a Shopify client should include: checkout uptime percentage for the month, number and duration of checkout incidents, mean time to detection (MTTD) per incident, resolution actions taken, checkout speed trend month-over-month, and payment method coverage confirmation. This report positions the agency as proactively managing checkout reliability rather than reacting to complaints — and it makes the agency's monitoring value visible in a format clients can understand and reference.</div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for agencies and multi-store operators
+    </p>
+  </footer>
+
+</body>
+</html>

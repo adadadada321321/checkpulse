@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Markets Checkout Not Working — International Checkout Errors (2026)</title>
+  <meta name="description" content="Shopify Markets checkout errors, international checkout not working, checkout blocked by country — 6 distinct failure types with exact diagnosis steps and fixes for international Shopify stores." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" />
+  <meta property="og:title" content="Shopify Markets Checkout Not Working — International Checkout Errors" />
+  <meta property="og:description" content="When Shopify Markets is enabled, you gain a new category of checkout failures that don't appear in single-market stores. Here are the 6 most common, how to diagnose them, and how to fix them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Markets Checkout Not Working — International Checkout Errors",
+    "description": "Shopify Markets introduces a distinct category of checkout failures not present in single-market stores: wrong market assignment, local payment methods missing by region, market-specific price list errors, checkout domain routing failures, B2B market checkout problems, and currency conversion breaking at payment submission. This guide covers all 6 failure types, how to distinguish them from general checkout errors, and how to monitor international checkout continuously.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-international",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify checkout not working for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "International Shopify checkout failures usually fall into one of six categories. First: the customer is being assigned to the wrong market — this happens when your geolocation rules haven't been configured in Shopify Markets settings, so customers from France are routed to your primary market and see USD prices and EN-only payment methods. Second: local payment methods (iDEAL, Klarna, Sofort, Bancontact) are not enabled for that specific market — payment methods in Shopify must be configured per market, not globally. Third: your market-specific price list has a rounding error or currency rate gap that causes the price displayed to differ from the price charged at payment submission — this triggers a payment error. Fourth: your checkout subdomain isn't routing to the correct market, especially when using custom domains or Shopify Hydrogen. Fifth: B2B market settings are preventing retail customers from reaching checkout. Sixth: the currency conversion fallback is failing silently, so customers in markets with unsupported currencies are seeing checkout errors instead of a fallback price. Each failure type has a distinct diagnosis path."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Shopify Markets and what checkout problems does it cause?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Markets is Shopify's built-in international commerce feature, available on Basic plan and above. It lets you configure separate pricing, currency, language, domain, and payment methods for each country or region you sell to. When you enable Markets, your checkout gains a new layer of routing logic: before serving the checkout page, Shopify determines which market the customer belongs to (based on IP geolocation, domain, or URL parameter) and then loads the configuration for that market — currency, price list, language, available payment methods, and tax rules. Each of these routing steps is a potential failure point. A customer in Germany might get assigned to your primary US market and see USD at checkout. A customer in the Netherlands might reach checkout but find iDEAL missing because it wasn't enabled for the Dutch market. A B2B market customer might get blocked from checkout entirely because the B2B market requires an approved company account. These failures look like general checkout errors on the outside, but their root cause is in the Markets configuration, not in payment settings or apps."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix Shopify checkout showing wrong currency for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If Shopify checkout is showing the wrong currency for international customers, there are three likely causes. First: the customer is not being routed to the correct market — go to Shopify Admin → Settings → Markets and verify that the customer's country is assigned to the correct market, not left in your primary market. Each country can only belong to one market at a time. Second: your market has a price list configured with manual prices, and those manual prices are set in the wrong currency — check Admin → Settings → Markets → [Market name] → Pricing and verify the currency and price list are correct. Third: the customer's browser has a cached market preference or the market selector cookie is stale — this can happen when you change market assignments after customers have already visited your store. The market preference is stored in a cookie; customers may need to clear cookies or use an incognito window to get the updated market assignment. If the wrong currency is appearing at checkout specifically (not on product pages), focus on the checkout domain routing: confirm that your checkout subdomain matches the market's configured domain."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are local payment methods (iDEAL, Klarna, Sofort) not showing at Shopify checkout for my international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Local payment methods like iDEAL, Klarna, Sofort, Bancontact, Giropay, and others must be enabled per market in Shopify. Enabling Shopify Payments globally does not automatically make all local methods available in all markets. To enable local payment methods for a specific market: go to Shopify Admin → Settings → Payments → Shopify Payments → Manage → scroll to Local payment methods. You must explicitly toggle on each method for each eligible market. Additionally, some local payment methods have currency requirements — iDEAL requires EUR, BACS requires GBP. If your market is configured with a currency that the local payment method doesn't support, the method won't appear at checkout. Finally, local payment methods have geographic restrictions — some are only available in specific countries even if Shopify shows them as enabled. Verify with Shopify's official list of supported local payment methods per country."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I monitor Shopify checkout for international markets automatically?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Monitoring Shopify checkout for international markets is more complex than single-market monitoring because failures can affect one market without affecting others. A US customer might complete checkout successfully while a German customer gets an error at the payment step — your uptime monitor shows green because it's testing from a US IP. The most reliable approach is to run checkout simulations that include market-specific parameters: test with country codes for your top international markets, verify that the payment methods endpoint returns the correct local methods for each market, and check that the currency returned matches the market configuration. CheckPulse runs a 4-step checkout simulation that tests the payment methods endpoint and can be configured to verify international checkout routes. The free instant check at least confirms whether your checkout route and payment methods are responding correctly — a useful baseline even if it doesn't yet test per-market routing."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:          #0B0E14;
+      --bg-surface:  #111520;
+      --bg-card:     #141824;
+      --border:      rgba(255,255,255,0.07);
+      --border-mid:  rgba(255,255,255,0.12);
+      --amber:       #F59E0B;
+      --green:       #22C55E;
+      --red:         #EF4444;
+      --blue:        #3B82F6;
+      --purple:      #A78BFA;
+      --text:        #E2E8F0;
+      --text-muted:  #94A3B8;
+      --text-dim:    #64748B;
+      --mono:        'Space Mono', monospace;
+      --sans:        'Outfit', sans-serif;
+      --radius:      12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6; min-height: 100vh; }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,14,20,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .nav-brand { font-family: var(--mono); font-size: 14px; color: var(--amber); font-weight: 700; letter-spacing: 0.05em; }
+    .nav-sep { color: var(--text-dim); font-size: 12px; }
+    .nav-page { font-size: 13px; color: var(--text-muted); }
+    .nav-cta { margin-left: auto; background: var(--amber); color: #000; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 6px; font-family: var(--mono); white-space: nowrap; }
+    .nav-cta:hover { background: #FBB116; text-decoration: none; }
+
+    .hero {
+      background: linear-gradient(135deg, #0B0E14 0%, #111520 60%, #0d0d1a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 64px 24px 48px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 100px; padding: 4px 14px;
+      font-family: var(--mono); font-size: 11px; color: var(--blue);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-family: var(--sans); font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700; line-height: 1.2; margin-bottom: 16px; max-width: 760px; margin-left: auto; margin-right: auto;
+    }
+    .hero-sub {
+      font-size: 1.1rem; color: var(--text-muted); max-width: 640px;
+      margin: 0 auto 28px;
+    }
+    .hero-distinction {
+      display: inline-block;
+      background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px; padding: 10px 20px;
+      font-size: 13px; color: var(--text-muted);
+      max-width: 620px; text-align: left;
+    }
+    .hero-distinction strong { color: var(--blue); }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+    }
+    .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 24px; }
+
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;
+    }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    .type-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+    }
+    .type-card.markets { border-color: rgba(59,130,246,0.25); }
+    .type-card.general { border-color: rgba(100,116,139,0.3); }
+    .type-card-tag {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .type-card.markets .type-card-tag { color: var(--blue); }
+    .type-card.general .type-card-tag { color: var(--text-dim); }
+    .type-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .type-card ul { padding-left: 18px; }
+    .type-card li { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; line-height: 1.5; }
+    .type-card p { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 20px; }
+    .cause-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+    }
+    .cause-card-header {
+      display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px;
+    }
+    .cause-num {
+      flex-shrink: 0; width: 32px; height: 32px;
+      background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--blue);
+    }
+    .cause-title { font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
+    .cause-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+    .cause-body { font-size: 0.9rem; color: var(--text-muted); line-height: 1.65; }
+    .cause-body p { margin-bottom: 10px; }
+    .cause-body p:last-child { margin-bottom: 0; }
+    .cause-body strong { color: var(--text); }
+
+    .fix-steps {
+      margin-top: 14px;
+      background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.15);
+      border-radius: 8px; padding: 14px 16px;
+    }
+    .fix-steps-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 10px;
+    }
+    .fix-steps ol { padding-left: 18px; }
+    .fix-steps li { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; line-height: 1.5; }
+    .fix-steps li:last-child { margin-bottom: 0; }
+    .fix-steps li strong { color: var(--text); }
+
+    .diag-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px; margin-top: 20px;
+    }
+    .diag-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .diag-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+    }
+    .diag-step { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+    .diag-note { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+    .badge-blue { display: inline-block; background: rgba(59,130,246,0.15); color: var(--blue); border-radius: 4px; font-family: var(--mono); font-size: 10px; padding: 2px 7px; }
+    .badge-amber { display: inline-block; background: rgba(245,158,11,0.12); color: var(--amber); border-radius: 4px; font-family: var(--mono); font-size: 10px; padding: 2px 7px; }
+    .badge-red { display: inline-block; background: rgba(239,68,68,0.15); color: var(--red); border-radius: 4px; font-family: var(--mono); font-size: 10px; padding: 2px 7px; }
+
+    .monitor-box {
+      background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: var(--radius); padding: 24px; margin-top: 32px;
+    }
+    .monitor-box-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--amber); margin-bottom: 10px;
+    }
+    .monitor-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .monitor-box p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 12px; }
+    .monitor-box a.btn {
+      display: inline-block; background: var(--amber); color: #000;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      padding: 10px 20px; border-radius: 8px; margin-top: 4px;
+    }
+    .monitor-box a.btn:hover { background: #FBB116; text-decoration: none; }
+
+    .guide-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px; margin-top: 20px;
+    }
+    .guide-card {
+      display: block; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+    }
+    .guide-card-title { font-size: 0.92rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px;
+    }
+    .faq-q { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .faq-a { font-size: 0.88rem; color: var(--text-muted); line-height: 1.65; }
+
+    .footer {
+      padding: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.8;
+      text-align: center;
+    }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <span class="nav-brand">CheckPulse</span>
+    <span class="nav-sep">/</span>
+    <span class="nav-page">International Checkout Errors</span>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor My Checkout →</a>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge">&#127760; International Commerce</div>
+      <h1>Shopify Markets Checkout Not Working — International Checkout Errors</h1>
+      <p class="hero-sub">When Shopify Markets is enabled, you gain a distinct category of checkout failures that don't appear in single-market stores. Here are the 6 most common, how to diagnose each, and how to fix them.</p>
+      <div class="hero-distinction">
+        <strong>Important distinction:</strong> Shopify Markets checkout failures are caused by market configuration — not payment gateway settings or checkout apps. They require a different diagnosis path than standard checkout errors.
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- MARKETS VS GENERAL -->
+      <section class="section">
+        <div class="section-label">Context</div>
+        <h2>Why Shopify Markets Creates a New Category of Checkout Failures</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:20px;">
+          When you enable Shopify Markets, your checkout gains a routing layer: before serving the checkout page, Shopify determines which market the customer belongs to — based on IP geolocation, domain, or URL parameter — and then loads the configuration for that market: currency, price list, language, available payment methods, and tax rules. Every step in that routing chain is a potential failure point.
+        </p>
+        <div class="two-col">
+          <div class="type-card general">
+            <div class="type-card-tag">Standard Checkout Errors</div>
+            <h3>Single-market failures</h3>
+            <ul>
+              <li>Payment methods not loading (API error)</li>
+              <li>Payment error at submission</li>
+              <li>3D Secure redirect loop</li>
+              <li>Checkout slow to load</li>
+              <li>Session expired mid-checkout</li>
+              <li>App conflict breaking submit button</li>
+            </ul>
+            <p style="margin-top:12px;">These affect all customers globally. Monitored by standard checkout health checks.</p>
+          </div>
+          <div class="type-card markets">
+            <div class="type-card-tag">Shopify Markets Failures</div>
+            <h3>Market-routing failures</h3>
+            <ul>
+              <li>Customer assigned to wrong market</li>
+              <li>Local payment methods missing for market</li>
+              <li>Price list / currency mismatch at payment</li>
+              <li>Checkout domain not routing to market</li>
+              <li>B2B market blocking retail customers</li>
+              <li>Currency conversion fallback failing</li>
+            </ul>
+            <p style="margin-top:12px;">These affect specific countries or regions only. May show green on US-based uptime monitors while international customers fail.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 FAILURES -->
+      <section class="section">
+        <div class="section-label">Root Causes</div>
+        <h2>The 6 Most Common Shopify Markets Checkout Failures</h2>
+
+        <div class="cause-list">
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">1</div>
+              <div>
+                <div class="cause-title">Customer Assigned to Wrong Market</div>
+                <div class="cause-sub">Symptom: international customer sees wrong currency or wrong language at checkout</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>This is the most common Shopify Markets checkout failure. Shopify assigns customers to markets based on their IP geolocation at the time of first visit. If a country isn't explicitly assigned to an international market, it defaults to your <strong>primary market</strong> — which is typically your domestic market with domestic currency and payment methods.</p>
+              <p>A German customer routed to your US primary market sees USD prices at checkout. If you haven't enabled Shopify Payments in their actual market (Germany), they may see no local payment methods (no SOFORT, no Giropay). They can't complete checkout — but your checkout health monitor shows green because it's testing from a US IP.</p>
+              <p>The second cause of wrong-market assignment: <strong>market preference cookies</strong>. When you restructure your markets (add countries to a new market, remove them from the primary), customers who already have a market preference cookie may still be routed to the old assignment until the cookie expires or is cleared.</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Audit your market assignments:</strong> Shopify Admin → Settings → Markets. Expand each market and verify that the correct countries are listed. Every country you sell to should be in a specific market — if it's not listed anywhere, it's defaulting to primary.</li>
+                <li><strong>Test market routing:</strong> Use a VPN to simulate a customer from the target country. Open your store, proceed to checkout, verify the currency and available payment methods match the market configuration.</li>
+                <li><strong>Clear the test cookie:</strong> Use incognito mode each time you test — market preference cookies persist across sessions and will show you the cached assignment, not the current one.</li>
+                <li><strong>Check for country overlap:</strong> A country can only be in one market. If you accidentally added a country to two markets (by moving it), Shopify silently drops it from the older market — verify each country appears in exactly one market.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">2</div>
+              <div>
+                <div class="cause-title">Local Payment Methods Missing for Market</div>
+                <div class="cause-sub">Symptom: iDEAL, Klarna, SOFORT, Bancontact, or other local methods not showing at checkout in specific countries</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>Local payment methods in Shopify must be explicitly enabled <strong>per market</strong>. Enabling Shopify Payments globally does not automatically activate all regional methods in every market. iDEAL for the Netherlands, SOFORT for Germany, Bancontact for Belgium, and Klarna across Europe each require separate configuration inside the market's payment settings.</p>
+              <p>Additionally, every local payment method has currency requirements. iDEAL requires EUR — if your Netherlands market is configured with a non-EUR currency (or no currency), iDEAL won't appear. BACS Direct Debit requires GBP. These currency-method mismatches are invisible in the Shopify admin but surface as missing payment options at checkout.</p>
+              <p>Common misconfiguration: a merchant enables Shopify Payments for their EU market but configures the market currency as USD (for unified reporting) — all EUR-required local methods silently disappear from checkout for that market.</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Navigate to payment settings by market:</strong> Shopify Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods. The list shows which methods are enabled; expand each to verify market-level configuration.</li>
+                <li><strong>Verify currency matches method requirement:</strong> For each local method, check Shopify's documentation for the required currency. Then confirm your market's pricing currency matches. Admin → Settings → Markets → [Market] → Pricing shows the configured currency.</li>
+                <li><strong>Test with a local customer profile:</strong> VPN to the target country, clear cookies, proceed through checkout, and verify the expected local methods appear at the payment step.</li>
+                <li><strong>Check Shopify's eligibility list:</strong> Not all local methods are available in all Shopify plan tiers or all countries. Some require your Shopify account's billing country to match specific criteria.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">3</div>
+              <div>
+                <div class="cause-title">Price List or Currency Mismatch at Payment Submission</div>
+                <div class="cause-sub">Symptom: checkout shows correct price, but payment fails with a currency or amount error</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>When you configure market-specific pricing in Shopify Markets, prices can be set in two ways: <strong>automatic conversion</strong> (Shopify converts from your base currency at a live exchange rate) or <strong>fixed price lists</strong> (you manually set prices per currency). Both can cause payment failures at submission if there's a mismatch between what the customer sees and what Shopify sends to the payment gateway.</p>
+              <p>The most common cause: <strong>exchange rate lag</strong>. Shopify caches exchange rates and updates them periodically. If a customer begins checkout during a rate update, the price displayed may differ by a fraction from the price submitted to the payment gateway. Some payment gateways reject this as a mismatch. The customer sees no clear error — just a failed payment.</p>
+              <p>For fixed price lists, the failure is different: if a product's price list entry is missing for a market, Shopify falls back to automatic conversion. If automatic conversion is also disabled for that market, the checkout can't determine a price in the market currency — resulting in a checkout error that prevents the customer from reaching the payment step.</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Audit your price list coverage:</strong> Admin → Settings → Markets → [Market] → Pricing. If you're using fixed prices, verify every product has a price entry in the price list — gaps cause silent conversion fallbacks or errors.</li>
+                <li><strong>Enable rate rounding for automatic conversion:</strong> Admin → Settings → Markets → [Market] → Pricing → scroll to rounding rules. Rounding prices to clean amounts (e.g., €29.99 instead of €29.87) reduces gateway mismatch rejections.</li>
+                <li><strong>Test the specific failing market:</strong> Add a product to cart, proceed to checkout from the market's country, and submit a test payment. Note the currency and exact amount at the submission step — compare with what the gateway receives in your payment gateway dashboard.</li>
+                <li><strong>Check gateway currency support:</strong> Not all payment gateways support all currencies. If your market uses a currency the gateway doesn't support, Shopify should warn you — but verify anyway in the gateway's documentation.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">4</div>
+              <div>
+                <div class="cause-title">Checkout Domain Not Routing to Correct Market</div>
+                <div class="cause-sub">Symptom: customers on international subdomains land in the wrong market at checkout</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>Shopify Markets supports <strong>domain-based market routing</strong>: you can assign a custom domain or subdomain to each market (e.g., <code>de.yourstore.com</code> for Germany, <code>fr.yourstore.com</code> for France). When a customer visits via that domain, Shopify should route them into the corresponding market automatically.</p>
+              <p>The failure happens when the <strong>checkout subdomain</strong> doesn't follow this routing. Shopify checkout uses a separate domain (<code>checkout.shopify.com</code> or your custom checkout domain). If your DNS or Shopify Markets domain configuration has a mismatch, customers who enter your store via <code>de.yourstore.com</code> may be redirected to a checkout URL that drops the market context — landing them in your primary (US) market with USD pricing.</p>
+              <p>This is especially common after adding a new market domain, after DNS propagation delays, or after upgrading from a single-market setup to multi-market.</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Verify domain assignments:</strong> Admin → Settings → Domains. Each international domain should be assigned to a market. Click each domain and confirm the market assignment is correct.</li>
+                <li><strong>Check DNS propagation:</strong> If you recently added a market domain, DNS changes take 24–72 hours to fully propagate. Use a DNS checker tool to verify the domain resolves correctly from multiple global locations.</li>
+                <li><strong>Test the checkout URL directly:</strong> Navigate to <code>https://[market-domain]/cart</code>, add a product, and proceed to checkout. Verify the checkout URL and the displayed currency/language match the expected market.</li>
+                <li><strong>For Hydrogen / headless:</strong> Market context must be passed explicitly in your storefront API calls. Verify your Hydrogen app is passing the <code>country</code> and <code>language</code> parameters correctly in the cart and checkout queries.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">5</div>
+              <div>
+                <div class="cause-title">B2B Market Settings Blocking Retail Checkout</div>
+                <div class="cause-sub">Symptom: specific customers can't reach checkout — "checkout unavailable" or redirect to account login</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>Shopify Markets supports <strong>B2B markets</strong> — markets restricted to approved company accounts. This is useful for wholesale or trade pricing. However, B2B market misconfiguration is a common source of checkout failures for regular retail customers who accidentally land in a B2B market context.</p>
+              <p>The most common trigger: a merchant creates a B2B market for a country (e.g., "EU Wholesale") and assigns specific countries to it for business customers. If those same countries are no longer in the retail EU market (because Shopify only allows each country in one market), retail customers from those countries now hit the B2B market — which requires a company account login before checkout is accessible.</p>
+              <p>From the retail customer's perspective, this looks like: they add items to cart, click checkout, and are either blocked with a "not available" message or redirected to a login page with no clear path forward.</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Audit B2B market country assignments:</strong> Admin → Settings → Markets → identify any market with B2B enabled. Check which countries are assigned. Verify those countries are not countries where you also sell to retail customers.</li>
+                <li><strong>Separate B2B and retail markets cleanly:</strong> If you sell to both B2B and retail in the same country, you cannot use market-level restrictions — B2B must be handled at the customer account level (Shopify B2B on Plus) or via a separate Shopify store.</li>
+                <li><strong>Test from affected country:</strong> VPN to a country assigned to your B2B market. Add a product to cart without logging in and attempt checkout. Confirm whether retail access is blocked.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="cause-card">
+            <div class="cause-card-header">
+              <div class="cause-num">6</div>
+              <div>
+                <div class="cause-title">Currency Conversion Fallback Failing Silently</div>
+                <div class="cause-sub">Symptom: customers in markets with unsupported currencies see checkout errors instead of fallback pricing</div>
+              </div>
+            </div>
+            <div class="cause-body">
+              <p>Not all Shopify payment methods support every currency. When a customer's market is configured with a currency that the active payment gateway doesn't support, Shopify is supposed to fall back to your base currency (typically USD or GBP) for the checkout. If this fallback isn't configured, or if it's been disabled, the customer hits an error at checkout instead.</p>
+              <p>This most commonly affects markets in regions with less common currencies: Southeast Asia, Eastern Europe, Latin America, or Africa. A merchant creates a market for Indonesia, configures IDR as the display currency for product pages, but their payment gateway doesn't support IDR transactions. The checkout either fails at the payment step or shows an error preventing the customer from selecting a payment method.</p>
+              <p>The failure is silent in your admin — no alerts, no logs. Revenue from that market drops to zero, and you only find out when a customer from Indonesia emails you saying "I can't check out."</p>
+            </div>
+            <div class="fix-steps">
+              <div class="fix-steps-label">Fix Steps</div>
+              <ol>
+                <li><strong>Check your gateway's supported currencies:</strong> Every payment gateway has a published list. Shopify Payments supports ~130 currencies; third-party gateways vary. Compare your market currencies against what your gateway supports.</li>
+                <li><strong>Configure a currency fallback:</strong> Admin → Settings → Markets → [Market] → Pricing. If the market currency isn't supported by your gateway, either switch the market currency to one the gateway supports, or enable "Automatically convert prices" to your base currency as a fallback.</li>
+                <li><strong>Test checkout from the affected market:</strong> VPN to the country, complete a full checkout simulation through payment. If the payment step shows an error or no payment methods, the currency is not being handled correctly.</li>
+                <li><strong>Consider a third-party payment gateway:</strong> If your primary gateway doesn't support a key market's currency, adding a gateway that does (e.g., Adyen, Stripe) for that market may be the cleanest fix.</li>
+              </ol>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- DIAGNOSIS CHECKLIST -->
+      <section class="section">
+        <div class="section-label">Diagnosis</div>
+        <h2>Quick Diagnosis Checklist for International Checkout Problems</h2>
+        <p style="color:var(--text-muted); font-size:0.92rem; margin-bottom:4px;">When a specific country or region can't complete checkout, run this sequence before digging deeper.</p>
+
+        <div class="diag-grid">
+          <div class="diag-card">
+            <div class="diag-label">Step 1</div>
+            <div class="diag-step">Identify the affected market</div>
+            <div class="diag-note">Is the failure country-specific or region-wide? Which customers are reporting it? This determines whether it's a market-routing, payment method, or currency issue.</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">Step 2</div>
+            <div class="diag-step">Verify market assignment</div>
+            <div class="diag-note">Admin → Settings → Markets. Confirm the affected country is in the expected market — not in the primary market or a B2B market by accident.</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">Step 3</div>
+            <div class="diag-step">VPN test from affected country</div>
+            <div class="diag-note">Use a VPN (or actual device in that country). Open the store in incognito mode. Check the market indicator — does the store show the correct currency and language?</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">Step 4</div>
+            <div class="diag-step">Proceed to checkout</div>
+            <div class="diag-note">Add a product and go to checkout. Does the checkout domain match the expected market? Does the currency in checkout match the market's configured currency?</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">Step 5</div>
+            <div class="diag-step">Check payment methods step</div>
+            <div class="diag-note">Reach the payment step. Are the expected local payment methods present? If iDEAL is missing for Netherlands, or SOFORT for Germany, that's a local payment method configuration issue.</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">Step 6</div>
+            <div class="diag-step">Attempt test payment</div>
+            <div class="diag-note">Submit a test payment (use Shopify test card mode). Does it succeed, or fail with a currency/amount error? Currency errors at submission point to a price list or gateway currency support issue.</div>
+          </div>
+        </div>
+
+        <div class="monitor-box">
+          <div class="monitor-box-label">Automated Monitoring</div>
+          <h3>International checkout failures are invisible to standard uptime monitors</h3>
+          <p>Standard uptime monitoring tests from a fixed location — usually US-based. Your checkout can be fully broken for customers in Germany, France, or Brazil while your monitor shows 100% uptime. You find out from a support email, or from a revenue chart that drops in a specific market with no obvious cause.</p>
+          <p>CheckPulse runs a 4-step checkout simulation that verifies your checkout route and payment methods endpoint are responding. While market-specific simulation across every country isn't yet supported, the free instant check confirms that your checkout infrastructure is healthy — which rules out the majority of failures before you start investigating market configuration.</p>
+          <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn">Run Free Checkout Check →</a>
+        </div>
+      </section>
+
+      <!-- RELATED GUIDES -->
+      <section class="section">
+        <div class="section-label">Related Guides</div>
+        <h2>Diagnose Specific Checkout Failures</h2>
+        <div class="guide-grid">
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error" class="guide-card">
+            <div class="guide-card-label">Currency</div>
+            <div class="guide-card-title">Shopify Checkout Currency Error</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed" class="guide-card">
+            <div class="guide-card-label">Address</div>
+            <div class="guide-card-title">Address Validation Failed</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods" class="guide-card">
+            <div class="guide-card-label">Payment</div>
+            <div class="guide-card-title">No Payment Methods Showing</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+            <div class="guide-card-label">Payment</div>
+            <div class="guide-card-title">Checkout Payment Error</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-accepting-payment" class="guide-card">
+            <div class="guide-card-label">Payment</div>
+            <div class="guide-card-title">Checkout Not Accepting Payment</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-3d-secure-failed" class="guide-card">
+            <div class="guide-card-label">Authentication</div>
+            <div class="guide-card-title">3D Secure Failed at Checkout</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-redirect" class="guide-card">
+            <div class="guide-card-label">Domain</div>
+            <div class="guide-card-title">Checkout Custom Domain Redirect</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-headless-checkout-error" class="guide-card">
+            <div class="guide-card-label">Headless</div>
+            <div class="guide-card-title">Headless / Hydrogen Checkout Error</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error" class="guide-card">
+            <div class="guide-card-label">Tax</div>
+            <div class="guide-card-title">Shopify Checkout Tax Error</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+            <div class="guide-card-label">Abandonment</div>
+            <div class="guide-card-title">Checkout Abandonment (Technical)</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/guide" class="guide-card">
+            <div class="guide-card-label">Monitoring</div>
+            <div class="guide-card-title">Shopify Checkout Monitoring Guide</div>
+          </a>
+          <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+            <div class="guide-card-label">CheckPulse</div>
+            <div class="guide-card-title">Automated Checkout Monitor →</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <div class="section-label">FAQ</div>
+        <h2>Shopify International Checkout — Common Questions</h2>
+
+        <div class="faq-list">
+
+          <div class="faq-item">
+            <div class="faq-q">Why is Shopify checkout not working for international customers?</div>
+            <div class="faq-a">International Shopify checkout failures usually fall into one of six categories: wrong market assignment (customer routed to the primary market instead of their regional market), local payment methods missing (iDEAL, Klarna, Sofort not enabled per market), price list or currency mismatch at payment submission, checkout domain not routing to the correct market, B2B market settings blocking retail customers, or currency conversion fallback failing for unsupported currencies. Each has a distinct diagnosis path — start by identifying which country is affected, then use a VPN to test checkout from that country in incognito mode.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">What is Shopify Markets and what checkout problems does it cause?</div>
+            <div class="faq-a">Shopify Markets is Shopify's built-in international commerce feature, available on Basic plan and above. It lets you configure separate pricing, currency, language, domains, and payment methods per country or region. When enabled, your checkout gains a routing layer that assigns customers to markets based on geolocation, domain, or URL parameters — and loads the market's configuration. Each routing step is a potential failure point, creating a distinct category of international checkout errors that don't appear in single-market stores and are invisible to US-based uptime monitors.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">How do I fix Shopify checkout showing wrong currency for international customers?</div>
+            <div class="faq-a">If international customers see the wrong currency at checkout, the three most likely causes are: (1) the customer isn't being routed to the correct market — go to Admin → Settings → Markets and verify their country is assigned to the right market, not defaulting to primary; (2) the market has a price list with manual prices set in the wrong currency; (3) a stale market preference cookie from an old assignment is overriding the new configuration. Test in incognito mode from the target country using a VPN, and verify currency at the checkout domain — not just on product pages.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">Why are local payment methods (iDEAL, Klarna, Sofort) not showing at Shopify checkout?</div>
+            <div class="faq-a">Local payment methods must be enabled per market in Shopify — enabling Shopify Payments globally does not activate all regional methods automatically. Go to Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods to configure per-market. Additionally, each local method has currency requirements: iDEAL requires EUR, BACS requires GBP. If your market's pricing currency doesn't match the method's requirement, the method won't appear at checkout. Verify both the method configuration and the market's currency setting.</div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">How do I monitor Shopify checkout for international markets automatically?</div>
+            <div class="faq-a">Standard uptime monitors test from fixed US-based IPs — your checkout can fail for European or Asian customers while your monitor shows green. The most reliable approach is running checkout simulations with market-specific parameters, verifying payment methods endpoints return the correct local methods per market, and testing from the market's actual country. CheckPulse's free instant check confirms your checkout route and payment methods endpoint are responding correctly — a useful baseline before investigating market-specific configuration.</div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error">Currency Error</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for international stores
+    </p>
+  </footer>
+
+</body>
+</html>

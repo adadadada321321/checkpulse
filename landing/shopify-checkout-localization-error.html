@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Localization Error — Wrong Language, Phone Format &amp; Postal Code Validation (2026)</title>
+  <meta name="description" content="Shopify checkout showing in wrong language, rejecting valid international phone numbers, failing postal code validation, or blocking non-Latin characters. 7 localization failure modes with exact fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error" />
+  <meta property="og:title" content="Shopify Checkout Localization Error — Wrong Language, Phone &amp; Postal Code Validation" />
+  <meta property="og:description" content="Shopify checkout localization failures block international customers silently. Wrong checkout language, phone number validation rejecting valid formats, postal code errors, RTL display issues — here are the 7 causes and fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Localization Error — Wrong Language, Phone Format and Postal Code Validation",
+    "description": "Shopify checkout localization failures are invisible to merchants in the default locale. A German customer sees an English checkout. A Japanese customer's phone number is rejected. A Brazilian postal code fails validation. An Arabic customer sees broken RTL layout. These failures don't appear in Shopify Admin as errors — they silently block international customers from completing purchases. This guide covers the 7 most common checkout localization failures, how to diagnose each one, and how to test your checkout in every locale you target.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-13",
+    "dateModified": "2026-06-13"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify checkout showing in the wrong language?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout language is controlled by the market the customer is in, not the browser language. The most common causes for wrong-language checkout are: (1) The customer's market isn't configured with the correct language — in Admin → Markets → [market] → Languages, verify the target language is added and published. (2) The Shopify theme's language selector isn't passing the locale to checkout — checkout picks up the locale from the storefront session; if the language toggle doesn't change the session locale, checkout stays in the default language. (3) A third-party translation app (Weglot, Langify, Transcy) is translating the storefront but not pushing the locale to the Shopify checkout — Shopify checkout uses its own locale system. Check if your translation app has a 'checkout translation' feature or integration. (4) The customer is in a market that only has one language configured — Shopify falls back to the store's default language. Add the target language to the market in Admin → Markets. (5) Checkout customizations using checkout.liquid or Checkout Extensions may be hardcoding UI text instead of using Shopify's localization variables."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout reject valid international phone numbers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout phone number validation is country-specific and can reject valid formats for several reasons: (1) The customer's shipping country and phone format don't match — Shopify validates phone numbers against the expected format for the delivery country. A +81 Japanese number shipping to Japan should work; the same number shipping to the US may fail validation because the format doesn't match the US shipping address. (2) The customer is entering a number without the country code prefix, but Shopify's validation for that country expects the full international format — or vice versa. (3) The store has a required phone number field but the validation regex is being overridden by a checkout customization app. (4) A checkout extension or app script is running a stricter client-side validation than Shopify's native validation. To diagnose: open browser DevTools (F12), go to the Console tab, enter a phone number, and look for validation errors from Shopify scripts vs. third-party scripts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify checkout failing postal code validation for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify postal code validation is country-specific. Common failure patterns: (1) Brazilian CEP codes — Brazil uses a 5-3 format (e.g., 01310-100) but some customers enter without the hyphen, which can fail Shopify's validation depending on whether the store uses strict format matching. (2) Irish Eircodes — Ireland introduced Eircodes in 2015 but some Shopify themes or checkout customizations still use validation that expects the old format or rejects the 7-character format. (3) Countries that don't use postal codes (Hong Kong, some Central American countries) — if the postal code field is required, customers from these countries can't complete checkout without entering a fake code. Go to Admin → Settings → Shipping and delivery → Shipping zones and verify 'postal code' requirements for each country. (4) Canadian postal codes with spaces — 'A1A 1A1' vs 'A1A1A1' — Shopify accepts both, but checkout customization apps may add stricter client-side validation. (5) UK postcodes with non-standard formats for certain areas (e.g., British Overseas Territories)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix Shopify checkout language not changing when customers switch language?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer switches language on your storefront but checkout stays in the default language, the issue is almost always that the locale isn't being passed to the checkout session. Here are the steps to fix it: (1) Verify the language is published in Admin → Markets → [market] → Languages — a language must be published to a market before it appears in checkout for that market. (2) Check your theme's language selector — it should set the locale in the Shopify session, not just change the page display with JavaScript. Look at your theme.liquid or language-switcher.liquid for how the locale URL (/es/, /fr/, etc.) is handled. (3) If you use a translation app, confirm it has a 'checkout locale handoff' feature enabled — most major apps (Weglot, Langify, Transcy) have this as a setting. (4) Test the fix: switch language on the storefront, add an item to cart, go to checkout, and verify the language changed. (5) If checkout customizations (checkout.liquid or Checkout Extensions) contain hardcoded English text in custom fields or banners, update them to use Shopify's translation variables."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout block non-Latin characters in the name or address fields?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's native checkout accepts Unicode characters in name and address fields, including Chinese, Japanese, Korean, Arabic, Cyrillic, and other scripts. If non-Latin characters are being rejected, the cause is almost always a third-party checkout customization: (1) A checkout extension or app is running client-side validation that only accepts ASCII/Latin characters — check the Checkout Extensions installed in Admin → Settings → Checkout → Checkout extensions. (2) A checkout.liquid customization (Shopify Plus) includes a validation script that restricts character ranges. (3) Your address normalization app or fraud prevention app is rejecting non-Latin addresses as suspicious. Test by temporarily disabling checkout apps one by one. The native Shopify checkout (without customizations) supports all Unicode character ranges in name and address fields. If a specific app is causing the rejection, contact that app's support — this is a known limitation of some older checkout customization scripts."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #1a1a1a;
+      --border: #222222;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-muted: #555555;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0,212,170,0.12);
+      --accent-border: rgba(0,212,170,0.25);
+      --warn: #f59e0b;
+      --warn-dim: rgba(245,158,11,0.1);
+      --danger: #ef4444;
+      --danger-dim: rgba(239,68,68,0.1);
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--border); max-width: 900px; margin: 0 auto; }
+    .nav-brand { font-weight: 700; font-size: 18px; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-cta { background: var(--accent); color: #000; padding: 8px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px; }
+    .nav-cta:hover { text-decoration: none; opacity: 0.9; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    .hero { padding: 56px 0 40px; }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--text-muted); }
+    .hero-label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    h1 { font-size: clamp(26px, 4vw, 40px); font-weight: 800; line-height: 1.15; color: var(--text); margin-bottom: 18px; }
+    .hero-desc { font-size: 18px; color: var(--text-dim); max-width: 700px; line-height: 1.7; }
+
+    .stats-row { display: flex; flex-wrap: wrap; gap: 16px; margin: 36px 0; }
+    .stat-card { flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .stat-number { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .section { margin: 56px 0; }
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    h2 { font-size: clamp(20px, 3vw, 28px); font-weight: 700; color: var(--text); margin-bottom: 16px; }
+    h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    p { color: var(--text-dim); line-height: 1.75; margin-bottom: 14px; }
+
+    .alert { background: var(--warn-dim); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius); padding: 16px 20px; margin: 24px 0; }
+    .alert-title { font-weight: 700; color: var(--warn); font-size: 14px; margin-bottom: 6px; }
+    .alert p { margin: 0; font-size: 14px; color: var(--text-dim); }
+
+    .locale-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0; }
+    .locale-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+    .locale-name { font-weight: 700; color: var(--text); font-size: 14px; margin-bottom: 6px; }
+    .locale-issue { font-size: 12px; color: var(--warn); margin-bottom: 8px; font-weight: 600; }
+    .locale-note { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+    .cause-list { display: flex; flex-direction: column; gap: 20px; margin: 24px 0; }
+    .cause-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+    .cause-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+    .cause-num { font-size: 11px; font-weight: 700; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 4px; padding: 2px 8px; white-space: nowrap; }
+    .cause-title { font-weight: 700; font-size: 16px; color: var(--text); }
+    .cause-body { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-bottom: 10px; }
+    .cause-fix { background: var(--accent-dim); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-dim); }
+    .cause-fix strong { color: var(--accent); }
+
+    .error-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 24px 0; }
+    .error-table th { text-align: left; padding: 10px 14px; background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .error-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-dim); }
+    .error-table td:first-child { color: var(--text); font-weight: 500; }
+    .error-table tr:last-child td { border-bottom: none; }
+    .error-table tr:hover td { background: var(--surface); }
+
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .tag-lang { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .tag-phone { background: rgba(16,185,129,0.15); color: #34d399; }
+    .tag-postal { background: var(--accent-dim); color: var(--accent); }
+    .tag-char { background: rgba(249,115,22,0.15); color: #fb923c; }
+    .tag-rtl { background: rgba(236,72,153,0.15); color: #f472b6; }
+    .tag-app { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .checklist li { display: flex; align-items: baseline; gap: 10px; font-size: 14px; color: var(--text-dim); padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .checklist li::before { content: "→"; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    .cta-block { background: var(--surface); border: 1px solid var(--accent-border); border-radius: 12px; padding: 36px 40px; text-align: center; margin: 48px 0; }
+    .cta-block h2 { font-size: 24px; margin-bottom: 12px; }
+    .cta-block p { max-width: 500px; margin: 0 auto 24px; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #000; font-weight: 700; padding: 14px 32px; border-radius: var(--radius); font-size: 16px; }
+    .cta-btn:hover { text-decoration: none; opacity: 0.9; }
+
+    .faq-list { display: flex; flex-direction: column; gap: 0; margin: 24px 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 22px 24px; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; color: var(--text); font-size: 15px; margin-bottom: 10px; }
+    .faq-a { font-size: 14px; color: var(--text-dim); line-height: 1.75; }
+
+    .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 20px 0; }
+    .guide-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; color: var(--text); transition: border-color 0.15s; }
+    .guide-card:hover { border-color: var(--accent); text-decoration: none; }
+    .guide-card-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .guide-card-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    .footer { border-top: 1px solid var(--border); padding: 32px 24px; text-align: center; color: var(--text-muted); font-size: 13px; max-width: 900px; margin: 0 auto; }
+
+    @media (max-width: 600px) {
+      .stats-row { flex-direction: column; }
+      .locale-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .error-table { font-size: 12px; }
+      .error-table th, .error-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-cta">Monitor My Store →</a>
+  </nav>
+
+  <main>
+
+    <article class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Checkout Errors › Localization
+      </div>
+      <div class="hero-label">Checkout Localization Errors</div>
+      <h1>Shopify Checkout Localization Error — Wrong Language, Phone Format &amp; Postal Code Validation</h1>
+      <p class="hero-desc">
+        Shopify checkout localization failures are invisible to merchants testing in their default locale. A French customer sees an English checkout. A Japanese phone number gets rejected. A Brazilian postal code fails validation. Each silently kills the conversion — with no error in your dashboard.
+      </p>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-number">57%</div>
+          <div class="stat-label">of Shopify stores sell to customers outside their home country</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Shopify Admin alerts when a customer fails address validation</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">120+</div>
+          <div class="stat-label">country-specific phone formats Shopify checkout must validate</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- WHY LOCALIZATION FAILS SILENTLY -->
+    <section class="section">
+      <div class="section-label">Root Cause</div>
+      <h2>Why Checkout Localization Errors Are Invisible to Merchants</h2>
+      <p>
+        Merchants test their checkout from their own location, in their own language, using their own phone number format. Everything works. But an international customer — a German buyer who expects a German-language checkout, or a Japanese customer entering their phone number in the local format — hits a silent wall.
+      </p>
+      <p>
+        Shopify's checkout localization has two independent systems: language (controlled by Markets and locale URLs) and field validation (controlled by country-specific rules). A third layer — third-party checkout customizations — can override either. When any part of this breaks, customers get blocked without any error appearing in Shopify Admin, and the merchant only finds out through abandoned cart emails or support tickets.
+      </p>
+
+      <div class="alert">
+        <div class="alert-title">The distinct localization failure mode</div>
+        <p>Localization failures differ from general checkout errors: the checkout URL returns HTTP 200, payment gateways are fine, and your default-locale customers complete orders normally. The failure only affects customers in specific locales, using specific phone number formats, or entering non-Latin characters. Standard checkout monitoring in your home locale won't detect these failures.</p>
+      </div>
+    </section>
+
+    <!-- HIGH-RISK LOCALES -->
+    <section class="section">
+      <div class="section-label">Known Issues by Region</div>
+      <h2>Locales With Common Checkout Validation Problems</h2>
+
+      <div class="locale-grid">
+        <div class="locale-card">
+          <div class="locale-name">Japan</div>
+          <div class="locale-issue">Phone format + address field order</div>
+          <div class="locale-note">Japanese phone numbers use 10-11 digits in 090-XXXX-XXXX format. Address field order (prefecture before city) differs from Shopify's default. Kana/Kanji characters in name/address fields can fail some checkout customizations.</div>
+        </div>
+        <div class="locale-card">
+          <div class="locale-name">Brazil</div>
+          <div class="locale-issue">CEP postal code + CPF tax ID</div>
+          <div class="locale-note">Brazilian CEP codes use a 5-3 format (01310-100). Some checkout customizations require the hyphen; others reject it. B2B customers may need a CPF/CNPJ field which isn't natively in Shopify checkout without customization.</div>
+        </div>
+        <div class="locale-card">
+          <div class="locale-name">Germany / EU</div>
+          <div class="locale-issue">VAT number field + language toggle</div>
+          <div class="locale-note">German business buyers expect a Umsatzsteuer-ID (VAT number) field at B2B checkout. Without it, they can't reclaim VAT. Language toggles often don't pass the locale to Shopify checkout session, so checkout stays in English.</div>
+        </div>
+        <div class="locale-card">
+          <div class="locale-name">Arab countries</div>
+          <div class="locale-issue">RTL layout + Arabic locale</div>
+          <div class="locale-note">Arabic checkout requires right-to-left (RTL) layout. Shopify's native checkout supports Arabic (ar locale) but checkout customizations built without RTL awareness break visually — form fields, buttons, and error messages display incorrectly.</div>
+        </div>
+        <div class="locale-card">
+          <div class="locale-name">Hong Kong / Macau</div>
+          <div class="locale-issue">No postal code required</div>
+          <div class="locale-note">Hong Kong doesn't use postal codes. If the checkout's postal code field is required (which it may be by default depending on theme configuration), Hong Kong customers can't complete checkout without entering a fake code.</div>
+        </div>
+        <div class="locale-card">
+          <div class="locale-name">Ireland</div>
+          <div class="locale-issue">Eircode validation</div>
+          <div class="locale-note">Irish Eircodes introduced in 2015 use a 7-character alphanumeric format (A65 F4E2). Some checkout validation patterns still expect the old format or reject Eircodes because they don't match a simple numeric-only postal code regex.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 CAUSES -->
+    <section class="section">
+      <div class="section-label">Diagnosis</div>
+      <h2>7 Checkout Localization Failure Modes</h2>
+
+      <div class="cause-list">
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 1</span>
+            <span class="cause-title">Checkout stays in default language — locale not passed to checkout session</span>
+          </div>
+          <div class="cause-body">
+            The customer switches language on your storefront but checkout opens in English (or your store's default language). Shopify checkout picks up the locale from the storefront session URL. If your theme's language switcher changes the display language with JavaScript but doesn't redirect to the locale URL (e.g., /fr/ for French), the Shopify session never updates — and checkout inherits the default locale.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Verify the language switcher redirects to the locale URL. In Shopify Admin → Online Store → Themes → Edit code, find the language-switcher snippet and confirm it generates a URL like <code>https://yourstore.com/fr/</code> rather than simply toggling a CSS class. Also confirm in Admin → Markets → [market] → Languages that the target language is Published (not just added). Unpublished languages won't appear in checkout.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 2</span>
+            <span class="cause-title">Translation app translates storefront but not checkout</span>
+          </div>
+          <div class="cause-body">
+            Third-party translation apps (Weglot, Langify, Transcy, GTranslate) translate storefront pages but have limited or no ability to modify the Shopify checkout directly — Shopify restricts third-party access to the checkout page. Customers experience a seamlessly translated storefront that drops them into an untranslated checkout. This is one of the most reported localization complaints from international Shopify merchants.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Shopify checkout language is controlled natively through Shopify's Markets + Languages system (Admin → Markets → [market] → Languages), not through translation apps. For checkout to display in a given language: (1) the language must be added to the market in Admin, (2) the customer must reach checkout via the locale URL, and (3) you need to add checkout translations for that language via Admin → Online Store → Translations. Translation apps can handle storefront translations; Shopify Translate handles checkout translations.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 3</span>
+            <span class="cause-title">Phone number validation rejecting valid international formats</span>
+          </div>
+          <div class="cause-body">
+            Shopify checkout validates phone numbers against the shipping country's expected formats. When a customer's phone format differs from the shipping destination's expected format — common with expats, travelers, or customers with foreign SIM cards — the checkout rejects the number. A Chinese customer with a +86 number shipping to the US will have their phone rejected if the US format validation runs. A Japanese customer entering 09012345678 (without international prefix) may be rejected if the form requires the +81 format.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> This is often a Shopify limitation rather than a configuration issue. For customers blocked by phone validation: instruct them to enter their number in international format (+[country code][number]). If you use a checkout customization that overrides the phone field, review its validation pattern — ensure it accepts international formats (+XX prefix) in addition to local formats. Consider making the phone field optional if phone isn't critical to your operations (Admin → Settings → Checkout → Phone number → Optional).
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 4</span>
+            <span class="cause-title">Postal code validation blocking customers from non-standard countries</span>
+          </div>
+          <div class="cause-body">
+            Shopify has country-specific postal code validation. Problems appear in two scenarios: (1) Countries without postal codes (Hong Kong, Macau, parts of Latin America, some Caribbean countries) — if the postal code field is set to required, customers from these countries can't complete checkout. (2) Countries with non-numeric postal codes (Canada uses "A1A 1A1" with letters, Ireland's Eircodes use alphanumeric) — some checkout customization scripts have overly strict numeric-only validation.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> For countries without postal codes: Admin → Settings → Shipping and delivery — verify these countries are in a shipping zone that doesn't require postal codes, and consider setting the postal code field to optional for these markets. For countries with alphanumeric postal codes: test checkout from the specific country using a VPN or by temporarily setting your own address to that country. If a checkout customization is the cause, locate the postal code validation script and update the regex to allow alphanumeric formats.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 5</span>
+            <span class="cause-title">Non-Latin characters blocked in name or address fields</span>
+          </div>
+          <div class="cause-body">
+            Shopify's native checkout accepts all Unicode characters (Chinese, Japanese, Korean, Arabic, Cyrillic, Hebrew, etc.) in name and address fields. When non-Latin characters are rejected, the cause is a checkout customization — a validation script that only permits ASCII/Latin characters, an address normalization app that sanitizes input to Western characters, or a fraud prevention app that flags non-Latin addresses as suspicious.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Test checkout with a non-Latin name and address without any checkout apps active. If it works without apps but fails with apps: Admin → Settings → Checkout → Checkout Extensions — identify which app is running. Disable apps one by one and test after each to find the conflicting script. For fraud prevention apps that flag non-Latin addresses: most have an allowlist or sensitivity setting; adjust the character-set policy to permit Unicode inputs.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 6</span>
+            <span class="cause-title">RTL (right-to-left) language checkout breaks visually</span>
+          </div>
+          <div class="cause-body">
+            Shopify's checkout natively supports RTL languages including Arabic (ar) and Hebrew (he). However, checkout customizations built without RTL awareness — checkout.liquid customizations on Shopify Plus, or Checkout Extensions that use absolute CSS positioning — break the RTL layout. Form fields, error messages, and buttons can overlap, appear on the wrong side, or become inaccessible when the checkout direction flips to RTL.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Test checkout in Arabic or Hebrew by setting your browser locale and using the /ar/ or /he/ locale URL. Identify which custom elements are misaligned. In checkout.liquid (Plus) or Checkout Extension CSS: use logical CSS properties (margin-inline-start instead of margin-left, padding-inline-end instead of padding-right) rather than physical directional properties. This ensures elements reflow correctly in both LTR and RTL modes. The native Shopify checkout elements don't require changes — only custom-added elements.
+          </div>
+        </div>
+
+        <div class="cause-item">
+          <div class="cause-header">
+            <span class="cause-num">CAUSE 7</span>
+            <span class="cause-title">EU VAT / tax ID field missing for B2B buyers</span>
+          </div>
+          <div class="cause-body">
+            European B2B buyers often need to enter a VAT registration number at checkout to ensure zero-rated (tax-free) intra-EU purchases. Shopify's standard checkout doesn't have a built-in VAT field for consumer checkout. Without this field, EU B2B buyers must pay tax upfront and then reclaim it — or they abandon checkout because the total price is wrong for business accounting. This is technically a localization issue because it only affects buyers in specific jurisdictions.
+          </div>
+          <div class="cause-fix">
+            <strong>Fix:</strong> Shopify Plus stores can add a VAT number field to checkout using a Checkout Extension. Several Shopify apps also add VAT number fields to checkout for non-Plus stores (search "VAT number checkout" in the Shopify App Store). The collected VAT number should then be included in the order and on the order invoice. Verify the field validates EU VAT number formats (two-letter country code + digits/letters, e.g., DE123456789) — not just a free-text field that accepts anything.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ERROR TABLE -->
+    <section class="section">
+      <div class="section-label">Error Reference</div>
+      <h2>Checkout Localization Errors by Symptom</h2>
+
+      <table class="error-table">
+        <thead>
+          <tr>
+            <th>Error / Symptom</th>
+            <th>Type</th>
+            <th>Most Likely Cause</th>
+            <th>First Check</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Checkout stays in English after language switch</td>
+            <td><span class="tag tag-lang">Language</span></td>
+            <td>Locale URL not set, or language not Published in Markets</td>
+            <td>Admin → Markets → [market] → Languages → Published?</td>
+          </tr>
+          <tr>
+            <td>Translation app works on storefront but not checkout</td>
+            <td><span class="tag tag-lang">Language</span></td>
+            <td>Translation app can't modify Shopify checkout page</td>
+            <td>Admin → Markets → Languages → Add checkout language natively</td>
+          </tr>
+          <tr>
+            <td>Phone number "Enter a valid phone number" error</td>
+            <td><span class="tag tag-phone">Phone</span></td>
+            <td>Phone format mismatch between billing country and shipping country</td>
+            <td>Test with +[country code] format; make phone field optional if non-critical</td>
+          </tr>
+          <tr>
+            <td>Postal code validation error for valid code</td>
+            <td><span class="tag tag-postal">Postal</span></td>
+            <td>Alphanumeric or no-postal-code country; overly strict validation</td>
+            <td>Test checkout from affected country; check postal code field settings</td>
+          </tr>
+          <tr>
+            <td>Non-Latin characters rejected in name/address</td>
+            <td><span class="tag tag-char">Characters</span></td>
+            <td>Checkout customization app has ASCII-only validation</td>
+            <td>Disable checkout apps one-by-one, test with Unicode input</td>
+          </tr>
+          <tr>
+            <td>Arabic or Hebrew checkout visually broken</td>
+            <td><span class="tag tag-rtl">RTL</span></td>
+            <td>Checkout customization uses physical CSS properties, not logical</td>
+            <td>Test in /ar/ locale; check Checkout Extensions for RTL CSS</td>
+          </tr>
+          <tr>
+            <td>EU B2B buyer can't enter VAT number</td>
+            <td><span class="tag tag-app">App needed</span></td>
+            <td>No VAT number field in standard Shopify checkout</td>
+            <td>Install VAT checkout app or build Checkout Extension (Plus)</td>
+          </tr>
+          <tr>
+            <td>Hong Kong buyer can't complete checkout — postal code required</td>
+            <td><span class="tag tag-postal">Postal</span></td>
+            <td>Postal code field required; HK has no postal codes</td>
+            <td>Admin → Settings → Shipping → make postal code optional for HK market</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- TESTING CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Testing Protocol</div>
+      <h2>Localization Checkout Test Checklist</h2>
+      <p>Run this for every market you actively target. Use a VPN to simulate the customer's country, or use a browser locale override. Test in a clean incognito window.</p>
+
+      <ul class="checklist">
+        <li>Navigate to your store via the locale URL (e.g., /fr/ for French) — verify checkout opens in the target language</li>
+        <li>Add a product and proceed to checkout — verify all checkout UI elements are in the correct language (not mixed)</li>
+        <li>Enter a phone number in the local format for the target country — verify it's accepted</li>
+        <li>Enter a postal code in the format used by the target country — verify it's accepted</li>
+        <li>For CJK markets (Japan, China, Korea): enter name and address in local script — verify no "invalid characters" error</li>
+        <li>For Arabic/Hebrew markets: verify the checkout layout is RTL and form fields are usable</li>
+        <li>For EU B2B markets: verify a VAT number field is available if your buyers need it</li>
+        <li>For markets without postal codes (Hong Kong, etc.): verify checkout completes without a postal code</li>
+        <li>Complete a full test order in each target locale — verify confirmation email arrives in the correct language</li>
+        <li>After any checkout customization or translation app change: rerun all locale tests</li>
+      </ul>
+    </section>
+
+    <!-- MONITORING CTA -->
+    <section class="cta-block">
+      <h2>Catch Checkout Failures Before International Customers Do</h2>
+      <p>CheckPulse monitors the full Shopify checkout flow and alerts you the moment something breaks — in any market, before customers give up and go to a competitor.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Checkout Localization Questions</h2>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify checkout showing in the wrong language?</div>
+          <div class="faq-a">Shopify checkout language is set by the market the customer is in, not the browser language. The language must be added and Published in Admin → Markets → [market] → Languages. The customer must access the store via the locale URL (e.g., /fr/ for French). Translation apps can't directly modify the Shopify checkout page — use Shopify's native translation system for checkout strings.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify checkout reject valid international phone numbers?</div>
+          <div class="faq-a">Shopify validates phone numbers against the expected format for the shipping country. A phone number in one country's format shipping to a different country can fail. The most reliable fix: make the phone field optional (Admin → Settings → Checkout → Phone number → Optional) or instruct customers to enter numbers in international format (+[country code][number]). If a checkout app is overriding phone validation, the app's validation script is the source — disable apps and test to identify the culprit.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify checkout failing postal code validation for international customers?</div>
+          <div class="faq-a">Shopify uses country-specific postal code validation. Issues arise for: countries without postal codes (Hong Kong — make the field optional for that market), countries with alphanumeric codes (Canada, Ireland — ensure checkout customizations allow letters), and countries where the format requires a specific separator (Brazil's CEP hyphen). Test from the specific country and check whether the failure is Shopify native validation or a checkout customization script.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I fix Shopify checkout language not changing when customers switch language?</div>
+          <div class="faq-a">The theme's language switcher must redirect to the locale URL (/fr/, /de/, etc.) — not just toggle a display language with JavaScript. Check the switcher code in your theme. Also verify the language is Published (not just added) in Admin → Markets → [market] → Languages. If you use a translation app, enable its "checkout locale handoff" setting — most major apps (Weglot, Langify) have this option.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify checkout block non-Latin characters in name or address fields?</div>
+          <div class="faq-a">Shopify's native checkout accepts all Unicode characters. If non-Latin input is rejected, a checkout customization is the cause — either an app running ASCII-only validation or a checkout.liquid script on Shopify Plus. Disable checkout extensions one by one to identify the source. The fix is updating the validation regex in the conflicting script to accept Unicode ranges rather than only ASCII characters.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Troubleshooting</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="guide-card">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">Shopify Markets Checkout Errors</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed" class="guide-card">
+          <div class="guide-card-label">Address</div>
+          <div class="guide-card-title">Address Validation Failed</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">B2B</div>
+          <div class="guide-card-title">B2B &amp; Wholesale Checkout Errors</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+          <div class="guide-card-label">Payment</div>
+          <div class="guide-card-title">Checkout Payment Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-error" class="guide-card">
+          <div class="guide-card-label">Tax</div>
+          <div class="guide-card-title">Checkout Tax Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">General</div>
+          <div class="guide-card-title">Checkout Not Working: 7 Fixes</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist" class="guide-card">
+          <div class="guide-card-label">Testing</div>
+          <div class="guide-card-title">Full Checkout Testing Checklist</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-agencies" class="guide-card">
+          <div class="guide-card-label">Agencies</div>
+          <div class="guide-card-title">Checkout QA for Agencies</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+    </p>
+  </footer>
+
+</body>
+</html>

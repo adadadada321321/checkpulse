@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Loyalty Points Not Working at Checkout — Rewards Not Applying, Points Disappearing, App Conflicts (2026)</title>
+  <meta name="description" content="Shopify loyalty points not showing at checkout, Smile.io rewards not applying, LoyaltyLion points disappearing — complete guide to Shopify loyalty program checkout failures, points redemption errors, and guest checkout loyalty issues." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" />
+  <meta property="og:title" content="Shopify Loyalty Points Not Working at Checkout — Rewards Not Applying and Points Disappearing" />
+  <meta property="og:description" content="Loyalty points are not a Shopify feature — they are a third-party app layer. When a loyalty app fails at checkout, Shopify processes the order normally and returns no error. The customer discovers they lost their points only after the order is placed." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Loyalty Points Not Working at Checkout — Rewards Not Applying, Points Disappearing, App Conflicts",
+    "description": "A complete guide to Shopify loyalty program checkout failures: why points disappear between cart and checkout, how loyalty apps conflict with discount codes, why guests cannot use loyalty rewards, what breaks when a theme update changes the checkout layout, and how to audit a loyalty program that silently fails without returning any visible checkout error.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify loyalty points not showing at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify loyalty points not appearing at checkout is almost always a loyalty app layer failure, not a Shopify checkout failure. The most common causes: (1) The loyalty app's checkout extension is not rendering. If your app uses Shopify Checkout Extensions (the modern integration method for checkout-extensible stores), a rendering failure causes the loyalty widget to silently not appear — the checkout page loads normally, but the points redemption UI is simply missing. This is most often caused by a theme update, a Shopify plan change that affects checkout extensibility, or a configuration change in the app admin. (2) The loyalty app is experiencing a service outage or high latency. Most loyalty apps retrieve the customer's points balance from their own servers in real time at checkout. If their API is slow or down, the widget either shows a loading spinner indefinitely or shows a zero balance. (3) The customer is not logged in. Native Shopify loyalty programs (Smile.io, LoyaltyLion, Yotpo Loyalty, Rise.ai) tie points to a customer account. Points cannot appear at checkout for a guest — the app has no identity to look up. The fix depends on the cause: check your loyalty app's status page, verify the checkout extension is still installed and configured after recent theme changes, and ensure your checkout prompts returning customers to log in before they reach the payment step."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do loyalty points disappear from checkout even though they show in the cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The cart page and the checkout page are two separate surfaces in Shopify — they can have different app injection points and different rendering behaviors. Loyalty points appearing in the cart but disappearing at checkout almost always means the loyalty app's cart integration is working but its checkout integration is broken. The most common cause: the loyalty app injects a points widget into the cart page via a theme snippet or JavaScript injection, but the checkout page integration uses a different mechanism — Shopify Checkout Extensions or the discount code API — which stopped working after a checkout configuration change. A secondary cause: the loyalty app's checkout widget loaded in the cart session but did not persist into the checkout session. Some loyalty integrations apply a discount code to the cart at the point of points redemption — if that discount code is cleared when the cart converts to a checkout (which can happen on session expiry or cross-device handoff), the points appear to disappear. The fix: test the full path from cart to order confirmation in an incognito session, observing where exactly the points widget stops rendering. If points disappear at the cart-to-checkout transition, the discount code application step is likely where the failure occurs. Contact your loyalty app support with the specific step where the breakdown happens."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can customers use loyalty points AND a discount code at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Whether loyalty points and discount codes can be combined at Shopify checkout depends on how your loyalty app integrates with the checkout discount system. There are two integration mechanisms: (1) Discount code proxy: the loyalty app converts points into a Shopify discount code at the time of redemption. This code is applied to the cart or checkout like any other discount code. If your Shopify plan or store settings only allow one discount code per checkout, the customer cannot stack their loyalty discount with a promotional code — the second code will be rejected. This is a Shopify checkout limitation, not a loyalty app bug. (2) Checkout Extension discount: the loyalty app uses Shopify's Checkout Extensions API to apply a discount directly to line items without using the discount code field. This can be combined with a discount code in the discount code input, depending on how both discounts are configured. To allow stacking: on Shopify Plus, you can enable combination discounts in Admin → Discounts → select a discount → Combinations. The loyalty app's discount and the promotional code both need combination enabled. On non-Plus plans, true stacking of multiple discounts is not available natively — the loyalty discount will block a promotional code (or vice versa). Communicate this limitation clearly at checkout to avoid customer frustration: show a message like 'Loyalty rewards and discount codes cannot be combined on this order.'"
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't guests use loyalty points at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Loyalty points are always tied to a customer identity — an account in the loyalty app's database that links a customer's email address to their points balance and transaction history. Guest checkout provides no customer identity: the buyer does not log in, so the loyalty app has no account to look up a points balance from. This is a structural limitation of how loyalty programs work, not a bug. What you can do: (1) Add a login prompt before checkout. Display a 'Have an account? Log in to use your loyalty points' banner on the cart page before the customer proceeds to checkout as a guest. Many loyalty apps have a built-in widget for this, or you can add it manually to your cart template. (2) Enable account auto-creation after guest purchase. Shopify can invite guest buyers to create an account after their order is placed (Admin → Settings → Checkout → Customer accounts). When the guest creates an account post-purchase, any points earned from the order are applied retroactively. The customer cannot use points on this order, but they accrue them for future purchases. (3) Accept email-based point lookup without full login. Some loyalty apps (Smile.io has this option) allow a customer to enter their email at checkout to look up their points balance, without requiring a full login. This is a middle ground that works for guests who want to check their balance without creating an account. The tradeoff: this approach can be gamed (anyone who knows a customer's email can check their balance), so consider whether the fraud surface is acceptable for your store."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test if my Shopify loyalty program is working correctly at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To audit your loyalty checkout flow: (1) Logged-in customer test: create a test customer account, manually issue points from your loyalty app admin (most apps have a 'grant points' function), log in as that customer, add items to cart, proceed to checkout, and verify the points widget appears with the correct balance. Apply the maximum redeemable points and verify the discount applies correctly. Complete the order and verify the points balance in the loyalty app admin reflects the redemption. (2) Guest checkout test: open an incognito window, add items to cart, proceed to checkout as a guest, and verify the loyalty widget either shows a login prompt or is correctly absent. Verify the checkout completes without errors. Do not verify that points were earned — this is expected to be a limitation. (3) Points + discount code test: with a test account that has redeemable points, apply a loyalty discount at checkout, then also enter a promotional discount code. Note what happens: is the promotional code rejected? Is the loyalty discount cleared? This is the most common source of customer complaints and you need to know the behavior of your specific setup. (4) Post-theme-update test: after every Shopify theme update, run test (1) again immediately. Theme updates frequently break checkout extension injection points, and the loyalty widget is one of the first things to fail. (5) Mobile checkout test: run test (1) on a real mobile device (not just responsive preview). Loyalty widgets are disproportionately broken on mobile checkouts because the checkout layout changes on small screens and app injection points can collide with the mobile layout."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    .insight-box {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .insight-box strong { color: var(--amber); }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .layer-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .layer-title { font-weight: 700; font-size: 0.9375rem; margin-bottom: 8px; color: var(--text); }
+    .layer-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    .failure-list { margin-top: 28px; display: flex; flex-direction: column; gap: 20px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .failure-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .failure-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .failure-title { font-weight: 600; font-size: 0.9375rem; }
+    .failure-body { padding: 20px; font-size: 0.9rem; }
+    .failure-body p { font-size: 0.9rem; margin-bottom: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: #1e1e1e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f0c080;
+    }
+
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .badge-amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-green { background: rgba(16,185,129,0.15); color: #10b981; }
+
+    .checklist { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .check-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      min-width: 28px;
+      padding-top: 1px;
+    }
+    .check-text { font-size: 0.9rem; color: var(--text-secondary); }
+    .check-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p { font-size: 0.9375rem; max-width: 480px; margin: 0 auto 24px; }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      margin-right: 12px;
+    }
+    .btn-primary:hover { background: #fbbf24; text-decoration: none; }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      border: 1px solid var(--border-mid);
+      text-decoration: none;
+    }
+    .btn-secondary:hover { color: var(--text); text-decoration: none; }
+
+    .faq-list { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; font-size: 1rem; margin-bottom: 12px; color: var(--text); }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); }
+    .faq-a p { font-size: 0.9rem; margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+
+    @media (max-width: 640px) {
+      .layer-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .btn-primary { margin-right: 0; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse <span style="font-weight:400;color:var(--text-dim)">/ Shopify Checkout Monitor</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Loyalty Rewards</div>
+      <h1>Shopify Loyalty Points Not Working at Checkout — Rewards Not Applying, Points Disappearing, and App Conflicts</h1>
+      <p class="hero-sub">Loyalty points are not a Shopify feature. They are a third-party app layer — Smile.io, LoyaltyLion, Yotpo, Rise.ai — built on top of Shopify checkout using extensions, discount code proxies, and cart APIs. When a loyalty app fails at checkout, Shopify processes the order normally and returns no error. The customer discovers they lost their points only after the order is placed.</p>
+
+      <div class="insight-box">
+        <strong>The structural blind spot:</strong> Shopify checkout monitors — including CheckPulse — confirm that the checkout flow loads, accepts payment, and places orders. They cannot confirm that loyalty app widgets rendered, that points balances loaded correctly, or that discount codes generated by the loyalty app were applied. A loyalty app outage is invisible to checkout monitoring. Your checkout health score looks perfect while hundreds of customers are completing orders without their earned rewards.
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-icon">🔌</div>
+          <div class="layer-title">Checkout Extension Layer</div>
+          <div class="layer-desc">Modern loyalty apps (Smile.io, LoyaltyLion, Yotpo) use Shopify Checkout Extensions to inject points widgets directly into the checkout page. When the extension fails to render — due to a theme update, a plan change, or an app configuration error — the widget is silently absent. No error appears. Customers proceed without their rewards.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">⚡</div>
+          <div class="layer-title">Points Calculation Layer</div>
+          <div class="layer-desc">Each time a customer reaches checkout, the loyalty app makes a real-time API call to look up their points balance, calculate redeemable amounts, and determine eligibility rules (minimum order thresholds, excluded products, tier restrictions). If the app's API is slow or down, the balance shows as zero or the widget spins indefinitely — the customer sees no points to redeem.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🎟️</div>
+          <div class="layer-title">Discount Code Proxy Layer</div>
+          <div class="layer-desc">Many loyalty apps convert point redemption into a Shopify discount code applied to the cart or checkout. This creates a dependency on Shopify's discount code system — and means loyalty discounts compete with promotional discount codes for the single discount code slot on non-Plus plans. A conflict between the loyalty discount and a coupon code is one of the most common loyalty checkout complaints.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>6 Ways Shopify Loyalty Rewards Fail at Checkout</h2>
+      <p>Each failure produces a customer who either abandons because they cannot use their points, or completes the order and contacts support to demand a points correction. Neither outcome is good. The common thread: Shopify processes the transaction correctly — the loyalty app layer is where each failure originates.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 01</span>
+            <span class="failure-title">Points Show in Cart — Disappear at Checkout</span>
+          </div>
+          <div class="failure-body">
+            <p>A logged-in customer sees their points balance in the cart page sidebar widget. They click "Proceed to checkout." The checkout page loads — but the loyalty widget is missing. The points balance is gone. No error appears. The customer either abandons in frustration or completes the order without their points, then contacts support.</p>
+            <p><strong>Why it happens:</strong> The cart page integration and the checkout page integration use different mechanisms. Cart widgets are often injected via Liquid snippets or JavaScript — they work as long as the theme is loaded. The checkout integration uses Shopify Checkout Extensions, which have their own render lifecycle separate from the theme. If the checkout extension fails to register, render, or load its configuration, the widget simply does not appear on the checkout page — even if the cart widget is working perfectly.</p>
+            <p><strong>Triggers:</strong> Theme version update (extensions can lose their placement slot), Shopify plan change (checkout extensibility is only available on certain plans), loyalty app version update that changes extension configuration, or custom checkout scripts that conflict with the extension render. After any theme or plan change, test this path immediately.</p>
+            <p><strong>Fix:</strong> In your Shopify admin, go to Online Store → Themes → Customize → Checkout and cart. Verify your loyalty app's checkout block is still present in the checkout editor. If it was removed by a theme update, re-add it from the "Add block" menu. If the extension is not listed, go to the loyalty app's settings and re-run the checkout extension installation step.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 02</span>
+            <span class="failure-title">Loyalty App Outage — Points Show Zero or Widget Spins Forever</span>
+          </div>
+          <div class="failure-body">
+            <p>The loyalty app's API is experiencing high latency or a service outage. When a customer reaches checkout, the points balance widget shows a spinner that never resolves, or displays a zero balance even though the customer has thousands of points. Customers who know they have points either refresh repeatedly, abandon the checkout, or complete the order and contact support asking why their points weren't available.</p>
+            <p><strong>Invisible because:</strong> Shopify's checkout health is unaffected. The checkout loads in under 1 second. Payment processes correctly. Orders complete. CheckPulse would report a healthy checkout — because Shopify's systems are working. The loyalty app API failure is entirely in the app's infrastructure, which no checkout monitoring tool covers.</p>
+            <p><strong>Fix:</strong> Check your loyalty app's status page before assuming a configuration error. Smile.io, LoyaltyLion, and Yotpo all publish status pages — bookmark them and check them first when customers report points issues. If the app is down, the fix is to wait for their service to recover. For high-volume stores: add a checkout announcement bar during known outages: "Our rewards system is currently experiencing a temporary issue. Points earned on this order will be applied within 24 hours." This reduces abandon rate and support tickets during outages.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 03</span>
+            <span class="failure-title">Loyalty Discount Conflicts With Promotional Discount Code</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer wants to use their loyalty points AND a discount code they received in an email campaign. They apply their points at checkout — the loyalty discount appears as a line item or discount code. They then enter the promotional discount code. Shopify rejects it: "Discount code cannot be combined with another discount." One or both discounts disappear. The customer contacts support frustrated that they "lost" both discounts.</p>
+            <p><strong>The mechanism:</strong> Most loyalty apps convert points into a Shopify discount code or apply a discount through the Checkout Extensions discount API. On non-Plus Shopify plans, only one discount code can be active per checkout. If the loyalty discount uses the discount code slot, a promotional code cannot be added simultaneously. The reverse is also true — if a customer enters a promotional code first, the loyalty discount may be blocked when they try to apply points.</p>
+            <p><strong>Fix for Plus merchants:</strong> Enable combination discounts in Admin → Discounts → select your loyalty app's discount type → Combinations → enable "Other discount codes" and "Automatic discounts." Both the loyalty discount and the promotional code will need combination enabled. <strong>Fix for non-Plus merchants:</strong> This is a platform limitation. Communicate it clearly at checkout — display a message near the loyalty widget: "Loyalty rewards cannot be combined with discount codes. Apply rewards or a discount code — not both." Preventing the expectation is more effective than recovering from a failed combination attempt after the customer is already frustrated.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 04</span>
+            <span class="failure-title">Guest Checkout — Points Silently Ignored</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer who has previously purchased and earned loyalty points returns and checks out as a guest. No loyalty widget appears. No error explains why. The customer earns no points on this purchase and cannot use existing points. They discover this later and contact support — they had points they expected to use and an order they expected to earn points on, and neither happened.</p>
+            <p><strong>Why points require login:</strong> Loyalty points are always tied to a customer identity in the loyalty app's database. Guest checkout provides no identity — no login, no account lookup, no way for the app to retrieve a points balance or attribute earned points to a future account. This is not configurable in Shopify checkout settings — it is a structural limitation of how loyalty programs work.</p>
+            <p><strong>Fix:</strong> Add a pre-checkout login prompt on the cart page. Display a banner: "You have loyalty points waiting — log in to use them on this order." Link to the Shopify account login page. Smile.io, LoyaltyLion, and most other apps have a cart widget option for this. Configure the prompt to appear only for returning customers (session-based detection) rather than for all cart visitors, to avoid alarming new customers who don't have accounts. Additionally, enable post-purchase account invitations so guest buyers are invited to create an account — future purchases can then earn and redeem points.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 05</span>
+            <span class="failure-title">Theme Update Breaks Loyalty Extension Injection Point</span>
+          </div>
+          <div class="failure-body">
+            <p>A Shopify theme update is applied — the store's design looks the same, the checkout appears normal. But the loyalty app's checkout extension lost its placement slot during the update. Customers can no longer see or apply points at checkout. This failure goes unnoticed for days or weeks because the checkout continues to function correctly — Shopify's monitoring shows all green — and customers who do notice assume they have no points rather than that the widget is broken.</p>
+            <p><strong>Why theme updates break this:</strong> Shopify Checkout Extensions are installed into specific slots in the checkout layout — "above order summary," "below cart lines," etc. When a theme update changes the checkout layout structure, extension placements can be removed or become invalid. The app is still installed, the extension code is still running, but the placement configuration is gone and the widget never renders.</p>
+            <p><strong>Invisible because:</strong> No order fails. No payment is rejected. The checkout success rate is 100%. The only signal is a drop in points redemption rate — which most merchants do not monitor closely enough to notice a discrete drop event vs. gradual seasonal change. By the time the issue is caught (often a customer complaint), weeks of lost redemption activity may have passed.</p>
+            <p><strong>Fix:</strong> After every theme update — major or minor — manually test the full loyalty checkout path within 30 minutes of applying the update. Go to Online Store → Themes → Customize → Checkout and verify your loyalty block is still in place. Set a post-theme-update testing checklist that includes loyalty checkout as step one.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 06</span>
+            <span class="failure-title">Partial Redemption Deducts More Points Than Redeemed</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer has 1,200 points. They choose to redeem 500 points for a $5 discount. The order completes. They check their loyalty balance: 0 points remain. All 1,200 points were deducted, not just the 500 they redeemed. They contact support. The merchant must manually restore 700 points from the loyalty app admin.</p>
+            <p><strong>How this happens:</strong> Partial point redemption requires the loyalty app to calculate the exact deduction, apply it correctly to the checkout discount, and then write back the correct residual balance to the customer's account after order completion. If there is a timing issue — the order webhook fires before the balance write-back completes, or the balance is calculated from the pre-redemption total rather than the post-redemption total — the full balance can be debited rather than the partial amount. This is most common during high-traffic periods (sales, BFCM) when the loyalty app's API is under load.</p>
+            <p><strong>Fix:</strong> Test partial point redemption with a real test account before peak traffic periods. Redeem a specific number of points on a test order and confirm the residual balance is exactly correct afterward. If over-deduction occurs, report it to your loyalty app support immediately — this is a billing accuracy bug that the app must fix at the API level. As a short-term safeguard, add an instruction on the loyalty widget: "Points will update within a few minutes of order confirmation — if your balance looks incorrect, wait 10 minutes and refresh before contacting support." This reduces panic-driven support tickets from customers who check their balance immediately after order placement before the async write-back has completed.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAILURE TABLE -->
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>Loyalty Checkout Failure Matrix</h2>
+      <p>Six failure modes, their visibility in Shopify admin, and the customer impact of each.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Failure Mode</th>
+              <th>Visible in Shopify Admin?</th>
+              <th>Customer Experience</th>
+              <th>Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Points show in cart, disappear at checkout</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Checkout completes normally — no error in admin</span></td>
+              <td>Customer abandons or completes without points, contacts support</td>
+              <td><span class="badge badge-red">Very High</span></td>
+            </tr>
+            <tr>
+              <td>Loyalty app outage — zero balance or spinner</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Shopify checkout healthy — app infrastructure failure only</span></td>
+              <td>Repeated refreshes, cart abandonment, or post-order support ticket</td>
+              <td><span class="badge badge-red">High</span></td>
+            </tr>
+            <tr>
+              <td>Loyalty + discount code conflict</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Discount rejection visible in checkout if you test it</span></td>
+              <td>Customer forced to choose one or abandons with both removed</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td>Guest checkout — points silently ignored</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Guest orders complete without any loyalty event recorded</span></td>
+              <td>Customer earns no points and cannot redeem, discovers later</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td>Theme update removes extension placement</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Checkout editor shows missing block only if you look</span></td>
+              <td>Loyalty widget absent for all customers — silent and persistent</td>
+              <td><span class="badge badge-red">Very High</span></td>
+            </tr>
+            <tr>
+              <td>Partial redemption deducts full balance</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Order completed successfully — over-deduction only in loyalty app log</span></td>
+              <td>Customer contacts support demanding balance restoration</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Loyalty Audit</div>
+      <h2>8-Step Loyalty Checkout Readiness Checklist</h2>
+      <p>Run this audit when you first set up a loyalty program, after every Shopify theme update, and quarterly during normal operations. The single highest-ROI time to run it is within 30 minutes of applying a theme update.</p>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">01</div>
+          <div class="check-text"><strong>Verify checkout extension placement after every theme update.</strong> Go to Online Store → Themes → Customize → Checkout and confirm your loyalty app's block is still placed in its expected position (typically "above order summary" or "below contact"). If the block is missing, re-add it from the block library. Do not wait for customer complaints — check within 30 minutes of any theme change.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">02</div>
+          <div class="check-text"><strong>Test the full cart-to-checkout-to-confirmation loyalty path monthly.</strong> Log in as a test customer account that has redeemable points. Add items to cart, proceed to checkout, verify the points widget appears with the correct balance, redeem points, complete the order. Verify the residual points balance in the loyalty app admin is correct. Do this in an incognito session to avoid caching artifacts.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">03</div>
+          <div class="check-text"><strong>Test partial point redemption accuracy.</strong> With a test account holding at least 500 points, redeem exactly 200 points on a test order. After order confirmation, check the loyalty app admin and verify the balance is original minus 200 — not zero, not the full original balance. If partial redemption deducts incorrectly, report it to your loyalty app as a billing accuracy bug before it affects real customers.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">04</div>
+          <div class="check-text"><strong>Test loyalty discount + promotional discount code combination.</strong> With a test account, redeem loyalty points to apply a loyalty discount. Then enter a promotional discount code in the discount code field. Record what happens: does the system accept both? Reject the code? Clear the loyalty discount? Whatever the behavior, make sure it matches what customers are told. If combination is impossible, add messaging at the loyalty widget explaining this before customers experience it.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">05</div>
+          <div class="check-text"><strong>Test guest checkout loyalty behavior.</strong> Open an incognito window, add items to cart, proceed to checkout as a guest. Confirm no loyalty widget appears (expected) and that no error message related to loyalty appears. Verify that a login prompt or "Sign in to earn and use points" message is visible on the cart page before the guest clicks "Checkout." The cart page prompt is the only intervention point for guest loyalty.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">06</div>
+          <div class="check-text"><strong>Test loyalty on mobile checkout.</strong> Run the full loyalty checkout test on a real iOS or Android device — not a desktop browser's responsive mode. Loyalty widgets are disproportionately broken on mobile checkout layouts because the widget's position and rendering logic can differ from desktop. Tap the loyalty widget on mobile, confirm it opens, confirm points can be applied, confirm the checkout layout does not break when the widget is active.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">07</div>
+          <div class="check-text"><strong>Bookmark your loyalty app's status page.</strong> Smile.io, LoyaltyLion, and Yotpo all have public status pages. When customers report loyalty issues, check the status page before investigating your configuration — many loyalty problems during high-traffic periods are service incidents on the app's side, not configuration problems on your side. Knowing immediately whether the app is down saves hours of unnecessary troubleshooting.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">08</div>
+          <div class="check-text"><strong>Monitor checkout separately from loyalty.</strong> Loyalty monitoring requires checking your loyalty app's admin dashboard — points redemption rate, failed redemption events, balance correction requests. Checkout monitoring (CheckPulse) confirms the underlying Shopify checkout is healthy — the initial page load, payment processing, and order confirmation. You need both signals: a healthy checkout can coexist with a broken loyalty layer, and identifying which layer failed determines where to look for the fix.</div>
+        </div>
+      </div>
+
+      <div class="cta-block">
+        <h3>Keep Your Checkout Healthy While Loyalty Issues Are Investigated</h3>
+        <p>Loyalty app failures do not break your checkout — but checkout failures do. CheckPulse monitors your Shopify checkout continuously and alerts you within 2 minutes when the underlying checkout fails, so you are not confusing a loyalty issue with a checkout-down situation.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="btn-secondary">See CheckPulse →</a>
+      </div>
+    </section>
+
+    <!-- CLUSTER INSIGHT -->
+    <section class="section">
+      <div class="section-label">Cluster Context</div>
+      <h2>How Loyalty Rewards Connect to the Checkout App Layer</h2>
+      <p>Loyalty programs sit at the intersection of three checkout subsystems: the checkout extension layer, the discount code system, and the customer account layer. Failures in any of these cascade into loyalty checkout failures.</p>
+
+      <h3>Loyalty → Checkout Extensions</h3>
+      <p>Loyalty widgets use Shopify Checkout Extensions to render in the checkout UI — the same extensibility layer used by post-purchase upsells, shipping protection offers, and custom form fields. If the checkout extension layer is misconfigured, multiple app widgets can fail simultaneously after a theme update. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions guide</a> for how to diagnose and restore extension placements after theme changes.</p>
+
+      <h3>Loyalty → Discount Codes Not Working</h3>
+      <p>When a loyalty app converts points into a discount code at checkout, it enters the same discount code system that promotional codes use. The same conflicts that break promotional codes — plan-level single-code limits, combination restrictions, discount code format errors — affect loyalty discounts. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Code guide</a> for the full diagnostic for discount code failures at checkout.</p>
+
+      <h3>Loyalty → Guest Checkout</h3>
+      <p>Guest checkout and loyalty programs are fundamentally incompatible without explicit account linking. Understanding the guest checkout flow — why customers choose it, when it breaks, and how to optimize the login prompt — is critical context for reducing loyalty-invisible orders. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-guest-checkout">Guest Checkout guide</a> for the full guest checkout failure and optimization picture.</p>
+
+      <h3>Loyalty → CRO and Checkout Conversion</h3>
+      <p>Loyalty programs are a conversion optimization lever — the promise of earning points on a purchase can reduce cart abandonment and increase average order value. But a loyalty program that fails silently at checkout has the opposite effect: customers who came specifically to use their points abandon when they cannot. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro">Checkout CRO guide</a> for a broader picture of checkout conversion optimization in which loyalty programs play a key role.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Loyalty Checkout Failures — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why are my Shopify loyalty points not showing at checkout?</div>
+          <div class="faq-a">
+            <p>The most common causes: the loyalty app's checkout extension lost its placement slot after a theme update (verify in Online Store → Themes → Customize → Checkout), the loyalty app API is slow or down (check the app's status page), or the customer is not logged in (points require an account identity).</p>
+            <p>Check these in order: status page first (app outage is the fastest to rule out), then checkout editor (extension placement), then customer account status (login state). Most "points not showing" reports resolve at one of these three checkpoints.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why do loyalty points disappear from checkout even though they show in the cart?</div>
+          <div class="faq-a">
+            <p>The cart integration and checkout integration are different mechanisms. Cart widgets use theme snippets or JavaScript injection. Checkout uses Shopify Checkout Extensions — a separate render lifecycle. When the extension fails, the cart widget keeps working but the checkout widget disappears.</p>
+            <p>A secondary cause: the loyalty app generates a discount code when points are redeemed in the cart, and that discount code is cleared when the cart converts to a checkout session (can happen on cross-device hand-off or session timeout). Test by reproducing the exact path: same device, logged in, add to cart, redeem points in cart, then proceed — and see if the discount persists.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can customers use loyalty points AND a discount code at Shopify checkout?</div>
+          <div class="faq-a">
+            <p>On non-Plus Shopify plans: not natively. The checkout allows one discount code slot. If the loyalty discount uses that slot, a promotional code cannot be added. On Shopify Plus: yes, with combination discounts enabled. Both the loyalty app's discount type and the promotional discount need "Other discount codes" combination enabled in Admin → Discounts.</p>
+            <p>If your plan does not support stacking, communicate this limitation at the loyalty widget before customers attempt it: "Loyalty rewards and discount codes cannot be combined on this order." Preventing the expectation is more effective than recovering after the customer has experienced the rejection.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why can't guests use loyalty points at Shopify checkout?</div>
+          <div class="faq-a">
+            <p>Loyalty points are tied to a customer account in the loyalty app's database. Guest checkout provides no customer identity — no login, no account to look up. Without identity, there is no points balance to retrieve or attribute. This is structural, not a configuration bug.</p>
+            <p>The fix: add a login prompt on the cart page before guests reach checkout. Show a "Log in to use your loyalty points" banner that links to the account login page. Configure it to appear only for returning customers (email address found in the loyalty database) rather than all cart visitors. Post-purchase account invitations let guest buyers create accounts retroactively and earn points on past purchases.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I test if my Shopify loyalty program is working correctly at checkout?</div>
+          <div class="faq-a">
+            <p>The minimum monthly test: log in as a test customer with redeemable points, add items to cart, go to checkout, verify the points widget appears with the correct balance, apply points, complete the order, check the residual balance in the loyalty app admin. Do this on both desktop and a real mobile device — mobile layout can break widget injection even when desktop works.</p>
+            <p>Additional tests to run after every theme update: verify extension placement in the checkout editor, test the loyalty + promotional discount code combination, and test the guest checkout flow to confirm the login prompt appears on the cart page. The 30 minutes after a theme update is the highest-risk window for loyalty checkout failures — test then, not when the first customer complaint arrives.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+          <div class="guide-card-label">Discount Codes</div>
+          <div class="guide-card-title">Shopify Discount Code Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-guest-checkout" class="guide-card">
+          <div class="guide-card-label">Guest Checkout</div>
+          <div class="guide-card-title">Shopify Guest Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">CRO</div>
+          <div class="guide-card-title">Shopify Checkout Conversion Rate Optimization</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+          <div class="guide-card-label">Upsells</div>
+          <div class="guide-card-title">Shopify Checkout Upsells &amp; Post-Purchase Offers</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Shopify Checkout Abandonment — Why Customers Leave</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

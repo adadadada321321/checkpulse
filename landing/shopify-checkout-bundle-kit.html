@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Bundle Checkout Not Working — Kit Builder Errors, Bundle Discount Not Applying, Bundle App Conflicts (2026)</title>
+  <meta name="description" content="Shopify product bundle checkout not working, bundle discount disappearing at checkout, Bold Bundles checkout error, kit builder checkout failing — complete guide to Shopify bundle app checkout failures, pricing architecture conflicts, and bundle discount not applying." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" />
+  <meta property="og:title" content="Shopify Bundle Checkout Not Working — Bundle Discount Not Applying, Kit Builder Errors" />
+  <meta property="og:description" content="Bundles are not a native Shopify feature — they are a third-party app layer. Bundle apps use 3 fundamentally different pricing architectures at checkout, and each one fails differently. When a bundle fails, Shopify checkout reports 100% healthy. The customer pays full price without any error message." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Bundle Checkout Not Working — Kit Builder Errors, Bundle Discount Not Applying, Bundle App Conflicts",
+    "description": "A complete guide to Shopify bundle checkout failures: why bundle discounts disappear between cart and checkout, why the same bundle works on desktop but fails on mobile, what makes kit builder checkouts fail silently, how to identify which bundle pricing architecture your app uses, and the 8-step bundle checkout audit checklist for Shopify merchants using Bold Bundles, Bundler, Rebuy, or custom bundle apps.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify bundle discount disappear at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Bundle discounts disappearing between cart and checkout is the most common bundle checkout failure, and it happens in two distinct ways depending on how your bundle app is architected. (1) Draft order-based bundles: Apps like Bold Bundles (classic mode) create a Shopify draft order when a customer adds a bundle to the cart. The bundle pricing — the discounted bundle price replacing the individual item prices — lives inside that draft order. When the customer proceeds to checkout, Shopify converts the draft order into a checkout. If the draft order conversion fails or times out, the checkout is created from the original cart instead of the draft order. The cart has no bundle pricing — it contains the individual items at their normal prices. The discount is gone, and the customer sees full price with no error message. (2) Discount code-based bundles: Apps like Bundler and some Rebuy configurations apply a Shopify discount code to the cart to represent the bundle savings. If that discount code expires between cart creation and checkout, conflicts with another discount, or is cleared by a cart update, the code disappears silently. The customer reaches checkout with no discount and no explanation. The fix depends on which architecture your app uses: check if your bundle app created a draft order (visible in Shopify Admin → Orders → Drafts) or applied a discount code (visible in the cart via the checkout URL). That tells you which failure mode you are diagnosing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify bundle work on desktop but fail on mobile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Bundles that work on desktop but fail on mobile almost always indicate a Checkout Extension rendering failure. Apps using Shopify's modern checkout extensibility framework inject bundle UI components directly into the checkout page via extension blocks. These extension blocks are rendered by Shopify's checkout engine — not by your theme. On desktop, extension blocks load and render correctly. On mobile — particularly iOS Safari, which has stricter Content Security Policy enforcement and different JavaScript runtime behavior — the extension block may fail to render, render with broken layout, or render without the interactive elements that allow bundle discount application. The customer on iOS Safari sees a normal checkout with no bundle UI and no bundle discount. The order processes at full price. There is no error — Shopify's checkout processed the order successfully; only the extension layer failed. To diagnose: reproduce the failure on iOS Safari using a real device (not a simulator — iOS Safari on simulator behaves differently). Check Shopify Admin → Checkout → Customize and look for any extension blocks reporting render errors. Check your bundle app's dashboard for mobile-specific error logging. The fix typically involves updating the bundle app to its latest version, which usually includes iOS Safari compatibility patches, or contacting the app developer with the specific device and OS version where the failure occurs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my bundle app show 'discount code invalid' or 'this discount is not valid' at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 'discount code invalid' error at Shopify checkout for a bundle purchase means your bundle app uses a discount code architecture — it creates a Shopify discount code to represent bundle savings and applies it to the cart. This error has three common causes: (1) Discount code conflict: Shopify limits the number of discount codes that can be applied simultaneously depending on your plan and discount type. If the customer has already applied a different discount code, Shopify may reject the bundle's discount code or vice versa. The bundle app's discount and the customer's promotional code cannot coexist. (2) Discount code expiry or deletion: Some bundle apps generate unique single-use discount codes per session. If the session times out, the page is refreshed, or the app's backend cleans up unused codes, the code that was applied to the cart may no longer exist when checkout validates it. (3) Code generation failure: If the bundle app's API request to create the discount code failed (app server timeout, Shopify API rate limit), the code was never created — but the cart shows the discount as applied because the UI updated optimistically. At checkout, Shopify validates the code and finds it does not exist. Fix: test by clearing the cart, re-adding the bundle, and proceeding directly to checkout without applying any other discount codes. If the error disappears, it is a conflict issue. If it persists, check your bundle app's error logs for discount code creation failures."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my customer get charged full price at Shopify checkout even though the bundle was in their cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Getting charged full price with no error message — despite a bundle being added to the cart — is the most damaging bundle failure because neither the merchant nor the customer realizes it happened until after the order is complete and the customer reviews their receipt. It happens in all three bundle architectures: (1) In draft order bundles: the draft order conversion failed silently, the checkout was created from the original cart, and payment was processed at individual item prices. The order exists. The revenue is captured. The bundle discount was never applied. (2) In discount code bundles: the discount code was cleared or expired at the cart-to-checkout transition. The checkout proceeded without the discount. Payment was collected at full price. (3) In extension-based bundles: the extension block failed to render on this specific device or browser. The customer never saw the bundle pricing UI in checkout. Clicked through each step at full price, assuming the bundle discount was already baked in. Paid full price. The consistent fix for all three: add a visible price confirmation step. Display the bundle savings prominently at the cart level — not just in the bundle widget, but in the order summary line items. If the customer can see 'Bundle savings: -$X' in the order summary before entering payment, they will notice if it disappears. That visibility catches the failure before the order is placed and turns a full-price charge into a support ticket you can resolve before revenue is collected incorrectly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I identify which bundle pricing architecture my Shopify app uses?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Identifying your bundle app's pricing architecture is the first step in diagnosing any bundle checkout failure, because the failure mode is completely different depending on which method the app uses. Three methods to identify your architecture: (1) Check Shopify Admin → Orders → Drafts after adding a bundle to your cart. If a draft order appears with bundle line items and a discounted total, your app uses the draft order architecture. If no draft order appears, your app uses a different method. (2) Add a bundle to your cart and inspect the cart URL or use the Shopify Cart API. If the cart contains a discount code applied automatically (visible in the cart object's discount_codes array), your app uses the discount code architecture. (3) Go to Shopify Admin → Checkout → Customize. If you see extension blocks from your bundle app in the checkout editor, your app uses the checkout extension architecture. You can also simply email your bundle app's support and ask: 'Does your app use draft orders, discount codes, or checkout extensions to apply bundle pricing?' This question will get you a direct answer in most cases. Knowing the architecture tells you exactly where to look when something breaks: draft order failures show up in Orders → Drafts; discount code failures show up in Discounts and in the cart API; extension failures show up in checkout customization and in the extension's own error logs."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    .insight-box {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .insight-box strong { color: var(--amber); }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .layer-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .layer-title { font-weight: 700; font-size: 0.9375rem; margin-bottom: 8px; color: var(--text); }
+    .layer-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    .failure-list { margin-top: 28px; display: flex; flex-direction: column; gap: 20px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .failure-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .failure-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .failure-title { font-weight: 600; font-size: 0.9375rem; }
+    .failure-body { padding: 20px; font-size: 0.9rem; }
+    .failure-body p { font-size: 0.9rem; margin-bottom: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: #1e1e1e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f0c080;
+    }
+
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .badge-amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-green { background: rgba(16,185,129,0.15); color: #10b981; }
+
+    .checklist { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .check-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      min-width: 28px;
+      padding-top: 1px;
+    }
+    .check-text { font-size: 0.9rem; color: var(--text-secondary); }
+    .check-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p { font-size: 0.9375rem; max-width: 480px; margin: 0 auto 24px; }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      margin-right: 12px;
+    }
+    .btn-primary:hover { background: #fbbf24; text-decoration: none; }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      border: 1px solid var(--border-mid);
+      text-decoration: none;
+    }
+    .btn-secondary:hover { color: var(--text); text-decoration: none; }
+
+    .faq-list { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; font-size: 1rem; margin-bottom: 12px; color: var(--text); }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); }
+    .faq-a p { font-size: 0.9rem; margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+
+    @media (max-width: 640px) {
+      .layer-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .btn-primary { margin-right: 0; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse <span style="font-weight:400;color:var(--text-dim)">/ Shopify Checkout Monitor</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Bundle &amp; Kit Checkout</div>
+      <h1>Shopify Bundle Checkout Not Working — Bundle Discount Not Applying, Kit Builder Errors, and App Conflicts at Checkout</h1>
+      <p class="hero-sub">Bundles are not a native Shopify feature. They are a third-party app layer built on top of Shopify's checkout. Bundle apps use three fundamentally different pricing architectures — and each one fails in a completely different way. When a bundle fails, Shopify's checkout reports 100% healthy. The customer pays full price with no error message.</p>
+
+      <div class="insight-box">
+        <strong>The three-architecture problem:</strong> Bundle apps implement pricing through one of three methods: (1) draft order injection — the app creates a Shopify draft order with bundle pricing before checkout; (2) discount code injection — the app applies a discount code to the cart to represent bundle savings; or (3) checkout extension UI — the app renders a bundle component directly inside the checkout page. A draft order failure shows no error and charges full price. A discount code failure shows "invalid discount." An extension failure shows nothing — the UI disappears and the customer clicks through at full price. Diagnosing a bundle checkout failure requires identifying the architecture first.
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-icon">📋</div>
+          <div class="layer-title">Draft Order Layer</div>
+          <div class="layer-desc">Apps like Bold Bundles (classic mode) and some kit builder configurations create a Shopify draft order when the customer adds a bundle to the cart. The bundle pricing lives inside the draft order — discounted line item prices, combined variants, kit groupings. When the customer proceeds to checkout, Shopify converts the draft order into a checkout. If this conversion fails silently, the checkout is created from the raw cart instead — no bundle pricing, no error, full price charged. The failure is invisible to every checkout monitor because the checkout itself processes correctly.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🏷️</div>
+          <div class="layer-title">Discount Code Layer</div>
+          <div class="layer-desc">Apps like Bundler, some Rebuy configurations, and discount-based bundle tools apply a Shopify discount code to the cart to represent bundle savings. The code is applied automatically when the customer qualifies. At checkout, Shopify validates all discount codes. If the bundle's discount code expired, was cleared by a cart update, conflicts with another discount the customer applied, or was never successfully created by the app, checkout returns "invalid discount" or "this discount is not valid." The customer sees a coupon error on what they thought was a standard product bundle.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🧩</div>
+          <div class="layer-title">Checkout Extension Layer</div>
+          <div class="layer-desc">Apps built on Shopify's checkout extensibility framework inject bundle components directly into the checkout page via extension blocks. This is the modern approach — it does not require draft orders or discount codes. When extension rendering fails (iOS Safari compatibility issues, Shopify plan changes that affect checkout extensibility, theme updates that break extension slot configuration), the bundle UI simply does not appear. The checkout runs normally without it. The customer sees standard checkout at full price and has no indication the bundle savings were supposed to be there.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>6 Ways Shopify Bundle Checkout Fails</h2>
+      <p>Each bundle failure mode produces a different customer experience and a different support ticket. The common thread: Shopify's checkout infrastructure processes every one of these orders "successfully." The failure is in the app layer that was supposed to modify the checkout — and Shopify's own monitoring shows nothing wrong.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">01</span>
+            <span class="failure-title">Bundle discount disappears between cart and checkout — no error shown</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> Bundle was in the cart showing the discounted price. At checkout, the price is the sum of individual items. No error message. The customer either pays full price without noticing or abandons at the payment step confused by the higher total.</p>
+            <p><strong>Architecture:</strong> Draft order-based bundles. The app's draft order conversion timed out, the draft order was deleted before checkout conversion, or the cart-to-checkout handoff failed to pass the draft order ID to Shopify's checkout engine.</p>
+            <p><strong>Fix:</strong> Check Shopify Admin → Orders → Drafts immediately after reproducing the issue. If you see an orphaned draft order with the correct bundle pricing, the conversion step is failing. Contact your bundle app support with the draft order ID and the checkout session details. As an interim measure, display bundle savings prominently in the cart page summary so customers notice if the discount is missing before reaching payment.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">02</span>
+            <span class="failure-title">"This discount is not valid" or "discount code invalid" at checkout</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> An error banner at checkout saying the discount code is invalid, has expired, or cannot be applied. The customer thinks they mistyped a coupon code — they did not. The bundle app applied this code automatically.</p>
+            <p><strong>Architecture:</strong> Discount code-based bundles. Common causes: the app-generated discount code expired or was deleted, the customer applied a second discount code that conflicts (Shopify allows one discount code type per checkout unless stacking is configured), or the code was created for a different customer or session.</p>
+            <p><strong>Fix:</strong> Test the exact failure path: add the bundle, apply a secondary discount code, proceed to checkout. If the bundle code disappears, you have a conflict. Check your Shopify Discounts list for the auto-generated bundle codes — note whether they have usage limits or expiry. If a customer contacts support with this error, apply a manual discount to their order in Admin and document the failure for your bundle app's support team.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">03</span>
+            <span class="failure-title">Checkout charges full price silently — customer discovers after purchase</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> Checkout appeared normal. Order confirmed. Then the customer reviews the receipt or bank statement and notices they were charged the non-bundle price. They contact support days later. The merchant has no idea how many other customers experienced the same failure and did not contact support.</p>
+            <p><strong>Architecture:</strong> Occurs in all three architectures. Draft order bundles fail silently. Extension bundles fail silently. Some discount code bundles fail silently if the code removal does not trigger an error state.</p>
+            <p><strong>Fix:</strong> Add a bundle savings line item to the cart and checkout order summary — a visible line showing "Bundle savings: -$X." If this line is absent at checkout, customers notice before paying. Also run a periodic audit: export your last 30 days of orders and compare unit prices for bundled SKUs against bundle pricing. A spike in full-price orders for bundle SKUs indicates a silent failure period. Identify the date range and proactively refund affected customers before they find it themselves.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">04</span>
+            <span class="failure-title">Bundle items appear as separate individual products at checkout</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> Added "3-Product Bundle" to the cart. At checkout, they see three separate line items — Product A, Product B, Product C — each at full individual price. No bundle grouping, no bundle label, no bundle discount. The customer is confused and either overpays or abandons.</p>
+            <p><strong>Architecture:</strong> Draft order bundles where the app maps the bundle to its component SKUs. If the draft order conversion fails and the cart falls back, the cart contains the component items that the bundle app added — but without the draft order's pricing overrides. Extension bundles where the extension block fails to render the bundle grouping UI also show ungrouped items.</p>
+            <p><strong>Fix:</strong> Identify whether your bundle app adds individual component variants to the cart (common in kit builders) or adds a single bundle "parent" product. If components are added individually, the bundle's visual grouping and pricing entirely depend on the app layer — any failure makes it look like individual items. Audit your cart structure using Shopify's cart API: <code>GET /cart.json</code> on a browser with a bundle in cart. If you see individual SKUs without bundle metadata attributes, the app's cart-level customization is not working.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">05</span>
+            <span class="failure-title">Bundle checkout works on desktop but fails on mobile (iOS Safari / Chrome)</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> On mobile, the bundle discount is missing, the bundle UI does not appear in checkout, or the checkout shows full price. On desktop, everything works correctly.</p>
+            <p><strong>Architecture:</strong> Extension-based bundles. Checkout extension blocks use JavaScript and CSS that must render inside Shopify's checkout iframe environment. iOS Safari's stricter Content Security Policy enforcement, different event model, and more aggressive memory management can cause extension blocks to fail to mount, render with broken layout, or silently not appear at all.</p>
+            <p><strong>Fix:</strong> Test on a real iOS device — iPhone with Safari, not a simulator. Open the bundle product page, add to cart, proceed to checkout, observe whether the bundle extension block appears. If it does not appear, check your bundle app's changelog for recent iOS Safari patches. Most bundle apps release compatibility fixes within 1-2 weeks of iOS Safari updates. Temporary fix: add clear cart-level messaging showing "Bundle price: $X (saves $Y)" so mobile customers can verify the price is correct before entering checkout even if the extension UI is not rendering.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">06</span>
+            <span class="failure-title">Bundle conflicts with subscription app or post-purchase upsell</span>
+          </div>
+          <div class="failure-body">
+            <p><strong>What the customer sees:</strong> Adds a bundle to cart and tries to subscribe (subscribe-and-save). Checkout shows an error, the subscription option disappears, or the checkout completes but processes as a one-time order instead of a subscription. Alternatively, a post-purchase upsell offer fires after checkout and breaks the bundle order state.</p>
+            <p><strong>Architecture:</strong> API collision between the bundle app and the subscription app (Recharge, Skio, Stay.ai, Bold Subscriptions) or upsell app (Zipify, AfterSell, ReConvert). Both apps are trying to modify the same checkout object. Draft order bundles and subscription apps are especially incompatible — subscriptions also use draft orders, and two apps creating draft orders for the same cart creates a state conflict.</p>
+            <p><strong>Fix:</strong> Test the bundle + subscription combination explicitly — add a subscribable bundle to cart, select subscribe-and-save, proceed to checkout. Note which step fails. Check both apps' documentation for known compatibility notes. Many bundle apps have explicit documentation on subscription app compatibility. If both apps are needed, contact both support teams with the specific conflict — this is a known enough issue that most have a recommended configuration. See also the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Shopify Subscription Checkout guide</a> for the full subscription checkout failure diagnostic.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAILURE MATRIX -->
+    <section class="section">
+      <div class="section-label">Diagnostic Reference</div>
+      <h2>Bundle Checkout Failure Matrix</h2>
+      <p>Match the symptom to the architecture and root cause. Architecture identification is the first diagnostic step — the fix depends entirely on how your bundle app implements pricing.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Symptom</th>
+              <th>Architecture</th>
+              <th>Root Cause</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bundle discount missing, no error, full price charged</td>
+              <td>Draft order</td>
+              <td>Draft order conversion failed at cart-to-checkout transition</td>
+              <td><span class="badge badge-red">Critical</span></td>
+            </tr>
+            <tr>
+              <td>"Discount code invalid" at checkout</td>
+              <td>Discount code</td>
+              <td>Code expired, deleted, or conflicts with another discount</td>
+              <td><span class="badge badge-amber">High</span></td>
+            </tr>
+            <tr>
+              <td>Bundle UI missing at checkout, full price charged silently</td>
+              <td>Extension</td>
+              <td>Extension block failed to render (iOS Safari, plan change, theme update)</td>
+              <td><span class="badge badge-red">Critical</span></td>
+            </tr>
+            <tr>
+              <td>Bundle items appear as separate line items</td>
+              <td>Draft order / Extension</td>
+              <td>Cart fallback to raw component items after draft order failure</td>
+              <td><span class="badge badge-amber">High</span></td>
+            </tr>
+            <tr>
+              <td>Works on desktop, fails on mobile</td>
+              <td>Extension</td>
+              <td>iOS Safari CSP or JS runtime incompatibility</td>
+              <td><span class="badge badge-amber">High</span></td>
+            </tr>
+            <tr>
+              <td>Bundle + subscription conflict, order type wrong</td>
+              <td>Any</td>
+              <td>API collision between bundle app and subscription app draft order creation</td>
+              <td><span class="badge badge-red">Critical</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Pre-Launch Checklist</div>
+      <h2>8-Step Bundle Checkout Audit</h2>
+      <p>Run this checklist when setting up a new bundle app, after any theme update, after any Shopify plan change, and after any bundle app update. Bundle apps sit in the most fragile position in the checkout stack — they depend on multiple Shopify systems simultaneously.</p>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">01</div>
+          <div class="check-text"><strong>Identify your bundle architecture</strong> — Check Admin → Orders → Drafts after adding a bundle to cart (draft order?), inspect the cart's discount_codes field (discount code?), or check Admin → Checkout → Customize for extension blocks. Know which architecture before diagnosing anything.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">02</div>
+          <div class="check-text"><strong>Run an end-to-end incognito bundle purchase</strong> — Add the bundle to cart, verify the discounted price, proceed to checkout, confirm the price at each checkout step, complete payment with a test card, verify the order confirmation shows bundle pricing. Do this in a fresh incognito window with no cookies or cached state.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">03</div>
+          <div class="check-text"><strong>Test on real iOS Safari</strong> — Repeat the end-to-end test on a physical iPhone using Safari. Specifically verify that the bundle extension block renders (if extension-based) and that the bundle discount appears in the checkout order summary. Mobile is where extension-based bundle failures concentrate.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">04</div>
+          <div class="check-text"><strong>Test with a second discount code</strong> — Add the bundle to cart, apply a secondary promotional discount code, proceed to checkout. Verify both the bundle discount and the promotional code are applied. If one disappears, you have a discount stacking conflict that will affect every customer who uses a coupon with a bundle.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">05</div>
+          <div class="check-text"><strong>Test bundle inventory edge cases</strong> — Reduce bundle component inventory to 1, complete a bundle purchase, verify what happens when the bundle goes out of stock during checkout. Also test the "partially in stock" scenario: one bundle component is available, one is not. Confirm the error messaging is clear, not misleading.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">06</div>
+          <div class="check-text"><strong>Test subscription + bundle combination (if applicable)</strong> — If your store offers subscribe-and-save on bundle products, test the combination explicitly. Add a subscribable bundle, select the subscription option, proceed to checkout, complete payment. Verify the order processes as a subscription at the bundle price, not as a one-time order.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">07</div>
+          <div class="check-text"><strong>Check your bundle app's status page after any Shopify update</strong> — Shopify's checkout extensibility platform, discount API, and draft order API are updated regularly. After any Shopify changelog entry touching checkout or discounts, check your bundle app's status page or changelog for compatibility notes. Most bundle failures occur within 48 hours of a Shopify platform update.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">08</div>
+          <div class="check-text"><strong>Enable automated checkout monitoring</strong> — Bundle failures are the hardest to detect manually because most fail silently. Run CheckPulse on a checkout path that includes a bundle product. If the monitored checkout stops completing or the order total deviates from expected, you receive an alert within 2 minutes — before dozens of customers pay the wrong price.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLUSTER CONTEXT -->
+    <section class="section">
+      <div class="section-label">Related Failure Clusters</div>
+      <h2>Where Bundle Failures Connect to Other Checkout Problems</h2>
+
+      <h3>Bundle apps are a subset of the checkout app conflict problem</h3>
+      <p>Every bundle failure described here is a specific instance of the broader <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">Shopify checkout app conflict</a> failure category. Bundle apps conflict with other apps for the same underlying reason all checkout apps conflict: multiple apps try to modify the same checkout object via different API surfaces simultaneously. The bundle-specific failure modes are distinctive because bundle apps are more deeply integrated into checkout than most apps — they modify line item prices, create draft orders, or inject checkout UI — and a failure at that depth produces silent full-price charges rather than visible error messages.</p>
+
+      <h3>Extension-based bundles depend on checkout extensibility</h3>
+      <p>If your bundle app uses Shopify Checkout Extensions (the modern architecture), its reliability is directly tied to the stability of the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">checkout extensibility platform</a>. A plan change that removes checkout extensibility access, a Shopify update to the extensions runtime, or a theme customization that removes the extension slot all cause extension-based bundles to silently stop working. The checkout extensibility guide covers the full diagnostic for extension rendering failures, which applies directly to bundle app extensions.</p>
+
+      <h3>Discount code bundles overlap with discount checkout failures</h3>
+      <p>Bundle apps that use discount codes to represent bundle savings can conflict with all the failure modes documented in the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Shopify discount code not working at checkout</a> guide. The discount stacking limit, the "one automatic discount + one code" rule, and the discount code expiry behavior all apply to bundle-generated codes exactly as they apply to merchant-created promotional codes. If you are troubleshooting a discount-code bundle and the general bundle documentation is not resolving the issue, the discount code guide covers the Shopify discount system mechanics in detail.</p>
+
+      <h3>Bundle + upsell interaction at post-purchase</h3>
+      <p>Post-purchase upsell apps (Zipify OneClickUpsell, AfterSell, ReConvert) fire after the initial checkout is complete. If a bundle order triggers a post-purchase upsell and the customer accepts, the upsell creates a second charge or modifies the original order. When bundle apps and upsell apps modify the same order state post-purchase, the interaction can create duplicate charges, incorrect bundle pricing on the second item, or order modification failures. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells">Shopify Checkout Upsells guide</a> for the post-purchase upsell failure framework.</p>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-block">
+      <h3>Bundle failures are silent failures</h3>
+      <p>Most bundle checkout failures produce no error message. CheckPulse monitors your checkout on a live bundle path and alerts you within 2 minutes when the order total deviates or the checkout stops completing.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="btn-secondary">See Monitoring Plans</a>
+    </div>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Guides</h2>
+
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensibility</div>
+          <div class="guide-card-title">Shopify Checkout Extensions</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+          <div class="guide-card-label">Discounts</div>
+          <div class="guide-card-title">Shopify Discount Code Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+          <div class="guide-card-label">Upsells</div>
+          <div class="guide-card-title">Shopify Checkout Upsells &amp; Post-Purchase</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+          <div class="guide-card-label">Subscriptions</div>
+          <div class="guide-card-title">Shopify Subscription Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error" class="guide-card">
+          <div class="guide-card-label">Inventory</div>
+          <div class="guide-card-title">Shopify Checkout Inventory Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods" class="guide-card">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">Shopify Checkout Payment Methods</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Bundle Checkout — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my Shopify bundle discount disappear at checkout?</div>
+          <div class="faq-a">
+            <p>Bundle discounts disappearing at checkout happens in two distinct ways depending on your bundle app's architecture. Draft order-based bundles (Bold Bundles classic mode, some kit builders) create a Shopify draft order when the bundle is added to the cart. The bundle pricing lives in the draft order. If the draft order conversion to checkout fails silently, the checkout is created from the raw cart — no bundle pricing, no error, full individual prices. Discount code-based bundles (Bundler, some Rebuy configurations) apply a Shopify discount code to the cart to represent bundle savings. If that code expires, gets cleared by a cart update, or conflicts with another discount, the code disappears at checkout and Shopify shows either nothing or "discount code invalid."</p>
+            <p>To diagnose: check Admin → Orders → Drafts after adding a bundle (draft order architecture?) and check your cart's discount codes via the API (discount code architecture?). The fix depends on which architecture is failing.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my Shopify bundle work on desktop but fail on mobile?</div>
+          <div class="faq-a">
+            <p>Desktop-works, mobile-fails is almost always a checkout extension rendering failure. Extension-based bundle apps inject UI components into the Shopify checkout page. iOS Safari's stricter Content Security Policy enforcement and JavaScript runtime differences can prevent extension blocks from mounting. The block simply does not appear. The customer sees normal checkout without the bundle discount UI and clicks through at full price.</p>
+            <p>Test on a physical iPhone with Safari — not a simulator. If the bundle extension block is absent, check your bundle app's changelog for iOS Safari patches. Most apps release fixes within weeks of iOS updates. As a temporary fix, show bundle savings prominently at the cart level so mobile customers can verify their discount before entering checkout.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my bundle app show "discount code invalid" or "this discount is not valid" at Shopify checkout?</div>
+          <div class="faq-a">
+            <p>This error means your bundle app uses a discount code architecture. Three common causes: (1) The customer applied a second discount code that conflicts with the bundle's auto-applied code — Shopify enforces discount code stacking limits depending on your plan and discount types. (2) The bundle discount code expired or was deleted between cart creation and checkout validation — some apps generate session-specific codes that have short lifespans. (3) The code was never successfully created — the bundle app's API request to Shopify's Discount API failed, the UI optimistically showed the discount as applied, but at checkout Shopify found no matching code.</p>
+            <p>Test by adding the bundle, applying no other discount codes, and proceeding directly to checkout. If the error disappears, it is a stacking conflict. If it persists, check your bundle app's error logs for discount code creation failures.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my customer get charged full price at Shopify checkout even though the bundle was in their cart?</div>
+          <div class="faq-a">
+            <p>Silent full-price charges — where the customer does not realize they paid full price until reviewing their receipt — are the most damaging bundle failure. It occurs in all three architectures: draft order conversion failed and the checkout used raw cart pricing; the extension block did not render and the customer clicked through without noticing; the discount code was silently cleared and no error was shown.</p>
+            <p>The fix has two components: detection and prevention. Detection: run a periodic audit comparing unit prices for bundled SKUs in your orders export against expected bundle prices — a spike in full-price bundle orders indicates a silent failure period. Proactively refund affected customers. Prevention: add a visible "Bundle savings: -$X" line to the cart order summary. If this line is absent when customers reach checkout, they notice before paying. That one UI addition converts a post-purchase support ticket into a pre-purchase cart abandonment that you can diagnose and fix.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I identify which bundle pricing architecture my Shopify app uses?</div>
+          <div class="faq-a">
+            <p>Three methods to identify your bundle architecture: (1) Add a bundle to your cart, then check Admin → Orders → Drafts. If a draft order appears with bundle line items and discounted pricing, your app uses the draft order architecture. (2) Add a bundle to your cart and inspect the cart using Shopify's cart API (open your browser console on the cart page and fetch <code>/cart.json</code>). If <code>discount_codes</code> contains an auto-applied code, your app uses the discount code architecture. (3) Go to Admin → Checkout → Customize. If you see extension blocks from your bundle app in the checkout editor, your app uses the checkout extension architecture.</p>
+            <p>You can also simply ask your bundle app's support team: "Does your app use draft orders, discount codes, or checkout extensions to apply bundle pricing?" This single question will get you the answer directly. Knowing the architecture tells you exactly where to look when something fails — and which of Shopify's admin panels to check first.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p style="margin-bottom:12px;">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Errors</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse Home</a>
+    </p>
+    <p>&copy; 2026 CheckPulse. Shopify checkout monitoring.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Pre-Order Checkout Not Working — Partial Payment, Pre-Order App Errors, Inventory Release (2026)</title>
+  <meta name="description" content="Shopify pre-order checkout not working, partial payment deposit failing, pre-order button not showing at checkout, pre-order app conflict — complete guide to pre-order checkout errors, deposit payment failures, and inventory release problems on Shopify." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pre-order" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-pre-order" />
+  <meta property="og:title" content="Shopify Pre-Order Checkout Not Working — Partial Payment & Pre-Order App Errors" />
+  <meta property="og:description" content="Pre-orders are not a native Shopify feature. They are a third-party app layer built on Checkout Extensions, inventory overrides, and custom payment flows. When a pre-order app fails, your Shopify checkout health shows 100% green — the order goes through, but the customer doesn't know it's a pre-order." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Pre-Order Checkout Not Working — Partial Payment, Pre-Order App Errors, Inventory Release",
+    "description": "A complete guide to Shopify pre-order checkout failures: why pre-order is not a native Shopify feature, how pre-order apps work through Checkout Extensions and inventory overrides, why partial payment deposits fail silently, how mixed carts break shipping calculations, why pre-order customers don't know they ordered a pre-order, and how to audit your pre-order checkout setup.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-pre-order",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify pre-order checkout not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify pre-orders are not a native checkout feature — they require a third-party app (Pre-Order Manager, PreOrder Now, Appikon, Timesact, or similar) that works through one of two mechanisms: Checkout Extensions (the app injects a UI block into checkout that shows pre-order terms, expected ship date, and optional deposit toggle) or inventory overrides (the product is set to 'Continue selling when out of stock' and the app uses a tag, metafield, or custom storefront to relabel the Add to Cart button as Pre-Order). When a pre-order checkout stops working, the cause is almost always one of these: (1) The pre-order app's Checkout Extension was disabled, expired, or lost its permission during a Shopify app update or theme change — the checkout loads but the pre-order UI block is missing and the customer sees no indication they are ordering a pre-order item. (2) The product's inventory settings were changed — 'Continue selling when out of stock' was turned off, so the Add to Cart button disappears when inventory reaches zero. (3) The pre-order app itself has an outage or its backend API is unreachable — the checkout loads, but the pre-order logic doesn't execute, so inventory isn't decremented correctly or partial payment amounts are not applied. (4) A theme update removed or overrode the app's storefront script that relabels the Add to Cart button. (5) The Checkout Extension that shows pre-order terms was not re-enabled after a checkout theme upgrade (Shopify's one-page checkout migration). Diagnose by placing a test pre-order as a customer and verifying: the button is labeled correctly, the pre-order terms appear in checkout, the correct amount is charged (full price or deposit), and the order confirmation email mentions the pre-order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify pre-order partial payment (deposit) not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not natively support partial payments or deposit-at-checkout for standard orders. Pre-order deposit functionality requires your pre-order app to create a custom payment flow, which works through one of these methods: (1) The app creates a discounted variant at the deposit price — the customer pays for a '$50 deposit' variant instead of the $299 full-price product. The balance is charged manually or via a second order at fulfillment time. This method is simple but creates SKU complexity and makes inventory tracking unreliable. (2) The app uses a Checkout Extension to present a 'Pay deposit now, balance at shipment' toggle and processes the deposit as a partial order total. This method requires the app to have both Checkout Extension permissions and the ability to modify the order total before payment — a feature that not all payment gateways support equally. Partial payment failures occur when: the deposit variant was not created for a new product variant that was added; the Checkout Extension that shows the deposit toggle was disabled by a theme update; the payment gateway doesn't support the modified order total (some gateways reject orders where the total doesn't match the line item sum); the deposit amount configuration was changed in the app but not saved, leaving the checkout using the old amount; or the 'balance due' email sequence was not configured, so the merchant has no automated way to collect the remaining balance at fulfillment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are customers not seeing the pre-order label on my Shopify product?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The pre-order label (the button that says 'Pre-Order' instead of 'Add to Cart') is injected by your pre-order app using one of two methods: a Liquid theme script that replaces the standard button template, or a JavaScript snippet that runs after the page loads and replaces the button text. Both methods break in specific scenarios. Theme script breaks: the merchant installs a new theme or updates the current theme without re-installing the app script, a theme section is added that renders its own product form outside the app's script scope, or the app's 'Embed App' block was not added to the new theme's product template. JavaScript snippet breaks: the script loads before the product form is ready and misses the DOM element it is targeting, the storefront uses a headless front-end that does not execute the app's script injection, or a Content Security Policy on the storefront blocks the script from executing. Additionally, some pre-order apps only show the pre-order button to customers browsing while the product is out of stock. If inventory was accidentally updated to a positive number, the standard 'Add to Cart' button reappears and the pre-order mode disappears. Check your app dashboard for active pre-order products — if a product shows as active in the app but customers see 'Add to Cart,' the button injection is broken."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix a mixed cart problem with pre-order and in-stock items on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Mixed carts — where a customer adds both in-stock and pre-order items to the same cart — create several checkout problems: (1) Incorrect shipping calculation: the shipping rate for the full order is calculated based on the combined weight and destination, but the order will ship in two separate shipments — one for in-stock items and one for the pre-order item when it arrives. The customer is charged one shipping rate but expects two shipments, which creates a support ticket when the first shipment arrives and the pre-order item is not included. (2) The pre-order app may block checkout on mixed carts to prevent this confusion — if your pre-order app is blocking mixed cart checkout, this is intentional behavior, not a bug. Check your app settings for 'mixed cart' or 'cart splitting' options. (3) The pre-order deposit amount may not apply correctly when in-stock items are in the cart — the deposit discount may apply to the full cart total instead of just the pre-order line item. Fix strategy: configure your pre-order app to either (a) warn customers when they add a pre-order item to a cart with in-stock items, asking them to checkout separately, (b) automatically split the cart into two separate orders at checkout, or (c) add a cart notice that explains separate shipments and provides a single shipping estimate for each. Splitting the cart into two orders is the cleanest UX but requires pre-order app support for automatic order splitting."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I check if my Shopify pre-order checkout is working correctly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Run this pre-order checkout audit: (1) Open your store as a logged-out customer in an incognito window and navigate to a pre-order product. Verify the button says 'Pre-Order' (or your equivalent label) and not 'Add to Cart' or 'Sold Out.' (2) Add the pre-order item to cart and proceed to checkout. Verify the checkout shows a pre-order notice or terms block — if your pre-order app uses a Checkout Extension, a banner or block should appear above the payment section explaining the estimated ship date and any deposit terms. If you see a standard checkout with no pre-order information, the Checkout Extension is missing. (3) If you offer partial payment, verify the checkout shows the deposit amount and not the full price. (4) Complete a test order using a test payment method (Shopify Bogus Gateway in development mode, or a real $1 transaction in production). Verify the order confirmation email mentions the pre-order status and estimated ship date — it should not say 'Your order ships in 3-5 days' for a product that ships in 3 months. (5) Check your pre-order app dashboard immediately after the test order — verify inventory was decremented, the order is in the 'Pre-Order' status queue (not the standard Unfulfilled queue), and the app shows the correct expected fulfillment date. (6) If you offer deposits, verify the balance-due amount is recorded in the app and the automated balance-collection email sequence is scheduled. Run this test after any theme update, Shopify checkout update, or pre-order app update."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    .insight-box {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .insight-box strong { color: var(--amber); }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .layer-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .layer-title { font-weight: 700; font-size: 0.9375rem; margin-bottom: 8px; color: var(--text); }
+    .layer-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    .failure-list { margin-top: 28px; display: flex; flex-direction: column; gap: 20px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .failure-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .failure-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .failure-title { font-weight: 600; font-size: 0.9375rem; }
+    .failure-body { padding: 20px; font-size: 0.9rem; }
+    .failure-body p { font-size: 0.9rem; margin-bottom: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: #1e1e1e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f0c080;
+    }
+
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .badge-amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-green { background: rgba(16,185,129,0.15); color: #10b981; }
+
+    .checklist { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .check-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      min-width: 28px;
+      padding-top: 1px;
+    }
+    .check-text { font-size: 0.9rem; color: var(--text-secondary); }
+    .check-text strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p { font-size: 0.9375rem; max-width: 480px; margin: 0 auto 24px; }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      margin-right: 12px;
+    }
+    .btn-primary:hover { background: #fbbf24; text-decoration: none; }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      border: 1px solid var(--border-mid);
+      text-decoration: none;
+    }
+    .btn-secondary:hover { color: var(--text); text-decoration: none; }
+
+    .faq-list { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; font-size: 1rem; margin-bottom: 12px; color: var(--text); }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); }
+    .faq-a p { font-size: 0.9rem; margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+
+    @media (max-width: 640px) {
+      .layer-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .btn-primary { margin-right: 0; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse <span style="font-weight:400;color:var(--text-dim)">/ Shopify Checkout Monitor</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Pre-Order Checkout</div>
+      <h1>Shopify Pre-Order Checkout Not Working — Partial Payment, Pre-Order App Errors, and Inventory Release Failures</h1>
+      <p class="hero-sub">Pre-orders are not a Shopify feature. They are a third-party app layer built on Checkout Extensions and inventory overrides. When a pre-order app fails, your Shopify checkout health shows 100% green — the payment goes through, the order is created, and the customer has no idea they just ordered something that won't ship for three months.</p>
+
+      <div class="insight-box">
+        <strong>The structural blind spot:</strong> Shopify has no native pre-order concept. A "pre-order" is either (a) a product set to "continue selling when out of stock" with a third-party app relabeling the button and tracking expected fulfillment dates, or (b) a Checkout Extension that injects pre-order terms and deposit payment logic into the standard checkout. When the app layer breaks, checkout still works — the pre-order terms disappear, the customer pays full price expecting immediate delivery, and you have an order you can't fulfill on the timeline the customer assumed. There is no error. There is no abandoned cart. There is a future support ticket and a refund request.
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-icon">📦</div>
+          <div class="layer-title">Pre-Order App Layer</div>
+          <div class="layer-desc">Pre-order apps (PreOrder Now, Appikon, Timesact, Pre-Order Manager) work through two mechanisms: Checkout Extensions that inject terms and deposit toggles into checkout, and storefront scripts that relabel the Add to Cart button. Both break when themes change, when apps update, or when Checkout Extension permissions are revoked during a Shopify review.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">💳</div>
+          <div class="layer-title">Partial Payment Layer</div>
+          <div class="layer-desc">Shopify has no native deposit-at-checkout feature. Pre-order deposits are implemented as either a discounted variant (customer buys a "$50 deposit" SKU) or a Checkout Extension that modifies the order total before payment. Both methods have edge cases: variant deposits break when new product variants are added; extension deposits fail when the gateway rejects a modified order total.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">📬</div>
+          <div class="layer-title">Pre-Order Communication Layer</div>
+          <div class="layer-desc">Pre-order customers need different communication than standard orders: an order confirmation that explains the pre-order status and expected ship date, a shipping date update if timelines change, and a fulfillment notification when the item ships. When a pre-order app fails, these notifications either go out with wrong content (Shopify's default "ships in 3-5 days") or don't go out at all — the customer has no idea what's happening with their order.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>6 Ways Shopify Pre-Order Checkout Fails Silently</h2>
+      <p>Each failure mode allows the checkout to complete successfully while creating a customer experience problem that generates support tickets, refund requests, and chargebacks — often weeks after the order was placed.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 01</span>
+            <span class="failure-title">Pre-Order Button Disappeared — Product Shows "Sold Out" Instead</span>
+          </div>
+          <div class="failure-body">
+            <p>A merchant updated their Shopify theme to the latest version. The theme update overwrote the pre-order app's Liquid template injection, removing the script that replaces "Sold Out" with "Pre-Order." Customers now see a greyed-out "Sold Out" button on every pre-order product. No add-to-cart, no checkout — the pre-order is completely invisible to customers.</p>
+            <p><strong>Invisible because:</strong> Shopify's checkout monitoring, Google Search Console, and your analytics platform all show normal traffic to the product page. The only visible signal is a drop in pre-order conversions — which looks like reduced demand rather than a broken button. The merchant typically discovers it when a customer emails asking why the product is sold out when the website shows "coming soon."</p>
+            <p><strong>Why it happens:</strong> Pre-order apps that use Liquid theme injection (replacing <code>{% raw %}{{ 'sold_out' | t }}{% endraw %}</code> in product templates) require a reinstall of the app's theme code after every theme update that touches the product template. Apps that use Checkout Extensions instead of theme injection are more resilient — the extension lives outside the theme layer and is not overwritten by theme updates. If your pre-order app uses Liquid injection, check whether the app has a "reinstall" or "sync theme" option in its dashboard after any theme update.</p>
+            <p><strong>Fix:</strong> In your pre-order app dashboard, look for a "Theme integration" or "App embeds" section. Verify the app is connected to your current live theme (Shopify allows multiple themes, and apps sometimes remain connected to an older theme after a new one is published). If the app uses App Embeds, go to Online Store → Themes → Customize → App Embeds and verify the pre-order app embed is toggled on. If the app uses Liquid injection, follow the app's reinstallation instructions for your current theme.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 02</span>
+            <span class="failure-title">Checkout Extension Missing — Customer Sees No Pre-Order Terms</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer adds a pre-order item to their cart and proceeds through checkout. They see the standard Shopify checkout with no indication that the item is a pre-order. They pay full price expecting delivery in 5-7 business days. The item will not ship for 8 weeks. They contact support 10 days later asking where their order is.</p>
+            <p>The pre-order app was using a Checkout Extension to inject a banner above the payment step: "This item is a pre-order. Expected ship date: August 15, 2026." The extension was disabled when the merchant's Shopify plan was briefly downgraded for a billing issue and then re-upgraded — Checkout Extensions are sometimes disabled during plan changes and not automatically re-enabled.</p>
+            <p><strong>Invisible because:</strong> Checkout completes successfully. No error, no abandoned cart, no alert. The pre-order app dashboard still shows the product as "active pre-order." The Checkout Extension status in the app may not reflect that it was disabled at the platform level. The only signal is customer complaints about unmet delivery expectations — which arrive weeks later when the delivery window passes.</p>
+            <p><strong>Fix:</strong> Go to your Shopify admin → Sales Channels → Online Store → Checkout → Checkout Extensions (or the equivalent in your Shopify version). Verify your pre-order app's extension is listed as active. Also check in your pre-order app's dashboard under "Checkout integration" or "Extension status." After any Shopify plan change, billing issue, or checkout settings update, explicitly verify that all Checkout Extensions are still active. Run a test pre-order as a customer immediately after any plan or billing change.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 03</span>
+            <span class="failure-title">Partial Payment Deposit Not Applying — Full Price Charged at Checkout</span>
+          </div>
+          <div class="failure-body">
+            <p>A merchant offers 20% deposits on pre-orders: customers pay $60 now and $240 at shipment for a $300 product. After adding three new product variants to an existing pre-order product, the deposit no longer applies at checkout — all three new variants charge the full $300. The merchant doesn't notice because the pre-order app dashboard still shows the product as "active with 20% deposit." The deposit configuration was not automatically applied to the new variants.</p>
+            <p>Pre-order deposit configurations are variant-specific in most apps. When new variants are added to a product, they are not automatically included in the existing deposit rule — the merchant must manually add the new variants to the pre-order deposit configuration in the app dashboard.</p>
+            <p><strong>Invisible because:</strong> Checkout completes and customers pay — just at the wrong price. Customers who expected to pay a deposit and pay the balance at shipment instead pay the full price upfront. Some notice and contact support. Many don't notice until they expect a refund at shipment time that never arrives. The app dashboard continues showing the product as having an active deposit.</p>
+            <p><strong>Fix:</strong> After adding any new variant to a pre-order product with deposit pricing, immediately check the pre-order app dashboard and explicitly add the new variants to the deposit rule. Also verify by placing a test order on each new variant as a customer. Additionally, configure the app to send you an alert when new variants are added to pre-order products — some apps have this as a notification option. If your app uses a discount-variant approach (a "$60 deposit" variant instead of a Checkout Extension), ensure the deposit variant is created for every size/color combination.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 04</span>
+            <span class="failure-title">Mixed Cart Blocks Checkout — In-Stock and Pre-Order Items Together</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer adds a pre-order item (expected to ship in 10 weeks) and two in-stock items to their cart. When they try to check out, they see an error: "Your cart contains items with different shipping timelines. Please check out in-stock items separately." The customer is confused — they see no pre-order label on the product page, only a slightly different button color. They abandon the cart.</p>
+            <p>Some pre-order apps block mixed-cart checkout by design to prevent the customer confusion of receiving a partial shipment. This is configurable — the block is a setting that can be enabled or disabled. When enabled without adequate customer communication, it causes checkout abandonment from customers who didn't know they were creating a "mixed cart."</p>
+            <p><strong>Invisible because:</strong> The checkout block is intentional behavior, but the customer experience is indistinguishable from a checkout error. Your analytics show checkout abandonment at the cart or checkout step with no error code. Cart abandonment emails go out offering a discount — which doesn't address the actual problem (the customer doesn't know they need to separate their cart).</p>
+            <p><strong>Fix:</strong> If you use mixed-cart blocking, add a visible warning on the product page and in the cart for pre-order items: "This is a pre-order item. To add it to your cart, you'll need to checkout separately from any in-stock items." Add the warning in the cart drawer as well — not just on the product page. Alternatively, disable mixed-cart blocking and configure your pre-order app to automatically send a split-shipment notice to customers with mixed carts, explaining that their order will arrive in two shipments. Many merchants find that transparent communication about split shipments is preferable to blocking checkout.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 05</span>
+            <span class="failure-title">Pre-Order Inventory Counter Goes Negative or Doesn't Decrement</span>
+          </div>
+          <div class="failure-body">
+            <p>A merchant sets up a limited pre-order: 100 units available for pre-order. The pre-order app is supposed to track pre-orders against the 100-unit cap and close pre-orders when the limit is reached. After 137 pre-orders, the app still shows the product as available for pre-order. The inventory counter in the app dashboard shows -37 units. The merchant discovers this when their supplier can only deliver 100 units and they have 137 orders to fulfill.</p>
+            <p>Pre-order inventory tracking is handled by the app, not by Shopify's native inventory system. When two customers check out simultaneously with the last available pre-order unit, both orders can succeed if the app's inventory decrement has a race condition — the app checks available units, both see "1 unit available," both proceed, and the unit count goes to -1.</p>
+            <p><strong>Invisible because:</strong> Shopify's inventory system is typically set to "continue selling when out of stock" for pre-order products (this is required for the pre-order to work at all). The pre-order cap is enforced entirely by the app layer. The Shopify admin shows no inventory problem — it just shows an increasing number of pre-orders being fulfilled by a supplier that doesn't have enough units.</p>
+            <p><strong>Fix:</strong> For limited pre-orders, verify your app uses atomic inventory decrements (a database transaction that locks the inventory count during each pre-order). Check the app's documentation or contact their support to confirm how they handle concurrent pre-orders. Additionally, set up a safety net: use Shopify's native inventory tracking for a secondary cap — set inventory to your pre-order limit (e.g., 100) and enable the "stop selling when out of stock" setting as a hard floor. The app will still allow pre-orders above zero, and Shopify's native system will stop them at zero. This dual-layer cap prevents overselling even if the app has a race condition.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 06</span>
+            <span class="failure-title">Pre-Order Confirmation Email Says "Ships in 3-5 Days"</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer places a pre-order for a product shipping in 12 weeks. They receive Shopify's standard order confirmation email: "Thank you for your order! Your items will be shipped within 3-5 business days." Twelve days later, the customer has not received their order. They contact support. The merchant has to explain they ordered a pre-order item shipping in 3 months. The customer is furious — "nothing on your website or email said anything about a pre-order."</p>
+            <p>Shopify's native order notification emails do not know about pre-order status. They send the same templated confirmation to all orders. Pre-order apps that work through Checkout Extensions can intercept and modify the order confirmation — but this requires the app to have "email customization" or "notification override" capability, and it must be explicitly enabled.</p>
+            <p><strong>Invisible because:</strong> The order confirmation email is sent automatically by Shopify. The merchant never reviews individual confirmation emails. The pre-order app dashboard shows the order in the "pre-order" queue. The customer's email inbox shows a standard order confirmation with a misleading shipping timeline. The disconnect between what the app knows and what the customer's email says is entirely invisible until the customer contacts support 10-14 days later.</p>
+            <p><strong>Fix:</strong> There are two approaches. First, customize Shopify's standard order confirmation email template (Online Store → Notifications → Order Confirmation) to include a conditional block: if the order contains a tagged pre-order product (apps typically add a "pre-order" tag to pre-order orders), show a custom message: "One or more items in your order are pre-order items. See the expected ship date below." Second, configure your pre-order app to send a separate pre-order confirmation email immediately after the standard Shopify notification. Most pre-order apps have this as an option — it sends a second email with the estimated ship date, deposit summary (if applicable), and what to expect. Some merchants disable Shopify's native confirmation email for pre-order orders and rely entirely on the app's custom confirmation — check your app's documentation for this option.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAILURE TABLE -->
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>Pre-Order Checkout Failure Matrix</h2>
+      <p>Six failure modes, their visibility in Shopify admin, and the customer impact of each.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Failure Mode</th>
+              <th>Visible in Shopify Admin?</th>
+              <th>Customer Experience</th>
+              <th>Support Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Pre-order button disappeared after theme update</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Product page looks normal in admin preview</span></td>
+              <td>"Sold Out" button — customer cannot pre-order</td>
+              <td><span class="badge badge-red">High</span> — lost pre-order revenue</td>
+            </tr>
+            <tr>
+              <td>Checkout Extension missing — no pre-order terms shown</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Checkout completes — extension status not visible</span></td>
+              <td>Customer pays full price expecting fast delivery</td>
+              <td><span class="badge badge-red">Very High</span> — refund + chargeback risk</td>
+            </tr>
+            <tr>
+              <td>Deposit not applying to new variants</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">App dashboard shows deposit active on original variants</span></td>
+              <td>Full price charged instead of deposit amount</td>
+              <td><span class="badge badge-amber">Medium</span> — refund disputes</td>
+            </tr>
+            <tr>
+              <td>Mixed cart blocks checkout</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Cart abandonment shows in analytics — no error code</span></td>
+              <td>Checkout blocked with confusing error message</td>
+              <td><span class="badge badge-red">High</span> — cart abandonment</td>
+            </tr>
+            <tr>
+              <td>Inventory counter goes negative or doesn't decrement</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Shopify inventory set to "continue selling" — no cap enforced</span></td>
+              <td>Customer successfully pre-orders — merchant oversells</td>
+              <td><span class="badge badge-red">Very High</span> — fulfillment failure</td>
+            </tr>
+            <tr>
+              <td>Confirmation email says "ships in 3-5 days"</td>
+              <td><span class="badge badge-red">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Shopify sends standard notification — no pre-order context</span></td>
+              <td>Customer expects standard delivery, contacts support at day 10</td>
+              <td><span class="badge badge-red">High</span> — "where is my order" tickets</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Pre-Order Audit</div>
+      <h2>8-Step Pre-Order Checkout Readiness Checklist</h2>
+      <p>Run this audit when you set up a new pre-order product, change your pre-order app, update your Shopify theme, or notice an unexpected drop in pre-order conversions.</p>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">01</div>
+          <div class="check-text"><strong>Place a test pre-order as a logged-out customer in an incognito window.</strong> This is the only reliable way to verify the entire pre-order flow. Verify: the Add to Cart button says "Pre-Order" (or your configured label), the cart shows a pre-order badge or notice, checkout shows pre-order terms and expected ship date, the correct amount is charged (deposit or full price), and the order confirmation email correctly identifies the item as a pre-order. Do this test after every theme update, app update, and Shopify plan change.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">02</div>
+          <div class="check-text"><strong>Verify Checkout Extension status after every plan or billing change.</strong> Checkout Extensions are sometimes disabled during Shopify plan changes, downgrade/upgrade cycles, and billing issue resolutions. After any account-level change in Shopify, check Online Store → Checkout → App Extensions and confirm your pre-order app's extension is listed as active. Also check the extension status in your pre-order app's dashboard — some apps surface this as a "Checkout integration active" indicator.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">03</div>
+          <div class="check-text"><strong>Check theme integration after every theme update or new theme publish.</strong> After publishing a theme update, open your pre-order app dashboard and look for a "theme integration" or "theme sync" status indicator. If the app uses App Embeds, go to Themes → Customize → App Embeds and confirm the pre-order embed is toggled on for the new theme version. If the app uses Liquid template injection, re-run the app's theme installation process. Apps that use Checkout Extensions instead of theme injection are immune to theme changes — consider migrating if your current app requires frequent theme reinstallation.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">04</div>
+          <div class="check-text"><strong>Add new product variants to deposit rules manually.</strong> After adding any new variant (size, color, bundle) to a product with deposit pricing, immediately go to your pre-order app dashboard and add the new variant to the deposit configuration. Place a test order on the new variant to verify the deposit amount applies correctly. Consider setting a calendar reminder for this check whenever product variants are modified — it is the most common cause of "deposit not applying" support tickets.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">05</div>
+          <div class="check-text"><strong>Set a hard inventory cap for limited pre-orders.</strong> For pre-orders with a unit limit, use a two-layer cap: your pre-order app's internal counter as the primary cap, and Shopify's native inventory tracking as the fallback. Set Shopify's inventory to your pre-order unit limit and change "when out of stock" to "stop selling." The pre-order app will use its own counter first, and Shopify's native limit will act as a safety net for race conditions. Monitor the app's counter and Shopify's inventory level weekly to ensure they stay in sync.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">06</div>
+          <div class="check-text"><strong>Customize the order confirmation email for pre-order orders.</strong> Add a conditional block to Shopify's Order Confirmation notification template (Online Store → Notifications → Order Confirmation) that shows pre-order information when the order is tagged with your pre-order app's tag. Alternatively, configure your pre-order app to send a separate pre-order confirmation email — most apps offer this option. The goal: every customer who places a pre-order must receive a confirmation that explicitly says it is a pre-order and gives the estimated ship date.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">07</div>
+          <div class="check-text"><strong>Add visible pre-order labels to the product page, cart, and checkout.</strong> Pre-order customers need to see the pre-order status at three points: on the product page (button label + expected ship date below the button), in the cart (a badge or notice on the line item), and in checkout (a Checkout Extension block above the payment step). If any of these three touchpoints is missing, a fraction of customers will complete checkout without understanding they ordered a pre-order item. Configure your app to show all three — not just the button label.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">08</div>
+          <div class="check-text"><strong>Monitor pre-order checkout health separately from standard checkout health.</strong> Pre-order checkout failures are app-layer failures — they don't show up in standard checkout health metrics. Create a weekly monitoring routine: check your pre-order app dashboard for active pre-orders, open rates on pre-order confirmation emails, and any "pre-order extension error" notifications. Use CheckPulse to monitor your standard checkout continuously (catching payment failures, button failures, and session issues on the standard checkout flow), and combine it with weekly manual pre-order checkout testing to cover both layers.</div>
+        </div>
+      </div>
+
+      <div class="cta-block">
+        <h3>Monitor Your Standard Checkout While You Audit Pre-Orders</h3>
+        <p>Pre-order failures happen in the app layer. Standard checkout failures — payment errors, button failures, session issues — happen in the Shopify checkout layer. CheckPulse monitors your standard checkout continuously so you catch both classes of failure, not just one.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="btn-secondary">See CheckPulse →</a>
+      </div>
+    </section>
+
+    <!-- CLUSTER INSIGHT -->
+    <section class="section">
+      <div class="section-label">Cluster Context</div>
+      <h2>How Pre-Order Checkout Connects to Other Checkout Problem Clusters</h2>
+      <p>Pre-order checkout sits at the intersection of several checkout problem categories. Understanding the connections helps you audit the right layer for each failure.</p>
+
+      <h3>Pre-Orders → Inventory Errors</h3>
+      <p>Pre-order inventory management relies on "continue selling when out of stock" being enabled — the same setting that causes standard inventory errors when accidentally left on for non-pre-order products. If a standard product is accidentally set to continue selling when out of stock, it may appear to support pre-orders when it doesn't. Conversely, if a pre-order product has this setting accidentally disabled, pre-orders stop working immediately. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error">Inventory Error guide</a> for how to audit inventory settings across your catalog and distinguish intentional pre-order oversell settings from accidental oversell misconfigurations.</p>
+
+      <h3>Pre-Orders → Checkout Extensions</h3>
+      <p>Pre-order Checkout Extensions are a specific use case of Shopify's broader Checkout Extensions framework. Understanding how Checkout Extensions work — what they can and cannot do, how they interact with themes, and how their status is managed in Shopify admin — is essential for diagnosing pre-order extension failures. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions guide</a> for the complete picture of Checkout Extension failures, permission issues, and theme-extension interactions.</p>
+
+      <h3>Pre-Orders → Subscription Checkout</h3>
+      <p>Some merchants offer "pre-order subscriptions" — a customer pre-orders an item and signs up for recurring delivery at the same time. This combines the complexity of pre-order app logic with subscription app logic on a single checkout session. If both apps use Checkout Extensions, they can conflict with each other. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Subscription Checkout guide</a> for how to identify and resolve multi-app conflicts in the Checkout Extensions layer.</p>
+
+      <h3>Pre-Orders → Order Confirmation</h3>
+      <p>The most common pre-order customer complaint — "I didn't know it was a pre-order" — is fundamentally an order confirmation problem. The standard Shopify order confirmation email doesn't surface pre-order status. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">Order Confirmation guide</a> for how to customize Shopify's notification templates and how to configure post-order communication flows for non-standard order types.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Pre-Order Checkout — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify pre-order checkout not working?</div>
+          <div class="faq-a">
+            <p>Pre-orders are not native to Shopify — they require a third-party app. The most common reasons pre-order checkout breaks: a theme update overwrote the app's button injection, a Checkout Extension was disabled during a plan or billing change, a new product variant was added without being included in the pre-order configuration, or the app itself experienced an outage.</p>
+            <p>Diagnose by placing a test order as a logged-out customer in incognito mode. Verify the button label, the checkout pre-order terms block, the charge amount, and the confirmation email. If any of these are missing or wrong, use the failure analysis above to identify which layer broke.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify pre-order partial payment (deposit) not working?</div>
+          <div class="faq-a">
+            <p>Deposit pricing is not a Shopify feature — it's implemented by your pre-order app using either a "deposit variant" (a separate SKU at the deposit price) or a Checkout Extension that modifies the order total. Both break when new variants are added without updating the deposit configuration, when the Checkout Extension is disabled, or when the payment gateway rejects a modified order total.</p>
+            <p>After adding any new product variant, immediately check your pre-order app dashboard to confirm the deposit rule applies to the new variant. Place a test order on the new variant before opening it to customers. If deposits are working on some variants but not others, the deposit rule almost always needs to be manually extended to the missing variants.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why are customers not seeing the pre-order label on my Shopify product?</div>
+          <div class="faq-a">
+            <p>The pre-order button label is injected by your app through either Liquid theme code or a JavaScript snippet. Both methods break after theme updates. Check your pre-order app dashboard for a "theme integration status" or "app embeds" indicator. If you see a warning or error there, follow the app's theme reinstallation steps for your current theme.</p>
+            <p>Also check Shopify admin → Online Store → Themes → Customize → App Embeds. If the pre-order app's embed is toggled off, turn it back on and save. This is the most common fix after a theme update.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I fix a mixed cart problem with pre-order and in-stock items on Shopify?</div>
+          <div class="faq-a">
+            <p>Mixed cart blocking is a setting in your pre-order app — it is intentional, not a bug. If you want to allow mixed carts, disable the mixed cart block in the app settings and add a notice in the cart that explains split shipments ("Your order will ship in two parts: in-stock items within 5 days, pre-order items on [date]"). If you want to keep the block, add a visible warning on pre-order product pages and in the cart: "This is a pre-order item — it must be checked out separately from in-stock items."</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I check if my Shopify pre-order checkout is working correctly?</div>
+          <div class="faq-a">
+            <p>The only reliable check is a live test order: open your store in an incognito window as a logged-out customer, navigate to a pre-order product, and complete a purchase using a test payment method. Verify: button label says "Pre-Order," checkout shows pre-order terms and estimated ship date, the charge amount is correct (deposit or full price), and the confirmation email explicitly mentions the pre-order status and expected ship date. If any of these four checks fail, use the Failure Analysis section above to identify the broken layer.</p>
+            <p>Run this test after every theme update, app update, and Shopify plan or billing change. Pre-order checkout is fragile — it is a multi-app layer on top of the standard checkout, and any change to the underlying layers can silently break it.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-error" class="guide-card">
+          <div class="guide-card-label">Inventory</div>
+          <div class="guide-card-title">Shopify Checkout Inventory Error</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+          <div class="guide-card-label">Subscriptions</div>
+          <div class="guide-card-title">Shopify Subscription Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" class="guide-card">
+          <div class="guide-card-label">Order Confirmation</div>
+          <div class="guide-card-title">Shopify Order Confirmation Not Received</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-accepting-payment" class="guide-card">
+          <div class="guide-card-label">Payment Errors</div>
+          <div class="guide-card-title">Shopify Checkout Not Accepting Payment</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Why Customers Abandon Shopify Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pre-order">Pre-Order Checkout</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

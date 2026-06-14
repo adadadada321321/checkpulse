@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Extensions — What You Can Customize on Each Plan (2026)</title>
+  <meta name="description" content="Shopify checkout extensibility explained: Checkout UI Extensions, Shopify Functions, and post-purchase extensions — what each does, which plans support them, and why extensions are the top cause of silent checkout failures." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" />
+  <meta property="og:title" content="Shopify Checkout Extensions — What You Can Customize on Each Plan" />
+  <meta property="og:description" content="Checkout Extensibility has three distinct tools with different plan requirements. Most merchants either overspend on Plus thinking they need it, or miss what's actually available without Plus. This guide maps exactly what each plan unlocks." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Extensions — What You Can Customize on Each Plan",
+    "description": "Shopify Checkout Extensibility is the framework Shopify built to replace checkout.liquid. It has three distinct components — Checkout UI Extensions, Shopify Functions, and Post-Purchase Extensions — each with different plan requirements, different capabilities, and different risk profiles. Most merchants either overspend on Shopify Plus expecting full checkout customization, or miss valuable capabilities that are available on all plans. This guide maps exactly what each pillar does, what it costs, and why custom extensions are the number-one cause of silent checkout failures.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Do I need Shopify Plus to customize the checkout page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on what you mean by 'customize.' You do NOT need Shopify Plus to: add app-built widgets to the checkout via Checkout UI Extensions (e.g., upsell offers, custom fields, loyalty point displays — these are installed through app partners who have Plus, and the feature appears in your checkout once you install their app); customize cart discounts, shipping rates, payment method logic, and order routing using Shopify Functions (apps that use Functions work on all plans); add a post-purchase upsell page between payment confirmation and the order status page. You DO need Shopify Plus to: build your own custom Checkout UI Extensions from scratch (i.e., develop your own extension code rather than installing a partner app); access checkout.liquid for full HTML/CSS/JavaScript control (this is deprecated and frozen — Shopify is replacing it with Checkout Extensibility); negotiate custom checkout branding terms or multi-currency checkout setups at the gateway level. The practical rule: if an app partner has built the extension and you install it through the app store, you usually don't need Plus. If you want to develop the extension code yourself, you need Plus."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are Shopify Functions and what can they do at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Functions are pieces of backend logic that run inside Shopify's infrastructure to customize how checkout calculates prices, applies discounts, determines shipping options, routes payments, and validates orders. Unlike Checkout UI Extensions (which add visible components to the page), Functions run server-side and affect the numbers — they don't change how the page looks, only what it computes. What Functions can do at checkout: Cart and checkout discounts — custom discount logic beyond Shopify's built-in discount codes (e.g., tiered pricing, automatic bundle discounts, B2B net terms discounts, loyalty point redemptions). Shipping customization — filter, rename, hide, or reorder shipping options based on cart contents, customer tags, order value, or delivery address. Payment customization — hide or rename specific payment methods at checkout (e.g., hide 'cash on delivery' for international orders, rename 'Credit card' to your brand name). Delivery and order routing — custom logic for fulfillment location selection, split shipments, or pickup availability. Who can access Functions: Functions are available to all Shopify plans, but the merchant doesn't write Functions directly — app developers write Functions and publish them through the app store. You install the app, configure it, and the Function runs. Apps using Functions: Rebuy (smart cart discounts), Bold Discounts, BOGOF apps, B2B portals that apply net terms logic, and custom fulfillment apps. Functions run in a sandboxed WebAssembly environment and are among the most reliable components of Checkout Extensibility — they don't affect page rendering, so a Function bug that crashes silently usually means a discount or shipping option doesn't appear rather than checkout breaking entirely."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between checkout.liquid and Checkout Extensibility?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "checkout.liquid is Shopify's legacy system for customizing the checkout page — it lets Plus merchants modify the checkout's HTML, CSS, and JavaScript directly. It was the dominant approach from roughly 2015 to 2022. Checkout Extensibility is Shopify's replacement framework, announced in 2022 and now the required approach for all new Plus customization. Shopify announced that checkout.liquid would be sunset in August 2024 for new functionality, with existing Plus stores given migration paths. Key differences: Stability: checkout.liquid customizations break whenever Shopify updates the checkout. Extensibility extensions are isolated in their own render scope and are tested against Shopify platform updates before release. Upgrade path: checkout.liquid blocks automatic checkout upgrades (Shopify can't change your checkout without your input). Extensibility allows Shopify to improve performance, security, and features without breaking your customizations. Performance: checkout.liquid allows arbitrary JavaScript injection, which can cause significant performance issues. Checkout UI Extensions render in a sandboxed React environment with strict resource limits. Plan access: checkout.liquid was Plus-only and is now frozen. Checkout Extensibility is the framework for both Plus custom development and all-plan app installations. Migration: if you have checkout.liquid customizations on Plus, Shopify has provided migration guides. Most common customizations (custom fields, banner messages, loyalty points, upsell widgets) have direct Extensibility equivalents through app partners, many of which don't require Plus."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do checkout extensions cause checkout to break or slow down?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Checkout extensions add code that runs during the checkout flow. When that code has bugs, conflicts, or performance issues, it affects the checkout experience directly. Common failure modes: UI Extension rendering failures — a Checkout UI Extension that throws a JavaScript error renders a blank widget or causes the checkout section it lives in to not load correctly. Since extensions are sandboxed, a catastrophic failure usually means the extension's area doesn't appear rather than the entire checkout breaking — but for features like loyalty points, custom shipping messages, or compliance fields, their absence is a real failure. App update conflicts — when an app publisher pushes an extension update, it takes effect immediately in your live checkout. If the update introduces a bug or conflicts with another installed extension, your checkout is affected before you know an update happened. Performance overhead — each installed extension adds JavaScript and API calls to your checkout page. A checkout with five active extensions from five different apps can add 500ms–2s+ to the payment section load time on mobile connections. Shopify's extension sandbox limits the worst cases, but cumulative overhead from multiple extensions is real. Functions timeout — Shopify Functions have strict execution time limits (typically under 10ms wall clock). A poorly written Function that takes too long causes the functionality it provides (discount, shipping filter, payment option) to simply not apply — no error shown to the customer, just missing functionality. How to detect extension failures: run a real checkout test after every app install and after every app update. Monitor checkout completion rates — a drop in conversion that correlates with an app update is almost always an extension failure. CheckPulse monitors checkout health continuously so you know within minutes, not after a wave of customer complaints."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What checkout customizations are available without Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "More than most merchants realize. Without Plus, you can: Add Checkout UI Extension widgets through app partners — apps like Rebuy, ReConvert, AfterSell, Smile.io, LoyaltyLion, and dozens of others install extension components into your checkout without requiring you to have Plus. These appear in designated extension points (above/below payment, in the order summary, above the checkout button). The app developer needs Plus to publish the extension; you don't need Plus to use it. Customize discount logic via Shopify Functions — apps that use Functions for tiered pricing, bundle discounts, BOGO, or automatic promotions work on all plans. Customize shipping options via Shopify Functions — hide, rename, or reorder shipping methods based on cart or customer conditions using shipping customization apps. Customize payment options via Shopify Functions — show or hide payment methods conditionally using payment customization apps. Add post-purchase upsell pages — the post-purchase extension point (between payment confirmation and order status page) is available on all plans. Add custom UI to the thank-you / order status page — the Order Status Page can be modified with additional scripts and content on all plans. What you cannot do without Plus: write and deploy your own custom Checkout UI Extension code (you must use a published app); access checkout.liquid; negotiate gateway-level checkout customizations. The practical takeaway: use app-based extensions first and evaluate whether Plus adds meaningful value for your specific use case before upgrading for checkout customization alone."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    /* PLAN TABLE */
+    .plan-table-wrap {
+      overflow-x: auto;
+      margin: 28px 0;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .plan-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .plan-table th {
+      background: var(--surface2);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .plan-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .plan-table tr:last-child td { border-bottom: none; }
+    .plan-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag-yes {
+      display: inline-block;
+      background: rgba(16,185,129,0.12);
+      color: var(--green);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-plus {
+      display: inline-block;
+      background: rgba(245,158,11,0.12);
+      color: var(--amber);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-no {
+      display: inline-block;
+      background: rgba(239,68,68,0.08);
+      color: var(--red);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-app {
+      display: inline-block;
+      background: rgba(59,130,246,0.12);
+      color: var(--blue);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* PILLAR CARDS */
+    .pillar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .pillar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .pillar-card-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--amber);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .pillar-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .pillar-card-desc {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .pillar-card-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+    .badge-all { background: rgba(16,185,129,0.1); color: var(--green); }
+    .badge-plus { background: rgba(245,158,11,0.1); color: var(--amber); }
+
+    /* INSIGHT BOX */
+    .insight-box {
+      background: var(--surface);
+      border-left: 3px solid var(--amber);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .insight-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .insight-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    /* ALERT BOX */
+    .alert-box {
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .alert-box .alert-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .alert-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .alert-box p:last-child { margin-bottom: 0; }
+
+    /* STEPS */
+    .steps { margin: 24px 0; }
+    .step {
+      display: flex;
+      gap: 16px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      font-weight: 700;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .step-desc { font-size: 0.9rem; color: var(--text-dim); }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .faq-a { color: var(--text-dim); }
+    .faq-a p { margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 48px 0;
+      text-align: center;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p {
+      max-width: 480px;
+      margin: 0 auto 20px;
+      font-size: 0.95rem;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    footer.footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    footer.footer a { color: var(--text-dim); }
+    footer.footer a:hover { color: var(--amber); }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.75rem; }
+      .hero { padding: 40px 0 32px; }
+      .section { padding: 36px 0; }
+      .cta-block { padding: 24px 20px; }
+      .pillar-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Checkout Test</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <header class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Checkout Guides › Extensions
+      </div>
+      <div class="hero-eyebrow">Shopify Checkout Guide</div>
+      <h1>Shopify Checkout Extensions &amp; Extensibility</h1>
+      <p class="hero-sub">What you can customize on each plan, the three pillars of Checkout Extensibility, and why extensions are the top cause of silent checkout failures.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>13 min read</span>
+        <span>All Shopify plans</span>
+      </div>
+    </header>
+
+    <!-- THE PLUS MYTH -->
+    <section class="section">
+      <div class="section-label">The Misconception</div>
+      <h2>Most Merchants Misunderstand What Requires Plus</h2>
+      <p>Ask most Shopify merchants what checkout customization requires Shopify Plus and you get one of two wrong answers. Half say "everything" — they believe the checkout is completely locked unless they upgrade to Plus. The other half say "nothing" — they installed a few apps and assume they have full checkout control.</p>
+      <p>Both are wrong. Checkout Extensibility has three distinct components with completely different access models. Understanding which pillar you need — and whether your use case actually requires Plus — is the decision that determines whether you spend an extra $2,000/month on Plus or spend that on ads.</p>
+
+      <div class="pillar-grid">
+        <div class="pillar-card">
+          <div class="pillar-card-label">Pillar 1</div>
+          <div class="pillar-card-title">Checkout UI Extensions</div>
+          <div class="pillar-card-desc">Add visible components to the checkout page: banners, custom fields, loyalty points, upsell widgets, compliance notices. Apps install these for you — no Plus needed to use them.</div>
+          <span class="pillar-card-badge badge-all">ALL PLANS (via apps)</span>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-card-label">Pillar 2</div>
+          <div class="pillar-card-title">Shopify Functions</div>
+          <div class="pillar-card-desc">Server-side logic that customizes discounts, shipping rates, payment methods, and order routing. Apps implement these — you configure them. No Plus required.</div>
+          <span class="pillar-card-badge badge-all">ALL PLANS (via apps)</span>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-card-label">Pillar 3</div>
+          <div class="pillar-card-title">Post-Purchase Extensions</div>
+          <div class="pillar-card-desc">UI that appears after payment is collected — the one-click upsell page before the order confirmation. Safe, no abandonment risk. Available on all plans.</div>
+          <span class="pillar-card-badge badge-all">ALL PLANS</span>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">What Actually Requires Plus</div>
+        <p><strong>Building your own extensions from scratch.</strong> If you want to write custom React code that deploys into the checkout as a UI Extension, you need Shopify Plus. App partners who publish extensions to the app store need Plus developer access — but you as a merchant installing their app do not.</p>
+        <p><strong>checkout.liquid access.</strong> Shopify Plus merchants who built on checkout.liquid (the legacy HTML/CSS/JS system) retained that access for existing stores, but it is frozen — no new features, no new Plus stores can use it. Migration to Checkout Extensibility is required.</p>
+        <p><strong>Everything else merchants commonly want</strong> — upsell widgets, loyalty point displays, custom delivery notes, shipping method filtering, conditional payment options, post-purchase offers — is available through app-built extensions on all plans.</p>
+      </div>
+    </section>
+
+    <!-- PLAN COMPARISON TABLE -->
+    <section class="section">
+      <div class="section-label">Plan Comparison</div>
+      <h2>Shopify Checkout Customization by Plan</h2>
+      <p>The table below maps checkout customization capabilities to Shopify plan. The key distinction throughout: "via apps" means an app partner builds the extension; you install the app. "Custom development" means you or your agency write the code, which requires Plus access.</p>
+
+      <div class="plan-table-wrap">
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th>Basic / Shopify / Advanced</th>
+              <th>Shopify Plus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Checkout UI Extension widgets (via app partner)</strong></td>
+              <td><span class="tag-app">VIA APPS</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Build custom Checkout UI Extensions (own code)</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-plus">PLUS ONLY</span></td>
+            </tr>
+            <tr>
+              <td><strong>Shopify Functions — discount customization</strong></td>
+              <td><span class="tag-app">VIA APPS</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Shopify Functions — shipping rate customization</strong></td>
+              <td><span class="tag-app">VIA APPS</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Shopify Functions — payment method customization</strong></td>
+              <td><span class="tag-app">VIA APPS</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Post-purchase extensions (upsell after payment)</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Order status page customization</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>checkout.liquid (legacy HTML/CSS/JS)</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-plus">PLUS ONLY (frozen)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Custom checkout branding beyond Shopify defaults</strong></td>
+              <td><span class="tag-no">LIMITED</span></td>
+              <td><span class="tag-plus">PLUS (full branding)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Script Editor (legacy)</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-plus">PLUS ONLY (deprecated)</span></td>
+            </tr>
+            <tr>
+              <td><strong>B2B checkout logic (net terms, purchase orders)</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-plus">PLUS ONLY</span></td>
+            </tr>
+            <tr>
+              <td><strong>Multi-currency checkout at gateway level</strong></td>
+              <td><span class="tag-app">VIA MARKETS</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CHECKOUT UI EXTENSIONS -->
+    <section class="section">
+      <div class="section-label">Pillar 1</div>
+      <h2>Checkout UI Extensions — Visible Components in the Checkout Page</h2>
+      <p>Checkout UI Extensions are React-based components that render inside the checkout page at defined positions. They can display banners, form fields, loyalty points, offer widgets, compliance notices, subscription add-ons, gift message fields, delivery instructions, and any other UI that makes sense at checkout.</p>
+
+      <h3>Where extensions render</h3>
+      <p>Extension points are specific named positions in the checkout layout where approved components can mount:</p>
+      <ul>
+        <li><strong>purchase.checkout.contact.render-after</strong> — after the email/phone field</li>
+        <li><strong>purchase.checkout.shipping-option-list.render-after</strong> — below shipping method selection</li>
+        <li><strong>purchase.checkout.payment-method-list.render-after</strong> — below payment method selection</li>
+        <li><strong>purchase.checkout.order-summary.block.render</strong> — in the order summary panel</li>
+        <li><strong>purchase.checkout.reductions.render-after</strong> — below discount code entry</li>
+        <li><strong>purchase.checkout.actions.render-before</strong> — above the "Pay now" button</li>
+      </ul>
+      <p>Extensions render in a sandboxed iframe-like environment. They cannot access the parent checkout page's DOM, cannot inject arbitrary CSS, and cannot fire uncontrolled network requests. This sandbox is the reason most extension failures are contained — a broken extension in its slot doesn't crash the rest of the checkout.</p>
+
+      <h3>What app-based extensions deliver (all plans)</h3>
+      <p>The following are all available through app partners without Shopify Plus:</p>
+      <ul>
+        <li>Post-purchase upsell widgets (ReConvert, AfterSell, Rebuy, Zipify)</li>
+        <li>Loyalty point display and redemption at checkout (Smile.io, LoyaltyLion, Yotpo)</li>
+        <li>Custom checkout fields — delivery instructions, gift messages, PO numbers (various apps)</li>
+        <li>Subscription add-ons at checkout (Recharge, Seal Subscriptions, Skio)</li>
+        <li>Custom trust badge banners and checkout messaging</li>
+        <li>Free gift selection or threshold trackers (Rebuy, Gift Box)</li>
+        <li>Age verification or compliance notices</li>
+      </ul>
+
+      <h3>What requires building your own extension (Plus only)</h3>
+      <p>If you have a highly specific use case that no app partner covers — a proprietary loyalty engine, a bespoke configuration tool, deep integration with your own backend systems — you need Shopify Plus to develop and deploy custom extension code. You also need a Shopify Partner account to build and test in a development environment before deploying to your production store.</p>
+    </section>
+
+    <!-- SHOPIFY FUNCTIONS -->
+    <section class="section">
+      <div class="section-label">Pillar 2</div>
+      <h2>Shopify Functions — Server-Side Logic That Changes Checkout Behavior</h2>
+      <p>Shopify Functions are backend programs that run inside Shopify's infrastructure to customize checkout computations. Unlike UI Extensions, they don't change what the page looks like — they change what the page calculates. Functions run in a WebAssembly sandbox with strict execution time limits (typically under 10 milliseconds wall clock).</p>
+
+      <h3>What Functions can customize</h3>
+      <ul>
+        <li><strong>Discount logic</strong> — custom automatic discount rules beyond Shopify's native discount types: tiered pricing, volume discounts, BOGO, bundle pricing, loyalty point discounts, B2B contract pricing</li>
+        <li><strong>Shipping rate customization</strong> — hide, rename, sort, or filter shipping methods based on cart contents, customer tags, order value, delivery address, or product types</li>
+        <li><strong>Payment method customization</strong> — conditionally hide or rename payment options (e.g., hide "Cash on Delivery" for international orders; rename "Credit card" to your brand name; block specific payment methods for specific products)</li>
+        <li><strong>Order routing and fulfillment</strong> — custom logic for fulfillment location selection and split shipments (requires apps built on Functions for fulfillment)</li>
+        <li><strong>Cart transforms</strong> — bundle line items, split products into components, or merge items for display and pricing purposes</li>
+      </ul>
+
+      <div class="insight-box">
+        <div class="insight-label">Functions vs Script Editor</div>
+        <p>Script Editor was the old Plus-only way to run custom checkout logic. Shopify Functions replaced Script Editor and made most of the same capabilities available to all plans through app implementations. Existing Script Editor scripts on Plus continue to run, but Shopify has deprecated the tool — new checkout logic should use Functions.</p>
+        <p>The key difference: Script Editor ran arbitrary Ruby code on Shopify's servers. Functions run compiled WebAssembly with strict memory and time limits. Functions are faster, more reliable, and sandboxed — a crashing Function fails gracefully (the feature it provides doesn't apply; the checkout proceeds normally).</p>
+      </div>
+
+      <h3>Apps that use Shopify Functions (all plans)</h3>
+      <ul>
+        <li><strong>Discounts</strong> — Automatic Discounts, Bold Discounts, BOGO+, Rebuy (smart coupons)</li>
+        <li><strong>Shipping</strong> — Shipping Rates Calculator, Parcelify, Advanced Shipping Rules</li>
+        <li><strong>Payment customization</strong> — Payment Rules, various conditional payment apps</li>
+        <li><strong>B2B pricing</strong> — Wholesale Gorilla, B2B Ninja (for non-Plus stores needing basic wholesale)</li>
+        <li><strong>Bundles</strong> — Shopify Bundles (native, free), Bundle Builder apps</li>
+      </ul>
+    </section>
+
+    <!-- POST-PURCHASE EXTENSIONS -->
+    <section class="section">
+      <div class="section-label">Pillar 3</div>
+      <h2>Post-Purchase Extensions — Upsells After Payment, All Plans</h2>
+      <p>Post-purchase extensions are the extension point that appears between the payment confirmation and the final order confirmation page. The customer has already paid. The extension shows an offer — a product add-on, an upgrade, a subscription — that the customer can accept with one tap without re-entering payment details.</p>
+
+      <h3>Why this matters</h3>
+      <p>Post-purchase is the safest stage for upsell experimentation because payment is already captured. A failed post-purchase extension means the customer doesn't see the offer — the original order is unaffected. This is fundamentally different from in-checkout extensions, where failures can block or degrade the payment flow.</p>
+      <p>Post-purchase extensions are available on every Shopify plan. They do not require Shopify Plus. The leading post-purchase apps — ReConvert, AfterSell, Zipify One Click Upsell — all support this extension point on standard plans.</p>
+
+      <h3>Order Status Page</h3>
+      <p>The order confirmation / order status page is customizable on all plans via the order status page script editor in Shopify admin. This is separate from post-purchase extensions — it's the page that shows after the post-purchase offer. Common uses: custom HTML/JavaScript for pixels and tracking, loyalty program enrollment, referral program invitations, and custom thank-you messaging.</p>
+    </section>
+
+    <!-- CHECKOUT.LIQUID -->
+    <section class="section">
+      <div class="section-label">Legacy System</div>
+      <h2>checkout.liquid — Frozen, Not Removed</h2>
+      <p>checkout.liquid was the HTML/CSS/JavaScript template file that Plus merchants used to fully control the checkout page layout. It is now frozen — Shopify stopped accepting new checkout.liquid customizations for Plus stores onboarded after June 2024, and announced migration requirements for existing checkout.liquid stores.</p>
+
+      <h3>What frozen means</h3>
+      <ul>
+        <li>Existing checkout.liquid code on qualifying Plus stores continues to run</li>
+        <li>Shopify no longer adds new features to checkout.liquid — performance improvements, new checkout capabilities (accelerated checkouts, Shop Pay updates, BNPL improvements) are Extensibility-only</li>
+        <li>New Plus stores cannot use checkout.liquid at all — Checkout Extensibility is required</li>
+        <li>Shopify has signaled a long-term sunset — stores that rely on checkout.liquid will need to migrate to maintain checkout functionality as Shopify evolves</li>
+      </ul>
+
+      <h3>Migration from checkout.liquid</h3>
+      <p>Most checkout.liquid customizations have Extensibility equivalents. The migration assessment typically involves: identifying which customizations exist in checkout.liquid; mapping each to an Extensibility equivalent (UI Extension via app, custom UI Extension development, or Function); and building or installing the replacement. Shopify provides migration documentation, and most major app partners have already published Extensibility versions of their checkout features.</p>
+
+      <div class="alert-box">
+        <div class="alert-label">Migration Risk</div>
+        <p>checkout.liquid stores often have undocumented customizations — old code written by previous agencies that no one remembers. Before migrating to Extensibility, audit every customization in your checkout.liquid file against what it does at checkout today. Running a checkout health monitor before, during, and after migration catches regressions that manual testing misses.</p>
+      </div>
+    </section>
+
+    <!-- EXTENSION FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Modes</div>
+      <h2>Why Checkout Extensions Fail Silently</h2>
+      <p>Custom extensions are the fastest-growing cause of checkout failures in 2025–2026. As more merchants install Checkout UI Extension apps, the exposure to extension-related failures increases. The specific failure modes differ from traditional checkout errors — they are harder to see, harder to attribute, and often persist for hours before anyone notices.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Silent app update</div>
+            <div class="step-desc">An app publisher pushes an extension update at 2am. Your checkout now runs the new code with no notification. If the update introduced a rendering bug or an API call timeout, your checkout is degraded before you wake up. No Shopify admin alert. No email from the app. Just fewer conversions.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Extension conflict</div>
+            <div class="step-desc">Two extensions installed from different apps try to render in the same extension point or make conflicting API calls. The result varies: one extension doesn't load, the section renders blank, or both extensions partially render in a broken layout. Neither app's support team knows the other app exists.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Function timeout</div>
+            <div class="step-desc">A Shopify Function that filters shipping rates or applies discounts exceeds its execution time limit. Shopify fails the Function gracefully — the checkout proceeds, but the shipping filter or discount doesn't apply. Customers see full shipping rates or no automatic discount. No error is shown. Merchants notice only when looking at orders.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Performance degradation</div>
+            <div class="step-desc">Multiple extensions, each individually fast, combine to add 1–2 seconds to the payment section load time on mobile. No single app is obviously the problem. Mobile conversion drops gradually. Without a before-and-after baseline, it's nearly impossible to attribute the drop to extension overhead without instrumentation.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Extension renders for some customers, not others</div>
+            <div class="step-desc">An extension renders correctly in Chrome on desktop, fails silently in Safari on iPhone. The developer tested on Chrome. The failure affects mobile users — your highest-abandonment segment. Extension sandbox failures on specific browser versions or device types are a known challenge and require real cross-device testing to detect.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">The Detection Problem</div>
+        <p>Most of these failures are invisible in Shopify analytics. The checkout reports "completed" or "abandoned" — it doesn't tell you whether the payment section loaded correctly, whether the shipping filter applied, or whether the loyalty widget rendered. You need real checkout tests — not synthetically, but as a real customer on a real device — to detect extension failures. CheckPulse runs these tests continuously so failures surface in minutes, not after your next customer complaint.</p>
+      </div>
+    </section>
+
+    <!-- HOW TO MONITOR -->
+    <section class="section">
+      <div class="section-label">Monitoring</div>
+      <h2>Monitoring Checkout Extensions After Installation</h2>
+      <p>Every Checkout UI Extension app installation increases your checkout's exposure to silent failures. This is not a reason to avoid extensions — the conversion lifts are real. But it makes monitoring non-optional.</p>
+
+      <h3>After installing any extension app</h3>
+      <ul>
+        <li>Run a real checkout test immediately — place a test order from end to end, on mobile Safari and desktop Chrome</li>
+        <li>Verify the extension renders correctly, the payment button is responsive, and checkout completes</li>
+        <li>Check load time with and without the extension installed (use browser DevTools Network tab during checkout)</li>
+        <li>Set a baseline conversion rate — watch for drops over the following 3–7 days</li>
+      </ul>
+
+      <h3>After any app update</h3>
+      <ul>
+        <li>App publishers don't notify merchants of extension updates — subscribe to app changelogs where available</li>
+        <li>If your checkout monitoring alerts on a degradation, cross-reference the timing with recent app update activity in your Shopify admin Apps log</li>
+        <li>Test in an incognito/private window on mobile to bypass browser caches</li>
+      </ul>
+
+      <h3>Continuous monitoring</h3>
+      <p>Manual testing after every app update is unsustainable at scale. Stores with 3+ checkout apps see multiple extension updates per week. CheckPulse runs automated checkout tests on your store continuously — it runs through the complete checkout flow, verifies each step, and alerts you within minutes if the checkout fails, slows significantly, or returns an unexpected error. Extension failures that previously went undetected for days surface before customer complaints arrive.</p>
+
+      <div class="cta-block">
+        <h3>Monitor Checkout Extensions Automatically</h3>
+        <p>CheckPulse detects extension-caused checkout failures within minutes — before customers hit them. Set up in 5 minutes, no developer required.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run a free checkout check →</a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Checkout Extensions — Common Questions</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Do I need Shopify Plus to customize the checkout page?</div>
+          <div class="faq-a">
+            <p>It depends on what "customize" means. You do not need Plus to install app-built Checkout UI Extensions (widgets, loyalty points, custom fields, upsell banners), use Shopify Functions via app partners (discount logic, shipping filtering, payment customization), or add post-purchase upsell pages. You do need Plus to write your own custom UI Extension code rather than installing a partner app, and to access checkout.liquid (which is frozen anyway). For the vast majority of merchants, app-based extensions cover every common customization need without Plus.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What are Shopify Functions and what can they do at checkout?</div>
+          <div class="faq-a">
+            <p>Shopify Functions are server-side programs that run inside Shopify's infrastructure to customize how checkout computes prices, discounts, shipping options, and payment methods. They run in a WebAssembly sandbox with under-10ms execution limits. Functions can: apply custom discount logic (tiered, volume, bundle, loyalty), filter or rename shipping methods based on cart conditions, conditionally show or hide payment options, and customize order routing. Apps implement Functions — you install and configure the app. Functions are available on all plans via app partners, not Plus-gated.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What is the difference between checkout.liquid and Checkout Extensibility?</div>
+          <div class="faq-a">
+            <p>checkout.liquid was the legacy Plus system for modifying checkout HTML/CSS/JavaScript. It is frozen — Shopify stopped adding features to it and new Plus stores cannot use it. Checkout Extensibility is the replacement: a sandboxed React component system (UI Extensions), WebAssembly server-side logic (Functions), and post-purchase pages. Extensibility is safer (sandboxed, no arbitrary JS injection), enables automatic Shopify platform upgrades, and makes most customizations available to all plans via app partners. Stores on checkout.liquid should assess and plan migration — the longer they wait, the more Shopify platform improvements they miss.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why do checkout extensions cause checkout to break or slow down?</div>
+          <div class="faq-a">
+            <p>Extensions add code that runs during the checkout flow. Silent failures include: app publishers pushing extension updates that introduce bugs without notifying merchants; two extensions conflicting at the same render position; Functions timing out silently and dropping discount or shipping logic; cumulative load time from multiple extensions on mobile connections; and browser-specific rendering failures that only affect Safari on iPhone but not desktop Chrome. Most of these failures produce no visible error — the checkout proceeds or the feature simply doesn't appear. Continuous checkout monitoring detects them before they accumulate into measurable revenue loss.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What checkout customizations are available without Shopify Plus?</div>
+          <div class="faq-a">
+            <p>More than most merchants know: all app-based Checkout UI Extensions (upsell widgets, loyalty point display, custom checkout fields, trust banners, subscription add-ons); all Shopify Functions via apps (discount customization, shipping filtering, payment method customization); post-purchase extension pages (one-click upsells after payment); order status page customization (via scripts in admin); and Shopify Markets for international checkout currency and language routing. What requires Plus: writing your own custom UI Extension code, checkout.liquid (frozen), Script Editor (deprecated), and B2B checkout features like net terms and purchase order workflows at the checkout level.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+          <div class="guide-card-label">Upsells</div>
+          <div class="guide-card-title">Shopify Checkout Upsells &amp; Order Bumps</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">CRO</div>
+          <div class="guide-card-title">Shopify Checkout Conversion Rate Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods" class="guide-card">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">Shopify Checkout Payment Methods</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page" class="guide-card">
+          <div class="guide-card-label">Layout</div>
+          <div class="guide-card-title">Shopify One-Page Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing" class="guide-card">
+          <div class="guide-card-label">Testing</div>
+          <div class="guide-card-title">Shopify Checkout A/B Testing</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">B2B</div>
+          <div class="guide-card-title">Shopify B2B Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro">Checkout CRO</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells">Checkout Upsells</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

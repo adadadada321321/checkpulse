@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Order Confirmation Not Received — Email Missing &amp; Order Status Page (2026)</title>
+  <meta name="description" content="Shopify order confirmation email not sending or missing? Complete guide to why order status pages fail, why confirmation emails don't arrive, and how to detect silent post-checkout failures before customers complain." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" />
+  <meta property="og:title" content="Shopify Order Confirmation Not Received — Email Missing &amp; Order Status Page" />
+  <meta property="og:description" content="Payment went through. Order was created. But the confirmation email never arrived — and you had no idea. Here is why it happens and how to fix it." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Order Confirmation Not Received — Email Missing and Order Status Page Failures",
+    "description": "A complete guide to why Shopify order confirmation emails fail to send, why the order status page does not load, and how to detect silent post-checkout failures before customers complain. Covers SPF/DKIM issues, Shopify notification rules, email provider throttling, duplicate confirmations from page refreshes, and the checkout monitoring gap most stores never close.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify order confirmation email not being received?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are five common causes for Shopify order confirmation emails not being received. First, the email was delivered but landed in the customer's spam or promotions folder — the most frequent cause for stores that have not configured SPF and DKIM authentication. Second, the notification rule was accidentally disabled: go to Shopify Admin → Settings → Notifications → Order confirmation and verify the toggle is on and the email template is not blank. Third, the customer's email address has a typo that passed Shopify's basic validation (e.g., gmial.com instead of gmail.com) — Shopify will show the order as created, the email will bounce silently. Fourth, the customer is on a blocklist at their email provider (common with corporate email servers that block marketing-adjacent transactional mail). Fifth, Shopify's notification queue was delayed — rare, but during peak traffic periods (BFCM, flash sales) confirmation emails can be delayed by 15–60 minutes. Diagnostic sequence: check Shopify Admin → Orders → the specific order → Timeline. If the email shows as 'sent' in the timeline but the customer did not receive it, the delivery issue is on the receiving end. If 'sent' does not appear in the timeline, the notification rule is the issue."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Shopify order status page and why does it sometimes not load?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Shopify order status page (also called the thank-you page) is the confirmation screen customers see immediately after payment is processed. Its URL format is: yourstore.com/[checkouttoken]/thank_you. It displays the order number, summary of items, shipping address, and delivery timeline. It is the first thing customers see after paying — and if it fails to load, they have no confirmation that the order went through, causing support contact or duplicate re-orders. Common causes of order status page failures: 1. Third-party scripts added to the order status page via Shopify Admin → Settings → Checkout → Order status page (additional scripts) — a syntax error or slow-loading script can cause the page to render partially or not at all. 2. Custom pixel events (GA4, Meta Pixel, TikTok Pixel) added as checkout additional scripts can break the page if they throw JavaScript errors. 3. Redirect loops from post-purchase app configurations — some upsell apps that intercept the thank-you page URL can create redirect chains when misconfigured. 4. Browser extensions (particularly ad blockers) blocking pixel tracking scripts can cause visual breakage on the customer's end without any Shopify error. 5. Session token expiry — if the customer leaves the page and comes back via browser history to a stale checkout session URL, the page may not load correctly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the customer getting duplicate Shopify order confirmation emails?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Duplicate order confirmation emails in Shopify are almost always caused by one of three things. First, the customer refreshed the payment page or clicked the back button and re-submitted the order form — this can create two separate orders in Shopify (each with its own confirmation email) rather than one duplicate email for one order. Check if you have two order numbers in admin close together with the same customer. Second, a post-purchase app or third-party integration is configured to send its own confirmation-style email in addition to Shopify's native order confirmation notification — the customer receives one from Shopify and one from the app (Klaviyo, Omnisend, Postscript) that is styled similarly. Third, Shopify's notification system sent the same email twice — this is extremely rare but has occurred during Shopify platform incidents. Check the Shopify status page (shopifystatus.com) for the timestamp of the duplicate. To prevent customer re-order duplicates: ensure your checkout page does not allow form re-submission (Shopify native checkout handles this correctly, but headless checkout implementations using custom payment flows need explicit protection). For double emails from apps: audit your notification flows in each connected email platform and disable the one that duplicates Shopify's native confirmation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I customize the Shopify order status page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Shopify order status page can be customized in two ways depending on your plan. For all Shopify plans: you can add additional scripts via Admin → Settings → Checkout → Order status page (the 'Additional scripts' text field). This is where you add pixel tracking (GA4, Meta Pixel), conversion events, and lightweight UI customizations. You can also use post-purchase extension apps (like ReConvert, Zipify Pages, or AfterSell) that intercept customers after payment and before the standard order status page — these work on all plans. For Shopify Plus: you have access to checkout extensibility which allows full customization of the thank-you page and order status page via the checkout editor. Plus merchants can add branded UI components, upsell widgets, and custom content blocks directly through the editor without scripts. Important limitations: the order status page runs in a different context than your storefront theme. Theme customizations (liquid modifications, custom CSS in your theme) do not apply to the order status page. Each script you add increases page load time and failure risk — a broken tracking script can prevent customers from seeing their confirmation. Test after every script addition."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if Shopify order confirmation emails are failing silently?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Silent email failures are the hardest to detect because the order shows as created in Shopify admin, revenue is captured, but the customer experience is broken. There is no Shopify native dashboard that shows email delivery rates or bounce rates. Detection methods: 1. Order timeline check — go to any order in Admin → Orders → [order] → scroll to Timeline at the bottom. Every notification Shopify attempts to send appears here with a 'sent' or 'failed' status. This works for individual order investigations but does not scale to fleet-level monitoring. 2. Customer support as a signal — an increase in 'did my order go through?' or 'I never got a confirmation' support tickets is a lagging indicator of email delivery problems. By the time you see the support spike, you've already had dozens of unhappy customers. 3. Third-party email validation at checkout — apps that validate email addresses at the point of entry (not just format check but MX record validation) can catch a large percentage of typo bounces before the order is created. 4. Email provider bounce report — if you use Klaviyo, Omnisend, or another ESP for order notifications, their delivery dashboards will show bounces. If you rely solely on Shopify native notifications, this data is not exposed. 5. Checkout flow monitoring — automated tools that run synthetic end-to-end checkout tests and verify the order status page loads correctly after payment detect failures in the checkout → confirmation flow before real customers encounter them."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    /* LAYER CARDS */
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .layer-card-num {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--amber);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .layer-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .layer-card-desc {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .layer-card-risk {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+    .risk-high { background: rgba(239,68,68,0.1); color: var(--red); }
+    .risk-med { background: rgba(245,158,11,0.1); color: var(--amber); }
+    .risk-low { background: rgba(16,185,129,0.1); color: var(--green); }
+
+    /* FAILURE TABLE */
+    .fail-table-wrap {
+      overflow-x: auto;
+      margin: 28px 0;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .fail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .fail-table th {
+      background: var(--surface2);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .fail-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .fail-table tr:last-child td { border-bottom: none; }
+    .fail-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .tag-silent {
+      display: inline-block;
+      background: rgba(239,68,68,0.08);
+      color: var(--red);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-visible {
+      display: inline-block;
+      background: rgba(59,130,246,0.1);
+      color: var(--blue);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-partial {
+      display: inline-block;
+      background: rgba(245,158,11,0.08);
+      color: var(--amber);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* INSIGHT BOX */
+    .insight-box {
+      background: var(--surface);
+      border-left: 3px solid var(--amber);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .insight-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .insight-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    /* ALERT BOX */
+    .alert-box {
+      background: rgba(239,68,68,0.06);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .alert-box .alert-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .alert-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .alert-box p:last-child { margin-bottom: 0; }
+
+    /* STEPS */
+    .steps { margin: 24px 0; }
+    .step {
+      display: flex;
+      gap: 16px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      font-weight: 700;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .step-desc { font-size: 0.9rem; color: var(--text-dim); }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .faq-a { color: var(--text-dim); }
+    .faq-a p { margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin: 48px 0;
+      text-align: center;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p {
+      max-width: 480px;
+      margin: 0 auto 20px;
+      font-size: 0.95rem;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    footer.footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    footer.footer a { color: var(--text-dim); }
+    footer.footer a:hover { color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+    <a class="nav-cta" href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Shopify Order Confirmation
+      </div>
+      <div class="hero-eyebrow">Post-Checkout Failures</div>
+      <h1>Shopify Order Confirmation Not Received — Email Missing &amp; Order Status Page</h1>
+      <p class="hero-sub">Payment goes through. The order is created. But the confirmation email never arrives — and neither you nor the customer knows anything is wrong until the support ticket lands.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>5 failure modes mapped</span>
+        <span>Diagnostic table included</span>
+      </div>
+    </div>
+
+    <!-- THE BLIND SPOT -->
+    <section class="section">
+      <div class="section-label">The Problem</div>
+      <h2>Checkout Succeeded. Confirmation Failed. You Have No Idea.</h2>
+
+      <p>Most Shopify checkout monitoring focuses on a single question: did the payment go through? Merchants watch their order count, check that Stripe is capturing charges, and assume everything is fine.</p>
+
+      <p>But checkout has a second phase that almost no one monitors: the <strong>post-payment confirmation flow</strong>. After the payment processes, three things must happen correctly for the customer to feel confident their order is real:</p>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-card-num">Layer 1</div>
+          <div class="layer-card-title">Order Status Page</div>
+          <div class="layer-card-desc">The "thank you" screen customers see immediately after payment. Shows order number, summary, and expected delivery. If this fails, the customer has no immediate confirmation.</div>
+          <span class="layer-card-risk risk-high">High failure impact</span>
+        </div>
+        <div class="layer-card">
+          <div class="layer-card-num">Layer 2</div>
+          <div class="layer-card-title">Confirmation Email</div>
+          <div class="layer-card-desc">The automated email Shopify sends within minutes of the order. Most customers save this as proof. If it goes to spam or never arrives, customers re-contact support or re-order.</div>
+          <span class="layer-card-risk risk-high">High failure impact</span>
+        </div>
+        <div class="layer-card">
+          <div class="layer-card-num">Layer 3</div>
+          <div class="layer-card-title">Webhooks &amp; Integrations</div>
+          <div class="layer-card-desc">Order data flowing to fulfillment, 3PLs, email platforms (Klaviyo, Omnisend), and ERP systems. Silent webhook failures mean orders exist in Shopify but not in your fulfillment stack.</div>
+          <span class="layer-card-risk risk-med">Medium failure impact</span>
+        </div>
+      </div>
+
+      <div class="alert-box">
+        <div class="alert-label">The Core Problem</div>
+        <p>All three layers can fail <strong>independently of the payment</strong>. A failed confirmation is invisible in Shopify's revenue dashboard. You see the order, you see the charge — but the customer got nothing, and your fulfillment team may be missing the notification too.</p>
+        <p>The lagging indicator is your support queue: a spike in "did my order go through?" tickets means you've already had dozens of customers in limbo.</p>
+      </div>
+    </section>
+
+    <!-- ORDER STATUS PAGE -->
+    <section class="section">
+      <div class="section-label">Layer 1</div>
+      <h2>Order Status Page Failures</h2>
+
+      <p>The order status page (yourstore.com/[checkouttoken]/thank_you) is the first confirmation customers see. It loads in the checkout flow immediately after the payment step — on the same session, using the checkout token as authentication.</p>
+
+      <h3>What breaks the order status page</h3>
+
+      <p>The order status page is technically separate from your Shopify theme. It does not inherit your theme's CSS or JavaScript. The only code that runs on it is:</p>
+      <ul>
+        <li>Shopify's native order status rendering (your order data)</li>
+        <li>Any scripts added to <strong>Admin → Settings → Checkout → Order status page (Additional scripts)</strong></li>
+        <li>Post-purchase apps that intercept the page (ReConvert, AfterSell, Zipify)</li>
+      </ul>
+
+      <p>This means the most common causes of order status page failures are things merchants themselves added:</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Broken tracking pixel in Additional Scripts</div>
+            <div class="step-desc">A Google Analytics 4 event, Meta Pixel purchase event, or TikTok conversion script that throws a JavaScript error can block page rendering. The order is created but the page freezes or shows a partial layout. This is the #1 cause of order status page failures.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Post-purchase app redirect misconfiguration</div>
+            <div class="step-desc">Apps like ReConvert intercept the checkout flow and redirect customers to their own upsell page before the native order status page. If the app has a configuration error, customers can end up in a redirect loop or on a blank app page — never seeing the Shopify order confirmation at all.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Session token expiry</div>
+            <div class="step-desc">If a customer pauses during payment (phone call, distraction), their checkout session may expire before the thank-you page renders. The order may or may not have been created depending on when the timeout occurred — creating the worst outcome: charged customer, no order, no confirmation.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Checkout extensibility conflicts</div>
+            <div class="step-desc">Post-purchase UI Extensions installed on your checkout (upsell apps, loyalty integrations) that have JavaScript errors can cause the order status page to render without their widgets — or in severe cases, to not fully render at all. Extension updates deploy silently and can introduce new failures without notice.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Browser extension interference</div>
+            <div class="step-desc">Ad blockers and privacy extensions (uBlock Origin, Privacy Badger) block conversion tracking scripts on the order status page. This only affects the customer's view — not the actual order or Shopify's data — but can cause visual page breakage that looks like a failed order to the customer.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">Testing recommendation</div>
+        <p>Run a real test order on your store at least once after every app install, every app update, and every change to Additional Scripts. Use an incognito window to avoid ad blocker interference. Check that the order status page fully loads, the order number appears, and no console errors are visible (open DevTools → Console during checkout).</p>
+      </div>
+    </section>
+
+    <!-- CONFIRMATION EMAIL -->
+    <section class="section">
+      <div class="section-label">Layer 2</div>
+      <h2>Order Confirmation Email Failures</h2>
+
+      <p>Shopify sends the order confirmation email automatically when an order is created. In theory, this requires no configuration beyond having the notification enabled. In practice, five distinct failure modes prevent customers from receiving it.</p>
+
+      <div class="fail-table-wrap">
+        <table class="fail-table">
+          <thead>
+            <tr>
+              <th>Failure mode</th>
+              <th>Visibility</th>
+              <th>Where to check</th>
+              <th>Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Email went to spam</strong></td>
+              <td><span class="tag-silent">Silent</span></td>
+              <td>Order timeline shows "sent" — customer's spam folder has it</td>
+              <td>Configure SPF + DKIM on your sender domain; use a custom domain email (not @gmail.com)</td>
+            </tr>
+            <tr>
+              <td><strong>Notification rule disabled</strong></td>
+              <td><span class="tag-silent">Silent</span></td>
+              <td>Admin → Settings → Notifications → Order confirmation — check toggle</td>
+              <td>Re-enable; verify template is not blank</td>
+            </tr>
+            <tr>
+              <td><strong>Customer email typo</strong></td>
+              <td><span class="tag-silent">Silent</span></td>
+              <td>Order timeline shows "sent" to wrong address (gmial.com, yaho.com)</td>
+              <td>Add email validation app at checkout; correct address and resend from Admin</td>
+            </tr>
+            <tr>
+              <td><strong>Email provider blocklist</strong></td>
+              <td><span class="tag-silent">Silent</span></td>
+              <td>Corporate email servers (Outlook 365, Exchange) blocking transactional mail</td>
+              <td>Move to a transactional email provider (Postmark, SendGrid) via Shopify Email or ESP integration</td>
+            </tr>
+            <tr>
+              <td><strong>Notification queue delay</strong></td>
+              <td><span class="tag-partial">Delayed</span></td>
+              <td>Shopifystatus.com for platform incidents; especially during BFCM</td>
+              <td>Monitor Shopify status; inform customers of expected delay proactively</td>
+            </tr>
+            <tr>
+              <td><strong>Duplicate confirmation</strong></td>
+              <td><span class="tag-visible">Visible to customer</span></td>
+              <td>Customer receives 2 emails — one from Shopify, one from Klaviyo/Omnisend</td>
+              <td>Disable duplicate notification in your ESP flow; keep only Shopify native or ESP, not both</td>
+            </tr>
+            <tr>
+              <td><strong>High-risk order filter</strong></td>
+              <td><span class="tag-silent">Silent</span></td>
+              <td>Shopify fraud analysis flags order as high-risk; some setups suppress confirmation</td>
+              <td>Review fraud filter rules; separate notification suppression from order cancellation logic</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Using the Order Timeline to diagnose</h3>
+      <p>Every notification Shopify attempts to send is logged in the order timeline. Go to <strong>Admin → Orders → [specific order] → scroll to Timeline</strong>. If you see "Order confirmation sent to customer@email.com" the delivery attempt happened. If you do not see that line, the notification never fired — look at your notification rules.</p>
+
+      <p>If the timeline shows "sent" but the customer did not receive it, the failure is on the receiving side (spam filter, corporate blocklist, email typo). If "sent" is absent, the failure is on Shopify's notification configuration side.</p>
+
+      <h3>SPF and DKIM: why they matter for order emails</h3>
+      <p>Shopify sends order confirmation emails on behalf of your store's sender email. If your sender domain does not have SPF and DKIM records configured, recipient email servers (especially Gmail, Outlook, Yahoo) treat the email as potentially spoofed and either route it to spam or reject it entirely.</p>
+      <p>To verify: Shopify Admin → Settings → Notifications → check the sender email. If it is a Gmail, Yahoo, or Hotmail address, your deliverability is significantly compromised for transactional emails. Switch to a custom domain email (orders@yourbrand.com) and configure SPF/DKIM via your DNS provider. Shopify's help center has step-by-step DNS record instructions.</p>
+    </section>
+
+    <!-- WEBHOOKS -->
+    <section class="section">
+      <div class="section-label">Layer 3</div>
+      <h2>Webhook &amp; Integration Failures</h2>
+
+      <p>Beyond the customer-facing confirmation, order data must flow to your fulfillment systems, email platforms, and ERP. Shopify uses webhooks to push order data to external services the moment an order is created.</p>
+
+      <p>Webhook failures are purely silent from a customer perspective — the order looks fine in Shopify, the customer got their confirmation, but the order never reached your 3PL, your fulfillment team's WMS, or your Klaviyo flow.</p>
+
+      <h3>Common webhook failure patterns</h3>
+      <ul>
+        <li><strong>ESP flow not triggered:</strong> Your Klaviyo or Omnisend "order placed" flow requires the webhook from Shopify. If the integration token expires or the app loses connection, the flow never fires — customers get the Shopify native email but miss your branded post-purchase sequence.</li>
+        <li><strong>3PL not receiving orders:</strong> If your fulfillment integration (ShipBob, ShipStation, Deliverr) uses a webhook listener and that listener goes down, orders pile up in Shopify unacknowledged. First sign is usually your fulfillment team reporting missing orders at end of day.</li>
+        <li><strong>Timeout failures:</strong> Shopify expects webhook endpoints to respond within 5 seconds. If your endpoint is slow (server cold start, database query), Shopify marks the delivery as failed and retries up to 19 times over 48 hours. Meanwhile, the order is in limbo.</li>
+        <li><strong>App disconnection:</strong> Shopify apps that listen for order webhooks can lose authorization silently when tokens expire. The app dashboard may still show "connected" while the webhook subscription has been removed on Shopify's side.</li>
+      </ul>
+
+      <div class="insight-box">
+        <div class="insight-label">How to check webhook health</div>
+        <p>Admin → Settings → Notifications → scroll to Webhooks. You can see all active webhook subscriptions and, for each, whether recent deliveries succeeded or failed. Alternatively, Admin → Apps → [any connected app] → App details shows the last sync timestamp — a stale timestamp is a webhook failure signal.</p>
+        <p>Shopify also has a webhook logs section under Settings → Notifications → Webhooks if you are using the Shopify Webhooks API directly.</p>
+      </div>
+    </section>
+
+    <!-- DIAGNOSTIC CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Diagnosis</div>
+      <h2>Order Confirmation Diagnostic Checklist</h2>
+
+      <p>Use this sequence when a customer reports not receiving their confirmation, or when you suspect confirmation failures at scale.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Check the Order Timeline</div>
+            <div class="step-desc">Admin → Orders → [order] → Timeline. Look for "Order confirmation sent to [email]". Present = delivery attempted (check spam). Absent = notification never fired (check notification rules).</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Verify the Notification Rule</div>
+            <div class="step-desc">Admin → Settings → Notifications → Order confirmation. Toggle must be on. Email template must not be blank. Check that the sender email address is valid (not a bounce-prone free email).</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Validate the Customer's Email Address</div>
+            <div class="step-desc">In the order, check the email Shopify attempted to deliver to. Look for common typos: gmial, yaho, hotmai, outlok. If you find a typo, correct the order email in Admin and resend the notification manually (Order → More actions → Resend email).</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Check SPF/DKIM Configuration</div>
+            <div class="step-desc">Use MXToolbox (mxtoolbox.com/spf.aspx) to check your sender domain's SPF record. Run a DKIM check on the same domain. Missing or incorrect records are the most common cause of deliverability failures for stores using custom sender domains.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Run a Test Order</div>
+            <div class="step-desc">Place a real test order (or use an order with Shopify's test payment gateway in development mode) to an email address you control. Verify: order status page loads fully, confirmation email arrives within 5 minutes, email is not in spam. If the test order fails, you have reproduced the failure on demand for debugging.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Audit Post-Purchase Apps</div>
+            <div class="step-desc">If you use a post-purchase upsell app (ReConvert, AfterSell, Zipify), disable it temporarily and run another test order. If the order status page now loads correctly, the app is the culprit. Check the app's configuration for redirect settings and contact the app's support with the specific error.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <div class="step-title">Review Additional Scripts</div>
+            <div class="step-desc">Admin → Settings → Checkout → Order status page → Additional scripts. Remove all scripts temporarily and run another test. If the page now loads correctly, re-add scripts one at a time to identify the broken script. Open browser DevTools Console during checkout to see JavaScript errors in real time.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCALE DETECTION -->
+    <section class="section">
+      <div class="section-label">At Scale</div>
+      <h2>Detecting Confirmation Failures Before Support Tickets Arrive</h2>
+
+      <p>The diagnostic sequence above works when you already know there is a problem. The harder challenge is detecting confirmation failures <em>before</em> customers complain.</p>
+
+      <p>Shopify does not expose a native dashboard showing confirmation email delivery rates, bounce rates, or order status page load success rates. You cannot look at one screen and see "14 of 87 orders today had confirmation issues." That data does not exist in Shopify admin unless you build it yourself.</p>
+
+      <h3>Signals that suggest confirmation failures at scale</h3>
+      <ul>
+        <li><strong>Support ticket spike:</strong> An increase in "did my order go through?" or "I never received a confirmation" tickets. By the time this spike is visible, you have had at minimum dozens of affected customers.</li>
+        <li><strong>Increased duplicate orders:</strong> Customers who did not receive confirmation tend to re-order. A rise in orders with the same customer email within 24 hours is a signal.</li>
+        <li><strong>Klaviyo / Omnisend flow volume drop:</strong> If your ESP post-purchase sequences trigger on the Shopify "order created" webhook, a drop in flow volume compared to your order count indicates webhook failures.</li>
+        <li><strong>Fulfillment backlog:</strong> Orders in Shopify that are not appearing in your fulfillment system the same day they were placed indicate webhook delivery failures.</li>
+        <li><strong>Cart-to-order conversion metrics:</strong> If you track conversion rate from checkout initiation to confirmed order, a drop without a corresponding payment failure increase suggests confirmation flow issues (order created but something in the confirmation path is broken).</li>
+      </ul>
+
+      <div class="cta-block">
+        <h3>Monitor your full checkout flow — including the confirmation</h3>
+        <p>CheckPulse runs automated end-to-end checkout tests and verifies the order status page loads after payment — catching both payment failures and post-payment confirmation failures before your customers do.</p>
+        <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Order Confirmation — Common Questions</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify order confirmation email not being received?</div>
+          <div class="faq-a">
+            <p>The five most common causes are: email delivered to spam (check SPF/DKIM configuration on your sender domain); notification rule disabled (Admin → Settings → Notifications → Order confirmation); customer email address typo that passed Shopify's validation; corporate email server blocking transactional mail; and Shopify notification queue delays during peak traffic periods.</p>
+            <p>Check the order timeline first: if it shows "Order confirmation sent," the delivery attempt happened and the failure is on the receiving side. If "sent" is absent, the notification never fired and you have a configuration issue.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What is the Shopify order status page and why does it sometimes not load?</div>
+          <div class="faq-a">
+            <p>The order status page (the "thank you" page) is what customers see immediately after payment. It runs separately from your theme and only executes code you've added to Admin → Settings → Checkout → Additional scripts and code from installed post-purchase apps. Failures are almost always caused by broken tracking scripts (GA4, Meta Pixel) in additional scripts, misconfigured post-purchase app redirects, or session token expiry when customers pause during payment.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why is the customer getting duplicate Shopify order confirmation emails?</div>
+          <div class="faq-a">
+            <p>Usually caused by one of three things: the customer re-submitted payment creating two separate orders (check for two order numbers close together with the same customer email); a third-party email platform (Klaviyo, Omnisend) sending its own confirmation-style email in addition to Shopify's native notification; or extremely rarely, a Shopify platform issue sending the same notification twice. To prevent duplicates, disable the confirmation notification in your ESP and rely on Shopify's native, or vice versa — never run both simultaneously.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I customize the Shopify order status page?</div>
+          <div class="faq-a">
+            <p>All plans: add scripts via Admin → Settings → Checkout → Order status page (Additional scripts) for pixel tracking and lightweight customizations. Post-purchase apps (ReConvert, Zipify, AfterSell) that intercept customers after payment work on all plans. Shopify Plus: full order status page and thank-you page customization via the checkout editor using Checkout Extensibility UI Extensions — no additional scripts needed for most use cases.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I know if Shopify order confirmation emails are failing silently?</div>
+          <div class="faq-a">
+            <p>Shopify does not expose a native delivery rate dashboard. Detection methods: check individual order timelines (scales poorly); watch for support ticket spikes about missed confirmations (lagging indicator); monitor ESP flow volume vs. order count (webhook failure signal); check fulfillment system for orders that arrived in Shopify but not in your 3PL. For proactive detection, automated checkout monitoring tools that run synthetic end-to-end tests verify that the order status page loads correctly after payment — catching the failure before real customers encounter it.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Shopify Checkout Extensions Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">Troubleshooting</div>
+          <div class="guide-card-title">Shopify Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed" class="guide-card">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">Shopify Payment Failed Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">Apps</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+          <div class="guide-card-label">Post-Purchase</div>
+          <div class="guide-card-title">Shopify Checkout Upsells</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">CRO</div>
+          <div class="guide-card-title">Shopify Checkout Conversion Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Shopify Checkout Abandonment Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Gift Orders at Checkout — Fraud Flags, Gift Messages, and Recipient Delivery Failures (2026)</title>
+  <meta name="description" content="Shopify gift orders are the #1 false positive trigger for fraud detection. Billing address ≠ shipping address spikes the fraud score for completely legitimate purchases. Complete guide to gift checkout failures, gift message issues, gift receipt problems, and gift order fraud flags." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" />
+  <meta property="og:title" content="Shopify Gift Orders at Checkout — Fraud Flags, Gift Messages, and Recipient Delivery Failures" />
+  <meta property="og:description" content="Gift purchases are the single most common legitimate order type that Shopify fraud detection flags as high-risk. Billing address ≠ shipping address is a textbook fraud signal — and a completely normal gift purchase pattern. Here is what breaks and how to fix it." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Gift Orders at Checkout — Fraud Flags, Gift Messages, and Recipient Delivery Failures",
+    "description": "A complete guide to gift order checkout failures in Shopify: why gift purchases are the #1 false positive trigger for Shopify fraud detection, how billing-shipping address mismatch spikes fraud scores, gift message and gift receipt configuration failures, order confirmation routing to buyers vs recipients, and how to monitor gift order failure rates across peak gift seasons.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify flag gift orders as high risk?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify flags gift orders as high risk primarily because of billing address and shipping address mismatch. When a buyer ships to a recipient at a different address, it triggers the same fraud signal pattern as card testing and triangulation fraud — a stolen card being used to ship to the criminal's location while the billing address belongs to the victim. Shopify's fraud analysis cannot distinguish between a gift purchase (legitimate, billing ≠ shipping) and card fraud (malicious, billing ≠ shipping) using address data alone. Other gift order signals that compound the fraud score: the buyer using a freight forwarder address, international gift purchases where IP country does not match billing country, and high-value gift orders placed in a single session. The fix is not to disable fraud detection, but to switch from auto-cancel to hold-for-review and build a lightweight review workflow for flagged orders — particularly during peak gift seasons (November-December, Valentine's Day, Mother's Day)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I add a gift message option to Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are three methods to add gift messages to Shopify checkout, depending on your plan: (1) Shopify Plus with Checkout Extensibility — add a gift message field as a checkout UI extension using Shopify's checkout editor. This is the cleanest approach and does not require a third-party app. (2) Cart attributes — add a gift message field to your cart page that saves as a cart attribute, which carries through to the order. This works on all Shopify plans but requires a theme edit. (3) Third-party app — apps like Gift Message & Gift Wrap by Hulk Apps or similar add a gift message field to the product page or cart. Native Shopify checkout does not have a built-in gift message field without one of these approaches. Important: whatever method you use, test that the gift message actually appears on the packing slip (physical orders) or in the order notification (digital orders) — the message being stored in the order is not the same as it being printed or sent."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I send a gift receipt in Shopify that doesn't show the price?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not have a native gift receipt feature that automatically omits prices. The standard Shopify order confirmation email sent to the buyer always shows the price. To handle gift receipts: (1) Packing slip — you can edit the packing slip template in Shopify admin to create a 'gift mode' version without prices, but switching between gift and non-gift packing slips is manual. (2) Third-party apps — apps like Gift Wrap & Gift Message, Giftnote, or similar can send a separate gift notification to the recipient that omits pricing. (3) Shopify Plus — with Checkout Extensibility and custom notification templates, you can conditionally suppress price display in the packing slip for orders where a gift option was selected. The most common merchant complaint is that the order status page (tracking link) sent to the buyer also shows the full price, and if the buyer shares that link with the recipient, the price is visible. There is no native way to send a separate, price-free tracking page to the recipient — this requires a third-party fulfillment app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify gift order confirmation going to the wrong person?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify sends the order confirmation email to the email address entered at checkout — this is always the buyer's email. The shipping confirmation (with tracking) also goes to the buyer's email by default. There is no native Shopify feature to send the tracking link to the gift recipient instead of the buyer. Problems arise when: (a) the buyer enters the recipient's email address at checkout thinking that is the right place to put it — this sends the order confirmation (with price) directly to the recipient, revealing the gift price; (b) the buyer wants the recipient to receive tracking updates but there is no way to add a second notification email natively; (c) the buyer uses a typo'd email, causing all order communications to fail silently. To route order notifications correctly for gift orders: add a cart or checkout field for 'recipient email' as a separate order note, then manually forward or use an automation tool to send a stripped-down shipping notification to the recipient. Some third-party gift apps handle this split-notification routing automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test my Shopify checkout for gift order failures before the holiday season?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To audit your checkout for gift order failures before peak gift seasons: (1) Fraud flag test — place a test order using Shopify's test payment gateway, enter your normal billing address, and ship to a different test address. Check whether the resulting order shows a high fraud risk score and whether it would have been auto-cancelled. (2) Gift message test — if you have a gift message field, complete a purchase with a gift message and verify the message appears on the packing slip template, not just stored in the order attributes. (3) Gift receipt test — check your order confirmation email template to ensure it does not automatically expose pricing in a way that would spoil the gift. (4) International gift test — place a test order shipping to a different country than your IP location to verify your fraud settings handle international gift purchases. (5) Order notification routing test — verify the confirmation email goes to the buyer, not the shipping address recipient. Running a checkout health check before November is the single highest-ROI pre-holiday action — gift order fraud false positives during BFCM can decline 2-5% of your holiday revenue."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    .insight-box {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 28px 0;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .insight-box strong { color: var(--amber); }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 20px;
+    }
+    .layer-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .layer-title { font-weight: 700; font-size: 0.9375rem; margin-bottom: 8px; color: var(--text); }
+    .layer-desc { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    p { margin-bottom: 16px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+
+    ul, ol { margin: 12px 0 16px 20px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    .failure-list { margin-top: 28px; display: flex; flex-direction: column; gap: 20px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .failure-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .failure-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .failure-title { font-weight: 600; font-size: 0.9375rem; }
+    .failure-body { padding: 20px; font-size: 0.9rem; }
+    .failure-body p { font-size: 0.9rem; margin-bottom: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      background: #1e1e1e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f0c080;
+    }
+
+    /* FAILURE TABLE */
+    .table-wrap { overflow-x: auto; margin: 28px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .badge-amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-green { background: rgba(16,185,129,0.15); color: #10b981; }
+
+    /* CHECKLIST */
+    .checklist { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .check-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--amber);
+      min-width: 28px;
+      padding-top: 1px;
+    }
+    .check-text { font-size: 0.9rem; color: var(--text-secondary); }
+    .check-text strong { color: var(--text); }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .cta-block h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      margin-top: 0;
+    }
+    .cta-block p { font-size: 0.9375rem; max-width: 480px; margin: 0 auto 24px; }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      margin-right: 12px;
+    }
+    .btn-primary:hover { background: #fbbf24; text-decoration: none; }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      border: 1px solid var(--border-mid);
+      text-decoration: none;
+    }
+    .btn-secondary:hover { color: var(--text); text-decoration: none; }
+
+    /* FAQ */
+    .faq-list { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-weight: 700; font-size: 1rem; margin-bottom: 12px; color: var(--text); }
+    .faq-a { font-size: 0.9rem; color: var(--text-secondary); }
+    .faq-a p { font-size: 0.9rem; margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+
+    @media (max-width: 640px) {
+      .layer-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+      .btn-primary { margin-right: 0; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse <span style="font-weight:400;color:var(--text-dim)">/ Shopify Checkout Monitor</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Gift Orders</div>
+      <h1>Shopify Gift Orders at Checkout — Fraud Flags, Gift Messages, and Recipient Delivery Failures</h1>
+      <p class="hero-sub">Gift purchases are the single most common legitimate order type that Shopify fraud detection flags as high-risk. Billing address ≠ shipping address is a textbook fraud signal. It is also what every gift purchase looks like.</p>
+
+      <div class="insight-box">
+        <strong>The core problem:</strong> Shopify's fraud analysis cannot distinguish between a gift purchase (legitimate — buyer ships to recipient) and card fraud (malicious — thief ships to themselves with someone else's card). The signal is identical: billing address does not match shipping address. During November and December, this single pattern causes merchants to decline 2–5% of their highest-value legitimate orders.
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-icon">🚨</div>
+          <div class="layer-title">Fraud Detection Layer</div>
+          <div class="layer-desc">Billing ≠ shipping spikes the fraud score. Gift purchases during BFCM, Valentine's Day, and Mother's Day hit peak false-positive rates — the seasons with the highest gift purchase volume are the same seasons with the highest fraud attempt volume.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">📦</div>
+          <div class="layer-title">Order Routing Layer</div>
+          <div class="layer-desc">Order confirmation and tracking emails go to the buyer, not the recipient. If the buyer enters the recipient's email at checkout, the order confirmation — with full pricing — goes directly to the person the gift was meant to surprise.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🎁</div>
+          <div class="layer-title">Gift Experience Layer</div>
+          <div class="layer-desc">Gift messages get truncated or lost. Gift wrapping options don't appear. Gift receipts show the full price. The packing slip reveals the cost. These failures don't prevent the order — they create post-purchase friction and support tickets.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>6 Ways Gift Order Checkout Breaks Silently</h2>
+      <p>Each produces a different customer complaint — but all share the same root cause: Shopify's checkout was designed around the buyer's experience, not the gift purchase flow.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 01</span>
+            <span class="failure-title">Gift Order Flagged High-Risk — Legitimate Order Auto-Cancelled</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer buys a $200 item to ship to their partner's address for a birthday. Billing: their apartment. Shipping: partner's address. IP address: their home. Shopify fraud analysis sees: billing country matches IP country, but billing address and shipping address are different buildings. Fraud score: high. If auto-cancel is enabled, the order is cancelled. The customer's card was charged, then refunded — but the customer sees a failed order and files a support ticket or chargeback.</p>
+            <p><strong>Invisible because:</strong> From the merchant's perspective, the order was "cancelled for fraud" and a refund was issued. The revenue dashboard shows a refund, not a "declined legitimate gift order." The customer's experience — "I tried to buy a gift and my order was cancelled" — is only visible in support tickets.</p>
+            <p><strong>Fix:</strong> Switch your fraud prevention setting from auto-cancel to hold-for-review for high-risk orders. Admin → Settings → Payments → Fraud prevention. Review flagged orders manually before cancelling. During gift seasons, expect 40–60% of high-risk orders to be legitimate gift purchases — auto-cancel means auto-declining most of those.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 02</span>
+            <span class="failure-title">Order Confirmation Price Revealed to Gift Recipient</span>
+          </div>
+          <div class="failure-body">
+            <p>A buyer enters their partner's email address at checkout — assuming the confirmation should go to the person receiving the package. Shopify sends the full order confirmation to that email, including itemized pricing. The gift is spoiled before it arrives.</p>
+            <p>Alternatively: the buyer shares the Shopify order status page URL (the tracking link) with the recipient so they can track the package. The order status page shows the full item list and pricing. No price-suppression option exists natively.</p>
+            <p><strong>Invisible because:</strong> The email was delivered successfully. The order was processed correctly. From Shopify's perspective, everything worked. The only failure signal is the customer's post-delivery complaint that the price was exposed.</p>
+            <p><strong>Fix:</strong> In your store's email notification templates, add a clear label at the checkout email field: "Your email address — for your order confirmation." Do not label it as a generic contact field. For the tracking link problem, third-party gift apps (Giftnote, Gift Wrap &amp; Message) can send a separate, price-free shipping notification to the recipient's email — keeping the financial details visible only to the buyer.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 03</span>
+            <span class="failure-title">Gift Message Not Printed on Packing Slip</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer adds a gift message via your cart page gift message field or a third-party gift app. The message is stored as a cart attribute or order note in Shopify. The order ships. The packing slip inside the package shows no gift message — because the default Shopify packing slip template does not include cart attributes or order notes.</p>
+            <p><strong>Invisible because:</strong> The gift message is in the order — you can see it in Admin → Orders → [Order] → Additional details. It was just never printed. Fulfillment teams following the standard packing slip workflow never see it.</p>
+            <p><strong>Fix:</strong> Edit your packing slip template to include order notes and cart attributes. Admin → Settings → Shipping → Packing slips → Edit default template. Add a section that outputs <code>note</code> and any gift-message-related <code>attributes</code>. Test with a real order containing a gift message before peak season.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 04</span>
+            <span class="failure-title">Gift Wrapping Option Not Appearing at Checkout</span>
+          </div>
+          <div class="failure-body">
+            <p>You've added a gift wrapping option — either as a product variant, a line item property, or a checkout extension (Shopify Plus). Customers don't see it during checkout, or they see it but it doesn't carry through to the order correctly.</p>
+            <p>Common causes: the gift wrapping variant is out of stock (inventory set to zero), the checkout extension is not enabled for all eligible products, or the line item property rendering in the packing slip is missing — so the warehouse doesn't know to gift-wrap the item even though the customer selected it.</p>
+            <p><strong>Fix:</strong> For gift wrapping as a product variant: set inventory to "Don't track" so it never goes out of stock. For checkout extensions (Shopify Plus): verify the extension is active in your checkout editor and test across mobile and desktop. For all approaches: add gift wrapping to your packing slip template so it's visible to the fulfillment team.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 05</span>
+            <span class="failure-title">International Gift Orders Blocked by Address Validation</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer in Germany wants to send a gift to their family member in France. Billing address: Germany. Shipping address: France. IP address: Germany. Shopify checkout address validation may reject the shipping address format (different postal code format, different province/state field requirements), and fraud analysis sees international billing-to-shipping mismatch as a high-risk signal.</p>
+            <p>Shipping rate lookup also fails if you have not configured rates for the destination country, causing "no shipping options available" at checkout — which blocks the purchase entirely, even if the customer is ready to pay.</p>
+            <p><strong>Fix:</strong> Use Shopify Markets to configure per-country settings including currency, address format, and shipping rates. Test your checkout from the recipient's country using a VPN to simulate the buyer's experience. For fraud settings, Shopify Markets allows you to set separate fraud thresholds per market if you use a compatible third-party fraud app.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 06</span>
+            <span class="failure-title">Digital Gift Products — Delivery Goes to Buyer, Not Recipient</span>
+          </div>
+          <div class="failure-body">
+            <p>A customer buys a digital product — gift card, course access, ebook, software license — as a gift. The download link or access credential is emailed to the buyer's email (the account at checkout). The customer now has to manually forward it to the recipient, which breaks the gift experience and often leads to lost access links.</p>
+            <p>Native Shopify digital delivery (via the Digital Downloads app) has no "recipient email" field. Third-party delivery apps (Sky Pilot, SendOwl) may or may not support a separate recipient delivery email depending on configuration.</p>
+            <p><strong>Fix:</strong> For digital gift products, add a cart attribute for "recipient email" and configure your delivery app to use that field instead of the buyer's checkout email. If your delivery app does not support this, the workaround is a post-purchase flow: the buyer receives the download link, and your order confirmation email explicitly instructs them to forward it or provide a redemption code they can share.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAILURE TABLE -->
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>Gift Checkout Failure Matrix</h2>
+      <p>Six failure modes, their visibility in standard Shopify reporting, and their merchant impact.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Failure Mode</th>
+              <th>Visible in Admin?</th>
+              <th>Customer Experience</th>
+              <th>Revenue Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Gift order auto-cancelled (fraud flag)</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Shows as refund, not "blocked gift"</span></td>
+              <td>Order cancelled, card charged then refunded, support ticket or chargeback</td>
+              <td><span class="badge badge-red">High</span></td>
+            </tr>
+            <tr>
+              <td>Order confirmation price revealed to recipient</td>
+              <td><span class="badge badge-green">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Email delivered = "success"</span></td>
+              <td>Gift surprise ruined, buyer complaints after delivery</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td>Gift message not on packing slip</td>
+              <td><span class="badge badge-green">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Message stored, not checked</span></td>
+              <td>Recipient receives no card, buyer blames merchant</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td>Gift wrapping option missing or not fulfilled</td>
+              <td><span class="badge badge-amber">Partial</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Attribute in order, not flagged</span></td>
+              <td>Unwrapped gift arrives, refund or reship request</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+            <tr>
+              <td>International gift order blocked at checkout</td>
+              <td><span class="badge badge-red">None</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Never becomes an order</span></td>
+              <td>Customer hits "no shipping options" and abandons</td>
+              <td><span class="badge badge-red">High</span></td>
+            </tr>
+            <tr>
+              <td>Digital gift sent to buyer, not recipient</td>
+              <td><span class="badge badge-green">No</span><br><span style="font-size:0.78rem;color:var(--text-dim)">Delivery = successful by default</span></td>
+              <td>Buyer must manually forward, access link lost or expired</td>
+              <td><span class="badge badge-amber">Medium</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Pre-Season Audit</div>
+      <h2>8-Step Gift Order Readiness Checklist</h2>
+      <p>Run this audit before every major gift season: November, February (Valentine's Day), May (Mother's Day), and June (Father's Day).</p>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">01</div>
+          <div class="check-text"><strong>Fraud prevention mode.</strong> Confirm fraud auto-cancel is OFF. Switch to "hold for review" in Admin → Settings → Payments → Fraud prevention. During gift seasons, auto-cancel will decline a significant percentage of legitimate orders.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">02</div>
+          <div class="check-text"><strong>Test a domestic gift order.</strong> Place a test order using your test gateway, billing address set to your home, shipping address set to a different address. Check the resulting order's fraud risk score. If it is high, your gift customers will be flagged.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">03</div>
+          <div class="check-text"><strong>Test an international gift order.</strong> Use a VPN or test credentials to simulate a purchase shipping to a different country than the billing address. Confirm checkout completes, shipping rates appear, and the order is not auto-cancelled.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">04</div>
+          <div class="check-text"><strong>Verify gift message reaches packing slip.</strong> Add a gift message via your checkout or cart. Fulfill the test order. Open the packing slip PDF. Confirm the message is printed. If it is not there, edit your packing slip template to include <code>note</code> and <code>attributes</code>.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">05</div>
+          <div class="check-text"><strong>Check order confirmation email routing.</strong> Place a test order with a test email address. Confirm the order confirmation goes to the checkout email, not the shipping address. Verify the email does not instruct the customer to enter the recipient's email in the checkout email field.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">06</div>
+          <div class="check-text"><strong>Audit gift wrapping availability.</strong> If you offer gift wrapping as a product or variant, check that inventory is set to "Don't track" so it cannot go out of stock. Verify the option appears on mobile (gift-related checkout options frequently break on small screens).</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">07</div>
+          <div class="check-text"><strong>Check order status page for price exposure.</strong> After placing a test gift order, open the order status page URL (the link in the shipping confirmation email). Confirm a recipient who receives this link would see the tracking information without the full item pricing visible.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">08</div>
+          <div class="check-text"><strong>Set up checkout monitoring before peak season.</strong> Gift seasons bring 3–10x normal checkout volume in concentrated windows. A checkout failure at 11pm on November 29 that goes undetected until the next morning has wiped out hours of peak-season revenue. Automated monitoring catches it in minutes.</div>
+        </div>
+      </div>
+
+      <div class="cta-block">
+        <h3>Monitor Gift Season Checkout Automatically</h3>
+        <p>CheckPulse runs your checkout every few minutes and alerts you the moment something breaks — fraud config changes, shipping failures, or checkout errors during your highest-volume windows.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="btn-secondary">See CheckPulse →</a>
+      </div>
+    </section>
+
+    <!-- CLUSTER INSIGHT -->
+    <section class="section">
+      <div class="section-label">Cluster Context</div>
+      <h2>How Gift Orders Connect to the Post-Checkout Cluster</h2>
+      <p>Gift orders sit at the intersection of three failure clusters. Understanding the connections helps you audit the full gift purchase flow, not just the checkout step.</p>
+
+      <h3>Gift → Fraud Prevention</h3>
+      <p>Gift purchases are the #1 false positive source in Shopify's fraud detection system. A merchant who has auto-cancel enabled and sells high-value giftable products will decline a meaningful percentage of their best customers. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention guide</a> for how to configure hold-for-review, build a manual review workflow, and calibrate your fraud threshold by season.</p>
+
+      <h3>Gift → Order Confirmation</h3>
+      <p>The order confirmation email is sent to the buyer. The tracking notification is also sent to the buyer. Neither has a native "recipient mode" that routes to a different address or omits pricing. The gift order experience ends at checkout — everything after is the buyer managing the recipient's experience manually. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">Order Confirmation guide</a> for notification routing options and template customization.</p>
+
+      <h3>Gift → Digital Products</h3>
+      <p>Digital gifts have an additional delivery failure point: access provisioning. When a digital product is gifted, the download link goes to the buyer, not the recipient — because Shopify's digital delivery apps use the checkout email address. If the buyer loses the email or the link expires before forwarding, the recipient receives nothing. See the <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products">Digital Products guide</a> for delivery failure modes and recipient delivery configuration options.</p>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Gift Order Checkout — Common Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify flag gift orders as high risk?</div>
+          <div class="faq-a">
+            <p>Shopify flags gift orders as high risk primarily because billing address and shipping address don't match — a signal that correlates with card fraud in aggregate transaction data. Gift purchases trigger this signal for a completely legitimate reason: the buyer ships to the recipient's address, not their own.</p>
+            <p>Other gift purchase patterns that compound the fraud score: a buyer using a freight forwarder address for international delivery, purchases from a country that does not match the shipping destination, and high-value orders placed in a single fast session. During November and December, false positive rates on high-risk orders spike because gift purchase volume and fraud attempt volume both peak simultaneously.</p>
+            <p>The fix is not to disable fraud detection but to switch from auto-cancel to hold-for-review, so legitimate gift orders get a manual check before being declined.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I add a gift message option to Shopify checkout?</div>
+          <div class="faq-a">
+            <p>Three approaches depending on your plan: (1) <strong>Shopify Plus with Checkout Extensibility</strong> — add a gift message field as a checkout UI extension using Shopify's checkout editor. This is the cleanest approach. (2) <strong>Cart attributes</strong> (all plans) — add a gift message text field to your cart page that saves as a cart attribute, which carries through to the order. Requires a theme edit. (3) <strong>Third-party app</strong> — apps like Gift Message &amp; Gift Wrap or Giftnote add a gift message field to the product page or cart.</p>
+            <p>Regardless of method: test that the gift message actually appears on the packing slip (physical orders) or in order notifications (digital orders). The message being stored in the order is not the same as it being surfaced to your fulfillment team.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I send a gift receipt in Shopify that doesn't show the price?</div>
+          <div class="faq-a">
+            <p>Shopify has no native gift receipt feature that automatically omits prices. The order confirmation email always shows pricing. The order status page also shows pricing.</p>
+            <p>Options: (1) Edit your packing slip template to create a price-free gift packing slip — but switching between gift and non-gift modes requires identifying gift orders and handling them separately. (2) Use a third-party app (Giftnote, Gift Wrap &amp; Message) that sends a separate notification to the recipient without pricing. (3) On Shopify Plus, you can build conditional notification templates that suppress price display when a gift attribute is present.</p>
+            <p>The most practical approach for most merchants: add a note to your order confirmation instructing buyers that if they want to suppress pricing, they should contact support before the order ships — and offer to resend the packing slip without pricing as a PDF.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify gift order confirmation going to the wrong person?</div>
+          <div class="faq-a">
+            <p>Shopify sends order confirmation to the email address entered at checkout — always the buyer's email by design. When buyers enter the recipient's email at checkout (assuming that is where the gift notification should go), the full order confirmation with pricing goes to the recipient, revealing the gift price.</p>
+            <p>The fix has two parts: (1) Label your checkout email field clearly as "Your email address — we'll send your order confirmation here." This reduces the rate of buyers entering the recipient's email. (2) For merchants who want to send the recipient a separate notification, use a third-party gift app that captures recipient email as a cart attribute and sends a separate, price-free arrival notification to that address.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I test my Shopify checkout for gift order failures before the holiday season?</div>
+          <div class="faq-a">
+            <p>Five tests to run before peak gift seasons:</p>
+            <p><strong>1. Fraud flag test</strong> — place a test order (Shopify test gateway), billing address = your location, shipping address = a different address. Check the resulting order's fraud risk score. If high, your fraud config will flag gift purchases.</p>
+            <p><strong>2. Gift message test</strong> — complete a purchase with a gift message and pull the packing slip. Verify the message is printed, not just stored in the order.</p>
+            <p><strong>3. Price exposure test</strong> — open the order status URL from your shipping confirmation. Check whether a recipient who receives this link would see pricing.</p>
+            <p><strong>4. International gift test</strong> — use a VPN to simulate a buyer in a different country, shipping to a third location. Verify checkout completes without fraud block or address validation failure.</p>
+            <p><strong>5. Mobile gift test</strong> — complete the gift purchase flow on mobile. Gift message fields and gift wrapping options frequently break on small screens where desktop testing misses the issue.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention" class="guide-card">
+          <div class="guide-card-label">Fraud Prevention</div>
+          <div class="guide-card-title">Shopify Fraud Prevention — False Positives</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" class="guide-card">
+          <div class="guide-card-label">Post-Checkout</div>
+          <div class="guide-card-title">Shopify Order Confirmation Not Received</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" class="guide-card">
+          <div class="guide-card-label">Digital Products</div>
+          <div class="guide-card-title">Shopify Digital Product Delivery Failures</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-black-friday" class="guide-card">
+          <div class="guide-card-label">Peak Traffic</div>
+          <div class="guide-card-title">Shopify BFCM Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="guide-card">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">Shopify International Checkout Errors</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Shopify Checkout Abandonment Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">Troubleshooting</div>
+          <div class="guide-card-title">Shopify Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders">Gift Orders</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

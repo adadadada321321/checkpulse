@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Upsells — Post-Purchase Offers, Order Bumps, and What Each Plan Supports (2026)</title>
+  <meta name="description" content="Shopify upsells at checkout: which apps work, what each plan supports, how Checkout Extensibility changes the rules, and why upsell apps are one of the top causes of checkout breakage." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" />
+  <meta property="og:title" content="Shopify Checkout Upsells — Post-Purchase Offers, Order Bumps, and What Each Plan Supports" />
+  <meta property="og:description" content="Shopify upsells exist at four points in the purchase flow. This guide maps each upsell type to the plan that supports it, the apps that power it, and the failure modes merchants need to monitor." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Upsells — Post-Purchase Offers, Order Bumps, and What Each Plan Supports",
+    "description": "Shopify upsells can appear at four points in the purchase flow: before the cart, inside the cart, inside the active checkout, and on the post-purchase page after payment. Each stage has different platform support, different app requirements, and different failure modes. This guide covers what is possible on each Shopify plan — including which features require Checkout Extensibility and Shopify Plus — the leading upsell apps for each stage, the performance and reliability risks they introduce, and how to monitor for silent breakage.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can you add upsells inside the Shopify checkout page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, but the method depends on your plan. On Shopify Plus: you have full access to checkout.liquid (legacy) and Checkout UI Extensions (current), which lets you add offer widgets, order bumps, gift add-ons, or custom UI blocks at specific positions within the checkout — contact section, shipping section, payment section, and review section. On Basic, Shopify, and Advanced (non-Plus): you cannot modify the checkout page UI. You can add upsells at the cart level (before the customer clicks 'Check out'), or use post-purchase pages (the thank-you / order status page), which are available to all plans via Shopify Checkout Extensibility's post-purchase extension slot. Post-purchase extensions — which show an offer after payment is collected but before the order confirmation page — are available on all plans. They require no Plus plan, and leading apps like ReConvert, AfterSell, and Zipify support this. The commonly misunderstood point: 'checkout extensibility' as a broad term covers both in-checkout UI Extensions (Plus-gated for the most customized configurations) and post-purchase extensions (all plans). If you see an app claiming to 'add upsells at checkout' and you're on a standard plan, read the fine print — it likely means the post-purchase page or the cart, not the active checkout form."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between a cart upsell, checkout upsell, and post-purchase upsell on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "These three terms describe different stages and different risk profiles: Cart upsells appear before the customer enters the checkout. They show on the cart page or in a cart drawer/sidebar. Examples: 'customers who bought this also bought,' product recommendations, bundle add-ons, or gift wrapping. Cart upsells are available on every plan and are least risky — they don't touch checkout.liquid and are built in the storefront theme. Checkout upsells appear during the active checkout flow (after the customer has clicked 'Check out' and entered their information). On standard plans this is limited to app embeds that add offers in the order summary column. On Plus, Checkout UI Extensions enable full UI components placed at exact positions in the checkout. These are higher-risk because any bug in the extension or app can block or delay payment. Post-purchase upsells appear after payment is collected — the customer has already paid — and show an offer on the thank-you or order status page before the standard confirmation renders. The customer can accept (adding to the order) or skip. Because payment is already captured, there is no abandonment risk. Post-purchase upsells are available to all plans via Shopify's post-purchase extension API. They are the safest stage for upsell experimentation because a failure means the upsell doesn't show — it doesn't block the original purchase. The order bump term typically refers to an add-on offer shown inside the checkout form, most commonly in the order summary sidebar. On standard plans this requires a cart-level implementation or post-purchase; true in-checkout order bumps require Plus."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Shopify upsell apps are best for stores not on Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For non-Plus stores (Basic, Shopify, Advanced), the upsell opportunity is in two places: the cart and the post-purchase page. The leading apps for each: Post-purchase upsells (all plans): ReConvert — the market leader for thank-you page upsells; supports one-click upsells where the customer can add a product with one tap without re-entering payment. AfterSell — a strong alternative with funnel logic (show a different offer if the first is declined). Zipify One Click Upsell — built by Ezra Firestone's team, includes split testing for post-purchase offers. Cart upsells / recommendations (all plans): LimeSpot, frequently bought together by Code Black Belt, and Rebuy (Rebuy also adds smart cart functionality and works on all plans for cart-level upsells, though some of its checkout-level features require Plus). Cross-sell apps that modify the cart drawer: CartHook (primarily post-purchase), Aftersell, and Rebuy's Smart Cart all have strong non-Plus support. The key distinction to verify before installing any of these apps: confirm that the specific feature you want is available on your current plan. Several of these apps have tiered pricing where the most valuable features (in-checkout widgets, A/B testing, smart triggers) require Plus or an upgraded app tier. Always install, test in a staging/dev environment if possible, and run a checkout test immediately after installing any new upsell app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can upsell apps break Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — upsell apps are one of the most common causes of checkout failures, slowdowns, and silent errors. The failure modes vary by where the upsell integrates: Cart-level upsell failures: app JavaScript errors in the storefront theme, widget rendering failures, or conflicts with theme JavaScript can cause the cart to not load or the 'Check out' button to stop working. These failures are usually visible to the customer. Checkout UI Extension failures (Plus): a broken extension can cause the checkout page to render incompletely, blocks to not appear, or in rare cases the payment button to become unresponsive. Shopify's extension sandboxing limits blast radius but does not eliminate it. Post-purchase extension failures: the post-purchase offer page fails to load or renders a broken UI. Because payment is already captured, this is the safest failure — the customer completes checkout normally and just doesn't see the offer. Performance impact: every upsell app adds JavaScript and often server-side logic to the checkout flow. Apps that make external API calls to fetch personalized offers introduce latency. On Shopify's standard checkout, this is typically bounded by Shopify's infrastructure. On checkout.liquid (legacy Plus) or custom themes, poorly coded upsell apps have caused checkout pages that take 4–8+ seconds to load on mobile connections. How to catch failures early: run a real checkout test after every app install and after every app update. Silent breakage — where the checkout appears to work but the upsell widget silently fails for a subset of browsers or connection speeds — is common and undetectable without systematic monitoring."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does Shopify Checkout Extensibility mean for upsells?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Checkout Extensibility is Shopify's current framework for customizing the checkout, replacing the older checkout.liquid system. It consists of two main tools: Checkout UI Extensions — React-based components that render inside the checkout at defined extension points (before shipping methods, after shipping methods, in the order summary, above/below payment). These are available to all merchants to install from app partners, but merchants who want to build custom extensions from scratch require Shopify Plus. For upsell apps built by third parties (ReConvert, Zipify, AfterSell, Rebuy), the app itself has a Plus plan and installs its extension into your checkout — you as the merchant need Plus for the in-checkout placement. Post-Purchase Extensions — an extension point that appears after the payment confirmation, on the page between 'payment successful' and the order confirmation. This is available to all plans. Functions — Shopify Functions allow apps to customize backend logic (cart discounts, shipping rates, payment customization) and are used by some upsell apps for free-gift-with-purchase, volume discounts, or bundle pricing logic. Functions are available to all plans (the app developer has the Plus requirement, not the merchant). The practical summary: for in-checkout upsell widgets during the purchase flow, you need Shopify Plus. For post-purchase upsell pages after payment, you do not need Plus. For discount logic that enables bundle or free-gift upsells at any plan level, apps using Shopify Functions can deliver this without Plus."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--amber);
+      text-decoration: none;
+    }
+    .nav-cta {
+      background: var(--amber);
+      color: #000;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+    .nav-cta:hover { background: #fbbf24; text-decoration: none; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .hero-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      margin-top: 28px;
+      color: var(--text);
+    }
+    h3:first-child { margin-top: 0; }
+    p { margin-bottom: 16px; color: var(--text-dim); }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--text); }
+    ul, ol { padding-left: 20px; color: var(--text-dim); }
+    li { margin-bottom: 8px; }
+
+    /* PLAN TABLE */
+    .plan-table-wrap { overflow-x: auto; margin: 28px 0; }
+    .plan-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .plan-table th {
+      background: var(--surface2);
+      color: var(--text);
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .plan-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+      vertical-align: top;
+    }
+    .plan-table tr:hover td { background: var(--surface); }
+    .tag-yes {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(16,185,129,0.15);
+      color: var(--green);
+    }
+    .tag-no {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+    }
+    .tag-partial {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(245,158,11,0.12);
+      color: var(--amber);
+    }
+
+    /* STEP LIST */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .step-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-num {
+      flex-shrink: 0;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--amber);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+    .step-body { color: var(--text-dim); }
+    .step-body strong { color: var(--text); }
+
+    /* METHOD CARDS */
+    .method-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 28px;
+    }
+    .method-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    .method-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .method-num {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .method-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .method-sub {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* WARNING / INSIGHT BOXES */
+    .warning-box {
+      background: rgba(239,68,68,0.07);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .warning-box .warning-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .warning-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .warning-box p:last-child { margin-bottom: 0; }
+
+    .insight-box {
+      background: rgba(245,158,11,0.06);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 28px 0;
+    }
+    .insight-box .insight-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .insight-box p { color: var(--text-secondary); margin-bottom: 10px; }
+    .insight-box p:last-child { margin-bottom: 0; }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 24px;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .faq-a { color: var(--text-dim); }
+    .faq-a p { margin-bottom: 10px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .guide-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--border-mid); text-decoration: none; }
+    .guide-card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 0.88rem;
+      color: var(--text);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px 40px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 { margin-bottom: 12px; }
+    .cta-block p { color: var(--text-dim); margin-bottom: 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    .footer p { font-size: 0.82rem; color: var(--text-dim); margin: 0; line-height: 2; }
+    .footer a { color: var(--text-dim); }
+    .footer a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 40px 0 32px; }
+      .cta-block { padding: 28px 20px; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="nav-cta">Free Checkout Check →</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="breadcrumb">
+        <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Checkout Upsells
+      </div>
+      <div class="hero-eyebrow">Shopify Revenue Optimization</div>
+      <h1>Shopify Checkout Upsells — Post-Purchase Offers, Order Bumps, and What Each Plan Supports</h1>
+      <p class="hero-sub">
+        Shopify upsells exist at four stages of the purchase flow. Which stages are open to you depends on your plan, the apps you install, and how they interact with checkout. This guide maps each stage to the right tools — and explains why upsell apps are one of the leading causes of checkout breakage.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>All Shopify plans</span>
+        <span>Checkout Extensibility</span>
+      </div>
+    </section>
+
+    <!-- THE FOUR UPSELL STAGES -->
+    <section class="section">
+      <div class="section-label">Upsell Stages</div>
+      <h2>The Four Places Shopify Upsells Can Appear</h2>
+      <p>
+        "Shopify upsells" is not one thing — it's four distinct opportunities, each with different platform requirements, different app ecosystems, and very different risk profiles for checkout reliability.
+      </p>
+
+      <div class="method-list">
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">1</div>
+            <div>
+              <div class="method-title">Pre-Cart / Product Page Upsells</div>
+              <div class="method-sub">Available on all plans · No checkout risk</div>
+            </div>
+          </div>
+          <p>Upsells shown on product pages or before the cart is opened. Examples: "frequently bought together," bundle product recommendations, quantity-break offers ("buy 2, get 10% off"), and gift add-on prompts. These are built in the storefront theme and do not touch the checkout. They carry essentially zero checkout risk and are available on every plan including Basic.</p>
+          <p>Common apps: LimeSpot Personalizer, Frequently Bought Together, Rebuy (product page widgets), Vitals (includes a frequently-bought-together module).</p>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">2</div>
+            <div>
+              <div class="method-title">Cart Upsells (Cart Page or Cart Drawer)</div>
+              <div class="method-sub">Available on all plans · Low-moderate checkout risk</div>
+            </div>
+          </div>
+          <p>Upsells shown in the cart — either on the cart page (a standalone page) or in a cart drawer/sidebar that slides in over the current page. These appear before the customer clicks "Check out" and enters the Shopify checkout. They are built in the storefront theme and carry low checkout risk, though poorly coded cart drawer apps can interfere with the checkout button or slow page load.</p>
+          <p>Common apps: Rebuy Smart Cart (replaces the standard cart drawer with a customizable cart), CartHook (cart upsells + post-purchase), Aftersell (cart + post-purchase). Free gift threshold apps (e.g., "add $X more for a free gift") also live at this stage.</p>
+          <div class="insight-box">
+            <div class="insight-label">Revenue benchmark</div>
+            <p>Cart upsells targeting complementary products (not just random bestsellers) typically lift average order value by 10–25% on stores with natural bundle opportunities. Stores without obvious complementary products see smaller effects (3–8%).</p>
+          </div>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">3</div>
+            <div>
+              <div class="method-title">In-Checkout Upsells (Checkout UI Extensions)</div>
+              <div class="method-sub">Shopify Plus required for custom builds · High checkout risk</div>
+            </div>
+          </div>
+          <p>Upsells shown inside the active Shopify checkout — after the customer has clicked "Check out" and entered their contact, shipping, or payment information. These use Shopify's Checkout UI Extensions, which render components at defined positions: above/below the contact section, above/below shipping methods, in the order summary sidebar, above/below the payment section, and in the order review section.</p>
+          <p><strong>Important plan distinction:</strong> installing a third-party app that places an extension in your checkout (e.g., ReConvert's in-checkout widget) requires that the merchant is on <strong>Shopify Plus</strong> for in-checkout customization beyond the order summary. Apps that add widgets to the order summary sidebar column are accessible on standard plans via app embeds, but full checkout page placement requires Plus.</p>
+          <p>This stage carries the highest checkout risk. A misbehaving extension can slow checkout rendering, cause widget-rendering failures, or in edge cases interfere with form submission. Thorough testing after any install or update is mandatory.</p>
+        </div>
+
+        <div class="method-card">
+          <div class="method-header">
+            <div class="method-num">4</div>
+            <div>
+              <div class="method-title">Post-Purchase Upsells (Thank-You / Order Status Page)</div>
+              <div class="method-sub">Available on all plans · Lowest checkout risk</div>
+            </div>
+          </div>
+          <p>Upsells shown after payment is collected, on the page between "payment successful" and the standard order confirmation. The customer has already paid. They can accept an upsell offer — adding it to their just-placed order with one tap, with no re-entry of payment information — or skip it.</p>
+          <p>This is the safest upsell stage for checkout reliability: if the post-purchase extension fails to load, the customer still completes their order normally. They simply don't see the offer. No abandonment risk. Available on all plans via Shopify's post-purchase extension API.</p>
+          <p>Common apps: ReConvert, AfterSell, Zipify One Click Upsell. All three support one-click upsell (accepting the offer charges the card on file without re-entering payment), funnel logic (show a different offer if the first is declined), and analytics on offer acceptance rates.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN COMPARISON TABLE -->
+    <section class="section">
+      <div class="section-label">Plan Comparison</div>
+      <h2>What Each Shopify Plan Supports</h2>
+      <p>
+        The upsell features available to you depend heavily on your Shopify plan. Here is the complete breakdown:
+      </p>
+
+      <div class="plan-table-wrap">
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th>Upsell Type</th>
+              <th>Basic</th>
+              <th>Shopify</th>
+              <th>Advanced</th>
+              <th>Plus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Product page upsells</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Cart page upsells</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Cart drawer upsells</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Post-purchase page upsells</strong></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>In-checkout order summary widget</strong></td>
+              <td><span class="tag-partial">App-dependent</span></td>
+              <td><span class="tag-partial">App-dependent</span></td>
+              <td><span class="tag-partial">App-dependent</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>In-checkout full UI extensions</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>A/B test upsell offers natively</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-yes">YES (via apps + Plus)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Discount logic via Shopify Functions</strong></td>
+              <td><span class="tag-yes">YES (via app)</span></td>
+              <td><span class="tag-yes">YES (via app)</span></td>
+              <td><span class="tag-yes">YES (via app)</span></td>
+              <td><span class="tag-yes">YES</span></td>
+            </tr>
+            <tr>
+              <td><strong>Custom checkout.liquid (legacy)</strong></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-no">NO</span></td>
+              <td><span class="tag-partial">Deprecated (use Extensions)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight-box">
+        <div class="insight-label">The non-Plus sweet spot</div>
+        <p>For stores not on Plus, the highest-ROI upsell stack is: (1) cart upsells with a smart cart app, (2) post-purchase one-click upsells via ReConvert or AfterSell. This combination is available on every plan and carries manageable checkout risk. The revenue uplift from just these two stages often exceeds what most Plus stores get from in-checkout widgets, because post-purchase upsell acceptance rates (20–35% on well-constructed offers) are higher than most merchants expect.</p>
+      </div>
+    </section>
+
+    <!-- TOP APPS -->
+    <section class="section">
+      <div class="section-label">App Landscape</div>
+      <h2>Leading Shopify Upsell Apps by Stage</h2>
+
+      <h3>Post-Purchase Upsells (All Plans)</h3>
+      <p>
+        These apps add a post-purchase offer page between payment confirmation and the order status page. All support one-click upsell (no re-entry of payment info) and funnel sequences (show a different offer if the first is declined).
+      </p>
+      <ul>
+        <li><strong>ReConvert</strong> — the market leader in Shopify post-purchase upsells. Strong analytics, drag-and-drop offer builder, segmentation by product/cart value. Paid plans start around $29/month.</li>
+        <li><strong>AfterSell</strong> — strong alternative with funnel logic, quantity offers, and solid integration with major Shopify apps. Competitive pricing on lower-revenue stores.</li>
+        <li><strong>Zipify One Click Upsell</strong> — built by Ezra Firestone's Zipify team; known for its A/B testing capabilities for post-purchase offers. Popular with DTC brands that take conversion testing seriously.</li>
+        <li><strong>CartHook</strong> — covers both cart upsells and post-purchase in one app; widely used in the Shopify ecosystem though newer competing apps have matched most features.</li>
+      </ul>
+
+      <h3>Cart Upsells and Smart Cart (All Plans)</h3>
+      <ul>
+        <li><strong>Rebuy Smart Cart</strong> — replaces Shopify's default cart with a highly customizable cart drawer that includes product recommendations, free gift thresholds, and upsell widgets. Works on all plans. One of the most comprehensive cart-level upsell solutions available.</li>
+        <li><strong>Frequently Bought Together</strong> — simple, reliable product bundle recommendations on product pages. Extremely low risk, works on all themes.</li>
+        <li><strong>LimeSpot Personalizer</strong> — AI-driven product recommendations across product pages, cart, and order confirmation. Good choice for stores with large catalogs.</li>
+      </ul>
+
+      <h3>In-Checkout Upsells (Plus Required)</h3>
+      <ul>
+        <li><strong>Rebuy</strong> — also offers Checkout UI Extensions for in-checkout personalization on Plus. Same app, different feature set unlocked by Plus plan status.</li>
+        <li><strong>ReConvert</strong> — in-checkout widgets available on Plus tier, extending its post-purchase functionality into the active checkout.</li>
+        <li><strong>Bold Upsell</strong> — one of the longer-established upsell apps; covers cart, checkout, and post-purchase depending on plan.</li>
+      </ul>
+
+      <div class="warning-box">
+        <div class="warning-label">Before you install any upsell app</div>
+        <p>Run a complete checkout test immediately after installing any upsell app — even if the app has excellent reviews. Upsell apps are among the most common causes of checkout breakage, including the checkout button not working, checkout loading slowly, and payment failures on specific browsers.</p>
+        <p>If possible, install the app during low-traffic hours and test on an incognito browser with a real test order before exposing it to live traffic. An upsell app that increases AOV by 15% but causes 5% checkout abandonment is net-negative.</p>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Reliability</div>
+      <h2>How Upsell Apps Break Checkout — and How to Catch It</h2>
+      <p>
+        Upsell apps are responsible for a significant share of Shopify checkout incidents. Understanding the failure modes helps you respond faster when something goes wrong — and set up monitoring before it does.
+      </p>
+
+      <h3>Cart-Level Failures</h3>
+      <p>App JavaScript errors in the storefront theme can cause the cart drawer to fail to open, the cart page to render without the checkout button, or the page to freeze on mobile. These are typically visible failures that customers notice immediately, so you will hear about them. Theme-app JavaScript conflicts are the primary cause — test after any theme update or app update.</p>
+
+      <h3>In-Checkout Extension Failures (Plus)</h3>
+      <p>A broken Checkout UI Extension may cause a checkout widget to not render, the payment button to appear unresponsive for a few seconds while the extension loads, or in edge cases the checkout page to render with an error state. Shopify's extension sandboxing limits blast radius but does not eliminate it. Silent failures — where the widget doesn't appear but the checkout still works — are common and easy to miss without systematic testing.</p>
+
+      <h3>Post-Purchase Extension Failures</h3>
+      <p>The offer page fails to load or renders broken HTML. Because payment is already captured, the customer's order is safe — they just don't see the upsell. This is the safest failure mode. The revenue cost is the lost upsell opportunity for that session. Still worth catching through monitoring, since a consistently broken post-purchase page means you're paying for an app that isn't delivering.</p>
+
+      <h3>Performance Degradation</h3>
+      <p>
+        Every upsell app adds JavaScript and often external API calls (to fetch personalized product recommendations) to the checkout flow. On Shopify's native checkout, performance impact is bounded by Shopify's infrastructure. On custom checkout.liquid setups (legacy Plus), poorly coded upsell apps have caused checkout pages to take 4–8+ seconds to load on mobile connections.
+      </p>
+      <p>
+        Signs of performance degradation: checkout page load time increases after app install; Time to Interactive (TTI) on the checkout page increases in Lighthouse or real-user monitoring; customers report checkout "freezing" or being slow on mobile.
+      </p>
+
+      <h3>Tracking and Analytics Breakage</h3>
+      <p>
+        Post-purchase upsell apps modify the order status page — the same page where most stores fire purchase conversion events for Google Ads, Meta Pixel, and GA4. A poorly integrated post-purchase upsell app can cause duplicate purchase event firing (if the app adds its own thank-you page before Shopify's, then Shopify fires a second event), or can suppress conversion events entirely if the page redirect interferes with tag firing.
+      </p>
+      <p>After installing a post-purchase upsell app, verify your purchase event tracking in GA4 and any ad platforms. Place a test order and confirm that the purchase event fires once, with the correct revenue value. This is consistently one of the most commonly missed post-install checks.</p>
+
+      <div class="insight-box">
+        <div class="insight-label">The monitoring gap</div>
+        <p>Most upsell app failures are discovered by customers, not merchants — because merchants rarely run complete checkout tests after app updates (which happen automatically in the background). Setting up automated checkout monitoring means you catch failures within minutes of an app update breaking checkout, rather than discovering it hours later through customer support tickets. <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> runs automated real checkout tests on a regular schedule and alerts you immediately if checkout fails — including when an upsell app update causes a regression.</p>
+      </div>
+    </section>
+
+    <!-- IMPLEMENTATION GUIDE -->
+    <section class="section">
+      <div class="section-label">Implementation</div>
+      <h2>How to Add Upsells Without Breaking Checkout</h2>
+
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">01</div>
+          <div class="step-body"><strong>Start with post-purchase.</strong> If you're new to upsells, start with a post-purchase app (ReConvert, AfterSell, or Zipify). Zero checkout abandonment risk, available on every plan, measurable impact. Get this working and validated before adding cart-level upsells.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">02</div>
+          <div class="step-body"><strong>Install during low-traffic hours.</strong> App installs can take a few minutes to propagate. Schedule new upsell app installs during off-peak hours — not during a campaign launch or BFCM.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">03</div>
+          <div class="step-body"><strong>Run a real test order immediately.</strong> Go through the full checkout flow — add to cart, enter real test payment info, complete purchase — and verify the entire flow including the post-purchase page. Do this in incognito, on mobile, and with a different browser.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">04</div>
+          <div class="step-body"><strong>Verify tracking after install.</strong> Place a test order and confirm that your purchase conversion event fires once with the correct revenue amount in GA4, Google Ads, and Meta Pixel. Upsell apps frequently cause tracking issues on first install.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">05</div>
+          <div class="step-body"><strong>Check checkout speed before and after.</strong> Use Shopify's built-in analytics or a tool like PageSpeed Insights on the cart page and free-check tool to measure checkout flow speed. If install adds noticeable latency, investigate the app's external API calls before accepting the tradeoff.</div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">06</div>
+          <div class="step-body"><strong>Enable automatic checkout monitoring.</strong> Upsell apps update automatically and updates break checkout. The only way to catch this without customer complaints is automated monitoring that runs real checkout tests on a schedule. Set this up before you install your first upsell app, not after the first incident.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-block">
+      <h2>Monitor Checkout After Every Upsell App Update</h2>
+      <p>Upsell apps update silently in the background. CheckPulse runs automated checkout tests on a schedule and alerts you within minutes if an update breaks your checkout — before customers hit the problem.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check →</a>
+    </div>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Checkout Upsells — Common Questions</h2>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q">Can you add upsells inside the Shopify checkout page?</div>
+          <div class="faq-a">
+            <p>Yes, but the method depends on your plan. On Shopify Plus: you have full access to Checkout UI Extensions, which let you add offer widgets, order bumps, and custom UI blocks at specific positions inside the checkout — including the order summary, above/below shipping methods, and above/below payment. On Basic, Shopify, and Advanced (non-Plus): you cannot modify the checkout page UI during the active checkout. You can add upsells at the cart level (before checkout) or use post-purchase pages (after payment), which are available to all plans. Post-purchase upsells — which show an offer after payment is collected but before the order confirmation — are available on all plans and carry no abandonment risk, since the customer's original order is already captured.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What is the difference between a cart upsell and a post-purchase upsell?</div>
+          <div class="faq-a">
+            <p>A cart upsell appears before the customer enters checkout — on the cart page or in a cart drawer. It can influence whether the customer checks out at all, making it effective but also introducing some abandonment risk if it's too aggressive or poorly presented. A post-purchase upsell appears after payment is collected, on the page between "payment confirmed" and the standard order confirmation. The customer can accept the offer (adding a product to their order with one tap) or skip it. Because payment is already captured, post-purchase upsells carry zero checkout abandonment risk. The tradeoff: post-purchase upsell acceptance rates (typically 15–35%) are lower than cart-level conversion rates, because the customer is already in a post-purchase mental state rather than an active buying state. The right choice depends on your product catalog and customer behavior.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Do I need Shopify Plus for upsells?</div>
+          <div class="faq-a">
+            <p>No — the most common and effective upsell stages are available on all plans. Post-purchase upsells (ReConvert, AfterSell, Zipify) work on Basic, Shopify, and Advanced plans. Cart upsells and smart cart apps also work on all plans. You only need Plus if you want to add custom UI components inside the active checkout flow itself — the page the customer sees after clicking "Check out" and during payment entry. For most stores, the post-purchase stage alone (available without Plus) provides a strong AOV lift without the complexity and risk of in-checkout modifications.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Which upsell app is best for Shopify stores?</div>
+          <div class="faq-a">
+            <p>For post-purchase upsells on standard plans, the most established options are ReConvert (largest market share, strong analytics), AfterSell (competitive alternative, good funnel logic), and Zipify One Click Upsell (best-in-class A/B testing). For cart-level upsells, Rebuy Smart Cart is the most comprehensive option. The "best" app depends on your catalog, average order value, and how sophisticated you want your offer logic to be. For stores just starting with upsells, ReConvert or AfterSell on the post-purchase stage is the lowest-risk entry point. Important: evaluate each app's pricing at your revenue tier — several charge a percentage of upsell revenue in addition to a monthly base fee, and the economics vary significantly depending on how much AOV lift you achieve.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can upsell apps cause checkout to not work?</div>
+          <div class="faq-a">
+            <p>Yes. Upsell apps are among the most common causes of checkout failures on Shopify. Failure modes include: the checkout button not responding after a cart upsell app JavaScript error, the checkout page loading slowly due to external API calls from an upsell personalization app, in-checkout widgets not rendering after an app update, and post-purchase pages that cause duplicate conversion event tracking. The risk is highest for in-checkout upsells (Plus) and cart-drawer upsells where app JavaScript runs in the storefront theme. The safest approach: test checkout end-to-end immediately after installing or updating any upsell app, and set up automated checkout monitoring so that background app updates that break checkout are detected quickly rather than through customer complaints.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro" class="guide-card">
+          <div class="guide-card-label">CRO</div>
+          <div class="guide-card-title">Shopify Checkout CRO Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing" class="guide-card">
+          <div class="guide-card-label">A/B Testing</div>
+          <div class="guide-card-title">Shopify Checkout A/B Testing</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page" class="guide-card">
+          <div class="guide-card-label">Layout</div>
+          <div class="guide-card-title">Shopify One-Page Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-trust-signals" class="guide-card">
+          <div class="guide-card-label">Trust</div>
+          <div class="guide-card-title">Checkout Trust Signals Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Why Customers Abandon Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Apps That Break Shopify Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-guest-checkout" class="guide-card">
+          <div class="guide-card-label">Guest Checkout</div>
+          <div class="guide-card-title">Shopify Guest Checkout Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-cro">Checkout CRO</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-ab-testing">A/B Testing</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page">One-Page Checkout</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Gift Card and Loyalty Points at Checkout — Stacking Conflicts, Discount Code Limits, Combined Rewards Not Working (2026)</title>
+  <meta name="description" content="Shopify gift card not working with loyalty points, loyalty rewards disappearing when gift card applied, discount code limit hit when stacking rewards — complete guide to Shopify combined checkout reward failures and how to fix them." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" />
+  <meta property="og:title" content="Shopify Gift Card + Loyalty Points at Checkout — Stacking Conflicts and Combined Rewards Not Working" />
+  <meta property="og:description" content="Gift cards and loyalty points are two completely different checkout instruments in Shopify. Gift cards are processed as payment. Loyalty points are processed as discounts. When you try to use both together — plus a promotional code — the Shopify discount limit breaks one of them silently." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Gift Card and Loyalty Points at Checkout — Stacking Conflicts, Discount Code Limits, Combined Rewards Not Working",
+    "description": "A complete guide to Shopify checkout failures when combining gift cards, loyalty points, and promotional discount codes: why gift cards and loyalty points live in different checkout layers, the Shopify discount code stacking limit that silently drops loyalty rewards, the three-way conflict when bundle discounts, loyalty codes, and gift cards interact at the same checkout, and a 7-step diagnosis checklist for merchants using Smile.io, LoyaltyLion, Rise.ai, or Yotpo loyalty programs.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify loyalty discount disappear when I apply a gift card?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Loyalty points and gift cards look similar to customers — both are 'money off' — but they live in completely different Shopify checkout layers. Gift cards are processed as payment instruments at the payment step, similar to partial cash payment. Loyalty points that use a discount code architecture are processed as discounts at the order level, before payment. These two systems do not conflict directly. What causes loyalty discounts to disappear when a gift card is applied is almost always a discount code limit, not a gift-card conflict. Many Shopify plans allow only one active discount code per checkout. If a customer already has a promotional code applied, and your loyalty app applies its own discount code to represent the points redemption, adding the gift card triggers a cart recalculation — and during that recalculation, Shopify enforces its discount code limit and drops one of the codes. Because the loyalty app's code was applied silently (without the customer manually typing it), the customer never notices it was there. They just see the points are gone. Fix: check your Shopify plan's discount code stacking limit. Shopify Plus allows discount code stacking via the Discount Combine setting. Standard plans do not. If you are on a standard plan and your loyalty app uses a discount code, you cannot also apply a merchant promotional code in the same checkout — one will always be dropped."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify gift cards and loyalty points be used together at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — gift cards and loyalty points can be used together at the same Shopify checkout, but only when your loyalty program uses the correct architecture. Gift cards are payment instruments: they reduce the amount owed at the payment step. They do not interact with discount codes. So if your loyalty program applies points via a Checkout Extension (which renders a points widget directly inside Shopify's checkout UI), gift cards and loyalty points can coexist with no conflict. If your loyalty program applies points via a discount code, the combination still works unless a third promotional code is also active — that is when the discount code limit becomes the problem. The failure scenario that trips up merchants: customer has loyalty points ready to apply (loyalty app has pre-applied a discount code) + customer has a gift card + customer types a promotional code they saw in an email. Three discount codes. Shopify's limit is one or two depending on plan. Something gets dropped. The customer blames the gift card for making the loyalty points disappear."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Smile.io points discount disappear when a gift card is entered at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Smile.io (and most Shopify loyalty apps including LoyaltyLion, Yotpo, and Bon Loyalty) applies points redemptions via a Shopify discount code generated at the moment the customer clicks 'Redeem.' Shopify gift cards are payment instruments — they are applied at the payment step and do not use the discount code API. These two do not conflict by design. The Smile.io points discount disappears when a gift card is entered for one of three reasons: (1) A third discount code is also active. The loyalty code + a promotional code = two codes. Shopify's discount limit is hit when the gift card triggers a cart refresh. One discount is dropped — usually the loyalty code because it was applied automatically, not manually. (2) The cart session expired during a long checkout — the loyalty discount code expired or was cleaned up, and when the gift card is applied it triggers a full cart refresh that reveals the code is gone. (3) A Shopify or theme update changed the cart recalculation behavior, and the loyalty app's discount code is not being re-applied after cart changes. To diagnose: remove all promotional codes, redeem loyalty points, apply the gift card, and observe whether the points discount survives. If it does, the cause is a three-way discount conflict. If it doesn't, the cause is a cart refresh/session issue and requires contacting Smile.io support."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't my Shopify customer use both a gift card and a promotional discount code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify gift cards do not count against the discount code limit — they are applied at the payment step, not the discount step. A customer can use a gift card and a discount code at the same checkout. What prevents the combination is a plan or discount configuration issue: (1) Standard Shopify plans allow one discount code per checkout. If the customer already has a discount applied, entering a new code replaces it — it does not add to it. The gift card did not cause this; the discount code limit caused it. (2) Some discount codes are configured with 'Cannot combine with other discounts' in the Shopify Admin → Discounts settings. If the first discount code has this restriction, a second code will be rejected at checkout. (3) Shopify Plus with Discount Combines enabled allows multiple discount codes. If your store recently upgraded or downgraded plans, the behavior may have changed. Fix: check Admin → Discounts → [the discount code] → Combinations. If 'Cannot be combined with discounts' is shown, that is the root cause. Enable combining or make the restriction visible in the customer-facing discount description so customers are not surprised."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test whether gift card, loyalty points, and discount codes work together at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Run this three-scenario test sequence monthly and after every loyalty app update: Scenario 1 (gift card only): apply a test gift card (use Admin → Products → Gift cards → Issue gift card to create a test card), complete a test checkout, verify the gift card amount is deducted. Scenario 2 (loyalty points only): log in as a test customer with redeemable points, redeem points in the cart, complete checkout, verify the points discount was applied and the order total reflects the correct reduction. Scenario 3 (all three): log in as that same test customer, add items to cart, redeem loyalty points, apply a promotional discount code, apply the gift card, observe what happens to all three. The result of Scenario 3 tells you exactly what your customers experience and which combination fails. If the loyalty code disappears after the gift card is applied, check how many discount codes Shopify allowed and which was dropped. If the promotional code fails, check its Combinations setting. Run this test in an incognito window after each scenario to prevent cached session state from masking failures. Document the results — when something changes (Shopify update, loyalty app update, discount rule change), re-run and compare."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+    }
+    nav .container { display: flex; align-items: center; gap: 12px; }
+    .nav-logo { font-weight: 700; font-size: 15px; color: var(--text); }
+    .nav-logo span { color: var(--amber); }
+    .nav-sep { color: var(--border-mid); }
+    .nav-crumb { font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* HERO */
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amber);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 680px;
+      margin-bottom: 32px;
+    }
+    .hero-insight {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 18px 20px;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      max-width: 680px;
+    }
+    .hero-insight strong { color: var(--text); }
+
+    /* SECTIONS */
+    .section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      margin-bottom: 24px;
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    p { color: var(--text-secondary); line-height: 1.7; margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* INSTRUMENT GRID */
+    .instrument-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 600px) { .instrument-grid { grid-template-columns: 1fr; } }
+    .instrument-card {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .instrument-card.gift { border-top: 3px solid var(--green); }
+    .instrument-card.loyalty { border-top: 3px solid var(--purple); }
+    .instrument-type {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .instrument-card.gift .instrument-type { color: var(--green); }
+    .instrument-card.loyalty .instrument-type { color: var(--purple); }
+    .instrument-name { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+    .instrument-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .instrument-detail li { margin-bottom: 6px; padding-left: 14px; position: relative; }
+    .instrument-detail li::before { content: "→"; position: absolute; left: 0; color: var(--text-dim); }
+
+    /* STACKING MATRIX */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .matrix-table th {
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .matrix-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-secondary);
+    }
+    .matrix-table tr:last-child td { border-bottom: none; }
+    .badge-ok {
+      display: inline-block;
+      background: rgba(16,185,129,0.12);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      white-space: nowrap;
+    }
+    .badge-warn {
+      display: inline-block;
+      background: rgba(245,158,11,0.1);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      white-space: nowrap;
+    }
+    .badge-fail {
+      display: inline-block;
+      background: rgba(239,68,68,0.1);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      white-space: nowrap;
+    }
+
+    /* FAILURE MODES */
+    .failure-list { display: flex; flex-direction: column; gap: 16px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .failure-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .failure-title { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .failure-body { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+    .failure-body p { margin-bottom: 8px; font-size: 13px; }
+    .failure-body strong { color: var(--text); }
+    .failure-fix {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(16,185,129,0.06);
+      border-left: 2px solid var(--green);
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .failure-fix strong { color: var(--green); }
+
+    /* CHECKLIST */
+    .checklist { display: flex; flex-direction: column; gap: 12px; }
+    .check-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+    }
+    .check-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .check-text strong { color: var(--text); }
+
+    /* CROSS-CLUSTER */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .cluster-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .cluster-body { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
+    /* CTA */
+    .cta-section {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 36px;
+      text-align: center;
+      margin: 48px 0;
+    }
+    .cta-section h2 { margin-bottom: 12px; }
+    .cta-section p { max-width: 520px; margin: 0 auto 24px; }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+    .cta-note { font-size: 12px; color: var(--text-dim); margin-top: 10px; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 20px 0; }
+    .faq-item:first-child { padding-top: 0; }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+    .faq-a { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+    .faq-a p { margin-bottom: 10px; font-size: 14px; }
+    .faq-a p:last-child { margin-bottom: 0; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      margin-top: 48px;
+    }
+    footer p { font-size: 13px; color: var(--text-dim); text-align: center; }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-logo">Check<span>Pulse</span></a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">Gift Card + Loyalty Stacking at Checkout</span>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-badge">Shopify Checkout Guide</div>
+      <h1>Shopify Gift Card and Loyalty Points at Checkout — Why Stacking Breaks</h1>
+      <p class="hero-sub">
+        Gift cards and loyalty points look identical to customers — both reduce the amount owed. But inside Shopify's checkout, they live in completely different layers. One is a payment instrument. The other is a discount. When you add a promotional code to the mix, the discount code limit silently drops one of them — and the customer gets no explanation.
+      </p>
+      <div class="hero-insight">
+        <strong>The silent failure pattern:</strong> Customer has Smile.io points redeemed (discount code applied automatically) + enters a promotional code they got in an email + applies a gift card. Three things compete. Shopify's discount code limit on standard plans drops one. The customer sees the gift card applied but the loyalty points have vanished. They contact support asking why the gift card "broke" their rewards — but the gift card did nothing. The promotional code is the conflict. <strong>Shopify reports the checkout as 100% healthy. No error is shown.</strong>
+      </div>
+    </section>
+
+    <!-- SECTION 1: TWO DIFFERENT INSTRUMENTS -->
+    <section class="section">
+      <div class="section-label">The Root Cause</div>
+      <h2>Gift Cards and Loyalty Points Are Different Checkout Instruments</h2>
+      <p>Every stacking conflict at Shopify checkout stems from one misunderstanding: gift cards and loyalty points are not the same type of thing. They are processed in different steps, by different Shopify systems, and they interact with the discount code limit in completely different ways.</p>
+
+      <div class="instrument-grid">
+        <div class="instrument-card gift">
+          <div class="instrument-type">Payment Instrument</div>
+          <div class="instrument-name">Gift Cards</div>
+          <ul class="instrument-detail">
+            <li>Applied at the <strong>payment step</strong>, not the discount step</li>
+            <li>Do NOT count against the discount code limit</li>
+            <li>Processed by <code>Shopify.checkout.gift_cards</code></li>
+            <li>Stored in Admin → Products → Gift cards</li>
+            <li>Third-party gift card apps (Rise.ai, GiftUp, Govalo) may override native behavior</li>
+            <li>Currency must match the store's checkout currency</li>
+          </ul>
+        </div>
+        <div class="instrument-card loyalty">
+          <div class="instrument-type">Discount Instrument</div>
+          <div class="instrument-name">Loyalty Points</div>
+          <ul class="instrument-detail">
+            <li>Applied at the <strong>discount step</strong> via one of two methods</li>
+            <li>Method A: Shopify discount code (generated per redemption)</li>
+            <li>Method B: Checkout Extension widget (renders in checkout UI)</li>
+            <li>Method A codes <strong>count against the discount code limit</strong></li>
+            <li>Method B extensions do not count against the discount limit</li>
+            <li>Used by Smile.io, LoyaltyLion, Yotpo, Bon Loyalty, Rise.ai loyalty</li>
+          </ul>
+        </div>
+      </div>
+
+      <p>The key insight: <strong>gift cards can always coexist with loyalty points</strong> — unless loyalty uses discount codes AND the store has already hit the discount code limit from a promotional code. The gift card is not the culprit. The conflicting promotional code is.</p>
+    </section>
+
+    <!-- SECTION 2: STACKING MATRIX -->
+    <section class="section">
+      <div class="section-label">Combination Reference</div>
+      <h2>What Can Be Stacked at Shopify Checkout</h2>
+      <p>Not all combinations fail. The outcome depends on your Shopify plan, your loyalty app's architecture, and how many discount codes are already active. Use this matrix to identify which combination your customer is attempting and whether it should work.</p>
+
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>Combination</th>
+            <th>Standard Plan</th>
+            <th>Shopify Plus</th>
+            <th>Root Cause When Failing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Gift card only</strong></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td>Gift card balance, wrong store, deactivated card</td>
+          </tr>
+          <tr>
+            <td><strong>Loyalty (extension) only</strong></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td>Extension render failure, session expiry</td>
+          </tr>
+          <tr>
+            <td><strong>Loyalty (discount code) only</strong></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td>Code generation failure, code expiry</td>
+          </tr>
+          <tr>
+            <td><strong>Gift card + loyalty (extension)</strong></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td>Extension render failure on mobile/Safari</td>
+          </tr>
+          <tr>
+            <td><strong>Gift card + loyalty (discount code)</strong></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td><span class="badge-ok">Works</span></td>
+            <td>Gift card currency mismatch; code expiry</td>
+          </tr>
+          <tr>
+            <td><strong>Promo code + loyalty (discount code)</strong></td>
+            <td><span class="badge-fail">Fails</span></td>
+            <td><span class="badge-warn">Depends</span></td>
+            <td>Discount code limit (1 on standard). Plus: needs Combine enabled</td>
+          </tr>
+          <tr>
+            <td><strong>Gift card + promo code + loyalty (discount code)</strong></td>
+            <td><span class="badge-fail">Fails</span></td>
+            <td><span class="badge-warn">Depends</span></td>
+            <td>Two discount codes on standard plan. Plus: Combine setting must allow it</td>
+          </tr>
+          <tr>
+            <td><strong>Bundle discount + loyalty (discount code)</strong></td>
+            <td><span class="badge-fail">Fails</span></td>
+            <td><span class="badge-warn">Depends</span></td>
+            <td>Bundle app discount code + loyalty discount code = two codes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:13px; color: var(--text-dim);">Shopify Plus "Depends" means stacking works only when Admin → Discounts → [code] → Combinations has "Can be combined with other discounts" enabled. This setting must be configured per discount code — it is not global.</p>
+    </section>
+
+    <!-- SECTION 3: FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>5 Stacking Failure Modes at Shopify Checkout</h2>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-num">Failure Mode 1</div>
+          <div class="failure-title">Discount Code Limit Silently Drops Loyalty Points</div>
+          <div class="failure-body">
+            <p>A customer has loyalty points redeemed. The loyalty app (Smile.io, LoyaltyLion, Bon Loyalty) applied a Shopify discount code to the cart automatically — silently, without the customer manually entering anything. The customer then types a promotional discount code from an email. Shopify's standard plan allows one discount code per checkout. The promotional code was entered last and takes precedence — or Shopify replaces the promotional code with the loyalty code, confusing the customer further. Either way, one is dropped.</p>
+            <p><strong>Silent aspect:</strong> The customer was never told the loyalty code existed. They only see it's gone after the promotional code is applied. They contact support saying "the gift card broke my points" — but there was no gift card involved. The promotional code was the conflict.</p>
+            <div class="failure-fix"><strong>Fix:</strong> Upgrade to Shopify Plus and enable discount combining on each relevant code. On standard plans, design the loyalty UX to prevent simultaneous promotional code entry — show a warning in the cart if a promo code is active when points are redeemed.</div>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Failure Mode 2</div>
+          <div class="failure-title">Third-Party Gift Card App Conflicts with Loyalty Discount Code</div>
+          <div class="failure-body">
+            <p>Some merchants use third-party gift card apps (Rise.ai, GiftUp, Govalo) instead of Shopify's native gift card system. These apps sometimes implement gift cards as discount codes — not as payment instruments — because it gives them more flexibility. When they do, the "gift card" is actually a Shopify discount code.</p>
+            <p>Now the customer has three discount codes: the third-party gift card code, the loyalty redemption code, and a promotional code. Even on Shopify Plus with combining enabled, the specific combination setting on each code may not allow all three to coexist.</p>
+            <div class="failure-fix"><strong>Fix:</strong> Check whether your gift card app uses Shopify's native gift card system (Admin → Products → Gift cards) or implements gift cards as discount codes. Contact the app developer and ask directly. If it uses discount codes, treat it as a discount when diagnosing stacking conflicts.</div>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Failure Mode 3</div>
+          <div class="failure-title">Cart-to-Checkout Session Clears Loyalty Code</div>
+          <div class="failure-body">
+            <p>The customer redeems loyalty points in the cart. The loyalty app applies a discount code. The customer adds a gift card, which triggers a cart recalculation. During the recalculation, the cart session is refreshed — and the loyalty app's discount code is not re-applied in the new session. The gift card survives (it's a payment instrument). The loyalty code does not.</p>
+            <p><strong>Why this happens:</strong> The loyalty app listens for cart events to know when to apply or re-apply its discount code. If the gift card addition event fires before the loyalty app's re-apply listener, the code is gone. This is a timing and event ordering issue in the cart JavaScript layer.</p>
+            <div class="failure-fix"><strong>Fix:</strong> Reproduce by: (1) redeem loyalty points, (2) wait 30 seconds, (3) apply gift card — observe whether the loyalty code survives. If it does not, report the exact reproduction steps to your loyalty app support. This is a known edge case most loyalty apps have patched in recent versions.</div>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Failure Mode 4</div>
+          <div class="failure-title">Gift Card Currency Mismatch Makes Points Apply Incorrectly</div>
+          <div class="failure-body">
+            <p>A store uses Shopify Markets or a currency app to offer checkout in multiple currencies. A customer with a gift card issued in USD tries to redeem loyalty points (as a discount code, also generated in the store's base currency) while checking out in EUR. The gift card conversion may apply an unexpected amount. The loyalty discount, also in a different denomination, may apply incorrectly or vanish after the gift card triggers a currency recalculation.</p>
+            <div class="failure-fix"><strong>Fix:</strong> Test the full combination in each currency your store supports. Shopify gift cards are issued in the store's primary currency — the conversion happens at checkout. Loyalty discount codes are also typically in the base currency. If both need conversion at checkout, test that the combined order total after both are applied is correct.</div>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-num">Failure Mode 5</div>
+          <div class="failure-title">Bundle Discount + Loyalty Code = Silent Drop on Standard Plans</div>
+          <div class="failure-body">
+            <p>Bundle apps that use discount code architecture apply a Shopify discount code to represent bundle savings (e.g., "10% off when buying items A + B together"). If the customer also has loyalty points redeemed (another discount code), the standard plan's one-discount limit silently drops one of the two. Neither the bundle discount nor the loyalty points shows an error. One just disappears.</p>
+            <p>This is the three-way version: bundle discount code + loyalty discount code + promotional code = three codes competing for one slot. Gift cards are not involved. The customer blames the most visible recent action — usually the gift card entry, even if they are not using one.</p>
+            <div class="failure-fix"><strong>Fix:</strong> If your store uses both a bundle app and a loyalty app, verify which architecture each uses (see the bundle guide for how to identify bundle app architecture). If both use discount codes, upgrading to Plus and enabling combining is the only solution that fully resolves the conflict.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 4: DIAGNOSIS CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>7 Steps to Diagnose a Gift Card + Loyalty Stacking Failure</h2>
+
+      <div class="checklist">
+        <div class="check-item">
+          <div class="check-num">1</div>
+          <div class="check-text"><strong>Identify your loyalty app's architecture.</strong> Log in to your loyalty app admin and search for "integration method" or "how points are redeemed at checkout." If it shows "discount code," your loyalty app creates a Shopify discount code per redemption — and it counts against Shopify's discount code limit. If it shows "checkout extension" or "checkout widget," it does not count against the limit.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">2</div>
+          <div class="check-text"><strong>Identify whether your gift card app is native or third-party.</strong> Go to Admin → Products → Gift cards. If your gift cards appear here with a "Remaining balance," they use Shopify's native gift card system — which is a payment instrument, not a discount code. If this page is empty and you use a third-party app, that app may implement gift cards as discount codes — which counts against the limit.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">3</div>
+          <div class="check-text"><strong>Check your Shopify plan's discount code limit.</strong> Go to Admin → Settings → Plan. Standard plans (Basic, Shopify, Advanced) allow one discount code per checkout. Shopify Plus allows multiple — but only if the Combine setting is enabled per code in Admin → Discounts → [code] → Combinations. If you are on a standard plan, any combination of two discount codes will fail — one will always be dropped.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">4</div>
+          <div class="check-text"><strong>Reproduce the exact failure scenario.</strong> Open an incognito window. Log in as a test customer with redeemable loyalty points. Add items to cart. Redeem loyalty points. Apply the gift card. Apply the promotional code (if relevant). Observe which elements survive and in what order. The sequence matters — each step may clear what was applied before.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">5</div>
+          <div class="check-text"><strong>Remove the promotional code and re-test.</strong> If removing the promotional code allows both gift card and loyalty to coexist, the failure is a discount code limit conflict — not a gift card conflict. The promotional code is the variable. Communicate this clearly to support and to your loyalty app vendor.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">6</div>
+          <div class="check-text"><strong>Check for bundle app conflicts.</strong> If you use a bundle app (Bold Bundles, Bundler, Rebuy bundle mode), verify whether it applies a Shopify discount code for bundle pricing. If it does, the same discount code limit applies — and loyalty + bundle discount + promotional code = three codes competing on a one-code plan.</div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">7</div>
+          <div class="check-text"><strong>Test on a real mobile device.</strong> If loyalty uses a Checkout Extension (not a discount code), mobile Safari is a common failure point — extension blocks may fail to render or fail to apply the loyalty discount on iOS Safari even when they work on desktop Chrome. Reproduce on a real iPhone, not a simulator. If the failure is mobile-only, it is a Checkout Extension rendering issue, not a stacking conflict.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: CROSS-CLUSTER CONTEXT -->
+    <section class="section">
+      <div class="section-label">Connected Issues</div>
+      <h2>Related Checkout Failures</h2>
+      <p>Gift card and loyalty stacking failures overlap with several other checkout failure clusters. If the diagnosis above did not identify the root cause, the issue may be in one of these related areas:</p>
+
+      <div class="cluster-grid">
+        <div class="cluster-card">
+          <div class="cluster-label">Gift Cards</div>
+          <div class="cluster-title">Native Gift Card Failures</div>
+          <div class="cluster-body">Depleted balance, deactivated card, wrong-store redemption, currency mismatch, third-party app override.</div>
+        </div>
+        <div class="cluster-card">
+          <div class="cluster-label">Loyalty Rewards</div>
+          <div class="cluster-title">Loyalty Points Not Working</div>
+          <div class="cluster-body">Points appearing in cart but vanishing at checkout, guest checkout loyalty failures, mobile widget rendering.</div>
+        </div>
+        <div class="cluster-card">
+          <div class="cluster-label">Discount Codes</div>
+          <div class="cluster-title">Discount Code Conflicts</div>
+          <div class="cluster-body">One-discount limit, code expiry, combine setting not enabled, promotional code overriding app-applied code.</div>
+        </div>
+        <div class="cluster-card">
+          <div class="cluster-label">Bundle Checkout</div>
+          <div class="cluster-title">Bundle Discount Not Applying</div>
+          <div class="cluster-body">Bundle app discount code conflicting with loyalty code on standard plan, three-way discount limit failure.</div>
+        </div>
+        <div class="cluster-card">
+          <div class="cluster-label">App Conflicts</div>
+          <div class="cluster-title">App Blocking Checkout</div>
+          <div class="cluster-body">Multiple checkout apps (loyalty, bundle, upsell) firing simultaneously and interfering with each other's cart events.</div>
+        </div>
+        <div class="cluster-card">
+          <div class="cluster-label">Checkout Extensions</div>
+          <div class="cluster-title">Checkout Extension Not Rendering</div>
+          <div class="cluster-body">Loyalty extension block not loading on mobile, extension placement conflict in checkout editor, extension update breaking discount application.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>Catch Checkout Failures Before Your Customers Do</h2>
+      <p>Stacking failures are invisible to uptime monitors. CheckPulse simulates a real customer checkout — including discount application and payment — and alerts you by email when anything breaks.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">
+        → Run a Free Checkout Health Check
+      </a>
+      <p class="cta-note">No account required. Results in under 60 seconds.</p>
+    </div>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" class="guide-card">
+          <div class="guide-card-label">Loyalty</div>
+          <div class="guide-card-title">Shopify Loyalty Points Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-gift-card-not-working-at-checkout" class="guide-card">
+          <div class="guide-card-label">Gift Cards</div>
+          <div class="guide-card-title">Shopify Gift Card Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+          <div class="guide-card-label">Discount Codes</div>
+          <div class="guide-card-title">Shopify Discount Code Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" class="guide-card">
+          <div class="guide-card-label">Bundles</div>
+          <div class="guide-card-title">Shopify Bundle Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">Shopify App Blocking Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+          <div class="guide-card-label">Upsells</div>
+          <div class="guide-card-title">Shopify Checkout Upsells Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my Shopify loyalty discount disappear when I apply a gift card?</div>
+          <div class="faq-a">
+            <p>Loyalty discounts disappearing when a gift card is applied is almost never caused by the gift card itself. Gift cards are payment instruments — they are processed at the payment step and do not interact with the discount code layer. What causes loyalty points to vanish is a discount code limit triggered by a cart recalculation.</p>
+            <p>When you apply a gift card, Shopify recalculates the cart. During that recalculation, the discount code limit is re-enforced. If a promotional code was also active alongside the loyalty code, one of the two codes gets dropped. Because the loyalty app applied its code automatically (the customer never typed it), the customer notices only that the loyalty points are gone — not that the promotional code was the real conflict.</p>
+            <p>Test by removing the promotional code, re-applying the loyalty points, then applying the gift card. If the loyalty points survive, the promotional code was the conflict — not the gift card.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can Shopify gift cards and loyalty points be used together at checkout?</div>
+          <div class="faq-a">
+            <p>Yes — gift cards and loyalty points can be used together at Shopify checkout in most configurations. The two systems are designed to coexist: gift cards are payment instruments (applied at the payment step), and loyalty points are either discount codes or checkout extensions (applied at the discount step). These two layers do not conflict by design.</p>
+            <p>The conflict happens when a third element is added: a promotional discount code. On standard Shopify plans, the discount code limit is one code per checkout. Loyalty (discount code) + promotional code = two codes = one gets dropped when the gift card triggers a cart refresh. On Shopify Plus, stacking is available if the Combine setting is enabled per discount code in Admin → Discounts → [code] → Combinations.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my Smile.io points discount disappear when a gift card is entered at Shopify checkout?</div>
+          <div class="faq-a">
+            <p>Smile.io applies points redemptions as Shopify discount codes — one unique code per redemption, generated when the customer clicks "Redeem." This code is applied to the cart automatically. Shopify gift cards (native) are payment instruments that do not use the discount API, so a gift card alone cannot conflict with a Smile.io code.</p>
+            <p>The Smile.io code disappears when a gift card is applied for one of three reasons: (1) a promotional code was also active, making two discount codes total — the gift card triggered a cart refresh that enforced the one-code limit; (2) the cart session that held the Smile.io code expired between redemption and the gift card being applied; (3) the cart refresh event order caused Smile.io's code re-application to miss its window.</p>
+            <p>To isolate the cause: remove any promotional code and re-test. If the Smile.io code now survives the gift card application, the cause was a three-way conflict. If it still disappears, contact Smile.io support with your reproduction steps — they have specific guidance for this cart event timing issue.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why can't my Shopify customer use both a gift card and a promotional discount code?</div>
+          <div class="faq-a">
+            <p>Shopify gift cards do not count against the discount code limit. A customer can always use a gift card plus one discount code together on a standard plan. The issue is when more than one discount code is active — which can happen without the customer realizing it if a loyalty app auto-applies a code.</p>
+            <p>If a customer reports that their promotional discount code is not working alongside a gift card, check whether the loyalty app has already applied a discount code to their cart. The loyalty code + promotional code = two codes = one is rejected. The gift card is not the cause.</p>
+            <p>Also check Admin → Discounts → [promotional code] → Combinations. If "Cannot be combined with other discounts" is shown, that code blocks any other discount — including loyalty codes — from being used simultaneously, regardless of plan.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I test whether gift card, loyalty points, and discount codes work together at Shopify checkout?</div>
+          <div class="faq-a">
+            <p>Run three test scenarios monthly and after every loyalty app update: Scenario 1 — gift card only: issue a test gift card in Admin → Products → Gift cards, complete a checkout using only the gift card, verify the correct amount was deducted. Scenario 2 — loyalty points only: log in as a test customer with redeemable points, redeem in cart, complete checkout, verify the correct discount was applied. Scenario 3 — all together: log in as the same test customer, add to cart, redeem loyalty points, apply a promotional code, apply the gift card, observe whether all three survive to the order confirmation.</p>
+            <p>Scenario 3 reveals exactly what your customers experience. If any element disappears during this test, note which step caused the drop and check the stacking matrix above to identify the root cause. Run this test sequence in an incognito window to prevent cached session state from masking failures. Document the results so that after the next Shopify update, loyalty app update, or discount rule change, you can re-run and compare.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-gift-card-not-working-at-checkout">Gift Cards</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Codes</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

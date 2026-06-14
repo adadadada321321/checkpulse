@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Digital Products Checkout — Download Not Sent, Fulfillment Failures (2026)</title>
+  <meta name="description" content="Shopify digital downloads not delivered after purchase? Complete guide to digital product fulfillment failures: download link not sent, license key not delivered, webhook failures, and why these break silently while payments succeed." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" />
+  <meta property="og:title" content="Shopify Digital Products Checkout — Download Not Sent, Fulfillment Failures" />
+  <meta property="og:description" content="Digital product failures are invisible in your revenue dashboard — payment succeeds, customer waits, nothing arrives. Here is what actually breaks and how to detect it before customers file chargebacks." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Digital Products Checkout — Download Not Sent, Fulfillment Failures",
+    "description": "A complete guide to Shopify digital product delivery failures: download links not sent, license key delivery issues, webhook-based fulfillment failures, and the monitoring gap that makes these failures invisible. Covers Shopify digital downloads, Sky Pilot, SendOwl, and third-party digital delivery apps.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-14",
+    "dateModified": "2026-06-14"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why didn't my customer receive the download link after purchase on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are several reasons a customer may not receive a download link after purchasing a digital product on Shopify. The most common causes are: (1) Shopify's order confirmation email went to the customer's spam folder — Shopify sends download links inside the order confirmation email, not as a separate email; (2) the digital delivery app (Sky Pilot, SendOwl, FetchApp, Payhip) failed to trigger because its webhook from Shopify was not received or processed; (3) the download email was sent to a typo in the customer's email address entered at checkout; (4) if you use Shopify Digital Downloads (the native free app), the download attachment is included in the order confirmation — if that email was not delivered, neither was the link; (5) the download link was generated correctly but expired before the customer clicked it — most delivery apps set link expiry windows of 24-72 hours by default. To investigate: check the order in Shopify admin, look at the fulfillment status, check whether the digital delivery app shows the order as fulfilled, and resend the download link manually from the app's order management interface."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if Shopify digital downloads are working correctly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Testing Shopify digital downloads requires placing a real test order. Use Shopify's test mode with a test payment gateway, or use a discount code for 100% off to place a zero-cost order. After placing the test order, verify: (1) you received the order confirmation email with the download link attached; (2) the download link is functional and the file downloads correctly; (3) the fulfillment status in Shopify admin shows the order as fulfilled; (4) if using a third-party digital delivery app, check that the app's order log shows the order was processed. Common test failures: the download link works but the file is the wrong version or variant; the order is marked fulfilled in Shopify but the delivery app shows it as pending; the email arrives but the download link returns a 404 or access denied error. Run this test after every product update, pricing change, or app configuration change — digital product delivery chains have multiple points of failure and changes to any one component can silently break the chain."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens if my Shopify digital delivery app webhook fails?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a Shopify digital delivery app webhook fails, the customer's payment succeeds and Shopify creates the order, but the app never receives the signal to fulfill the order. The customer gets the standard Shopify order confirmation email (which may or may not include a download link depending on setup), but the app-managed delivery — which might include a secure download portal, a license key, access credentials, or a member area invite — is never sent. The failure is invisible in your Shopify revenue dashboard because the order exists and payment was received. It only becomes visible when the customer opens a support ticket asking where their download is, or when they file a chargeback claiming they did not receive what they paid for. Webhook failures can be caused by: the app being temporarily unavailable when Shopify fires the webhook; Shopify's webhook delivery window timing out; the app's webhook endpoint returning an error; or the app being uninstalled and reinstalled without webhook re-registration. Check your delivery app's order log or fulfillment log — most apps show pending, delivered, and failed fulfillment statuses — to identify orders where the webhook was not processed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I sell digital products on Shopify without a third-party app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Shopify has a native Digital Downloads app (free, available in the Shopify App Store) that attaches files directly to product variants. When a customer purchases a product with an attached digital file, Shopify includes the download link in the order confirmation email. The native app is sufficient for simple use cases: PDF ebooks, printables, audio files, video files, templates, presets. It has limitations compared to third-party apps: no license key generation, no expiring download links (links use Shopify's CDN and are persistent), no download count limits per order, no customer portal for re-downloading purchases, no streaming or in-browser preview. For software products with license keys, subscription-based access, member areas, or large file delivery (videos, courses), third-party apps like Sky Pilot, SendOwl, FetchApp, or course platforms provide better delivery infrastructure. The native Digital Downloads app's biggest risk is silent failure: if the order confirmation email is not delivered (spam, typo in email address, email provider issues), the customer has no other way to access their download — there is no customer portal to log in to."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify digital product show as fulfilled but the customer never received the download?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify marks digital orders as fulfilled when it records the fulfillment event — but fulfillment in Shopify means 'the order processing step completed,' not 'the customer successfully received the file.' A fulfilled digital order can still result in non-delivery if: (1) the order confirmation email containing the download link was filtered as spam by the customer's email provider; (2) the customer entered an incorrect email address at checkout — Shopify does not validate email addresses for deliverability; (3) the download link was included in the email but the customer's email client blocked the attachment or link (some corporate email environments strip links or attachments from unknown senders); (4) the download link was functional at delivery time but the customer did not click it within the expiry window, and re-accessing it returns a 'link expired' error; (5) for third-party delivery apps, 'fulfilled' in Shopify may mean the app received the fulfillment trigger, but the app's own delivery step — sending the email, provisioning access — can fail independently of Shopify's fulfillment status. Always treat Shopify's 'fulfilled' status as 'fulfillment was triggered,' not 'customer received delivery.' Build a support process for customers who contact you about missing downloads rather than assuming fulfillment = delivery."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: -0.02em;
+    }
+    .nav-brand span { color: var(--text-dim); font-weight: 400; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { color: var(--text-secondary); font-size: 14px; }
+
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin-bottom: 32px;
+    }
+
+    .insight-box {
+      background: #12101a;
+      border: 1px solid #2d2a40;
+      border-left: 3px solid var(--purple);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+    .insight-box strong { color: var(--text); }
+
+    .section {
+      padding: 48px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+    .section p { color: var(--text-secondary); margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    /* 3-card grid */
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .layer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .layer-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .layer-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .layer-desc {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* failure modes */
+    .failure-list { display: flex; flex-direction: column; gap: 20px; margin-top: 8px; }
+    .failure-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+    }
+    .failure-header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .failure-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--purple);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .failure-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .failure-body { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+    .failure-body strong { color: var(--text); }
+
+    /* table */
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .failure-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--text-secondary);
+    }
+    .failure-table tr:last-child td { border-bottom: none; }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-red { background: #2d1515; color: #f87171; }
+    .badge-amber { background: #2d2010; color: #fbbf24; }
+    .badge-green { background: #0f2d1e; color: #34d399; }
+
+    /* checklist */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+    .checklist li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .checklist li strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 14px; }
+    .step-num {
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--purple);
+      flex-shrink: 0;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: linear-gradient(135deg, #0f0a1a 0%, #0a0f1a 100%);
+      border: 1px solid #2d2a40;
+      border-radius: 12px;
+      padding: 36px 40px;
+      text-align: center;
+      margin-top: 16px;
+    }
+    .cta-block h3 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p { color: var(--text-secondary); font-size: 15px; margin-bottom: 24px; }
+    .btn-primary {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 7px;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; text-decoration: none; }
+    .btn-secondary {
+      display: inline-block;
+      color: var(--text-secondary);
+      font-size: 14px;
+      padding: 12px 24px;
+    }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 12px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .faq-q {
+      padding: 16px 20px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: default;
+    }
+    .faq-a {
+      padding: 0 20px 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .faq-a p + p { margin-top: 10px; }
+
+    /* related guides */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { font-size: 14px; font-weight: 600; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+
+    @media (max-width: 640px) {
+      .layer-grid { grid-template-columns: 1fr; }
+      .cta-block { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse <span>/ Shopify Checkout Monitor</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-label">Digital Products</div>
+      <h1>Shopify Digital Products Checkout — Why Downloads Aren't Delivered After Payment</h1>
+      <p class="hero-sub">When a physical product checkout fails, the customer sees an error and doesn't pay. When a digital product delivery fails, the customer pays, waits, and hears nothing. The payment succeeded. Your revenue dashboard looks fine. The customer files a chargeback.</p>
+
+      <div class="insight-box">
+        <strong>The core problem:</strong> Shopify's revenue dashboard tracks payment success, not delivery success. For digital products, these are two separate events connected by a chain — email delivery, webhook triggers, third-party app processing — and any link in the chain can fail silently after the payment completes.
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card">
+          <div class="layer-icon">📧</div>
+          <div class="layer-title">Email Delivery</div>
+          <div class="layer-desc">Download links sent via order confirmation email go to spam, get filtered by corporate email clients, or land at a typo'd address. The customer genuinely never receives it.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🔗</div>
+          <div class="layer-title">Webhook Fulfillment</div>
+          <div class="layer-desc">Third-party delivery apps (Sky Pilot, SendOwl, FetchApp) depend on Shopify webhooks. If the webhook fails or the app is unreachable, the order is never fulfilled by the app — regardless of what Shopify shows.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-icon">🔑</div>
+          <div class="layer-title">Access Provisioning</div>
+          <div class="layer-desc">License keys, member area access, course enrollments, and API credentials require a provisioning step. The step can fail even when the webhook was received and the app logged the order as fulfilled.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MODES -->
+    <section class="section">
+      <div class="section-label">Failure Analysis</div>
+      <h2>6 Ways Digital Product Delivery Breaks Silently</h2>
+      <p>Each of these produces the same customer experience — "I paid and received nothing" — but has a different root cause and fix.</p>
+
+      <div class="failure-list">
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 01</span>
+            <span class="failure-title">Download Link in Spam / Email Not Delivered</span>
+          </div>
+          <div class="failure-body">
+            <p>Shopify's native Digital Downloads app attaches the download link inside the order confirmation email — it does not send a separate "here is your download" email. If the order confirmation lands in spam, the customer loses their download with it. Corporate email environments (Microsoft 365, Google Workspace with strict filtering) regularly quarantine Shopify order confirmation emails.</p>
+            <p><strong>Invisible because:</strong> Shopify has no delivery confirmation for individual emails. An email "sent" by Shopify's email system may or may not reach the inbox — Shopify does not expose per-order email delivery status in the admin.</p>
+            <p><strong>Fix:</strong> Configure a custom sender domain (Settings → Notifications → Sender email) so your emails come from your own domain, not shopify.com or myshopify.com. Custom domain emails have significantly better inbox placement. Also: add a customer portal page where buyers can re-download using their order number + email, eliminating the one-time-email-only delivery model.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 02</span>
+            <span class="failure-title">Third-Party Delivery App Webhook Failure</span>
+          </div>
+          <div class="failure-body">
+            <p>Shopify fires an <code>orders/fulfilled</code> or <code>orders/paid</code> webhook to your digital delivery app when a customer completes purchase. If the app's webhook endpoint is unavailable, returns an error, or times out, Shopify marks the webhook delivery as failed — but your order is still created and payment captured. The app never processes the fulfillment.</p>
+            <p><strong>Shopify's retry behavior:</strong> Shopify retries failed webhooks up to 19 times over 48 hours. If the app is down for a brief window and recovers, some orders are fulfilled late. If the app stays unreachable, they are never fulfilled.</p>
+            <p><strong>Invisible because:</strong> Shopify admin shows the order as paid. If the app did not process it, the order may show "Unfulfilled" — but that state is easy to miss across a high-volume order list. Most merchants check revenue, not fulfillment queue depth for digital products.</p>
+            <p><strong>Fix:</strong> Check your delivery app's order log daily, not just Shopify's order list. Most apps (Sky Pilot, SendOwl, FetchApp) show a separate fulfillment log with delivery status per order. Set up an alert in the app for orders that remain undelivered more than 10 minutes after purchase.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 03</span>
+            <span class="failure-title">Download Link Expired Before Customer Clicked</span>
+          </div>
+          <div class="failure-body">
+            <p>Many digital delivery apps generate time-limited download links — typically 24 to 72 hours by default. If the customer's order confirmation email lands in spam and the customer finds it three days later, the download link may have already expired. Clicking it returns a "link expired," "access denied," or generic 404 error.</p>
+            <p><strong>Commonly misconfigured apps:</strong> Sky Pilot (default 24-hour link expiry), custom-built S3 pre-signed URL pipelines (often set to 1-hour expiry by developers who forget about email delivery delays), and FetchApp (configurable but often left at the conservative default).</p>
+            <p><strong>Fix:</strong> Extend link expiry to at least 7 days, preferably 30 days. Most digital product delivery apps make this configurable. The risk of someone sharing an expired-but-not-yet-expired link is far lower than the support cost of customers whose links expire before they use them. Alternatively, implement a self-service re-download page where customers can regenerate their link using order number + email.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 04</span>
+            <span class="failure-title">License Key Pool Exhausted or Wrong Variant Mapped</span>
+          </div>
+          <div class="failure-body">
+            <p>For software products with license key delivery, keys are typically pre-generated and stored in a pool in your delivery app. When a customer purchases, one key is assigned from the pool. Two silent failures happen here: (1) the key pool runs empty because you sold more licenses than keys in stock — subsequent orders are queued or fail, but the customer sees only a payment success; (2) the product has multiple variants (1-seat, 5-seat, 10-seat) and the wrong key pool is mapped to a variant, so a customer paying for a 10-seat license receives a 1-seat key.</p>
+            <p><strong>Variant mapping is the silent one:</strong> Key pool exhaustion usually produces a visible error. Wrong variant mapping delivers a key — just the wrong tier — and the customer only discovers it when they try to activate the license. By then, they may have already tried to activate in a production environment and assume the product is broken.</p>
+            <p><strong>Fix:</strong> Set a low-stock alert on your key pool (alert at 20% remaining, restock at 10%) and verify variant-to-key-pool mapping every time you change product variants or add a new pricing tier. Run a test order for each variant after any configuration change.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 05</span>
+            <span class="failure-title">Download File Replaced or Moved — Old Link Breaks</span>
+          </div>
+          <div class="failure-body">
+            <p>When you update a digital product — new version of an ebook, updated template, revised software package — the file is typically re-uploaded to storage (Shopify Files, S3, Cloudflare R2). If the new file gets a different URL and the old URL is not redirected, any customer who purchased before the update and saved their link will hit a 404 when they try to re-download.</p>
+            <p><strong>Who gets hurt:</strong> Customers who bookmark or save the download link rather than clicking immediately. Customers who purchased during a sale, downloaded once, and need a fresh copy months later. Customers in countries where the original download was slow and they planned to retry later.</p>
+            <p><strong>Fix:</strong> Use a stable download URL that points to the current file version — a redirect layer, a version-agnostic path like <code>/downloads/product-name-latest.pdf</code>, or a customer portal where the latest file is always served regardless of when the customer purchased. Avoid direct S3 object URLs in delivery emails — they are brittle when files are replaced.</p>
+          </div>
+        </div>
+
+        <div class="failure-item">
+          <div class="failure-header">
+            <span class="failure-num">Failure 06</span>
+            <span class="failure-title">Member Area / Course Enrollment Never Provisioned</span>
+          </div>
+          <div class="failure-body">
+            <p>For products that grant membership area access, course enrollment, or SaaS account provisioning, the fulfillment chain is longer: Shopify order → webhook to app → app creates membership or triggers platform API → platform sends access email. Each handoff is a failure point. Shopify marks the order fulfilled when the first handoff completes — it has no visibility into whether the platform API call succeeded or the access email was delivered.</p>
+            <p><strong>Common platforms where this breaks:</strong> Teachable, Thinkific, Kajabi (all rely on Zapier or native Shopify integration that can silently stall); custom SaaS provisioning via Shopify webhooks to internal APIs (a single 500 error during high traffic leaves orders in limbo); and Gumroad-Shopify hybrid setups where the Gumroad side fails independently of Shopify.</p>
+            <p><strong>Fix:</strong> Implement end-to-end confirmation — your provisioning system should send a "your access is ready" email only after successfully confirming that the account or enrollment exists. Do not send the email at the start of provisioning ("we are setting up your account") and treat success as assumed. Check your provisioning system's failure logs weekly; look for orders in Shopify with a "fulfilled" status where no corresponding membership/enrollment exists in your platform.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FAILURE MODE TABLE -->
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>Digital Product Delivery Failure Modes</h2>
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure Mode</th>
+            <th>Customer Sees</th>
+            <th>Shopify Admin Shows</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Download email to spam</td>
+            <td>No email received</td>
+            <td>Order fulfilled, email sent</td>
+            <td><span class="badge badge-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Delivery app webhook failure</td>
+            <td>No download link</td>
+            <td>Order unfulfilled or fulfilled depending on timing</td>
+            <td><span class="badge badge-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Download link expired</td>
+            <td>404 or "link expired" error</td>
+            <td>Order fulfilled (link was generated)</td>
+            <td><span class="badge badge-amber">High</span></td>
+          </tr>
+          <tr>
+            <td>License key pool empty</td>
+            <td>No key delivered or queue delay</td>
+            <td>Order fulfilled or pending</td>
+            <td><span class="badge badge-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Wrong variant key mapping</td>
+            <td>Wrong tier key received</td>
+            <td>Order fulfilled</td>
+            <td><span class="badge badge-amber">High</span></td>
+          </tr>
+          <tr>
+            <td>File replaced, old URL broken</td>
+            <td>404 on re-download attempt</td>
+            <td>Order fulfilled (original delivery OK)</td>
+            <td><span class="badge badge-amber">High</span></td>
+          </tr>
+          <tr>
+            <td>Member area not provisioned</td>
+            <td>Login credentials never arrive</td>
+            <td>Order fulfilled (webhook sent)</td>
+            <td><span class="badge badge-red">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Email address typo at checkout</td>
+            <td>Never receives any email</td>
+            <td>Order fulfilled, email sent to typo address</td>
+            <td><span class="badge badge-amber">High</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- DIAGNOSTIC CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Diagnostic</div>
+      <h2>8-Step Digital Product Delivery Audit</h2>
+      <p>Run this after setup, after any configuration change, and monthly as a health check.</p>
+
+      <ul class="checklist">
+        <li>
+          <div class="step-num">1</div>
+          <div>
+            <strong>Place a real test order for each product variant</strong>
+            Use a 100% discount code or Shopify test payment mode. Place the order using a real email address you control (not your Shopify store admin email — use an external address like Gmail to replicate the customer experience).
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>
+            <strong>Check where the order confirmation arrives — inbox or spam</strong>
+            If it lands in spam, your email deliverability needs fixing. Configure a custom sender domain in Settings → Notifications. This is the single highest-impact fix for digital download delivery failures.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>
+            <strong>Click the download link and complete the download</strong>
+            Verify the link is functional, the file downloads without errors, the file is the correct version, and the file size matches what you uploaded. A zero-byte download or a corrupted file is indistinguishable from a failed delivery from the customer's perspective.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div>
+            <strong>Check the delivery app's fulfillment log for the test order</strong>
+            In Sky Pilot, SendOwl, FetchApp, or your delivery app, find the test order and confirm it shows as delivered, not pending or failed. "Delivered" in the app's log means the webhook was received and processed — not necessarily that the customer received the email.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">5</div>
+          <div>
+            <strong>Wait 25 hours and click the link again</strong>
+            This tests your link expiry configuration. If the link returns an error after 24 hours, your expiry window is too short. Extend it in your delivery app settings.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">6</div>
+          <div>
+            <strong>Check your license key pool count</strong>
+            If you sell software with pre-generated keys, log into your delivery app and check remaining key inventory per variant. If any variant has fewer than 20 keys remaining, restock before continuing to sell.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">7</div>
+          <div>
+            <strong>Audit unfulfilled digital orders in the last 30 days</strong>
+            Shopify Admin → Orders → filter by Fulfillment status: Unfulfilled, then check which of those are digital products. Any digital product order that is unfulfilled more than 1 hour after payment is a delivery failure worth investigating.
+          </div>
+        </li>
+        <li>
+          <div class="step-num">8</div>
+          <div>
+            <strong>Check your provisioning platform for unmatched orders</strong>
+            If you use Teachable, Thinkific, Kajabi, or a custom platform, cross-reference orders in Shopify against enrollments or accounts in your platform. Orders with no corresponding membership or enrollment did not complete provisioning — identify and fix them manually, then investigate why the webhook chain broke.
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- MONITORING CTA -->
+    <section class="section">
+      <div class="section-label">Monitoring</div>
+      <h2>Why Checkout Monitoring Catches Digital Product Failures</h2>
+      <p>A digital product store has two failure layers: the payment/checkout layer and the delivery layer. Most monitoring tools only cover the first. CheckPulse covers both — it runs real end-to-end checkout tests that proceed through to order creation, verifying that the full purchase flow completes before stopping.</p>
+      <p>While delivery-layer monitoring (did the customer receive the file?) requires additional configuration specific to your delivery stack, checkout monitoring catches upstream failures that prevent orders from being created at all — payment gateway errors, address validation failures, checkout extension conflicts — that affect digital product stores exactly as they affect physical product stores.</p>
+      <p>Digital product merchants often discover checkout failures late because they do not watch fulfillment queues and have no real-time alerts. Automated checkout monitoring sends an alert within minutes of a checkout failure — before 20 customers pay and hear nothing.</p>
+
+      <div class="cta-block">
+        <h3>Monitor Your Shopify Checkout Automatically</h3>
+        <p>CheckPulse runs a real purchase through your checkout every 15 minutes. Get email alerts within minutes of checkout failures — before customers experience them.</p>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="btn-secondary">See CheckPulse →</a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Common Digital Product Delivery Questions</h2>
+
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <div class="faq-q">Why didn't my customer receive the download link after purchase on Shopify?</div>
+          <div class="faq-a">
+            <p>The most common causes: (1) the order confirmation email went to spam — Shopify sends download links inside this email, not separately; (2) a third-party delivery app's webhook failed and the order was never fulfilled by the app; (3) the customer typed a wrong email address at checkout; (4) the download link was generated but expired before the customer clicked it.</p>
+            <p>To investigate: find the order in Shopify admin, check fulfillment status, and check whether your delivery app shows the order as fulfilled. Resend the download link manually from the app's order management interface.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How do I know if Shopify digital downloads are working correctly?</div>
+          <div class="faq-a">
+            <p>Test with a real order: use a 100% discount code to place a zero-cost order using an external email address you control. Verify you receive the order confirmation in inbox (not spam), the download link is functional, the correct file downloads, and the delivery app shows the order as fulfilled.</p>
+            <p>Run this test after every configuration change — product updates, pricing changes, app installations. Digital delivery chains have multiple failure points and any change can silently break the chain.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What happens if my Shopify digital delivery app webhook fails?</div>
+          <div class="faq-a">
+            <p>The customer's payment succeeds and the order is created in Shopify, but the app never receives the signal to fulfill the order. Shopify retries failed webhooks up to 19 times over 48 hours — if the app recovers quickly, some orders are fulfilled late. If the app stays unreachable, orders are never fulfilled.</p>
+            <p>Check your delivery app's order log directly — most apps show a separate fulfillment log with delivery status per order. "Fulfilled" in Shopify admin only means the fulfillment event was triggered, not that the app processed it.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can I sell digital products on Shopify without a third-party app?</div>
+          <div class="faq-a">
+            <p>Yes — Shopify's native Digital Downloads app (free) attaches files to product variants and includes the download link in the order confirmation email. It works well for PDFs, audio files, templates, and simple file downloads.</p>
+            <p>Limitations: no license key generation, no customer re-download portal, no expiring links, no streaming. For software, courses, or subscription access, a third-party app provides better delivery infrastructure and fallback options when email delivery fails.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Why does my Shopify digital product show as fulfilled but the customer never received the download?</div>
+          <div class="faq-a">
+            <p>"Fulfilled" in Shopify means the fulfillment event was recorded — not that the customer successfully received the file. A fulfilled digital order still fails delivery if the order confirmation email was filtered as spam, the customer entered a wrong email address, the download link expired, or a third-party app's delivery step failed independently of Shopify's fulfillment status.</p>
+            <p>Treat "fulfilled" as "fulfillment was triggered," not "customer received delivery." Build a support process for missing download requests and check your delivery app's log — not just Shopify's order status — to confirm actual delivery.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RELATED GUIDES -->
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>More Shopify Checkout Resources</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" class="guide-card">
+          <div class="guide-card-label">Post-Checkout</div>
+          <div class="guide-card-title">Shopify Order Confirmation Not Received</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention" class="guide-card">
+          <div class="guide-card-label">Fraud</div>
+          <div class="guide-card-title">Shopify Fraud Prevention False Positives</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Shopify Checkout Extensions Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+          <div class="guide-card-label">Subscriptions</div>
+          <div class="guide-card-title">Shopify Subscription Checkout Issues</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed" class="guide-card">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">Shopify Payment Failed Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working" class="guide-card">
+          <div class="guide-card-label">Troubleshooting</div>
+          <div class="guide-card-title">Shopify Checkout Not Working</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned" class="guide-card">
+          <div class="guide-card-label">Abandonment</div>
+          <div class="guide-card-title">Shopify Checkout Abandonment Guide</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Checkout Monitoring Guide</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products">Digital Products</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a> &nbsp;·&nbsp;
+      Shopify checkout monitoring for stores that can't afford downtime
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

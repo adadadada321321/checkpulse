@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Recurring Donation Not Working — Recharge Charity Billing, Donation Widget Disappears, Tax Receipt Not Sent (2026)</title>
+  <meta name="description" content="Shopify has no native donation product type. Nonprofits use Recharge or donation apps to collect recurring gifts — and when those fail, donation widgets disappear silently, tax receipts are never sent, and recurring gifts stop without any merchant alert. Complete guide for nonprofit Shopify merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-recurring-donations" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-recurring-donations" />
+  <meta property="og:title" content="Shopify Recurring Donation Not Working — Charity Billing, Tax Receipt, Donation Widget Failures" />
+  <meta property="og:description" content="Shopify has no native donation product type. Nonprofits and cause-based merchants implement recurring giving through Recharge, Bold Subscriptions, or donation-specific apps. When these fail, the donation widget disappears silently, monthly gifts stop renewing, and tax receipts are never delivered. This guide covers the full donation architecture, every silent failure mode, and how to diagnose and recover." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Recurring Donation Not Working — Charity Billing, Tax Receipt, and Donation Widget Failures",
+    "description": "Shopify has no native donation product type. Nonprofits implement recurring giving through Recharge, Bold Subscriptions, or dedicated donation apps. When these fail, the donation widget disappears silently, recurring gifts stop without any merchant alert, and tax receipts are never sent. Six silent failure modes: app billing lapse removes donation widget, Recharge renewal failure cancels monthly gift, tax receipt email template misconfigured, guest checkout leaves no donor record for year-end receipt, donation amount not validated server-side, refund cancels recurring subscription unexpectedly.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-recurring-donations",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did the donation widget disappear from my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify has no native donation product type. Every donation widget — whether from Donation Bear, Simple Donate, Tip Jar, or a similar app — is rendered by a Shopify app that injects JavaScript and a liquid snippet into your storefront theme. When the donation widget disappears without explanation, there are three common causes: (1) The app's Shopify subscription lapsed due to a payment failure. When a Shopify app's billing lapses, Shopify immediately suspends the app — its code stops executing and any storefront widget it injected stops loading. Check Shopify Admin → Apps and verify the donation app is Active and its billing is current. (2) A theme update overwrote the app's liquid snippet. Donation apps often write a code block into your theme's cart.liquid or product.liquid file. When a theme is updated or duplicated, those customizations are not automatically carried over — the widget disappears silently. Go to Shopify Admin → Themes → Edit code and verify the app's snippet reference is still present. (3) The app was accidentally uninstalled or reinstalled without re-publishing the snippet. Re-installing the donation app and re-adding the snippet to the theme will restore the widget."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did a donor's recurring monthly gift stop processing on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On Shopify, recurring donations are implemented as recurring subscriptions using Recharge, Bold Subscriptions, or a charity-specific app. When a recurring gift stops processing, the cause is almost always one of three things: (1) The donor's card declined on a renewal attempt. Recharge and Bold begin a dunning sequence — they retry the card and send reminder emails. After the dunning period (typically 3–14 days), if the card is still not updated, the subscription is cancelled. The donor receives a cancellation email, but many donors assume their giving continues unless they explicitly cancel. Check the donor's subscription record in Recharge or Bold's dashboard for the cancellation reason. (2) The donor's card expired. Most subscription platforms handle this automatically for cards that issue a new number, but card replacements with new numbers require the donor to update their payment method manually. If the donor's card was replaced (not just renewed), Recharge cannot charge the new card without the donor re-entering their card details. (3) The donor cancelled the subscription themselves — sometimes accidentally through a cancellation link in a dunning email. Check the subscription record for a customer-initiated cancellation event."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the tax receipt email not being sent after a donation on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's standard order confirmation email is not a tax receipt. For charitable donations where donors need a receipt for tax deduction purposes, the tax receipt is a separate email that must be configured independently. Three common causes of missing tax receipt emails: (1) The tax receipt email template has not been set up in your donation app. Donation Bear, Recharge, and similar apps have a separate 'donation receipt' or 'tax receipt' email template in their settings. If this template is not configured, no receipt is sent — Shopify's standard order confirmation is sent instead, which does not include the charity's registration number, tax-exempt status language, or the required statement that no goods or services were received in exchange for the donation. (2) The tax receipt email is going to spam. Emails from third-party Shopify apps are sent via the app's own email infrastructure, not through Shopify's email servers. Check the donor's spam folder and verify that your app's sending domain has SPF and DKIM records properly configured. (3) The donor checked out as a guest. Guest checkout orders are associated with an email address but no Shopify customer account. Some donation apps send tax receipts only to donors who have a customer account — guest donors fall through the gap. Check your app's settings for a 'send to guest orders' option."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a donor modify the donation amount in the Shopify cart before checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, and this is a known limitation of donation apps that work by adding a line item to the Shopify cart. Shopify's cart does not natively lock line item prices — a technically knowledgeable buyer can modify the cart via the Storefront API or browser developer tools to change the price of any line item before checkout. For donation apps that represent the donation as a product with a variable price (a common implementation), the donation amount can be changed in the cart. The merchant receives the modified amount, not the intended donation amount. To prevent this: (1) Use a donation app that validates the donation amount server-side via a Shopify Function or a checkout webhook before the order is created. (2) On Shopify Plus, use Checkout Extensibility to add a checkout validation function that verifies the donation line item price matches the amount the donor entered in the donation widget. (3) Consider using an external donation processor (Donorbox, PayPal Giving Fund) that handles donation amount collection and validation entirely outside Shopify's cart — the donor is redirected to the external processor, which captures the donation and returns a confirmation. This approach bypasses the Shopify cart entirely and is inherently more resistant to amount manipulation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between a recurring donation and a subscription on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "From Shopify's perspective, there is no difference — Shopify treats a recurring donation exactly like a subscription. Both use the same recurring billing infrastructure (Recharge or Bold Subscriptions), both create a subscription record in the billing app's dashboard, and both generate a Shopify order on each billing cycle. The differences are business-layer concerns: (1) Tax treatment: a recurring donation may qualify for charitable deduction; a subscription for a product or membership does not. Shopify does not know which type of recurring payment it is processing — the merchant must configure the receipt email and any tax language in the billing app separately. (2) Donor expectations: donors expect their gift to continue indefinitely until they explicitly cancel; commercial subscription customers have stronger expectations around cancellation being easy. Dunning practices that feel acceptable for a subscription (aggressive retry, hard cancellation) can seriously damage a donor relationship for a charity. (3) Refund semantics: a donor who receives an unintended charge may request a refund but not expect their giving to stop. A subscription customer who is refunded typically expects the subscription to also be cancelled. These are downstream concerns that Shopify and the billing app are not aware of — they must be managed at the communication and policy layer by the nonprofit."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .guide-card:hover .guide-card-title { color: var(--text); }
+
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: #150f00;
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+      <h1>Shopify Recurring Donation Not Working — Charity Billing, Tax Receipt, and Donation Widget Failures</h1>
+      <p class="hero-sub">
+        Shopify has no native donation product type. Nonprofits and cause-based merchants implement recurring giving through Recharge, Bold Subscriptions, or dedicated apps like Donation Bear. When these fail, donation widgets vanish silently, monthly gifts stop renewing, and tax receipts are never delivered — with no alert anywhere in Shopify.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: Nonprofit Shopify stores, recurring giving programs, charity campaigns</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Shopify has no native donation product type.</strong> Every recurring donation on Shopify is built using a general-purpose subscription billing app (Recharge, Bold Subscriptions) or a donation-specific app (Donation Bear, Simple Donate, Tip Jar). These apps each have their own billing, webhook, and email systems — all independent from Shopify. When any of them fail, Shopify Admin shows everything as normal.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>How Recurring Donations Work on Shopify</h2>
+      <p class="section-intro">A typical nonprofit Shopify store stacks 2–4 apps to collect and manage recurring gifts. Each layer has independent billing and can fail silently.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Layer 1 — Widget</div>
+          <div class="arch-card-title">Donation App (Donation Bear, Simple Donate, Tip Jar)</div>
+          <div class="arch-card-desc">Injects a donation widget into the cart page or product page. Donor selects amount and frequency. Adds a donation line item to the Shopify cart. Fails silently when app billing lapses or theme update overwrites the snippet.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 2 — Recurring Billing</div>
+          <div class="arch-card-title">Recharge or Bold Subscriptions</div>
+          <div class="arch-card-desc">Manages the subscription record: billing cycle, dunning, card updates, cancellations. Creates a Shopify order on each successful charge. Donor must have a customer account — guest checkout breaks recurring gift setup.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 3 — Receipt</div>
+          <div class="arch-card-title">Tax Receipt Email Template</div>
+          <div class="arch-card-desc">Separate from Shopify's standard order confirmation. Must be configured in the donation or billing app with charity registration number and the required statement that no goods/services were exchanged. Commonly skipped or misconfigured.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 4 — Donor Records</div>
+          <div class="arch-card-title">CRM / Donor Management</div>
+          <div class="arch-card-desc">Most nonprofits sync Shopify orders to an external CRM (Salesforce Nonprofit, Bloomerang, Little Green Light) via a webhook or Zapier integration. Year-end giving summaries are generated from CRM data, not from Shopify.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Six Ways Recurring Donations Break Without Any Shopify Alert</h2>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>What Shopify Admin Shows</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Donation widget disappears from storefront</td>
+            <td>Donation app billing lapses or theme update overwrites app snippet</td>
+            <td>Normal storefront, no error</td>
+            <td><span class="badge badge-red">Critical</span> New donors cannot give; merchant unaware</td>
+          </tr>
+          <tr>
+            <td>Monthly gift stops renewing</td>
+            <td>Donor's card declined; dunning period expires; subscription cancelled by Recharge/Bold</td>
+            <td>Last order shows Paid; no alert about failed renewal</td>
+            <td><span class="badge badge-red">Critical</span> Recurring revenue loss; donor believes gift continues</td>
+          </tr>
+          <tr>
+            <td>Tax receipt email never sent</td>
+            <td>Tax receipt template not configured in donation app; guest checkout leaves no email trigger</td>
+            <td>Order Confirmed in Shopify Admin; no receipt flag</td>
+            <td><span class="badge badge-red">Critical</span> Donor cannot claim tax deduction; compliance risk</td>
+          </tr>
+          <tr>
+            <td>Guest donor has no account for year-end receipt</td>
+            <td>Shopify guest checkout creates no customer record; billing app cannot set up recurring charge for guest</td>
+            <td>Order placed with guest email; no Subscription record</td>
+            <td><span class="badge badge-amber">High</span> Recurring gift not created; tax receipt gap</td>
+          </tr>
+          <tr>
+            <td>Donation amount manipulated in cart</td>
+            <td>Shopify cart does not lock line item prices server-side; donation apps add variable-price product to cart</td>
+            <td>Order shows correct (manipulated) amount</td>
+            <td><span class="badge badge-amber">High</span> Charity receives less than intended donation</td>
+          </tr>
+          <tr>
+            <td>Refund cancels recurring subscription unexpectedly</td>
+            <td>Billing app treats a refund on a subscription order as a cancellation trigger</td>
+            <td>Refund processed; subscription status may change to Cancelled</td>
+            <td><span class="badge badge-amber">High</span> Donor's future gifts stop after a one-time billing error</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>5-Step Recurring Donation Diagnosis</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Check the donation app's billing status in Shopify</strong>
+            <span>Go to Shopify Admin → Apps → find your donation app (Donation Bear, Simple Donate, Tip Jar, etc.) and verify it shows Active. If the app's own Shopify subscription has lapsed, its code stops running immediately and the donation widget silently disappears from your storefront. Also check your billing app (Recharge or Bold Subscriptions) in the same list — a lapse there stops all recurring charges.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Check the theme for the donation app's snippet</strong>
+            <span>Go to Shopify Admin → Online Store → Themes → Actions → Edit code. Search for the donation app's snippet reference (typically in cart.liquid, product.liquid, or a section file). If the snippet reference is missing, a recent theme update overwrote it. Re-install the donation app and follow the app's setup guide to re-add the snippet — this is the most common cause of a donation widget disappearing after a theme change.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Check the donor's subscription record in Recharge or Bold</strong>
+            <span>In Recharge: go to the Recharge dashboard → Customers → search for the donor's email → Subscriptions tab. In Bold: go to Bold Subscriptions → Customers → search by email. Verify the subscription status (Active, Cancelled, Failed), the last billing date, and the next billing date. If the subscription was cancelled, check the cancellation reason — it will show whether it was customer-initiated, dunning-exhausted, or triggered by a refund.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Verify the tax receipt email template is configured</strong>
+            <span>In your donation app's settings, find the email or receipt template section. Verify that the template includes: (1) your organization's legal name and charitable registration number; (2) the statement "No goods or services were provided in exchange for this contribution" (required for US IRS purposes); (3) the donation date and amount. Send a test receipt to yourself. If the template is not configured, donors are receiving only Shopify's standard order confirmation, which is not a valid charitable receipt.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Test the full donation flow in an incognito window as a new donor</strong>
+            <span>Open an incognito browser window and go to your store as a first-time visitor. Add a donation using the donation widget, proceed to checkout, and complete a test transaction using a Shopify test payment. Verify: (1) the donation widget appears and the amount submits correctly; (2) a Shopify order is created; (3) a tax receipt email arrives (check spam); (4) for recurring donations via Recharge, a subscription record is created in the Recharge dashboard. This end-to-end test catches widget, billing, and email failures in one pass.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Three Failure Modes in Detail</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 1</div>
+        <h3>The Donation Widget Disappears — App Billing and Theme Conflicts</h3>
+        <p>Donation widgets on Shopify are rendered by a Shopify app. The app injects a liquid snippet into your theme and runs JavaScript that renders the donation UI. Two things commonly cause the widget to vanish silently: the app's own Shopify billing lapses, or a theme update overwrites the snippet.</p>
+        <p>When a Shopify app's billing lapses — because the merchant's credit card on file expired or the charge failed — Shopify immediately suspends the app. The app's JavaScript stops loading, and any storefront widget it rendered stops appearing. There is no storefront error message and no notification in Shopify Admin to the merchant. A donor visiting the site simply sees no donation option.</p>
+        <div class="mono-block">Shopify Admin → Apps → [donation app name]
+Check: Status = Active, Billing = Current
+If suspended: Update billing → reactivate app → verify widget reappears</div>
+        <p>Theme updates are the second common cause. When you update your Shopify theme (or switch to a new theme), the new theme's files overwrite the customizations the donation app made to your old theme's liquid files. The app's snippet reference is gone, but the app itself is still active and billing — so there is no app-level alert, and nothing in Shopify Admin indicates a problem. The fix: re-run the donation app's setup wizard or manually re-insert the app's snippet into the new theme's relevant liquid file.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 2</div>
+        <h3>Recurring Gift Stops Processing — The Dunning Problem for Charities</h3>
+        <p>When a donor's card declines on a renewal, Recharge and Bold Subscriptions begin a dunning sequence. They retry the card over several days (typically 1–3 retries) and send automated reminder emails asking the donor to update their payment method. After the dunning period ends without a successful charge, the subscription is cancelled.</p>
+        <p>For commercial subscriptions, aggressive dunning is standard practice. For nonprofits, the same dunning emails read as transactional billing reminders — which can feel impersonal and confusing to donors who think of their relationship as charitable giving, not a subscription service. Many donors do not recognize the "Your subscription has been cancelled" email from Recharge as a notification that their monthly gift to a charity has stopped.</p>
+        <div class="mono-block">Recharge dashboard → Customers → [donor email] → Subscriptions
+Check: Status (Active / Cancelled), Last charge date, Cancellation reason
+If cancelled: Contact donor to re-establish gift → donor must re-subscribe</div>
+        <p>The best mitigation: configure a proactive dunning email that says "Your monthly gift to [Charity Name] could not be processed. Please update your payment method to keep your giving active." Sending from your nonprofit's domain with charity-specific language — rather than Recharge's generic subscription language — dramatically improves donor response rates before the subscription reaches the cancellation point.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 3</div>
+        <h3>Tax Receipt Not Sent — The Compliance Gap</h3>
+        <p>Shopify's order confirmation email is not a charitable tax receipt. For US nonprofits, a valid receipt for donations above $250 must include the organization's name, the donation date and amount, and the statement that no goods or services were received in exchange for the donation. Shopify's standard confirmation email includes none of these legal requirements.</p>
+        <p>The tax receipt must be configured as a separate email template inside the donation app or billing app. Donation Bear, Recharge, and most donation-specific apps have a dedicated receipt email template — but it must be set up by the merchant. If the template is blank or uses default text, donors receive only the Shopify order confirmation, which does not meet IRS or CRA requirements for charitable giving.</p>
+        <div class="mono-block">Required in tax receipt email:
+1. Organization legal name + EIN / charity registration number
+2. Donation date and amount
+3. "No goods or services were provided in exchange for this contribution"
+4. Contact info for donor questions
+(For gifts under $250, the donor's bank statement can suffice — but a receipt is best practice)</div>
+        <p>Guest checkout creates a separate tax receipt gap: a donor who checks out as a guest has no Shopify customer account. Some donation apps send the receipt to the order email regardless — but others only send tax receipts to customers with an account. If your donation flow allows guest checkout, test specifically whether the tax receipt email is sent to a guest order. If it is not, require account creation during checkout or display a warning to guest donors that their receipt will be sent via a follow-up email once they create an account.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">App Comparison</div>
+      <h2>Shopify Donation App Comparison (2026)</h2>
+      <p class="section-intro">No single Shopify app fully handles the nonprofit recurring gift lifecycle. Most nonprofits combine two or three. Understanding what each does — and does not do — prevents the most common gaps.</p>
+
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>App / Approach</th>
+            <th>What It Handles</th>
+            <th>What It Does Not Handle</th>
+            <th>Common Failure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Donation Bear</td>
+            <td>Cart donation widget; one-time and recurring donations; configurable amounts; tax receipt email template</td>
+            <td>Recurring billing infrastructure (relies on Recharge for recurring); CRM sync; year-end giving summaries</td>
+            <td>Widget disappears after theme update; tax receipt template not configured</td>
+          </tr>
+          <tr>
+            <td>Simple Donate / Tip Jar</td>
+            <td>Simple one-time donation widget; no-code installation; low-friction for cart-level donations</td>
+            <td>Recurring billing; tax receipt email; donor record management</td>
+            <td>App billing lapse silently removes widget; no recurring giving support</td>
+          </tr>
+          <tr>
+            <td>Recharge (as donation subscription)</td>
+            <td>Recurring billing; dunning; card update portal; subscription record management; payment retry</td>
+            <td>Donation widget; tax receipts; nonprofit-specific dunning language; CRM sync</td>
+            <td>Generic subscription dunning emails confuse donors; recurring gift cancelled without donor awareness</td>
+          </tr>
+          <tr>
+            <td>Bold Subscriptions</td>
+            <td>Recurring billing; subscription management; payment retry; customer portal</td>
+            <td>Donation widget; tax receipts; nonprofit workflows; year-end summaries</td>
+            <td>Same dunning-cliff problem as Recharge for nonprofit contexts</td>
+          </tr>
+          <tr>
+            <td>Donorbox / PayPal Giving Fund (external)</td>
+            <td>Purpose-built for nonprofit recurring giving; tax receipts included; donor management; year-end summaries; PCI-compliant</td>
+            <td>Native Shopify checkout integration (donors are redirected away from Shopify checkout); Shopify analytics</td>
+            <td>Donor leaves Shopify checkout; no Shopify order created; cart abandonment at handoff point</td>
+          </tr>
+          <tr>
+            <td>Shopify Plus — Native</td>
+            <td>Checkout Extensibility for donation validation; Functions for amount verification server-side</td>
+            <td>Recurring billing; donation widget; tax receipts; none of the charitable-specific flows</td>
+            <td>Only available on Plus; still requires a billing app and donation app on top</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Donation-Adjacent Checkout Problems</h2>
+      <p class="section-intro">Recurring donation failures often overlap with or are confused with these related checkout issues.</p>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="./shopify-checkout-subscription-renewals">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Subscription Renewal Failures — Recharge Rebill, Dunning, Card Update</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-memberships">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Membership Checkout Not Working — Bold Memberships, Locksmith, Member Pricing</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-order-confirmation">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Order Confirmation Not Received — Email, Order Status Page Failures</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Fraud Prevention — High-Risk False Positives Blocking Legitimate Orders</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-returns-refunds">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Returns &amp; Refunds — Refund to Original Payment, Store Credit Issues</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-digital-products">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Digital Products — File Download Not Delivered After Purchase</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Recurring Donations — Common Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why did the donation widget disappear from my Shopify store?</div>
+          <div class="faq-a">Shopify has no native donation product type — every donation widget is rendered by a third-party app. Two common causes of widget disappearance: (1) the donation app's own Shopify billing lapsed, suspending the app and stopping all its code; check Shopify Admin → Apps for Active status; (2) a theme update overwrote the app's liquid snippet; check your theme's cart.liquid or product.liquid for the app's snippet reference and re-add it if missing. Neither cause shows any error in your storefront or Shopify Admin.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why did a donor's recurring monthly gift stop processing on Shopify?</div>
+          <div class="faq-a">Recurring gifts on Shopify are subscription records in Recharge or Bold Subscriptions. When a card declines, the billing app begins a dunning sequence (retries + email reminders). After the dunning period ends, the subscription is cancelled. Check the donor's subscription record in Recharge or Bold for the cancellation reason. If cancelled by dunning, the donor must re-establish their gift — the billing app cannot restart a cancelled subscription automatically. Contact the donor using nonprofit-specific language, not generic "subscription" language.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is the tax receipt email not being sent after a donation on Shopify?</div>
+          <div class="faq-a">Shopify's order confirmation is not a charitable tax receipt. The tax receipt must be configured as a separate email template in your donation app or billing app. Check the app's email settings for a "receipt" or "donation confirmation" template and verify it includes your organization's name, EIN/registration number, donation date and amount, and the no goods/services statement. Also check if the receipt is being sent for guest orders — some apps only send receipts to customers with a Shopify account.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can a donor modify the donation amount in the Shopify cart before checkout?</div>
+          <div class="faq-a">Yes. Donation apps that add a variable-price line item to the Shopify cart rely on the cart to hold the donation amount — but Shopify's cart does not lock line item prices server-side. A technically knowledgeable donor could modify the amount via the Storefront API or browser tools. To prevent this: use a donation app that validates the amount server-side via a Shopify Function or checkout webhook, or use Checkout Extensibility (Shopify Plus) to verify the donation line item amount before the order is created.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What is the difference between a recurring donation and a subscription on Shopify?</div>
+          <div class="faq-a">From Shopify's perspective, there is no difference — both are recurring billing records in Recharge or Bold. The differences are business-layer: donations may qualify for charitable tax deductions (requiring a compliant receipt email), donors have different expectations around dunning and cancellation, and refunds on donation orders need careful handling to avoid inadvertently cancelling the recurring gift. Shopify and the billing app treat both the same — the nonprofit must configure all the charitable-specific logic in the app settings and email templates.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Donation Flow Working Right Now?</h2>
+      <p>Donation widget outages, recurring gift failures, and tax receipt gaps are invisible until a donor reports them — or until year-end when giving summaries don't add up. CheckPulse monitors your checkout every few minutes and alerts you the moment something breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+    </div>
+
+  </div><!-- /.container -->
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="./free-check">Free Store Check</a>
+        <a href="./guide">Monitoring Guide</a>
+        <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+        <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+        <a href="./shopify-checkout-error-codes">Error Codes</a>
+        <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+        <a href="./shopify-checkout-speed-test">Speed Test</a>
+        <a href="./shopify-checkout-cro">Checkout CRO</a>
+        <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+        <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+        <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+        <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+        <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+        <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="./shopify-checkout-digital-products">Digital Products</a>
+        <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+        <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+        <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+        <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+        <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+        <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+        <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+        <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+        <a href="./shopify-checkout-store-credit">Store Credit</a>
+        <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+        <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+        <a href="./shopify-checkout-age-verification">Age Verification</a>
+        <a href="./shopify-checkout-product-customization">Product Customization</a>
+        <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+        <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+        <a href="./shopify-checkout-memberships">Memberships</a>
+        <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

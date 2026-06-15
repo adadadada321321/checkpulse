@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Warranty Not Working at Checkout — Protection Plan Not Adding, Extend / Clyde / Asurion Checkout Error (2026)</title>
+  <meta name="description" content="Shopify warranty not working at checkout, protection plan not adding, Extend checkout error, Clyde warranty not applying — complete guide to why Shopify warranty and protection plan add-ons fail. Covers stale variants, price sync failures, subscription app conflicts, and checkout extensibility issues." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-warranty-protection-plan" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-warranty-protection-plan" />
+  <meta property="og:title" content="Shopify Warranty Not Working at Checkout — Protection Plan Not Adding, Extend / Clyde Checkout Error" />
+  <meta property="og:description" content="Shopify has no native warranty or protection plan system. Every extended warranty, product protection plan, and accidental damage coverage offer is a third-party app that injects a custom product variant into the cart. When that variant is stale, mispriced, or blocked by another app, checkout fails." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Warranty Not Working at Checkout — Protection Plan Not Adding, Extend / Clyde / Asurion Checkout Error",
+    "description": "Shopify has no native warranty or protection plan system. Every extended warranty, accidental damage plan, and product protection offer on a Shopify store is delivered by a third-party app (Extend, Clyde, Asurion, Mulberry, InsureShield) that adds a custom 'Protection Plan' product variant into the cart. At checkout, Shopify processes that variant like any other line item — which means any problem with the variant, its price, or the app's cart transformation logic causes a checkout error. This guide covers: the three-layer warranty architecture (widget → cart variant → checkout), 7-row failure matrix, the stale variant problem, price sync failures, the subscription app conflict, checkout extensibility compatibility issues, and a 5-step diagnosis checklist.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-warranty-protection-plan",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Extend warranty not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When the Extend warranty widget shows on the product page but the protection plan does not appear at checkout, the most common cause is that the protection plan line item was silently removed during cart validation. Extend adds a custom product variant to the cart — a 'Protection Plan' SKU created and managed by the Extend app. If that variant becomes unavailable (the product was deactivated, the plan pricing tier changed, or a Shopify Admin sync failed), Shopify's cart validation step removes the invalid line item before displaying the checkout. The customer sees a checkout with no warranty option — no error, no explanation. To diagnose: go to your Extend dashboard → Products → find the product you're testing → check whether the protection plan SKU is active and in sync. Then go to Shopify Admin → Products → search for 'Extend Protection Plan' and verify the product and all relevant variants are Active and not archived. If any variant shows as Archived or Draft, re-sync from the Extend dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the Clyde protection plan disappear at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Clyde protection plans disappear at checkout for the same core reason as Extend: Clyde creates a 'Contract' product in your Shopify catalog. If that contract product or any of its variants is deactivated, archived, or has a price of $0.00, Shopify will either remove it during cart validation or throw a checkout error. Additionally, Clyde's checkout behavior changed with Shopify's Checkout Extensibility rollout. Merchants on older themes still using checkout.liquid may not have the Clyde checkout extension installed and configured. Clyde's widget injects the plan via a theme app extension, but the checkout itself requires a separate Checkout UI Extension. If your theme was recently updated and the checkout.liquid file was deprecated, Clyde's checkout rendering may have broken silently. Go to your Shopify Admin → Sales Channels → Online Store → Themes → check if your theme supports Checkout Extensibility. If not, you need to migrate your theme before Clyde checkout rendering can work correctly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does adding a warranty plan conflict with my Shopify subscription app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Subscription apps (Recharge, Skio, Bold Subscriptions) and warranty apps (Extend, Clyde, Mulberry) conflict at checkout because they both need to modify the cart's line items or the checkout configuration, and they do this through incompatible mechanisms. Subscription apps typically convert a one-time product into a recurring subscription by attaching selling plan metadata to the line item. Warranty apps add a separate line item (the protection plan) linked to the original product. When Shopify processes the checkout, it applies cart transformations from both apps — but the subscription app's transformation expects the cart to contain only the subscription product line item, while the warranty app expects to attach its plan to that same item. The result is either a checkout error ('something went wrong'), a dropped warranty line item, or a dropped subscription flag. The fix: check whether your warranty app has explicit support for subscription app compatibility. Extend publishes a list of subscription app integrations. If your subscription app is not on that list, you must choose one or the other — they cannot both modify the same checkout item simultaneously."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a customer use a discount code AND add a warranty plan to their Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — discount codes and warranty protection plan variants are independent at Shopify checkout. A discount code reduces the price of eligible line items; the warranty variant is a separate line item that is typically excluded from discounts (warranty apps configure the protection plan product to be ineligible for discount codes). So a customer can enter SUMMER20 at checkout, have it apply to the main product, and still have the protection plan line item at its full price. Where this breaks: if the discount code is set to 'All products' without any exclusion and the merchant hasn't excluded the protection plan product from the discount, the code may apply to the warranty SKU as well — reducing its price incorrectly. Warranty apps use a specific product type (often 'Extend Protection' or 'Clyde Contract') to allow merchants to exclude them from discount rules. If your discount codes are incorrectly applying to protection plan line items, go to Admin → Discounts → edit the code → add a product exclusion for your warranty app's product type."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test my Shopify warranty or protection plan end-to-end before a product launch?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Run these four tests before any product launch: (1) Widget visibility test — go to a product page where warranty is enabled, verify the warranty offer widget appears (not just the product page, but also the cart drawer and cart page). Use an incognito window to simulate a first-time visitor. (2) Cart add test — click 'Add protection' on the widget, go to the cart, verify the Protection Plan line item appears as a separate line item with the correct price. (3) Checkout completion test — proceed through checkout with the protection plan in the cart. Complete a test order using Shopify's bogus gateway. Verify the order appears in your warranty app's dashboard with the plan correctly attributed to the product. (4) Subscription conflict test — if you use a subscription app, add both a subscription product AND a warranty to the same cart and attempt checkout. If checkout throws an error or drops one of the items, you have a confirmed conflict between your subscription and warranty apps that requires escalation to one of the vendors."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    /* NAV */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    /* ALERT BANNER */
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    /* SECTION */
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    /* ARCHITECTURE GRID */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    /* FAILURE MATRIX */
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    /* DEEP DIVE */
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    /* APP COMPARISON TABLE */
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    /* DIAGNOSIS CHECKLIST */
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* CONTEXT CLUSTER */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .cluster-title { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .cta-btn:hover { text-decoration: none; opacity: 0.9; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .guide-card-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+      margin-top: 0;
+    }
+    footer p { font-size: 13px; color: var(--text-dim); margin: 0; }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid, .cluster-grid, .guide-grid { grid-template-columns: 1fr; }
+      .failure-table, .app-table { font-size: 11px; }
+      .failure-table th, .failure-table td, .app-table th, .app-table td { padding: 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells">Upsells</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+    <h1>Shopify Warranty Not Working at Checkout — Protection Plan Not Adding, Extend / Clyde / Asurion Error</h1>
+    <p class="hero-sub">
+      Shopify has no native warranty or protection plan system. Every extended warranty, accidental damage plan, and product protection offer on a Shopify store is delivered by a third-party app that injects a custom product variant into the cart. When that variant is stale, mispriced, or conflicted with another app, checkout breaks.
+    </p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Covers Extend · Clyde · Asurion · Mulberry · InsureShield</span>
+    </div>
+  </header>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner">
+    <strong>The Core Insight:</strong> A "warranty not applying at checkout" error is almost never a Shopify problem. The warranty app creates a special <strong>Protection Plan product variant</strong> in your Shopify catalog. If that variant is deactivated, archived, or mispriced — Shopify silently drops it during cart validation. The customer reaches checkout with no warranty line item and no explanation. The investigation always starts in the warranty app dashboard, not in Shopify Admin.
+  </div>
+
+  <!-- ARCHITECTURE SECTION -->
+  <section class="section">
+    <div class="section-label">How It Works</div>
+    <h2>The Three-Layer Warranty Architecture: Widget → Cart Variant → Checkout</h2>
+    <p>Every Shopify warranty integration follows the same three-layer architecture. Failures can happen at any layer — and the layer where the failure occurs determines the fix.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 1 — Widget</div>
+        <div class="arch-card-title">Product Page / Cart Offer Widget</div>
+        <div class="arch-card-desc">The warranty app injects an offer widget on the product page, cart drawer, or cart page. The widget fetches pricing from the app's API based on the product price and category. If the widget doesn't load, the app's JavaScript failed to inject (script missing from theme, app not installed, or AdBlocker).</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 2 — Cart Variant</div>
+        <div class="arch-card-title">Protection Plan Product Variant in Cart</div>
+        <div class="arch-card-desc">When the customer clicks "Add Protection," the app adds a special Protection Plan SKU to the cart — a custom product variant created in your Shopify catalog by the app. Shopify treats this as a normal line item. If the variant is inactive or mispriced, Shopify's cart validation removes it before checkout renders.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 3 — Checkout</div>
+        <div class="arch-card-title">Checkout Processing &amp; Post-Purchase</div>
+        <div class="arch-card-desc">At checkout, Shopify processes the Protection Plan line item as a standard product purchase. The warranty app's backend receives the order webhook and registers the coverage. If you use post-purchase upsell flows, the warranty may also be offered as a one-click add-on after the initial order — using a different API path entirely.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAILURE MATRIX -->
+  <section class="section">
+    <div class="section-label">Failure Reference</div>
+    <h2>Shopify Warranty Checkout Failure Matrix — 7 Root Causes</h2>
+    <p>Every warranty checkout failure maps to one of seven root causes. Match the symptom to find the right diagnosis path.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Root Cause</th>
+          <th>Where to Look</th>
+          <th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Protection plan disappears from cart before checkout</td>
+          <td>Stale or archived Protection Plan variant in Shopify catalog</td>
+          <td>Shopify Admin → Products → search "Extend Protection" or "Clyde Contract" → check variant status</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Warranty widget loads but clicking "Add" does nothing</td>
+          <td>JavaScript error — app's cart mutation script blocked or theme conflict</td>
+          <td>Browser console (F12) → look for 404 on app script or CORS error; check theme app extensions in Shopify Admin</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Warranty price at checkout doesn't match what the widget showed</td>
+          <td>Price sync lag — product price changed, app's variant price not yet updated</td>
+          <td>Warranty app dashboard → product pricing sync log; compare app-stored price vs. current Shopify product price</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td>Checkout error when warranty + subscription are both in cart</td>
+          <td>Subscription app and warranty app both try to transform the same cart line item</td>
+          <td>Test cart with only warranty (no subscription) and vice versa; confirm conflict; check app vendor support pages for compatibility list</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Warranty widget absent on product page after theme update</td>
+          <td>Theme update removed theme app extension block or checkout.liquid dependency</td>
+          <td>Shopify Admin → Online Store → Themes → Customize → check if warranty app's section/block exists in theme editor</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td>Post-purchase warranty upsell shows but clicking "Add" fails</td>
+          <td>Post-purchase extension using deprecated API or mismatched order token</td>
+          <td>Warranty app dashboard → post-purchase settings; check if the post-purchase extension is enabled in Shopify Admin → Settings → Checkout → Post-purchase page</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td>International customers see wrong warranty price or no widget</td>
+          <td>Warranty app not multi-currency aware; pricing API returns USD only</td>
+          <td>Warranty app documentation for Shopify Markets support; test checkout in a non-USD currency context using Shopify's country/currency simulation</td>
+          <td><span class="badge badge-blue">Medium</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DEEP DIVE 1 -->
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>The Stale Variant Problem — Why Protection Plans Silently Disappear</h2>
+    <p>The most common warranty checkout failure has nothing to do with checkout logic. It's a stale product variant in your Shopify catalog. Here's exactly how it happens.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">How the Stale Variant Failure Happens</div>
+      <h3>The Warranty App Creates Real Products in Your Shopify Catalog</h3>
+      <p>When you install Extend, Clyde, Mulberry, or any similar warranty app, the app creates one or more products in your Shopify catalog. These products have names like "Extend Protection Plan," "Clyde Contract," or "Mulberry Coverage." Each product has variants representing different coverage tiers (1-year, 2-year, 3-year) at different price points.</p>
+      <p>These are real Shopify product variants — they appear in your product list, they have inventory records, and they go through cart validation like any other product. The app manages their prices by syncing them against the prices of the products they protect.</p>
+      <p><strong>What breaks this sync:</strong></p>
+      <p>1. <strong>Product price change</strong>: You update your main product from $299 to $349. The warranty app needs to recalculate and update its Protection Plan variant prices (since warranty cost is usually a % of product price). If the sync job doesn't run immediately, there's a window where the Protection Plan variant price is stale.</p>
+      <p>2. <strong>Variant archival</strong>: An admin accidentally archives or deletes the Protection Plan product. Most warranty apps automatically recreate it, but there's a window where the cart add-on throws an error because the variant ID no longer exists.</p>
+      <p>3. <strong>App reinstall</strong>: If you uninstall and reinstall the warranty app (even temporarily during troubleshooting), the app creates new Protection Plan product variants with new Shopify variant IDs. Any cached cart or stored "add to cart" button that references the old variant ID will fail silently.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">How to Find and Fix It</div>
+      <h3>Check the Protection Plan Product Status in Shopify Admin</h3>
+      <p>Navigate to Shopify Admin → Products. In the search bar, type the name of your warranty app's product: "Extend Protection," "Clyde Contract," "Mulberry," or "InsureShield." If you see the product, click it and check:</p>
+      <div class="mono-block">
+Status: Active ✓  (not Draft or Archived)
+Variants: all variants showing with prices &gt; $0.00
+Inventory: not tracked (warranty plans are virtual, no inventory)
+      </div>
+      <p>If any variant shows $0.00 price, Draft status, or Archived status — this is the cause of the silent cart drop. Go to your warranty app dashboard and trigger a full re-sync. In Extend: Settings → Products → Sync. In Clyde: Settings → Catalog → Force Sync. After sync, refresh the product in Shopify Admin and verify all variants are active with non-zero prices.</p>
+    </div>
+  </section>
+
+  <!-- DEEP DIVE 2 -->
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>The Subscription App Conflict — Why Recharge + Extend Breaks Checkout</h2>
+    <p>The second most common catastrophic failure: subscription apps and warranty apps conflict at the cart transformation layer.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">Why the Conflict Happens</div>
+      <h3>Both Apps Fight Over the Same Cart Line Item</h3>
+      <p>Subscription apps like Recharge, Skio, and Bold Subscriptions work by attaching a "selling plan" to a cart line item. A selling plan tells Shopify's checkout: this is a recurring purchase, not a one-time order. The checkout handles billing, dunning, and renewal accordingly.</p>
+      <p>Warranty apps work by adding a second line item to the cart and linking it to the original product line item with a cart attribute or metafield. The warranty is logically attached to the product.</p>
+      <p><strong>The collision:</strong> When Recharge transforms the cart for subscription checkout, it validates that each line item is a valid subscription product. The Protection Plan variant does not have a selling plan — it's a one-time purchase. Recharge's cart validation rejects it. Meanwhile, Extend expects its cart attribute (linking the warranty to the product) to survive the cart transformation. It doesn't — Recharge's transformation overwrites custom cart attributes.</p>
+      <p>Result: checkout either fails with a generic error, or completes but with the warranty dropped from the order. Neither scenario gives the customer a clear error message.</p>
+      <p><strong>Resolution path:</strong> Check your warranty app's documentation for "subscription compatibility." Extend maintains a list of subscription apps with verified integration support. If your subscription app is on that list, follow the explicit integration guide. If it's not on the list, you cannot reliably run both apps simultaneously — you must choose which takes precedence, or separate the products (sell warranty-only and subscription-only products through different pages without cross-app cart logic).</p>
+    </div>
+  </section>
+
+  <!-- APP COMPARISON -->
+  <section class="section">
+    <div class="section-label">App Comparison</div>
+    <h2>Shopify Warranty App Comparison — Extend, Clyde, Asurion, Mulberry, InsureShield</h2>
+    <p>The five major warranty apps for Shopify have different architecture approaches, which means different failure modes and different debug paths.</p>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>App</th>
+          <th>Cart Architecture</th>
+          <th>Checkout Ext. Compatible</th>
+          <th>Sub App Conflict Risk</th>
+          <th>Post-Purchase Upsell</th>
+          <th>Multi-Currency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Extend</td>
+          <td>Custom SKU variant added to cart via widget click</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-amber">Medium</span> — documented Recharge integration</td>
+          <td><span class="badge badge-green">Yes</span> — Extend's own post-purchase extension</td>
+          <td><span class="badge badge-amber">Partial</span> — USD primary; limited Shopify Markets support</td>
+        </tr>
+        <tr>
+          <td>Clyde</td>
+          <td>Contract product variant added to cart; checkout UI extension for display</td>
+          <td><span class="badge badge-green">Yes</span> — requires manual extension install</td>
+          <td><span class="badge badge-red">High</span> — limited subscription app testing documented</td>
+          <td><span class="badge badge-amber">Beta</span> — post-purchase extension in limited rollout</td>
+          <td><span class="badge badge-red">Limited</span> — single currency stores only</td>
+        </tr>
+        <tr>
+          <td>Asurion</td>
+          <td>Product protection SKU; deep integration with specific verticals (electronics, appliances)</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-amber">Medium</span> — vertical-specific; fewer conflicts outside electronics</td>
+          <td><span class="badge badge-green">Yes</span> — post-purchase upsell supported</td>
+          <td><span class="badge badge-red">US only</span> — not available for non-US stores</td>
+        </tr>
+        <tr>
+          <td>Mulberry</td>
+          <td>Inline widget; adds plan as line item attribute rather than separate variant</td>
+          <td><span class="badge badge-amber">Partial</span> — older integration model</td>
+          <td><span class="badge badge-green">Lower</span> — attribute-based approach reduces conflicts</td>
+          <td><span class="badge badge-red">No</span> — cart/product page only</td>
+          <td><span class="badge badge-red">Limited</span></td>
+        </tr>
+        <tr>
+          <td>InsureShield</td>
+          <td>Shipping protection add-on (different from product warranty); added as cart attribute or line item</td>
+          <td><span class="badge badge-amber">Partial</span></td>
+          <td><span class="badge badge-green">Lower</span> — shipping protection, not product warranty</td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-amber">Partial</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DIAGNOSIS CHECKLIST -->
+  <section class="section">
+    <div class="section-label">Diagnosis</div>
+    <h2>5-Step Warranty Checkout Diagnosis</h2>
+    <p>Start at Step 1. Each step eliminates one layer of the warranty architecture. Stop as soon as you find the failure.</p>
+
+    <ul class="check-list">
+      <li>
+        <div class="check-num">1</div>
+        <div class="check-body">
+          <strong>Confirm which layer is failing — widget, cart, or checkout</strong>
+          <span>Test in an incognito window: (a) Does the warranty widget appear on the product page? If not → Layer 1 failure (JavaScript not loading). (b) Click "Add Protection" — does a Protection Plan line item appear in the cart? If not → Layer 2 failure (variant add failed). (c) Proceed to checkout with the protection plan in cart — does it still appear at the checkout page? If it disappears → Layer 2 failure (Shopify cart validation dropped the variant). If it appears but checkout throws an error → Layer 3 failure (checkout processing error).</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">2</div>
+        <div class="check-body">
+          <strong>Check the Protection Plan product in Shopify Admin → Products</strong>
+          <span>Search for your warranty app's product name. Verify: Status = Active, all variants have a price greater than $0.00, variants are not archived or in Draft mode. If anything looks wrong, go to your warranty app dashboard and trigger a full catalog re-sync before testing again.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">3</div>
+        <div class="check-body">
+          <strong>Test without any other apps in the checkout flow</strong>
+          <span>Temporarily disable other checkout-modifying apps (subscription apps, upsell apps, loyalty apps). Test the warranty add-on again. If it works with other apps disabled, you have a conflict. Re-enable apps one at a time to identify which one causes the conflict. The most common culprit is a subscription app (Recharge, Skio).</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">4</div>
+        <div class="check-body">
+          <strong>Check Checkout Extensibility compatibility</strong>
+          <span>If your theme recently migrated to Checkout Extensibility (the upgrade from checkout.liquid), your warranty app may need to install a new Checkout UI Extension. Go to Shopify Admin → Settings → Checkout → Checkout UI extensions and verify your warranty app is listed and active. If it's missing, go to your warranty app's setup guide and install the checkout extension.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">5</div>
+        <div class="check-body">
+          <strong>Run a full end-to-end test and verify in the warranty app dashboard</strong>
+          <span>Complete a test order with the protection plan using Shopify's bogus payment gateway (Admin → Settings → Payments → bogus gateway). After the order completes, open your warranty app dashboard and verify: (a) the order appears, (b) the protection plan is attributed to the correct product, (c) coverage is registered. If the order appears in Shopify but not in the warranty app dashboard, the order webhook failed — check your warranty app's webhook settings.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- CONTEXT CLUSTER -->
+  <section class="section">
+    <div class="section-label">Related Checkout Failures</div>
+    <h2>Warranty and Protection Plans Touch Four Other Checkout Clusters</h2>
+    <p>Warranty checkout failures often have symptoms that look like app conflicts, upsell failures, or subscription errors. The clusters below are the most common adjacent failure points.</p>
+
+    <div class="cluster-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="cluster-card">
+        <div class="cluster-label">App Conflicts</div>
+        <div class="cluster-title">Shopify App Blocking Checkout — the Conflict Investigation Framework</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="cluster-card">
+        <div class="cluster-label">Upsells</div>
+        <div class="cluster-title">Shopify Post-Purchase Upsell Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="cluster-card">
+        <div class="cluster-label">Subscriptions</div>
+        <div class="cluster-title">Shopify Subscription Checkout Not Working (Recharge / Skio)</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="cluster-card">
+        <div class="cluster-label">Extensions</div>
+        <div class="cluster-title">Shopify Checkout Extensions and Checkout Extensibility Issues</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" class="cluster-card">
+        <div class="cluster-label">Bundles</div>
+        <div class="cluster-title">Shopify Bundle Checkout Not Working — Kit Discount Not Applying</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-returns-refunds" class="cluster-card">
+        <div class="cluster-label">Returns</div>
+        <div class="cluster-title">Shopify Refund to Original Payment Method Failed</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-block">
+    <h2>Warranty Checkout Failures Are Silent — Until an Angry Customer Emails</h2>
+    <p>When a Protection Plan variant goes stale, your checkout silently drops the warranty and completes the order. The customer doesn't know they lost coverage. You don't know until the warranty claim — months later. CheckPulse monitors your Shopify checkout continuously so you catch broken configurations within minutes, not months.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <!-- GUIDE CARDS -->
+  <section class="section">
+    <div class="section-label">Checkout Problem Library</div>
+    <h2>Related Shopify Checkout Guides</h2>
+    <div class="guide-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+        <div class="guide-card-label">App Conflicts</div>
+        <div class="guide-card-title">Shopify App Blocking Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="guide-card">
+        <div class="guide-card-label">Upsells</div>
+        <div class="guide-card-title">Shopify Post-Purchase Upsell Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+        <div class="guide-card-label">Subscriptions</div>
+        <div class="guide-card-title">Shopify Subscription Checkout Failure</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+        <div class="guide-card-label">Extensions</div>
+        <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" class="guide-card">
+        <div class="guide-card-label">Bundles</div>
+        <div class="guide-card-title">Shopify Bundle Checkout Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-returns-refunds" class="guide-card">
+        <div class="guide-card-label">Returns</div>
+        <div class="guide-card-title">Shopify Refund Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+        <div class="guide-card-label">Discount Codes</div>
+        <div class="guide-card-title">Shopify Discount Code Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+        <div class="guide-card-label">CheckPulse</div>
+        <div class="guide-card-title">Automated Checkout Monitor →</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Shopify Warranty and Protection Plan — Frequently Asked Questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Why is the Extend warranty not showing at Shopify checkout?</div>
+        <div class="faq-a">When the Extend widget appears on the product page but no protection plan shows at checkout, the protection plan line item was silently removed during Shopify's cart validation. This almost always means the Protection Plan product variant in your Shopify catalog is either deactivated, archived, or priced at $0.00. Go to Shopify Admin → Products, search "Extend Protection Plan," and check that all variants are Active with non-zero prices. Then go to your Extend dashboard → Settings → Products and trigger a full re-sync. After syncing, test the checkout again in an incognito window.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why does the Clyde protection plan disappear at Shopify checkout?</div>
+        <div class="faq-a">Clyde's most common cause of disappearing plans is the Checkout Extensibility migration. If your theme recently upgraded from checkout.liquid to Checkout Extensibility, you need to manually install Clyde's Checkout UI Extension. Go to Shopify Admin → Settings → Checkout → Checkout UI Extensions and verify Clyde is listed and enabled. If it's not listed, follow Clyde's checkout extension installation guide from their support docs. The product page widget works independently, but checkout rendering requires the extension. Also verify the Clyde Contract product in your Shopify catalog is not archived.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why does adding a warranty plan conflict with my Shopify subscription app?</div>
+        <div class="faq-a">Subscription apps (Recharge, Skio) and warranty apps both modify the cart's line items at checkout. Recharge transforms cart items by attaching selling plan metadata. Warranty apps add a separate Protection Plan line item linked to the original product. These transformations collide: Recharge's validation rejects the non-subscription Protection Plan line item, or the warranty app's cart attributes are overwritten during Recharge's transformation. To fix: check your warranty app's documentation for explicit subscription app compatibility. Extend has a documented Recharge integration. If your warranty app doesn't list your subscription app as compatible, you cannot reliably run both simultaneously and must choose one.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can a customer use a discount code AND add a warranty plan to their Shopify checkout?</div>
+        <div class="faq-a">Yes — discount codes and warranty protection plans coexist at checkout. The protection plan is a separate line item, and warranty apps typically configure their Protection Plan product to be excluded from discount eligibility so discount codes don't accidentally reduce the warranty price. Where this can go wrong: if your discount code is set to "All products" without any exclusions, and your warranty app hasn't configured the Protection Plan product type as discount-ineligible, the code may incorrectly reduce the warranty price. To prevent this, go to Shopify Admin → Discounts → edit your discount codes → add a product exclusion for your warranty app's product type or collection.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I test my Shopify warranty or protection plan end-to-end before a product launch?</div>
+        <div class="faq-a">Run four tests: (1) Widget test — open product page in incognito, verify warranty widget appears. (2) Cart add test — click "Add Protection," verify Protection Plan line item appears in cart at correct price. (3) Checkout completion test — complete a test order with the bogus payment gateway, then verify the order appears in your warranty app's dashboard with coverage registered. (4) Conflict test — if you use a subscription app, add both a subscription product and a warranty to the same cart and attempt checkout; if it fails or drops either item, you have a confirmed conflict. Run these tests monthly and after any app update, theme update, or Shopify plan change.</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells">Upsells</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Subscriptions</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Extensions</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit">Bundles</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

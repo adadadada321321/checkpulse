@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Local Payment Methods Not Showing — iDEAL, OXXO, Bancontact, PIX, Konbini, COD Missing at Checkout (2026)</title>
+  <meta name="description" content="Shopify local payment methods (iDEAL, Bancontact, OXXO, PIX, konbini, Klarna) are NOT auto-enabled when you activate Shopify Markets. Each method requires explicit activation per market with the correct currency. When they silently disappear, here is the complete country-by-country diagnosis guide." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods" />
+  <meta property="og:title" content="Shopify Local Payment Methods Not Showing — iDEAL, OXXO, Bancontact, PIX, Konbini, COD Missing at Checkout" />
+  <meta property="og:description" content="Shopify local payment methods (iDEAL, Bancontact, OXXO, PIX, konbini, Klarna Pay Later, BLIK, COD) are not automatically enabled when you set up Shopify Markets. Every method requires a separate toggle in Settings → Payments, a specific currency match, and in some countries a gateway that isn't Shopify Payments at all. When they silently fail to appear, there is no error message in Shopify Admin. This guide covers the full activation stack, eight silent failure modes, and country-by-country diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Local Payment Methods Not Showing — iDEAL, OXXO, Bancontact, PIX, Konbini, COD Missing at Checkout",
+    "description": "Shopify local payment methods (iDEAL for Netherlands, Bancontact for Belgium, OXXO and PIX for Latin America, konbini for Japan, Klarna Pay Later for Scandinavia, BLIK for Poland, and Cash on Delivery) are not automatically activated when you enable Shopify Markets. Each method requires an explicit toggle in Shopify Payments settings, a currency that matches the method's requirements, and in some countries — Japan especially — a completely separate payment gateway because Shopify Payments doesn't support local methods at all. Eight silent failure modes: method not toggled, third-party gateway active, wrong currency, CPF/CNPJ tax ID field missing, synchronous bank redirect timeout, konbini gateway not configured, COD per-market restriction, BNPL regional block.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is iDEAL not showing at Shopify checkout for my Dutch customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "iDEAL not appearing at Shopify checkout for Netherlands customers has four possible causes, all of which produce zero error messages in Shopify Admin. First: iDEAL has not been toggled on. Enabling Shopify Markets for the Netherlands does NOT automatically enable iDEAL. You must go to Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods and toggle iDEAL to Active for your Netherlands market. This step is separate from enabling the market. Second: Shopify Payments is not your active gateway. iDEAL is only available through Shopify Payments, not through Stripe direct, Adyen, Mollie, or any other third-party gateway. If you switched gateways, iDEAL will not appear regardless of any other settings. Check Admin → Settings → Payments and confirm Shopify Payments is shown as Active. Third: the Netherlands market currency is not EUR. iDEAL requires the checkout currency to be EUR. If your Netherlands market is configured to show prices in USD or another currency, iDEAL will not appear. Go to Admin → Settings → Markets → Netherlands → Currency and confirm it is set to EUR. Fourth: your Shopify Payments account is not verified or is in a suspended state. iDEAL activation requires your Shopify Payments account to be fully verified. Check Admin → Settings → Payments → Shopify Payments for any pending verification alerts. All four conditions must be met simultaneously for iDEAL to appear."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify support OXXO payment for Mexican customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Shopify Payments supports OXXO for Mexican customers, but with specific requirements that are easy to miss. OXXO is a Mexican cash payment method where the customer receives a payment voucher and pays at any OXXO convenience store within 3 days. For OXXO to appear at checkout: (1) Your Shopify store must have Shopify Payments active — not a third-party gateway. (2) Your store country must be Mexico, or you must be a global merchant with Shopify Payments enabled for Mexico specifically — OXXO availability depends on your Shopify Payments country configuration, not just on activating the Mexico market. (3) The checkout currency must be MXN. OXXO does not appear when the currency is USD or any other non-MXN currency. (4) OXXO must be toggled on in Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods. It is not auto-enabled. Important: OXXO has a 3-day payment window. If the customer does not pay within that window, the order is automatically cancelled — there is no Shopify notification to you when this happens. You will see the order status change from 'Pending' to 'Cancelled' without explanation unless you have an order monitoring system in place."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I add a CPF or CNPJ field to Shopify checkout for Brazilian customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not natively collect CPF (Cadastro de Pessoas Físicas) or CNPJ (Cadastro Nacional da Pessoa Jurídica) in its checkout form. These Brazilian tax ID numbers are required by most Brazilian payment processors to process card transactions — without them, the payment gateway may reject the transaction server-side with a generic 'payment declined' error that gives the customer no useful information and gives you no indication that tax ID is the issue. To add CPF/CNPJ collection to Shopify checkout, you have three options. First (Shopify Plus only): use Checkout Extensibility to add a custom input field via a checkout UI extension. This is the cleanest integration — the field appears in the native Shopify checkout form, the value is stored as order metadata, and it can be passed to your payment gateway if the gateway supports it via Shopify's API. Second: use a Checkout Extensibility app from the Shopify App Store that specializes in Brazilian tax ID collection. Several exist and handle the CPF/CNPJ format validation. Third: if you are not on Shopify Plus, some Brazilian-focused payment gateways (Pagar.me, Mercado Pago) include their own checkout overlay that collects CPF separately from Shopify's checkout form. This is the only option for non-Plus merchants but creates a fragmented checkout experience. Note: PIX payments in Brazil also typically require CPF/CNPJ for the payer identification in the PIX transaction. If you offer PIX via a gateway integration, verify whether the gateway collects tax ID separately or requires Shopify to pass it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did SOFORT payment stop working for my German customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SOFORT (now rebranded as Klarna) was deprecated as a standalone payment method in 2024. Stripe discontinued SOFORT for new transactions, and Shopify Payments also migrated away from the legacy SOFORT integration. If your German customers report that SOFORT is missing from checkout, it is because the old SOFORT toggle in your Shopify Payments settings no longer activates a working payment method — the underlying bank transfer network that SOFORT relied on no longer accepts new payments through the old integration. The replacement is Klarna Bank Transfer — available through Shopify Payments in Germany and other EU markets as a Klarna payment method. To restore bank transfer payment for German customers: go to Admin → Settings → Payments → Shopify Payments → Manage → find Klarna options for your Germany/EU market and enable 'Klarna — Pay Now' (sofort/bank transfer variant). This uses the Klarna network, which absorbed the SOFORT infrastructure. The customer experience is similar: they are redirected to their bank to authorize the transfer, then returned to your checkout. If your Shopify Payments settings still show a 'SOFORT' toggle that appears enabled, that toggle is legacy and the payment method is not actually functional. Remove it and replace with the Klarna bank transfer option."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I offer Cash on Delivery (COD) only for specific countries on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, you can restrict Cash on Delivery to specific countries, but the configuration is less obvious than it appears. Cash on Delivery is a manual payment method in Shopify — it does not go through Shopify Payments or any gateway. To set it up: go to Admin → Settings → Payments → Manual payment methods → Add manual payment method → Cash on delivery (COD). When creating the COD method, you can configure which countries it is available in under the 'Countries' setting. The most common failure mode: merchants set COD to 'All countries' but then expect it to appear only for UAE or India customers — COD will actually appear for every customer in every market, potentially confusing customers in countries where COD is unusual. The second failure mode: COD is configured per-market, but the market grouping includes countries where COD should not appear. For example, if your Middle East market includes UAE, Kuwait, Saudi Arabia, and Israel, and COD is set for 'Middle East market', it will appear for all of them. If you need country-level COD control, you must either create separate markets per country or use a checkout app that applies payment method visibility rules at the checkout level. Shopify's native manual payment method settings only support market-level or all-countries configuration — not individual country within a market."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: #0d0d0d; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2a0808; color: var(--red); }
+    .badge-amber { background: #1a1200; color: var(--amber); }
+    .badge-blue { background: #0a1628; color: var(--blue); }
+    .badge-green { background: #051a10; color: var(--green); }
+    .badge-purple { background: #1a0d2a; color: var(--purple); }
+    .badge-teal { background: #051a18; color: var(--teal); }
+
+    .checklist { list-style: none; margin-top: 8px; }
+    .checklist li {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      align-items: flex-start;
+      line-height: 1.5;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .check-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+      font-family: var(--mono);
+    }
+
+    .deep-dive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin-top: 18px;
+    }
+    .deep-dive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deep-dive h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .deep-dive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+    .deep-dive p:last-child { margin-bottom: 0; }
+    .deep-dive ul {
+      margin: 10px 0 12px 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .deep-dive li { margin-bottom: 5px; }
+    .inline-code {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--amber);
+    }
+
+    .country-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 10px;
+      overflow-x: auto;
+      display: block;
+    }
+    .country-table th {
+      text-align: left;
+      padding: 9px 11px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .country-table td {
+      padding: 9px 11px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.45;
+    }
+    .country-table tr:nth-child(even) td { background: #0d0d0d; }
+    .country-table td:first-child { white-space: nowrap; font-weight: 600; color: var(--text); }
+
+    .guide-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--amber);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+    }
+    .guide-card-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    .faq-list { margin-top: 10px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto 22px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 26px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #d97706; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .footer-logo-mark {
+      width: 22px; height: 22px;
+      background: var(--amber);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #000;
+    }
+    .footer-logo-text { font-size: 14px; font-weight: 700; color: var(--amber); }
+    .footer-copy { font-size: 12px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <section class="hero">
+    <div class="hero-eyebrow">Checkout Troubleshooting · Local Payments</div>
+    <h1>Shopify Local Payment Methods Not Showing — iDEAL, OXXO, Bancontact, PIX, Konbini, COD Silent Failures</h1>
+    <p class="hero-sub">Enabling Shopify Markets does not automatically activate local payment methods. iDEAL, Bancontact, OXXO, PIX, Klarna Pay Later, BLIK, and Cash on Delivery each require a separate toggle in Settings → Payments — and the correct currency. When they silently fail to appear, there is no error in Shopify Admin. This guide covers the full activation stack, eight silent failure modes, and country-by-country diagnosis.</p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Shopify Markets · Local Payments · International Checkout</span>
+    </div>
+
+    <div class="alert-banner">
+      <strong>Silent failure pattern:</strong> A merchant enables the Netherlands market, Shopify Payments is active, the store is live — but Dutch customers don't see iDEAL at checkout. There is no error anywhere in Shopify Admin. The toggle for iDEAL in Settings → Payments → Shopify Payments → Manage → Local payment methods is off by default. It must be explicitly activated. This pattern repeats for every local payment method in every market.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Architecture</div>
+    <h2>The 4-Layer Local Payment Method Stack</h2>
+    <p class="section-intro">Local payment methods sit at the intersection of four independent configuration layers. All four must be correct simultaneously. A failure at any one layer silently prevents the payment method from appearing — with no error surfaced to the merchant or customer.</p>
+    <div class="arch-grid">
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 1</div>
+        <div class="arch-card-title">Shopify Markets</div>
+        <div class="arch-card-desc">The target country must have an active Shopify Market with the correct currency configured. Market = country + currency + language + domain. If the customer is being routed to the wrong market (e.g., UK market instead of Belgium), Bancontact won't appear even if it's enabled for Belgium.</div>
+      </div>
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 2</div>
+        <div class="arch-card-title">Shopify Payments</div>
+        <div class="arch-card-desc">Shopify Payments must be the active gateway — not Stripe direct, Adyen, Mollie, Authorize.net, or any third-party gateway. Local payment methods (iDEAL, Bancontact, OXXO, PIX, BLIK) are exclusively available through Shopify Payments. Switching to any other gateway removes all local methods instantly.</div>
+      </div>
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 3</div>
+        <div class="arch-card-title">Per-Method Toggle</div>
+        <div class="arch-card-desc">Each local payment method has its own activation toggle in Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods. These are OFF by default. A new market with a new country does not inherit any local payment method settings. Every method must be manually enabled.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 4</div>
+        <div class="arch-card-title">Currency Match</div>
+        <div class="arch-card-desc">Each local method requires a specific currency: iDEAL → EUR, OXXO → MXN, PIX/Boleto → BRL, BLIK → PLN, Bancontact → EUR, SEPA → EUR. If the market currency is set to USD or a non-matching currency, the payment method will not appear regardless of the toggle state.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Failure Matrix</div>
+    <h2>8 Silent Failure Modes for Local Payment Methods</h2>
+    <p class="section-intro">Each failure mode produces no error in Shopify Admin. The payment method simply does not appear at checkout. The merchant typically learns about the failure from customer reports or abandoned cart data.</p>
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Failure Mode</th>
+          <th>Which Methods</th>
+          <th>Root Cause</th>
+          <th>How to Diagnose</th>
+          <th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Method not toggled on</strong></td>
+          <td>All local methods</td>
+          <td>Local payment methods are off by default after market activation. No auto-enable on market creation.</td>
+          <td>Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods. Check each method's toggle state.</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td><strong>Third-party gateway active</strong></td>
+          <td>All local methods (iDEAL, Bancontact, OXXO, PIX, BLIK, SEPA)</td>
+          <td>Local methods require Shopify Payments. Any third-party gateway (Stripe, Adyen, Mollie, Authorize.net) removes all local methods globally.</td>
+          <td>Admin → Settings → Payments. If Shopify Payments is not listed as the primary gateway, no local methods will work. Check for recently added payment apps.</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td><strong>Wrong currency for market</strong></td>
+          <td>iDEAL (needs EUR), OXXO (needs MXN), PIX/Boleto (needs BRL), BLIK (needs PLN), Bancontact (needs EUR)</td>
+          <td>Each method has a currency requirement. Markets configured in USD or EUR for the wrong region silently suppress currency-specific methods.</td>
+          <td>Admin → Settings → Markets → [Market] → Currency. Confirm it matches the required currency for the target method. Common mistake: global store pricing in USD for all markets.</td>
+          <td><span class="badge badge-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td><strong>CPF/CNPJ tax ID missing (Brazil)</strong></td>
+          <td>PIX, Boleto, Brazilian card processors</td>
+          <td>Brazilian payment processors require CPF/CNPJ in transaction data. Shopify does not collect tax IDs natively. Transaction is rejected server-side with a generic "payment declined" message.</td>
+          <td>Test a Brazilian card payment and inspect the gateway error in the order payment timeline. If the decline reason includes "CPF" or "tax ID", the field is missing. Requires Checkout Extensibility (Shopify Plus) or a Brazilian payment app.</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td><strong>Bank redirect timeout (iDEAL/Bancontact)</strong></td>
+          <td>iDEAL, Bancontact, SOFORT/Klarna Bank Transfer</td>
+          <td>These methods redirect the customer to their bank for authorization. If the bank session times out or the redirect back fails, the order status becomes "Payment pending" indefinitely. No merchant notification is sent.</td>
+          <td>Monitor orders in "Payment pending" state in Admin → Orders. Filter by payment method. Pending iDEAL/Bancontact orders older than 2 hours have likely timed out and will never complete. Set up order monitoring to catch these in real time.</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td><strong>Konbini not available via Shopify Payments (Japan)</strong></td>
+          <td>Konbini (convenience store) payment</td>
+          <td>Konbini payment (paying at 7-Eleven, Lawson, FamilyMart) is NOT available through Shopify Payments for Japan. It requires a Japanese payment gateway: Komoju, GMO Payment Gateway, or Paidy. Merchants who enable the Japan market and look for konbini in Shopify Payments settings won't find it.</td>
+          <td>Konbini will never appear in Settings → Payments → Shopify Payments → Local payment methods. To offer konbini, install a Japanese payment gateway app (Komoju is the most common Shopify-compatible option) and add it as an alternative payment method in Settings → Payments.</td>
+          <td><span class="badge badge-amber">High</span></td>
+        </tr>
+        <tr>
+          <td><strong>COD per-market configuration missing</strong></td>
+          <td>Cash on Delivery</td>
+          <td>Cash on Delivery is a manual payment method that must be configured per market or per country. Setting COD to "all markets" in a global store often results in COD appearing in countries where it's not operationally possible, or not appearing in target markets (UAE, India, SEA) if geographic restrictions are misconfigured.</td>
+          <td>Admin → Settings → Payments → Manual payment methods → Cash on Delivery → review the Countries/markets restriction. Test checkout from a UAE or India IP to verify COD appears. Note: Shopify's native COD config does not support per-country restrictions within a multi-country market.</td>
+          <td><span class="badge badge-blue">Medium</span></td>
+        </tr>
+        <tr>
+          <td><strong>BNPL / Klarna regional block</strong></td>
+          <td>Klarna Pay Later, Afterpay/Clearpay, Shop Pay Installments</td>
+          <td>Buy Now Pay Later methods have strict country eligibility even within Shopify Payments. Klarna requires a Shopify Payments store verified in an eligible EU country. Afterpay is limited to AU, NZ, US, CA, UK, IT, ES, FR. Merchants activating new markets assume BNPL follows — it doesn't.</td>
+          <td>Check Admin → Settings → Payments → Shopify Payments → Manage and look for the BNPL method under your specific market. Eligibility depends on store registration country and market currency. A US-registered store may not offer Klarna Pay Later to German customers.</td>
+          <td><span class="badge badge-blue">Medium</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Diagnosis</div>
+    <h2>5-Step Local Payment Method Diagnosis</h2>
+    <p class="section-intro">Work through this checklist in order when a local payment method is missing from checkout. Each step eliminates one layer of the activation stack.</p>
+    <ul class="checklist">
+      <li>
+        <div class="check-num">1</div>
+        <div><strong>Verify market assignment.</strong> Confirm the customer is being routed to the correct Shopify Market. Go to Admin → Analytics → Reports → Sessions by location and compare actual customer country vs. market assignment. If a Dutch customer is landing in your primary US market, their checkout won't offer iDEAL even if iDEAL is enabled for the Netherlands market. Fix: Admin → Settings → Markets → Preferences → configure geolocation settings.</div>
+      </li>
+      <li>
+        <div class="check-num">2</div>
+        <div><strong>Confirm Shopify Payments is the active gateway.</strong> Admin → Settings → Payments. Shopify Payments must be listed as the active payment provider — not deactivated, not replaced by a third-party gateway. Check for recently installed payment apps that may have added an alternative gateway and changed the default. Any third-party gateway as the primary processor disables all local methods.</div>
+      </li>
+      <li>
+        <div class="check-num">3</div>
+        <div><strong>Check the per-method toggle.</strong> Admin → Settings → Payments → Shopify Payments → Manage → scroll to "Local payment methods." Locate the specific method (iDEAL, Bancontact, OXXO, PIX, BLIK) and verify its toggle is Active. If this section is empty or the method is not listed, it may not be available in your Shopify Payments country — verify your store's Shopify Payments registration country matches an eligible region.</div>
+      </li>
+      <li>
+        <div class="check-num">4</div>
+        <div><strong>Verify market currency matches method requirement.</strong> Admin → Settings → Markets → [Target market] → Currency. Confirm the currency is: EUR for iDEAL/Bancontact/SEPA, MXN for OXXO, BRL for PIX/Boleto, PLN for BLIK. A Netherlands market in USD will not show iDEAL. A Mexico market in USD will not show OXXO. Currency mismatch is the second most common cause after the missing toggle.</div>
+      </li>
+      <li>
+        <div class="check-num">5</div>
+        <div><strong>For Japan (konbini) and Brazil (CPF): check gateway compatibility.</strong> If your target method is Japanese konbini, it requires a separate Japanese gateway app — it is not available in Shopify Payments. Install Komoju or GMO-PG and add it under Settings → Payments → Alternative payment methods. If your issue is Brazilian CPF/CNPJ validation failures, this requires either Checkout Extensibility (Shopify Plus) to add a custom tax ID field, or a Brazilian payment gateway that collects the field independently.</div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>Country-Specific Failure Guides</h2>
+
+    <div class="deep-dive">
+      <div class="deep-dive-label">Deep Dive A — Netherlands</div>
+      <h3>iDEAL Not Showing: The Complete Setup Walkthrough</h3>
+      <p>iDEAL is used in over 60% of online payments in the Netherlands. If Dutch customers don't see iDEAL at checkout, you are losing the majority of Netherlands checkout completions — they will not complete the order with an unfamiliar credit card form.</p>
+      <p><strong>Required steps (all must be complete):</strong></p>
+      <ul>
+        <li>Shopify Payments active as your primary payment gateway</li>
+        <li>Netherlands market created in Admin → Settings → Markets → Add market → Netherlands</li>
+        <li>Netherlands market currency set to EUR (not USD)</li>
+        <li>iDEAL toggled on in Admin → Settings → Payments → Shopify Payments → Manage → Local payment methods → iDEAL → toggle Active</li>
+        <li>Shopify Payments account fully verified (no pending verification banner in Admin → Settings → Payments)</li>
+      </ul>
+      <p><strong>The most common miss:</strong> The iDEAL toggle. Merchants set up the Netherlands market and assume local methods activate automatically. They don't. The toggle is in a sub-menu three levels deep in Shopify Payments settings. It is off by default after market creation and after any gateway change.</p>
+      <p><strong>Testing:</strong> After completing all steps, use a VPN set to a Netherlands IP and browse to your store. Shopify uses geolocation to assign the market. Add a product to cart and proceed to checkout — iDEAL should appear in the payment method list. If it doesn't appear: check market assignment (the VPN IP should trigger the Netherlands market) and re-verify the toggle state.</p>
+      <p><strong>Bank redirect failures:</strong> iDEAL is a synchronous bank redirect — the customer is taken to their bank's website to authorize the payment and then returned to your checkout. If the redirect back fails (network issue, browser back button during bank auth, bank session timeout), the order is created with "Payment pending" status. Shopify does not automatically cancel or retry these orders. Monitor "Payment pending" orders daily and contact customers with failed iDEAL redirects to offer alternative payment.</p>
+    </div>
+
+    <div class="deep-dive">
+      <div class="deep-dive-label">Deep Dive B — Brazil</div>
+      <h3>PIX, Boleto, and the CPF/CNPJ Problem</h3>
+      <p>Brazil has unique payment requirements that Shopify's default checkout does not fully support. The two most common Brazilian payment methods — PIX (instant bank transfer) and Boleto (bank slip) — require the customer's CPF (individual tax ID) or CNPJ (company tax ID) in the transaction data. Shopify's native checkout form does not have a CPF/CNPJ field.</p>
+      <p><strong>What happens without CPF/CNPJ:</strong> If you are using Shopify Payments for Brazil with PIX or card payments, Brazilian payment processors may reject the transaction server-side. The customer sees a generic "your payment could not be processed" message. You see "Payment failed" in the order timeline with no indication that tax ID is the missing element. This creates a false appearance of payment gateway instability when the actual issue is a missing required field.</p>
+      <p><strong>For Shopify Plus merchants — Checkout Extensibility:</strong> Build or install a checkout UI extension that adds a CPF/CNPJ input to the checkout form. The extension validates the tax ID format (11 digits for CPF, 14 for CNPJ) and stores the value as order metadata. Your payment processing app or gateway can then retrieve this value via the Order API and include it in the payment request. Several Shopify App Store partners offer pre-built extensions for this.</p>
+      <p><strong>For non-Plus merchants:</strong> Use a Brazilian-focused payment gateway app (Pagar.me, Mercado Pago, Boa Compra) that handles CPF/CNPJ collection in its own checkout overlay, separate from Shopify's checkout form. These apps add themselves as alternative payment methods in your Settings → Payments → Alternative payment methods. The customer completes the card/PIX/Boleto flow through the gateway's interface. This works but creates a checkout experience that differs from Shopify's native flow.</p>
+      <p><strong>PIX currency requirement:</strong> PIX requires BRL. If your Brazil market is in USD, PIX will not appear regardless of gateway configuration. Set the Brazil market currency to BRL in Admin → Settings → Markets → Brazil → Currency.</p>
+      <p><strong>Boleto pending order management:</strong> Boleto is a bank slip payment with a 3–5 day payment window. Like OXXO, if the customer does not pay within the window, the order is not automatically cancelled in Shopify — its payment status remains "Pending." Monitor and cancel unpaid Boleto orders after the payment window closes to restore inventory.</p>
+    </div>
+
+    <div class="deep-dive">
+      <div class="deep-dive-label">Deep Dive C — Japan</div>
+      <h3>Konbini: Why You Need a Separate Gateway</h3>
+      <p>Konbini payment (convenience store cash payment at 7-Eleven, Lawson, FamilyMart, Ministop, Daily Yamazaki) is the second most common payment method in Japan after credit cards. A significant portion of Japanese online shoppers do not have credit cards or prefer not to use them online. If you are selling in Japan without konbini payment, you are effectively excluding a large share of the market.</p>
+      <p><strong>The key constraint:</strong> Konbini is NOT available through Shopify Payments. It will never appear in your Settings → Payments → Shopify Payments → Local payment methods list, regardless of how your Japan market is configured. Shopify Payments does not have a konbini integration. This is not a toggle issue or a currency issue — it is a fundamental gateway limitation.</p>
+      <p><strong>How to add konbini:</strong></p>
+      <ul>
+        <li><strong>Komoju</strong> — the most Shopify-compatible Japanese payment gateway. Install the Komoju app from the Shopify App Store, complete KYC (Japanese bank account required or Komoju can assist international merchants), and add Komoju as an alternative payment method in Settings → Payments → Alternative payment methods. Komoju supports konbini, credit cards, bank transfer (Furikomi), PayPay, and Paidy.</li>
+        <li><strong>Paidy</strong> — a buy-now-pay-later service popular in Japan that is also widely used as a no-card-required payment option. Add via the Paidy app or Komoju which includes Paidy.</li>
+        <li><strong>GMO Payment Gateway</strong> — used by larger merchants, requires a Japanese entity or partnership with a local agent.</li>
+      </ul>
+      <p><strong>How konbini checkout works:</strong> The customer selects konbini at checkout, chooses their preferred chain, and receives a payment barcode or code. They have 3–7 days to visit a konbini and pay cash. After payment is confirmed (usually within 30 minutes via the konbini network), Shopify receives a payment capture webhook and marks the order as paid. The merchant should not fulfill orders with konbini payment until the "paid" webhook arrives — the order status is "Pending" until then.</p>
+      <p><strong>JPY currency requirement:</strong> All Japanese local payment methods (konbini, Paidy, bank transfer) require the Japan market currency to be JPY. Configure this in Admin → Settings → Markets → Japan → Currency → JPY.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Country Reference</div>
+    <h2>Local Payment Methods by Country</h2>
+    <p class="section-intro">Quick reference for the most common local payment method requirements per country. "Shopify Payments only" means the method is unavailable if you use a third-party gateway.</p>
+    <table class="country-table">
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>Local Methods</th>
+          <th>Gateway</th>
+          <th>Required Currency</th>
+          <th>Most Common Failure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>🇳🇱 Netherlands</td>
+          <td>iDEAL, Bancontact (cross-border)</td>
+          <td>Shopify Payments only</td>
+          <td>EUR</td>
+          <td>Method toggle off; currency set to USD</td>
+        </tr>
+        <tr>
+          <td>🇧🇪 Belgium</td>
+          <td>Bancontact</td>
+          <td>Shopify Payments only</td>
+          <td>EUR</td>
+          <td>Method toggle off; bank redirect timeout</td>
+        </tr>
+        <tr>
+          <td>🇩🇪 Germany / Austria</td>
+          <td>Klarna Pay Later, Klarna Bank Transfer (SOFORT replacement)</td>
+          <td>Shopify Payments only</td>
+          <td>EUR</td>
+          <td>SOFORT legacy config not replaced with Klarna</td>
+        </tr>
+        <tr>
+          <td>🇲🇽 Mexico</td>
+          <td>OXXO (cash voucher)</td>
+          <td>Shopify Payments (MX-eligible)</td>
+          <td>MXN</td>
+          <td>Method toggle off; currency set to USD; OXXO voucher expiry silent cancel</td>
+        </tr>
+        <tr>
+          <td>🇧🇷 Brazil</td>
+          <td>PIX, Boleto Bancário, card (CPF required)</td>
+          <td>Shopify Payments + CPF app, or Pagar.me / Mercado Pago</td>
+          <td>BRL</td>
+          <td>CPF/CNPJ field missing → generic payment decline</td>
+        </tr>
+        <tr>
+          <td>🇯🇵 Japan</td>
+          <td>Konbini, Paidy, bank transfer (Furikomi)</td>
+          <td>Komoju, GMO-PG, Paidy (NOT Shopify Payments)</td>
+          <td>JPY</td>
+          <td>Merchants assume Shopify Payments includes konbini — it doesn't</td>
+        </tr>
+        <tr>
+          <td>🇵🇱 Poland</td>
+          <td>BLIK</td>
+          <td>Shopify Payments only</td>
+          <td>PLN</td>
+          <td>Method toggle off; currency set to EUR or USD</td>
+        </tr>
+        <tr>
+          <td>🇦🇪 UAE / Middle East</td>
+          <td>Cash on Delivery (COD), tabby (BNPL)</td>
+          <td>COD = manual method; tabby = third-party app</td>
+          <td>AED (COD), local currency (tabby)</td>
+          <td>COD not configured per market; tabby app not installed</td>
+        </tr>
+        <tr>
+          <td>🇮🇳 India</td>
+          <td>UPI, COD, EMI, Razorpay/Cashfree</td>
+          <td>Shopify Payments not available in India; use Razorpay/Cashfree/PayU</td>
+          <td>INR</td>
+          <td>Shopify Payments unavailable → merchants use third-party gateways; UPI/COD requires specific gateway support</td>
+        </tr>
+        <tr>
+          <td>🇸🇪 Sweden / Nordics</td>
+          <td>Klarna Pay Later, Klarna Pay Now, Klarna Slice It</td>
+          <td>Shopify Payments only</td>
+          <td>SEK, DKK, NOK, EUR</td>
+          <td>Klarna variants not all enabled; store registration country not eligible</td>
+        </tr>
+        <tr>
+          <td>🇦🇺 Australia / NZ</td>
+          <td>Afterpay, Zip Pay</td>
+          <td>Afterpay = Shopify Payments; Zip = Zip app</td>
+          <td>AUD / NZD</td>
+          <td>Afterpay toggle off; Zip app not installed</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-label">Related Guides</div>
+    <h2>Related Checkout Issues</h2>
+    <p class="section-intro">Local payment method failures often co-occur with these related issues.</p>
+    <div class="guide-cards">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="guide-card">
+        <div class="guide-card-label">International</div>
+        <div class="guide-card-title">Shopify Markets Checkout Errors — All 6 Failure Types</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods" class="guide-card">
+        <div class="guide-card-label">Payment Methods</div>
+        <div class="guide-card-title">Shopify Checkout Payment Methods Not Showing</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error" class="guide-card">
+        <div class="guide-card-label">Localization</div>
+        <div class="guide-card-title">Shopify Checkout Wrong Language, Phone Format, Postal Code</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-error" class="guide-card">
+        <div class="guide-card-label">Currency</div>
+        <div class="guide-card-title">Shopify Checkout Currency Error</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working" class="guide-card">
+        <div class="guide-card-label">B2B</div>
+        <div class="guide-card-title">Shopify B2B Checkout Errors</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-error" class="guide-card">
+        <div class="guide-card-label">Payment</div>
+        <div class="guide-card-title">Shopify Checkout Payment Error</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Why is iDEAL not showing at Shopify checkout for my Dutch customers?</div>
+        <div class="faq-a">Four simultaneous conditions must be true: (1) Shopify Payments is your active gateway, (2) your Netherlands market is configured with EUR as the currency, (3) iDEAL is toggled on in Settings → Payments → Shopify Payments → Manage → Local payment methods, and (4) your Shopify Payments account is fully verified. The most common cause is #3 — iDEAL is off by default and must be explicitly activated. There is no error message when it's off — iDEAL simply doesn't appear at checkout.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does Shopify Payments support OXXO for Mexico?</div>
+        <div class="faq-a">Yes, but with conditions. Your store's Shopify Payments registration must be eligible for Mexico, the Mexico market currency must be MXN (not USD), and OXXO must be toggled on in Settings → Payments → Local payment methods. OXXO gives the customer a 3-day payment window. If they don't pay within that window, the order is silently cancelled — there is no automatic Shopify notification to you when this happens.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I add a CPF or CNPJ field to Shopify checkout for Brazil?</div>
+        <div class="faq-a">Shopify does not collect CPF/CNPJ natively. For Shopify Plus merchants, use Checkout Extensibility to build or install a UI extension that adds a validated tax ID field to checkout — the value is stored as order metadata and passed to your gateway. For non-Plus merchants, use a Brazilian payment gateway app (Pagar.me, Mercado Pago) that collects CPF/CNPJ in its own payment overlay. Without CPF/CNPJ, Brazilian card transactions may fail server-side with a generic decline error — the gateway error code will reference "CPF" or "buyer document" in most cases.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why did SOFORT payment stop working for German customers?</div>
+        <div class="faq-a">SOFORT was deprecated in 2024 and is no longer a functional payment method. The legacy SOFORT toggle in Shopify Payments settings does not activate a working payment flow. The replacement is Klarna Bank Transfer, which uses the Klarna network that absorbed the SOFORT infrastructure. Enable "Klarna — Pay Now" in your Germany/EU market's local payment methods settings. Remove any legacy SOFORT configuration.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I offer Cash on Delivery only for specific countries on Shopify?</div>
+        <div class="faq-a">Shopify's native Cash on Delivery (COD) manual payment method supports market-level restrictions but not per-country restrictions within a multi-country market. If your Middle East market includes UAE, Kuwait, and Saudi Arabia and you want COD only for UAE, you need to either split UAE into its own single-country market, or use a checkout app that applies payment method rules at a more granular geographic level. "All markets" COD will appear everywhere, which is usually not what international merchants intend.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-block">
+    <h2>Are Your Local Payment Methods Working Right Now?</h2>
+    <p>Local payment method failures are invisible until a customer from the Netherlands, Mexico, or Japan reports they couldn't complete checkout. CheckPulse monitors your checkout every few minutes and alerts you the moment something breaks — including payment method availability changes.</p>
+    <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+  </div>
+
+</div><!-- /.container -->
+
+<footer>
+  <div class="container">
+    <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+      <div class="footer-logo-mark">✓</div>
+      <span class="footer-logo-text">CheckPulse</span>
+    </a>
+    <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="./free-check">Free Store Check</a>
+      <a href="./guide">Monitoring Guide</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+      <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

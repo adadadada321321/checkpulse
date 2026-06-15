@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify VAT Exemption Not Working — EU B2B VAT Number Not Removing Tax at Checkout, VIES Validation, Reverse Charge (2026)</title>
+  <meta name="description" content="Shopify B2B VAT exemption requires a specific 4-layer configuration stack. When a VAT number is entered but tax is still charged, the root cause is almost always a Shopify Tax misconfiguration, missing VIES validation, or a company account not set to tax-exempt." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption" />
+  <meta property="og:title" content="Shopify VAT Exemption Not Working — EU B2B VAT Number Not Removing Tax at Checkout" />
+  <meta property="og:description" content="EU B2B buyers enter their VAT number at Shopify checkout but tax is still charged. This guide covers the full configuration stack: Shopify Tax setup, VIES validation, B2B company tax-exempt status, UK reverse charge, and seven silent failure modes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify VAT Exemption Not Working — EU B2B VAT Number Not Removing Tax, VIES Validation, Reverse Charge",
+    "description": "EU and UK B2B merchants on Shopify frequently encounter a silent failure: a B2B buyer enters their VAT registration number at checkout, the number is accepted, and tax is still charged. This guide covers the four-layer configuration stack required for Shopify VAT exemption to work, seven silent failure modes including the VIES validation gap and UK reverse charge, and the exact Admin paths to diagnose and fix each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify still charging VAT after a customer enters their VAT number?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Entering a VAT number at Shopify checkout does NOT automatically remove VAT. The VAT number field is a data-collection mechanism — it does not trigger tax removal unless a specific 4-layer configuration is complete in Shopify Admin. All four layers must be active simultaneously: (1) Shopify Tax (not legacy tax) must be enabled as your tax service — go to Admin → Settings → Taxes and duties → check that Shopify Tax is the active tax service, not a legacy or manual tax setup; (2) EU VAT collection must be enabled in Shopify Tax — Admin → Settings → Taxes and duties → EU Taxes → enable 'Collect EU VAT numbers'; (3) VIES validation must be turned on — this tells Shopify to validate the entered VAT number against the EU VIES database and, when valid, remove VAT from the order; (4) the buyer's company account must be marked tax-exempt in Shopify Admin if you're using Shopify B2B company accounts — a validated VAT number alone does not override company-level tax settings. The most common failure is that merchants assume the VAT number field is smart enough to handle exemption automatically. It is not — it is purely a form field unless explicitly connected to exemption logic through Shopify Tax configuration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I enable EU VAT exemption for B2B buyers in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To enable automatic EU VAT exemption in Shopify for B2B buyers: Step 1 — ensure Shopify Tax is enabled: go to Admin → Settings → Taxes and duties. If you see a 'Switch to Shopify Tax' prompt, complete that migration first. Legacy Shopify tax does not support VIES validation or automatic VAT exemption. Step 2 — enable EU VAT collection: in Admin → Settings → Taxes and duties → scroll to 'European Union' or 'EU Taxes' → enable 'Collect EU VAT numbers.' This adds the VAT number field to your checkout for EU buyers. Step 3 — enable VIES validation: in the same EU Taxes section, enable 'Verify EU VAT numbers (VIES).' When enabled, Shopify will validate the entered number against the EU VIES database. A valid VAT number from a business registered in an EU country will trigger automatic VAT removal. Step 4 — for B2B company account buyers: go to Admin → Customers → Companies → [Company] → Tax settings and set the company as tax-exempt. This ensures the tax-exempt status carries through authenticated B2B sessions. Note: VIES validation only works for EU-registered VAT numbers. UK VAT numbers (post-Brexit) are not in the EU VIES database and require separate handling."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify VAT exemption not working for UK B2B buyers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "UK VAT numbers are not validated by EU VIES — the UK left the EU VAT area after Brexit (2021). As a result, Shopify's VIES-based automatic VAT exemption does not apply to UK VAT registration numbers (which start with 'GB'). For UK B2B sales, the applicable tax rule is VAT reverse charge: the UK buyer accounts for VAT themselves on their own VAT return rather than paying it to the seller. Shopify does not natively apply UK reverse charge logic automatically. There are two approaches: (1) For Shopify B2B company account buyers, manually set the company as tax-exempt in Admin → Customers → Companies → [Company] → Tax settings. This removes UK VAT from their checkout. You must manage the tax compliance documentation separately. (2) For non-company-account UK B2B buyers, use customer tags — tag the customer as 'tax-exempt' or a custom tag, then configure tax overrides in Admin → Settings → Taxes and duties → Tax overrides to apply zero-rate VAT to orders from tagged customers. This is a manual process — Shopify does not automatically validate UK VAT registration numbers or apply reverse charge. Merchants with significant UK B2B volume typically use a third-party tax app (Avalara, TaxJar, Taxamo) that handles UK reverse charge automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is VIES validation in Shopify and why does it sometimes fail to remove VAT?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "VIES (VAT Information Exchange System) is the EU's database for verifying business VAT registration numbers. When Shopify's VIES validation is enabled, it checks the number a buyer enters against this database in real time. A 'valid' result means the number exists in VIES — it does not mean the buyer is the correct owner of that number or that they are entitled to zero-rate VAT on this specific purchase. There are several reasons why VIES validation passes but VAT is still charged or removed incorrectly: (1) VIES service downtime — VIES has known reliability issues, especially for national VIES nodes in Germany, Italy, and Greece. When the VIES API is unavailable, Shopify cannot validate the number and falls back to charging standard VAT (to protect the seller from compliance risk). This is a transient failure — a buyer who couldn't get VAT removed may succeed if they try again later. (2) Shopify Tax not enabled — VIES validation only works within Shopify Tax. If you are still on legacy Shopify tax, the VIES check is not connected to any exemption logic even if the field appears at checkout. (3) Domestic VAT numbers — if a German buyer tries to get VAT removed on a purchase from a German seller, intra-country B2B VAT rules apply differently; VIES validation does not automatically mean zero-rate for domestic transactions. (4) Company account override — for authenticated B2B buyers, the company account's tax settings take precedence. If the company account has tax enabled, it may override the VIES-based exemption."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I mark a Shopify B2B company as tax-exempt?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To set a Shopify B2B company as tax-exempt: go to Admin → Customers → Companies → select the company → scroll to the 'Tax settings' section → check 'Collect tax' and set it to off (exempt). This marks the entire company as tax-exempt — all buyers logging in under this company account will have VAT removed from their checkout sessions automatically, without needing to enter a VAT number. This setting takes precedence over your store's general tax configuration for that company. Note: this is a company-account-level setting that applies only to buyers authenticated under that company. It does not affect guest checkouts or purchases made outside a company account session. For individual customers (not using company accounts), tax exemption is set per-customer: Admin → Customers → [Customer] → Tax settings → enable 'Collect tax' exemption. The B2B company tax-exempt path requires Shopify Plus with B2B company accounts active."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .country-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .country-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .country-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .country-table tr:nth-child(even) td { background: var(--surface); }
+    .country-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify B2B Tax &amp; EU Checkout Troubleshooting</div>
+      <h1>Shopify VAT Exemption Not Working — EU B2B VAT Number Entered But Tax Still Charged, VIES Validation, UK Reverse Charge</h1>
+      <p class="hero-sub">
+        EU and UK B2B buyers frequently enter their VAT registration number at Shopify checkout and find that tax is still being charged. The VAT number field is not connected to any exemption logic unless a specific 4-layer configuration stack is in place — and none of the layers issue any error when they are missing.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: EU/UK B2B stores, cross-border merchants, wholesale buyers with VAT registration</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>The VAT number field at Shopify checkout is not automatic.</strong> Entering a VAT number does not remove VAT unless Shopify Tax is enabled, VIES validation is turned on, and (for authenticated B2B buyers) the company account is marked tax-exempt. UK VAT numbers are not covered by EU VIES — UK reverse charge requires separate configuration or a third-party tax app.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>How Shopify B2B VAT Exemption Works — The Four-Layer Configuration Stack</h2>
+      <p class="section-intro">Shopify VAT exemption for B2B buyers is not a single toggle. It requires four distinct layers to all be correctly configured. Any single layer missing silently prevents tax removal — with no error in Shopify Admin or at checkout.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Layer 1 — Tax Engine</div>
+          <div class="arch-card-title">Shopify Tax Must Be Active</div>
+          <div class="arch-card-desc">The legacy Shopify tax system does not support VIES validation or automatic VAT exemption. You must be on Shopify Tax (the newer engine). Check: Admin → Settings → Taxes and duties. If you see a 'Migrate to Shopify Tax' option, the migration has not been completed.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 2 — EU VAT Collection</div>
+          <div class="arch-card-title">EU VAT Number Collection Enabled</div>
+          <div class="arch-card-desc">Admin → Settings → Taxes and duties → European Union → enable 'Collect EU VAT numbers.' This adds the VAT number input field to checkout for EU buyers. Without this, no VAT number field appears and no validation is possible.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 3 — VIES Validation</div>
+          <div class="arch-card-title">VIES Verification Switched On</div>
+          <div class="arch-card-desc">In the same EU Taxes section, enable 'Verify EU VAT numbers (VIES).' This connects the entered number to the EU VIES database in real time. A valid result triggers zero-rate VAT. Without VIES enabled, the field is cosmetic — it collects the number but takes no action on tax.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 4 — Company Account</div>
+          <div class="arch-card-title">B2B Company Marked Tax-Exempt</div>
+          <div class="arch-card-desc">For authenticated B2B buyers using Shopify Plus company accounts, the company must be explicitly set to tax-exempt: Admin → Customers → Companies → [Company] → Tax settings. Company-level tax settings override store-level VIES logic for authenticated sessions.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">UK Edge Case</div>
+          <div class="arch-card-title">UK VAT Numbers — Not Covered by VIES</div>
+          <div class="arch-card-desc">Post-Brexit, UK VAT numbers (GB prefix) are not in the EU VIES database. Shopify VIES validation returns 'invalid' for any UK number. UK B2B reverse charge must be handled via company-level tax exemption or a third-party tax app.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Common Gap</div>
+          <div class="arch-card-title">Legacy Tax = No Exemption</div>
+          <div class="arch-card-desc">Stores that set up EU taxes before Shopify Tax launched are typically on the legacy system. The VAT number field may appear (from a prior manual configuration) but is not connected to any exemption engine. The field looks functional but does nothing.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways Shopify VAT Exemption Breaks Without Any Checkout Error</h2>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>What Shopify Admin Shows</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>VAT number accepted but tax still charged</td>
+            <td>VIES validation not enabled; Shopify Tax not active; field collects number but takes no exemption action</td>
+            <td>No error; checkout completes with full VAT applied; order shows no VAT-exempt indicator</td>
+            <td><span class="badge badge-red">Critical</span> B2B buyer overpays by VAT rate (20-25%); demands invoice correction; trust loss</td>
+          </tr>
+          <tr>
+            <td>VIES validation enabled but VAT still applied</td>
+            <td>Legacy Shopify tax engine active instead of Shopify Tax; VIES setting exists but is not connected to exemption logic</td>
+            <td>VIES setting appears enabled in Admin; no indication that legacy engine is bypassing it</td>
+            <td><span class="badge badge-red">Critical</span> Appears configured correctly from Admin; failure invisible until buyer reports it</td>
+          </tr>
+          <tr>
+            <td>VIES times out — buyer charged at full rate</td>
+            <td>EU VIES database temporarily unavailable (known reliability issue for DE, IT, GR nodes); Shopify falls back to standard VAT to avoid compliance risk</td>
+            <td>No error logged in Admin; buyer checkout proceeds with VAT applied</td>
+            <td><span class="badge badge-amber">High</span> Transient — buyer can retry; but creates confusing experience for B2B buyers expecting zero-rate</td>
+          </tr>
+          <tr>
+            <td>UK buyer's VAT number rejected by VIES</td>
+            <td>UK left EU VAT area (Brexit 2021); GB-prefix VAT numbers not in VIES database; Shopify VIES returns invalid for all UK numbers</td>
+            <td>Checkout may show 'invalid VAT number' error for UK buyer; no guidance on why</td>
+            <td><span class="badge badge-red">Critical</span> UK B2B buyer cannot get zero-rate through normal VIES flow; checkout blocked or buyer charged incorrectly</td>
+          </tr>
+          <tr>
+            <td>Authenticated B2B company still taxed despite VIES</td>
+            <td>Company account tax settings not configured; company-level tax-exempt flag not set; company-level settings override store VIES logic</td>
+            <td>VIES appears functional for guest checkout; fails for company-account buyers without explicit exemption flag</td>
+            <td><span class="badge badge-amber">High</span> Authenticated B2B buyers — highest value customers — cannot get VAT removed</td>
+          </tr>
+          <tr>
+            <td>Intra-country B2B sale — VIES passes but tax still applies</td>
+            <td>VIES exemption applies to cross-border EU B2B sales; domestic (same-country) B2B transactions follow different rules; VIES valid ≠ zero-rate for domestic sales</td>
+            <td>VAT number validates in VIES; checkout still applies domestic VAT rate correctly (by design)</td>
+            <td><span class="badge badge-blue">Info</span> Not a Shopify bug; domestic B2B sales with VAT follow country-specific reverse charge rules not handled by VIES alone</td>
+          </tr>
+          <tr>
+            <td>VAT number field not appearing at checkout</td>
+            <td>'Collect EU VAT numbers' not enabled; Shopify Markets not configured for EU countries; buyer shipping address in non-EU country</td>
+            <td>Tax settings show EU tax configured; no indication that the field is suppressed</td>
+            <td><span class="badge badge-amber">High</span> B2B buyer cannot submit VAT number; forced to pay with VAT and request credit note post-purchase</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>5-Step EU VAT Exemption Diagnosis</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Confirm Shopify Tax (not legacy) is active</strong>
+            <span>Go to Admin → Settings → Taxes and duties. Look for a banner or prompt about Shopify Tax. If you see 'Switch to Shopify Tax' or 'Migrate tax service,' the migration has not been completed and you are running the legacy engine. Legacy Shopify tax does not support VIES validation or automated VAT exemption. Complete the Shopify Tax migration before configuring EU VAT exemption. After migration, all your existing tax settings are preserved but the exemption features become available.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Enable 'Collect EU VAT numbers' and 'Verify EU VAT numbers (VIES)'</strong>
+            <span>In Admin → Settings → Taxes and duties → scroll to the European Union section. Enable 'Collect EU VAT numbers' — this adds the VAT number input field at checkout for buyers with an EU shipping address. Then enable 'Verify EU VAT numbers (VIES)' — this connects the entered number to the EU VIES database and triggers zero-rate VAT on successful validation. Both must be enabled. Enabling collection without VIES means numbers are collected but not acted upon.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>For B2B company account buyers: set company as tax-exempt</strong>
+            <span>If your B2B buyers use Shopify Plus company accounts (authenticated sessions), go to Admin → Customers → Companies → [Company name] → scroll to Tax settings. Set 'Collect tax' to disabled (exempt) for this company. Company-level tax settings take precedence over store-level VIES configuration for authenticated buyers. If the company is set to 'collect tax' (taxable), VIES validation will not override it — the buyer will still be charged VAT even if their VIES number validates.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>For UK buyers: use company/customer tax-exempt flag or a third-party tax app</strong>
+            <span>UK VAT numbers (GB-prefix) are not in the EU VIES database and will fail VIES validation. For UK B2B buyers, VIES-based automatic exemption is not an option. Use one of two approaches: (1) For Shopify Plus company account buyers, mark their company as tax-exempt (same as step 3 above). (2) For non-company-account UK B2B buyers, tag their customer account (Admin → Customers → [Customer]) and create a tax override in Admin → Settings → Taxes and duties → Tax overrides applying 0% to the tag. Alternatively, use a third-party EU/UK tax app (Avalara, TaxJar, Taxamo) that natively handles UK VAT reverse charge rules.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Test the full flow from the buyer's perspective</strong>
+            <span>Open your store in an incognito window with a shipping address in Germany (or another EU country where your buyer is located). Add a product to cart, proceed to checkout, and verify: (a) the VAT number field appears at the payment step; (b) entering a valid German USt-IdNr (e.g., DE followed by 9 digits) clears VAT from the order total; (c) an invalid number returns an error and does not remove VAT. For B2B company account buyers, log in as a company buyer and verify the company's tax-exempt setting causes VAT to be absent from checkout entirely — without needing to enter a VAT number at all.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Three VAT Exemption Failure Modes in Detail</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A</div>
+        <h3>The Legacy Tax Trap — Why Your VIES Settings Appear Correct But Do Nothing</h3>
+        <p>This is the most common and confusing VAT exemption failure: merchants who set up EU taxes before Shopify Tax launched have VIES-looking settings in their Admin, but those settings are running on the legacy tax engine and have no effect. The legacy engine does not communicate with VIES — it accepts the number entered by the buyer, stores it in the order metadata, and then applies standard VAT rates regardless.</p>
+        <p>The confusion comes from the Admin UI, which looks nearly identical whether you are on Shopify Tax or the legacy engine. There is no persistent banner or status indicator on the Taxes and duties page showing which engine is active once you've passed through the initial migration prompt. Merchants who completed the setup years ago and assume they are on Shopify Tax may be on the legacy engine without knowing.</p>
+        <div class="mono-block">How to check which tax engine is active:
+Admin → Settings → Taxes and duties
+Look for: "Powered by Shopify Tax" label at top of page
+Or: "Upgrade to Shopify Tax" / "Migrate" prompt = still on legacy
+After confirming Shopify Tax: look for "European Union" section with VIES toggle
+Legacy engine: EU section exists but VIES has no exemption effect</div>
+        <p>The fix is completing the Shopify Tax migration. Shopify Tax uses the same tax rates as the legacy engine for standard transactions, so migrating typically does not change your existing tax rates — it adds the VIES-connected exemption capability on top. Always test a German or French shipping address in a separate browser after migration to confirm the VAT number field now removes tax.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B</div>
+        <h3>UK Reverse Charge — Why Shopify Cannot Handle It Automatically</h3>
+        <p>Since January 2021, the UK operates its own VAT system entirely outside EU rules. UK VAT registration numbers (format: GB followed by 9 digits) are maintained by HMRC, not the EU VIES system. When a UK B2B buyer (registered for VAT in the UK) purchases from an EU seller, the VAT reverse charge mechanism should apply: the buyer accounts for VAT on their own return rather than paying it to the seller. Shopify has no built-in support for this UK-specific reverse charge rule.</p>
+        <p>The practical result: UK buyers entering their VAT number at a Shopify checkout get a VIES 'invalid' response (because VIES doesn't know GB numbers exist) and are either shown an error or charged standard VAT. From the buyer's perspective, the checkout appears broken. From the compliance perspective, the seller is collecting VAT they may not be required to collect for a UK B2B transaction.</p>
+        <div class="mono-block">UK VAT number format: GB + 9 digits (e.g. GB123456789)
+VIES lookup result: always "invalid" (HMRC registry, not EU VIES)
+Shopify automatic exemption: not available for UK numbers
+Manual workarounds:
+  1. Shopify Plus company account → mark company tax-exempt manually
+  2. Customer tag + tax override → Admin → Settings → Taxes → Tax overrides
+  3. Third-party tax app (Avalara, TaxJar) → native UK reverse charge support</div>
+        <p>For merchants with significant UK B2B volume, a third-party tax app that integrates with HMRC's VAT API and understands UK reverse charge rules is the production-grade solution. Manual company-level exemptions work for a small, stable list of known UK buyers but do not scale and require the merchant to vet each VAT number independently.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C</div>
+        <h3>VIES Reliability — Why Valid VAT Numbers Sometimes Don't Remove Tax</h3>
+        <p>The EU VIES system is a federation of national VAT registries operated by each member state's tax authority. Shopify's VIES integration queries this federation in real time during checkout. When VIES is fully operational, a valid EU VAT number from a business registered in another EU country triggers zero-rate VAT on the Shopify order within seconds.</p>
+        <p>The problem: individual national VIES nodes have well-documented reliability issues. Germany's node (BZSt) has scheduled maintenance windows. Italy's node (Agenzia delle Entrate) has historically had availability around 95-97%, meaning roughly 1 in 30 lookups fails. Greece's node is frequently cited by EU tax professionals for its reliability gaps. When a national VIES node is down, all VAT numbers from that country return an error or time out.</p>
+        <div class="mono-block">VIES lookup result states:
+  "valid" → number confirmed; VAT removed from order
+  "invalid" → number not found; standard VAT applies
+  "unavailable" → national node down; Shopify applies standard VAT (safe fallback)
+  "error" / timeout → same safe fallback; VAT applied
+
+Countries with known VIES reliability issues:
+  Germany (DE) → BZSt maintenance windows
+  Italy (IT) → ~97% uptime; failures during peak periods
+  Greece (GR) → documented extended outages
+  Spain (ES) → occasional AEAT system maintenance
+
+Buyer workaround for VIES unavailability:
+  Try again in 30-60 minutes
+  If urgent: merchant marks order tax-exempt post-purchase via order edit</div>
+        <p>When a high-value B2B buyer is blocked by a VIES timeout, the correct short-term solution is to process the order with VAT applied and then correct it post-purchase: go to the order in Admin, use 'Edit order' to adjust the price, or issue a refund for the VAT amount separately. Document the buyer's VAT number in the order notes for your own compliance records. The buyer should receive a corrected invoice showing zero VAT for their own VAT accounting.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Country Reference</div>
+      <h2>EU + UK VAT Number Formats and Shopify Behavior (2026)</h2>
+      <p class="section-intro">Each EU country uses a different VAT number format and national VIES node. UK numbers require a separate handling approach post-Brexit.</p>
+
+      <table class="country-table">
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>VAT Number Name</th>
+            <th>Format</th>
+            <th>VIES Coverage</th>
+            <th>Shopify Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Germany 🇩🇪</td>
+            <td>Umsatzsteuer-ID (USt-IdNr.)</td>
+            <td>DE + 9 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates; auto-removes VAT on cross-border B2B. BZSt maintenance windows cause periodic timeouts.</td>
+          </tr>
+          <tr>
+            <td>France 🇫🇷</td>
+            <td>Numéro de TVA Intracommunautaire</td>
+            <td>FR + 2 chars + 9 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates reliably. Format check: second and third chars may be letters or digits.</td>
+          </tr>
+          <tr>
+            <td>Netherlands 🇳🇱</td>
+            <td>BTW-identificatienummer</td>
+            <td>NL + 9 digits + B + 2 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates. Note unique format with B02 suffix — buyers often enter without B suffix causing invalid result.</td>
+          </tr>
+          <tr>
+            <td>Belgium 🇧🇪</td>
+            <td>BTW-nummer / Numéro de TVA</td>
+            <td>BE + 10 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates. Old format (9 digits) still valid — buyer may enter old format; Shopify handles both.</td>
+          </tr>
+          <tr>
+            <td>Italy 🇮🇹</td>
+            <td>Partita IVA (P.IVA)</td>
+            <td>IT + 11 digits</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>VIES validates but node reliability ~97%. Buyers may encounter intermittent 'unavailable' during Agenzia delle Entrate peaks.</td>
+          </tr>
+          <tr>
+            <td>Spain 🇪🇸</td>
+            <td>NIF-IVA / CIF</td>
+            <td>ES + letter + 7 digits + char</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates. Non-resident EU traders may use NIF starting with N — different validation path.</td>
+          </tr>
+          <tr>
+            <td>Poland 🇵🇱</td>
+            <td>Numer Identyfikacji Podatkowej (NIP)</td>
+            <td>PL + 10 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates reliably. Polish buyers commonly enter without PL prefix — remind them to include it.</td>
+          </tr>
+          <tr>
+            <td>Sweden 🇸🇪</td>
+            <td>Momsregistreringsnummer</td>
+            <td>SE + 10 digits + 01</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates. Swedish company numbers end in 01 — buyers occasionally omit the suffix.</td>
+          </tr>
+          <tr>
+            <td>Austria 🇦🇹</td>
+            <td>Umsatzsteuer-Identifikationsnummer (UID)</td>
+            <td>AT + U + 8 digits</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>VIES validates. The U before the digits is required — buyers frequently omit it.</td>
+          </tr>
+          <tr>
+            <td>Greece 🇬🇷</td>
+            <td>Αριθμός Φορολογικού Μητρώου (ΑΦΜ)</td>
+            <td>EL + 9 digits</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>VIES node has documented reliability issues and extended outages. High rate of 'unavailable' responses. Buyers may need to try multiple times.</td>
+          </tr>
+          <tr>
+            <td>UK 🇬🇧</td>
+            <td>VAT Registration Number</td>
+            <td>GB + 9 digits</td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Not in EU VIES (post-Brexit). Always returns invalid. Must use company-level tax exemption or third-party tax app for UK reverse charge.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>B2B Tax and International Checkout Problems</h2>
+      <p class="section-intro">VAT exemption failures often overlap with or are confused with these related Shopify checkout issues.</p>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="./shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">B2B Checkout Not Working — Company Accounts, Price Lists, Draft Order Errors</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-tax-error">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Shopify Checkout Tax Error — Wrong Tax Rate, Tax Not Calculated, Tax Override Fails</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-international">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">International Checkout Errors — Shopify Markets Not Working, Currency, Localization</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-b2b-net-terms">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">B2B Net Terms Not Working — Net 30/60/90 Not Showing, Invoice Not Generated</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-localization-error">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Localization Error — Wrong Language, Phone Format, Postal Code Validation Fails</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-local-payment-methods">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Local Payment Methods — iDEAL, Bancontact, OXXO Not Showing at Checkout</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify VAT Exemption — Common Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify still charging VAT after a customer enters their VAT number?</div>
+          <div class="faq-a">Entering a VAT number does not automatically remove VAT. The field requires all four layers of configuration to be active: (1) Shopify Tax engine (not legacy), (2) 'Collect EU VAT numbers' enabled in Admin → Settings → Taxes → EU section, (3) 'Verify EU VAT numbers (VIES)' enabled, (4) for B2B company account buyers — company marked tax-exempt in company settings. If any one of these is missing, VAT is applied regardless of the number entered. The most common gap is being on the legacy tax engine — check Admin → Settings → Taxes and duties for a Shopify Tax migration prompt.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I enable EU VAT exemption for B2B buyers in Shopify?</div>
+          <div class="faq-a">Step 1: ensure Shopify Tax is active (Admin → Settings → Taxes — no migration prompt should appear). Step 2: enable 'Collect EU VAT numbers' in the European Union section. Step 3: enable 'Verify EU VAT numbers (VIES).' Step 4: for B2B company account buyers, go to Admin → Customers → Companies → [Company] → Tax settings → set to tax-exempt. Test with a real EU shipping address and a valid VAT number from that country (e.g., a German DE + 9 digits number).</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify VAT exemption not working for UK B2B buyers?</div>
+          <div class="faq-a">UK VAT numbers (GB prefix) are not in the EU VIES database. Since Brexit (January 2021), the UK operates its own VAT system through HMRC. Shopify's EU VIES integration returns 'invalid' for all UK numbers — this is expected behavior, not a bug. For UK B2B buyers, use company-level tax exemption (Admin → Customers → Companies → [Company] → Tax settings → exempt) or customer-tag-based tax overrides. Merchants with significant UK B2B volume should use a third-party tax app that natively handles UK reverse charge.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What is VIES validation in Shopify and why does it sometimes fail to remove VAT?</div>
+          <div class="faq-a">VIES (VAT Information Exchange System) is the EU's federated VAT number database. When Shopify's VIES validation is on, it queries this database in real time. 'Valid' means the number exists — it triggers zero-rate VAT. 'Unavailable' means the national VIES node is temporarily down — Shopify falls back to standard VAT for compliance safety. Known reliability issues: Germany (BZSt maintenance windows), Italy (~97% uptime), Greece (extended outages). A buyer who can't get VAT removed should retry 30-60 minutes later. As a short-term fix, merchants can manually mark the order tax-exempt post-purchase and issue a corrected invoice.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I mark a Shopify B2B company as tax-exempt?</div>
+          <div class="faq-a">Admin → Customers → Companies → select the company → Tax settings → set 'Collect tax' to disabled (exempt). This applies to all buyers authenticated under that company account — they will have VAT removed from checkout without needing to enter a VAT number. For individual customers without a company account, tax exemption is set per-customer: Admin → Customers → [Customer] → Tax settings → exempt. Company-level exemption requires Shopify Plus with B2B company accounts enabled.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify B2B Checkout VAT Configuration Working Right Now?</h2>
+      <p>VAT exemption failures are silent — B2B buyers are charged incorrectly, dispute invoices, and lose trust before you know anything is wrong. CheckPulse monitors your checkout continuously and alerts you the moment the payment flow breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+    </div>
+
+  </div><!-- /.container -->
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="./free-check">Free Store Check</a>
+        <a href="./guide">Monitoring Guide</a>
+        <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+        <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+        <a href="./shopify-checkout-error-codes">Error Codes</a>
+        <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+        <a href="./shopify-checkout-speed-test">Speed Test</a>
+        <a href="./shopify-checkout-cro">Checkout CRO</a>
+        <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+        <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+        <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+        <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+        <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+        <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="./shopify-checkout-digital-products">Digital Products</a>
+        <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+        <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+        <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+        <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+        <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+        <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+        <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+        <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+        <a href="./shopify-checkout-store-credit">Store Credit</a>
+        <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+        <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+        <a href="./shopify-checkout-age-verification">Age Verification</a>
+        <a href="./shopify-checkout-product-customization">Product Customization</a>
+        <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+        <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+        <a href="./shopify-checkout-memberships">Memberships</a>
+        <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+        <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+        <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="./shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

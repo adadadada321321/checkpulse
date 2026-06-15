@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Affiliate Code Not Working at Checkout — Referral Discount Not Applying, Ambassador Code Fails, Attribution Lost (2026)</title>
+  <meta name="description" content="Shopify affiliate code not working, referral discount not applying at checkout, ambassador code says invalid — complete guide to why Shopify affiliate and referral codes fail. Covers Refersion, UpPromote, ReferralCandy, Smile.io, cookie tracking loss, and the one-discount-code limit." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-affiliate-referral-code" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-affiliate-referral-code" />
+  <meta property="og:title" content="Shopify Affiliate Code Not Working at Checkout — Referral Discount Not Applying" />
+  <meta property="og:description" content="Shopify has no native affiliate or referral system. Every affiliate code and referral discount is a third-party app layered on top of Shopify's discount code engine. Most merchants try to fix these failures in Shopify Admin — but the real problem is almost always in the app." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Affiliate Code Not Working at Checkout — Referral Discount Not Applying, Ambassador Code Fails, Attribution Lost",
+    "description": "Shopify has no native affiliate or referral system. Every affiliate code, referral discount code, and ambassador promo code is created and managed by a third-party app (Refersion, UpPromote, ReferralCandy, Smile.io, GoAffPro) running on top of Shopify's native discount code engine. This means affiliate and referral failures are discount code failures in disguise — PLUS a layer of app-specific tracking failures on top. This guide covers: the three-system architecture (affiliate attribution vs referral discount vs ambassador hybrid), 8-row failure matrix, the cookie death problem, the single-use code re-use leak, the Shopify one-discount-code limit, a 6-step diagnosis checklist, and a 6-app comparison table.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-affiliate-referral-code",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify referral code not working at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reason a Shopify referral code fails at checkout is that it was issued as a single-use discount code tied to a specific customer email, and the customer entering it is not the intended recipient — or the code has already been redeemed. Referral apps like ReferralCandy, Smile.io referrals, and Yotpo referrals generate a unique discount code and send it to the new customer (the referee) via email. That code is typically single-use. If the referring customer shared the code on a coupon site, or if a friend forwarded the email, all subsequent attempts after the first redemption will fail with 'discount code has already been used.' To diagnose: go to Shopify Admin → Discounts, find the specific referral code, and check the 'Times used' counter and any customer email restrictions. If the code was already used once, you'll see it there. For codes that fail immediately before any use, check the customer eligibility settings — many referral apps restrict codes to new customers only (first-time buyers), so returning customers see an 'invalid' error even if they never used that specific code before."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why isn't my Shopify affiliate tracking working at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify affiliate tracking failures at checkout are almost always caused by cookie loss between the affiliate link click and the checkout completion. Modern affiliate apps (Refersion, UpPromote, GoAffPro) track attribution by writing a cookie when the customer clicks the affiliate link. If the customer clicks the link, adds items to their cart, closes the browser, and returns later — or switches from mobile to desktop — the tracking cookie is gone and the affiliate receives no commission credit, even though the customer completed the purchase. This is not a Shopify problem; it is a browser privacy feature. Safari's ITP (Intelligent Tracking Prevention) caps cookies from third-party scripts at 7 days and deletes them aggressively. Firefox blocks many tracking cookies by default. To investigate a specific missed attribution: open your affiliate app dashboard, search for the affiliate's link clicks and conversions around the order date, and compare the order's Shopify traffic source data (Analytics → Sessions by referrer). If the session shows a direct visit with no referrer, the cookie was lost. Solutions: switch to a code-based affiliate system (affiliate gets a custom discount code, not just a tracking link) — code-based attribution survives cookie clearing and cross-device journeys."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a referral discount code be combined with another discount code at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On standard Shopify plans (Basic, Shopify, Advanced), only one discount code can be applied per checkout. This is a hard platform limit, not a setting you can change. If a customer has a referral discount code and also wants to apply a sale or promotional discount code, one of them will fail. The referral code is usually entered first (customers follow the email instructions), and then the promotional code 'does not work.' From the customer's perspective, the checkout is broken. From the merchant's perspective, the referral app worked correctly — it's Shopify's one-code limit causing the friction. Shopify Plus merchants can combine multiple discount codes using the Discount Combine setting in Admin → Discounts. They can also use Shopify Scripts to create custom combination logic. For standard plan merchants, the only workarounds are: (1) train your referral app to issue a code that includes the sale discount already baked in, (2) use automatic discounts instead of code-based promotions for store-wide sales so they don't count against the one-code limit, or (3) communicate clearly in your referral emails that a referral code cannot be stacked with other promo codes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my influencer promo code say 'code has already been used' even though I just issued it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When an influencer's promo code shows 'already been used' quickly after you issued it, the most likely cause is that the code was shared publicly (Instagram story, YouTube description, TikTok bio) and one of the influencer's followers — or a coupon site scraper — redeemed it before your intended recipient. Coupon extension users (Honey, Capital One Shopping, RetailMeNot browser extension) scan influencer promo codes from public posts and surface them to all users at checkout. If your influencer code is a single-use code (usage limit = 1), the first person to use it burns it for everyone else. Solutions: (1) Set the usage limit to a higher number — if the influencer has 10,000 followers, limit the code to 500 uses rather than 1. (2) Add a customer eligibility restriction — restrict the code to new customers only, which limits coupon-site abuse. (3) Create a unique code per influencer with a usage limit matching your expected conversion volume. Never set influencer codes to single-use unless it's a private affiliate link for one specific person."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test my Shopify affiliate or referral program end-to-end?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Run these four test scenarios to verify your affiliate and referral setup works before a campaign goes live: (1) Affiliate cookie tracking test: Click your own affiliate link in an incognito window. Add items to the cart. Complete the checkout in the same session. Verify the order appears attributed to the affiliate in your affiliate app dashboard within 15 minutes. (2) Cookie loss simulation: Click the affiliate link, add items to cart, close the incognito window, open a new incognito window, navigate directly to your store URL (not the affiliate link), and complete the checkout. Verify what appears in your affiliate app — this simulates cross-session attribution loss. (3) Referral code test: Issue a test referral code from your referral app, copy the code, open an incognito window, go to checkout as a new customer, enter the code, and verify the discount applies correctly. Complete the order and verify the referrer gets credit in the app. (4) Code stacking conflict test: Apply your referral code at checkout, then try to apply a second promotional code. Verify the expected behavior — on standard plans, the second code should fail with a clear error message (not silently drop). If either code silently disappears, your checkout has an undetected failure mode that will generate support tickets."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    /* NAV */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,10,0.95);
+      backdrop-filter: blur(8px);
+    }
+    nav .inner { max-width: 860px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 16px; }
+    nav .logo { font-weight: 700; font-size: 15px; color: var(--amber); letter-spacing: -0.02em; }
+    nav .logo span { color: var(--text-dim); font-weight: 400; }
+    nav .nav-links { margin-left: auto; display: flex; gap: 20px; }
+    nav .nav-links a { font-size: 13px; color: var(--text-dim); }
+    nav .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 64px 0 48px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      background: rgba(249,115,22,0.08);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    .hero h1 em { color: var(--amber); font-style: normal; }
+    .hero-sub {
+      font-size: 17px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      max-width: 700px;
+      margin-bottom: 32px;
+    }
+    .hero-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+    .hero-meta-item { font-size: 12px; color: var(--text-dim); }
+    .hero-meta-item strong { color: var(--text); }
+
+    /* SECTION */
+    .section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: clamp(18px, 2.5vw, 24px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    p { color: var(--text-secondary); margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* THREE-ARCH GRID */
+    .three-arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    @media (max-width: 700px) { .three-arch-grid { grid-template-columns: 1fr; } }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .arch-card.affiliate { border-top: 3px solid var(--blue); }
+    .arch-card.referral { border-top: 3px solid var(--green); }
+    .arch-card.ambassador { border-top: 3px solid var(--orange); }
+    .arch-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .arch-title.affiliate { color: var(--blue); }
+    .arch-title.referral { color: var(--green); }
+    .arch-title.ambassador { color: var(--orange); }
+    .arch-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .arch-row:last-child { border-bottom: none; }
+    .arch-key { color: var(--text-dim); }
+    .arch-val { color: var(--text); font-weight: 500; text-align: right; }
+    .arch-val.yes { color: var(--green); }
+    .arch-val.no { color: var(--red); }
+    .arch-val.depends { color: var(--amber); }
+
+    /* FAILURE TABLE */
+    .failure-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 14px; }
+    .failure-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-mid);
+      padding: 8px 12px;
+    }
+    .failure-table td {
+      vertical-align: top;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .failure-table tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .badge-red { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+    .badge-amber { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+    .badge-blue { background: rgba(59,130,246,0.12); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+    .badge-green { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+    .badge-orange { background: rgba(249,115,22,0.12); color: var(--orange); border: 1px solid rgba(249,115,22,0.25); }
+
+    /* SILENT FAILURE BLOCKS */
+    .failure-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 8px;
+      padding: 28px;
+      margin-top: 24px;
+    }
+    .failure-block + .failure-block { margin-top: 16px; }
+    .failure-block-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .failure-block h3 { margin-bottom: 12px; }
+    .failure-block p { margin-bottom: 10px; }
+
+    /* APP COMPARISON TABLE */
+    .app-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 13px; }
+    .app-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-mid);
+      padding: 8px 10px;
+    }
+    .app-table td {
+      vertical-align: top;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+    .app-table tr:last-child td { border-bottom: none; }
+    .val-yes { color: var(--green); font-weight: 600; }
+    .val-no { color: var(--red); font-weight: 600; }
+    .val-dep { color: var(--amber); font-weight: 600; }
+
+    /* DIAGNOSIS CHECKLIST */
+    .check-list { list-style: none; margin-top: 24px; }
+    .check-list li {
+      display: flex;
+      gap: 16px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .check-list li:last-child { border-bottom: none; }
+    .check-num {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      background: rgba(249,115,22,0.1);
+      border: 1px solid rgba(249,115,22,0.25);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--orange);
+    }
+    .check-body strong { display: block; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+    .check-body span { color: var(--text-secondary); font-size: 14px; }
+
+    /* CLUSTER GRID */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+    @media (max-width: 640px) { .cluster-grid { grid-template-columns: 1fr 1fr; } }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .cluster-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--amber);
+      border-radius: 8px;
+      padding: 40px 32px;
+      margin: 48px 0;
+      text-align: center;
+    }
+    .cta-block h2 { margin-bottom: 12px; }
+    .cta-block p { max-width: 560px; margin: 0 auto 24px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+    @media (max-width: 700px) { .guide-grid { grid-template-columns: 1fr 1fr; } }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    /* FAQ */
+    .faq { margin-top: 24px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    .faq-a { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    footer p { font-size: 13px; color: var(--text-dim); margin: 0; }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); text-decoration: none; }
+
+    /* INSIGHT BOX */
+    .insight-box {
+      background: rgba(249,115,22,0.06);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-top: 24px;
+    }
+    .insight-box-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 8px;
+    }
+    .insight-box p { color: var(--text-secondary); font-size: 14px; margin: 0; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="logo">Check<span>Pulse</span></a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Codes</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards">Loyalty</a>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-label">Discount Code Cluster</div>
+    <h1>Shopify <em>Affiliate Code Not Working</em> at Checkout — Referral Discount Not Applying, Ambassador Code Fails</h1>
+    <p class="hero-sub">Shopify has no native affiliate or referral system. Every affiliate code, referral discount, and ambassador promo code is a third-party app layered on top of Shopify's discount code engine — which means failures are discount code failures in disguise, plus a layer of app-specific tracking failures on top. Most merchants try to fix the problem in Shopify Admin and find nothing wrong.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><strong>Covers</strong> Refersion · UpPromote · ReferralCandy · Smile.io · GoAffPro · Yotpo</div>
+      <div class="hero-meta-item"><strong>Failure modes</strong> 8 documented</div>
+      <div class="hero-meta-item"><strong>Updated</strong> June 2026</div>
+    </div>
+  </section>
+
+  <!-- SECTION 1: THREE-SYSTEM ARCHITECTURE -->
+  <section class="section">
+    <div class="section-label">System Architecture</div>
+    <h2>Three Different Systems Merchants Call "Affiliate Code" — Each Fails Differently</h2>
+    <p>The most common debugging mistake: treating affiliate codes, referral codes, and ambassador codes as the same thing. They are three distinct systems with different failure modes. Diagnosing the wrong one wastes an hour.</p>
+
+    <div class="insight-box">
+      <div class="insight-box-label">The core misunderstanding</div>
+      <p>Shopify Admin → Discounts shows every discount code — but affiliate attribution tracking is NOT a discount code. A customer can complete a checkout that correctly attributes a sale to an affiliate without any discount code being applied at all. Conversely, a referral discount code can be applied at checkout without any affiliate tracking firing. They are separate systems that happen to sound similar.</p>
+    </div>
+
+    <div class="three-arch-grid">
+      <div class="arch-card affiliate">
+        <div class="arch-title affiliate">Affiliate / Tracking Link</div>
+        <div class="arch-row"><span class="arch-key">Purpose</span><span class="arch-val">Track who drove the sale (commission)</span></div>
+        <div class="arch-row"><span class="arch-key">Mechanism</span><span class="arch-val">UTM parameter → cookie</span></div>
+        <div class="arch-row"><span class="arch-key">Customer discount</span><span class="arch-val no">Usually none</span></div>
+        <div class="arch-row"><span class="arch-key">In Shopify Discounts?</span><span class="arch-val no">No</span></div>
+        <div class="arch-row"><span class="arch-key">Survives cookie clear</span><span class="arch-val no">No</span></div>
+        <div class="arch-row"><span class="arch-key">Cross-device</span><span class="arch-val no">No (cookie-based)</span></div>
+        <div class="arch-row"><span class="arch-key">Apps</span><span class="arch-val">Refersion, GoAffPro, UpPromote</span></div>
+      </div>
+      <div class="arch-card referral">
+        <div class="arch-title referral">Referral Discount Code</div>
+        <div class="arch-row"><span class="arch-key">Purpose</span><span class="arch-val">Give new customer a discount for signing up via friend</span></div>
+        <div class="arch-row"><span class="arch-key">Mechanism</span><span class="arch-val">Unique discount code emailed to referee</span></div>
+        <div class="arch-row"><span class="arch-key">Customer discount</span><span class="arch-val yes">Yes (10%, $10 off, etc.)</span></div>
+        <div class="arch-row"><span class="arch-key">In Shopify Discounts?</span><span class="arch-val yes">Yes — one code per referee</span></div>
+        <div class="arch-row"><span class="arch-key">Survives cookie clear</span><span class="arch-val yes">Yes (code in email)</span></div>
+        <div class="arch-row"><span class="arch-key">Cross-device</span><span class="arch-val yes">Yes</span></div>
+        <div class="arch-row"><span class="arch-key">Apps</span><span class="arch-val">ReferralCandy, Smile.io, Yotpo</span></div>
+      </div>
+      <div class="arch-card ambassador">
+        <div class="arch-title ambassador">Ambassador / Influencer Code</div>
+        <div class="arch-row"><span class="arch-key">Purpose</span><span class="arch-val">Customer discount + ambassador commission (both)</span></div>
+        <div class="arch-row"><span class="arch-key">Mechanism</span><span class="arch-val">Shared discount code + attribution tracking</span></div>
+        <div class="arch-row"><span class="arch-key">Customer discount</span><span class="arch-val yes">Yes (shared publicly)</span></div>
+        <div class="arch-row"><span class="arch-key">In Shopify Discounts?</span><span class="arch-val yes">Yes — multi-use</span></div>
+        <div class="arch-row"><span class="arch-key">Survives cookie clear</span><span class="arch-val yes">Yes (code-based)</span></div>
+        <div class="arch-row"><span class="arch-key">Cross-device</span><span class="arch-val yes">Yes</span></div>
+        <div class="arch-row"><span class="arch-key">Apps</span><span class="arch-val">UpPromote, Refersion, GoAffPro</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: FAILURE MATRIX -->
+  <section class="section">
+    <div class="section-label">Failure Matrix</div>
+    <h2>8 Affiliate and Referral Code Failures at Shopify Checkout</h2>
+    <p>Each failure has a distinct symptom, cause, and fix. The type of code (affiliate/referral/ambassador) determines which rows are relevant to your situation.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Cause</th>
+          <th>Applies to</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Referral code says "discount code isn't valid"</td>
+          <td>Code is single-use and was already redeemed by a different customer who received or found the code</td>
+          <td><span class="badge badge-green">Referral</span></td>
+          <td>Check Admin → Discounts → code → Times used. If used = 1 and your customer hasn't used it, the code was burned by someone else. Issue a new code directly to the customer.</td>
+        </tr>
+        <tr>
+          <td>Affiliate link clicked but no commission in dashboard</td>
+          <td>Tracking cookie was cleared between click and checkout (different browser session, cross-device, Safari ITP)</td>
+          <td><span class="badge badge-blue">Affiliate</span></td>
+          <td>Switch to code-based affiliate tracking so attribution persists regardless of cookies. For lost commissions: check Shopify Analytics → Sessions by referrer for that order's date — if it shows direct traffic, the cookie was lost.</td>
+        </tr>
+        <tr>
+          <td>Referral code works, promo code doesn't (or vice versa)</td>
+          <td>Standard Shopify plans allow only one discount code per checkout. Two codes = one fails.</td>
+          <td><span class="badge badge-green">Referral</span> <span class="badge badge-orange">Ambassador</span></td>
+          <td>Use automatic discounts for store-wide sales (they apply without a code, don't count against the limit). Or upgrade to Shopify Plus and enable Discount Combine settings.</td>
+        </tr>
+        <tr>
+          <td>Influencer code says "already used" immediately after launch</td>
+          <td>Code was set to single-use; a coupon site scraper or Honey user burned it on first redemption</td>
+          <td><span class="badge badge-orange">Ambassador</span></td>
+          <td>Set usage limits proportional to audience size (not 1). Add new-customer-only restriction to limit scraper abuse. Never set a publicly shared influencer code to single-use.</td>
+        </tr>
+        <tr>
+          <td>Ambassador code works but no commission tracked</td>
+          <td>The affiliate app's tracking script didn't fire — ad blocker, cookie blocker, or script load failure</td>
+          <td><span class="badge badge-orange">Ambassador</span></td>
+          <td>Open your affiliate app dashboard and check the order. If the order exists in Shopify but not the affiliate app, the tracking script failed. Contact the affiliate app's support — most have a manual order attribution tool in the dashboard.</td>
+        </tr>
+        <tr>
+          <td>Referral code not working for returning customer</td>
+          <td>Referral app issued a "new customer only" code; returning customers are ineligible even if they never used the specific referral code before</td>
+          <td><span class="badge badge-green">Referral</span></td>
+          <td>In Admin → Discounts → [referral code] → Customer eligibility, check if it's restricted to "Specific customer segments" or "New customers." If the customer is returning, the code is working as intended — your customer service team needs this documented.</td>
+        </tr>
+        <tr>
+          <td>Affiliate tracking correct but customer discount not applied</td>
+          <td>Affiliate link drives tracking (cookie) only — no discount code was attached to the link. These are two separate systems.</td>
+          <td><span class="badge badge-blue">Affiliate</span></td>
+          <td>Affiliate tracking and customer discounts are independent. If you want customers to also receive a discount when clicking an affiliate link, configure a dedicated discount code for each affiliate and have them share the code (not just the tracking link).</td>
+        </tr>
+        <tr>
+          <td>Referral code applies but discount amount is wrong</td>
+          <td>Code was generated under an old referral program configuration with a different discount value; the customer received the code after the program terms changed</td>
+          <td><span class="badge badge-green">Referral</span></td>
+          <td>Look up the specific code in Admin → Discounts and check the discount amount configured at code creation time. Referral apps lock the discount into the code at generation time — changing the referral program settings only affects new codes issued after the change, not existing ones.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION 3: THREE SILENT FAILURES -->
+  <section class="section">
+    <div class="section-label">Silent Failure Deep Dives</div>
+    <h2>Three Failures That Never Generate an Error Message</h2>
+    <p>These failures generate support tickets — not error logs. By the time you investigate, the customer has already paid full price or abandoned the checkout entirely.</p>
+
+    <div class="failure-block">
+      <div class="failure-block-label">Silent Failure 1</div>
+      <h3>The Cookie Death Problem — Affiliate Attribution Lost Between Sessions</h3>
+      <p>Most affiliate tracking apps write a first-party cookie when the affiliate link is clicked. If the customer completes the purchase in the same browser session, the attribution is captured correctly. But if the customer clicks the link on mobile, later completes the purchase on desktop (or even just reopens the browser the next day), the tracking cookie may be gone — and the affiliate receives no commission credit.</p>
+      <p>Safari's Intelligent Tracking Prevention (ITP) caps first-party cookies set by JavaScript at 7 days and aggressively partitions third-party cookies. On iOS and macOS Safari, any affiliate cookie older than 7 days — or any cookie set by a cross-site request — is deleted. Firefox Enhanced Tracking Protection does similar. Chrome's Privacy Sandbox changes (post-third-party cookie deprecation) have made this worse for many affiliate setups.</p>
+      <p>The failure is completely silent: the customer sees no error, the merchant sees a completed order with a "direct" traffic source, and the affiliate sees their dashboard showing a click that never converted — even though it did. The fix is migrating to code-based affiliate tracking: each affiliate gets a custom shared discount code (SARAH15, MIKE10). The code enters the checkout URL and survives any browser, any device, any session. Commission is attributed when the code is used at checkout, not when a cookie fires.</p>
+    </div>
+
+    <div class="failure-block">
+      <div class="failure-block-label">Silent Failure 2</div>
+      <h3>The Single-Use Referral Code Leak — One Burned Code Blocks All Future Customers</h3>
+      <p>Referral apps generate a unique discount code for each new customer a referrer sends. That code is emailed to the new customer (the referee) and is typically set to single-use. This model has a structural exploit: the code is often delivered in a plain-text email that the recipient can forward, screenshot, or paste into a coupon community forum without realizing it invalidates the code for everyone else.</p>
+      <p>Coupon browser extensions (Honey, Capital One Shopping, RetailMeNot, PayPal Honey) automatically harvest referral codes from public forums and email screenshots and apply them to checkouts across all users. The first person to use the code via a coupon extension burns it. Every subsequent use returns "This discount code isn't valid" or "This discount has already been used." The original referee is left confused — they received a code, they're trying to use it, and it says it's already been used when they've never used it before.</p>
+      <p>To mitigate: set referral codes to a usage limit of 2-3 (one buffer above the intended use) so the original recipient still gets to use it even if a scraper burns the first use. Add a "new customer only" restriction — most coupon extension users are existing customers browsing non-incognito, so the restriction blocks the most common scraper profile. For high-value referral codes ($25+), consider one-time-use codes delivered via SMS rather than email to reduce the interception surface.</p>
+    </div>
+
+    <div class="failure-block">
+      <div class="failure-block-label">Silent Failure 3</div>
+      <h3>The One-Code Limit — Referral Code Silently Blocks Every Other Promotion</h3>
+      <p>Standard Shopify plans (Basic, Shopify, Advanced) enforce a hard limit of one discount code per checkout. This limit is platform-level — no app or theme setting can override it on standard plans. When a customer applies a referral code and then tries to apply a sale discount code, one of them is rejected. The rejection is usually a soft inline message ("This discount can't be combined with other discounts") that customers interpret as a checkout error rather than a deliberate restriction.</p>
+      <p>The support ticket pattern: "Your checkout is broken. I had a discount but it wouldn't let me apply a sale code." Most merchants investigate Shopify Admin, find both codes are valid and active, and can't reproduce the problem — because they test each code separately and both work fine in isolation. The conflict only appears when a customer has both at the same time.</p>
+      <p>The most common occurrence: a store-wide 20% off sale is running. A customer was referred by a friend last week and received a $15 off referral code. They add both to checkout. Whichever they entered first stays; whichever they entered second is rejected. They assume the store is broken and may abandon rather than complete at a reduced discount. Shopify Plus merchants can enable Discount Combine in Admin → Discounts and allow codes to stack. Standard plan merchants must use automatic discounts for sitewide promotions — automatic discounts apply without entering a code and do not count against the one-code limit.</p>
+    </div>
+  </section>
+
+  <!-- SECTION 4: APP COMPARISON TABLE -->
+  <section class="section">
+    <div class="section-label">App Comparison</div>
+    <h2>Affiliate and Referral App Checkout Behavior — Six Apps Compared</h2>
+    <p>The failure mode you encounter depends heavily on which app you're using and how it integrates with Shopify's checkout. This table maps the key checkout-relevant behaviors.</p>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>App</th>
+          <th>Tracking method</th>
+          <th>Cookie duration</th>
+          <th>Cross-device</th>
+          <th>In Shopify Discounts?</th>
+          <th>Code or link?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Refersion</td>
+          <td>Cookie + optional code</td>
+          <td>30 days (configurable)</td>
+          <td class="val-dep">Partial (code only)</td>
+          <td class="val-dep">Only if code-based</td>
+          <td>Both — use codes for reliability</td>
+        </tr>
+        <tr>
+          <td>UpPromote</td>
+          <td>Cookie + coupon code</td>
+          <td>30 days default</td>
+          <td class="val-dep">Partial (code only)</td>
+          <td class="val-yes">Yes (coupon codes)</td>
+          <td>Both — code recommended</td>
+        </tr>
+        <tr>
+          <td>ReferralCandy</td>
+          <td>Unique code per referee</td>
+          <td>N/A (code-based)</td>
+          <td class="val-yes">Yes</td>
+          <td class="val-yes">Yes — one code per invite</td>
+          <td>Code (emailed to referee)</td>
+        </tr>
+        <tr>
+          <td>Smile.io Referrals</td>
+          <td>Unique code per referee</td>
+          <td>N/A (code-based)</td>
+          <td class="val-yes">Yes</td>
+          <td class="val-yes">Yes — integrated with loyalty</td>
+          <td>Code (via Smile dashboard/email)</td>
+        </tr>
+        <tr>
+          <td>GoAffPro</td>
+          <td>Cookie + custom domain</td>
+          <td>90 days default</td>
+          <td class="val-no">No (cookie only)</td>
+          <td class="val-dep">Only if code configured</td>
+          <td>Link-first; code optional</td>
+        </tr>
+        <tr>
+          <td>Yotpo Referrals</td>
+          <td>Unique code per referee</td>
+          <td>N/A (code-based)</td>
+          <td class="val-yes">Yes</td>
+          <td class="val-yes">Yes — part of Yotpo loyalty stack</td>
+          <td>Code (tied to Yotpo account)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION 5: DIAGNOSIS CHECKLIST -->
+  <section class="section">
+    <div class="section-label">Diagnosis Checklist</div>
+    <h2>6-Step Affiliate and Referral Code Diagnosis</h2>
+    <p>Start at Step 1 and stop as soon as you find the cause. Skipping to Step 4 before completing Step 1 is the most common time-wasting mistake.</p>
+
+    <ul class="check-list">
+      <li>
+        <div class="check-num">1</div>
+        <div class="check-body">
+          <strong>Identify what type of code or tracking is failing</strong>
+          <span>Ask: is the customer reporting a discount code that won't apply (referral/ambassador), or an affiliate reporting that a sale they drove isn't showing in their dashboard (affiliate tracking)? These are different systems with different fixes. Do not investigate discount codes when the problem is tracking attribution, and vice versa.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">2</div>
+        <div class="check-body">
+          <strong>For discount code failures: check the code in Shopify Admin → Discounts</strong>
+          <span>Search for the exact code string. Check: Times used counter, Active dates (start and end), Usage limits (total uses, per customer), Customer eligibility (all customers vs specific segments vs new customers only), and Minimum purchase requirements. One of these fields almost always contains the answer.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">3</div>
+        <div class="check-body">
+          <strong>Check for the one-discount-code conflict</strong>
+          <span>Ask the customer: did you try to apply a second discount code at the same checkout? If yes, this is the one-code limit — not a bug. On standard plans, only one code per checkout. Confirm by asking what happened: if the referral code applied fine when entered alone but "stopped working" when they entered a second code, this is the cause.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">4</div>
+        <div class="check-body">
+          <strong>For affiliate tracking failures: check your affiliate app dashboard</strong>
+          <span>Find the order in your affiliate app dashboard. If the order appears there but is unattributed (no affiliate linked), look at the traffic source in Shopify Analytics → Orders → [order] → Sessions. "Direct" traffic source with no referrer strongly suggests cookie loss. If the order doesn't appear in the affiliate app dashboard at all, the tracking script didn't fire — check for script blockers or app theme integration issues.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">5</div>
+        <div class="check-body">
+          <strong>Check for coupon site code burn (for influencer / high-value referral codes)</strong>
+          <span>Search for the code string in Google: `"YOURCODE" site:retailmenot.com` or `"YOURCODE" coupon`. If you find it, a scraper has published it and Honey users are burning it. The code has been compromised. Issue the affected customer a new code directly and update your code generation strategy for future campaigns.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">6</div>
+        <div class="check-body">
+          <strong>Run an end-to-end test from the affiliate link or referral email</strong>
+          <span>Use an incognito window. Click the exact affiliate link or use the exact referral code from the customer's email. Complete a test checkout. Verify: (a) if code-based — the discount appeared and applied, (b) if tracking-based — the test order appears attributed in your affiliate app dashboard within 15 minutes. If both work in your test but not for the customer, the customer's specific session has an unusual state (ad blocker, logged-in account conflict, or currency mismatch).</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- CONTEXT CLUSTER -->
+  <section class="section">
+    <div class="section-label">Related Checkout Failures</div>
+    <h2>Affiliate and Referral Codes Touch Four Other Checkout Clusters</h2>
+    <p>Affiliate and referral code failures rarely exist in isolation. The adjacent systems below create the most common mixed-symptom cases.</p>
+
+    <div class="cluster-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="cluster-card">
+        <div class="cluster-label">Parent Cluster</div>
+        <div class="cluster-title">Shopify Discount Code Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" class="cluster-card">
+        <div class="cluster-label">Loyalty</div>
+        <div class="cluster-title">Shopify Loyalty Points Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" class="cluster-card">
+        <div class="cluster-label">Stacking</div>
+        <div class="cluster-title">Gift Card + Loyalty + Discount Code Stacking Conflict</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-store-credit" class="cluster-card">
+        <div class="cluster-label">Store Credit</div>
+        <div class="cluster-title">Shopify Store Credit Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="cluster-card">
+        <div class="cluster-label">Extensions</div>
+        <div class="cluster-title">Shopify Checkout Extensions Blocking Discount Codes</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-upsells" class="cluster-card">
+        <div class="cluster-label">Upsells</div>
+        <div class="cluster-title">Shopify Post-Purchase Upsell and Affiliate Attribution</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-block">
+    <h2>Affiliate Code Failures Are Invisible Until an Affiliate Complains</h2>
+    <p>When your tracking script silently fails, commissions are lost and affiliates churn. When referral codes stop working, your best acquisition channel breaks. CheckPulse monitors your Shopify checkout continuously so you catch configuration breaks within minutes — not after the campaign is over.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <!-- GUIDE CARDS -->
+  <section class="section">
+    <div class="section-label">Checkout Problem Library</div>
+    <h2>Related Shopify Checkout Guides</h2>
+    <div class="guide-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+        <div class="guide-card-label">Discount Codes</div>
+        <div class="guide-card-title">Shopify Discount Code Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" class="guide-card">
+        <div class="guide-card-label">Loyalty</div>
+        <div class="guide-card-title">Shopify Loyalty Rewards Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" class="guide-card">
+        <div class="guide-card-label">Stacking</div>
+        <div class="guide-card-title">Gift Card + Loyalty Points Stacking Conflict</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-store-credit" class="guide-card">
+        <div class="guide-card-label">Store Credit</div>
+        <div class="guide-card-title">Shopify Store Credit Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+        <div class="guide-card-label">Extensions</div>
+        <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+        <div class="guide-card-label">App Conflicts</div>
+        <div class="guide-card-title">Shopify App Blocking Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods" class="guide-card">
+        <div class="guide-card-label">Payment Methods</div>
+        <div class="guide-card-title">Shopify Checkout Payment Methods Failing</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+        <div class="guide-card-label">CheckPulse</div>
+        <div class="guide-card-title">Automated Checkout Monitor →</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Shopify Affiliate and Referral Codes — Frequently Asked Questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Why is my Shopify referral code not working at checkout?</div>
+        <div class="faq-a">The most common reason a referral code fails is that it was a single-use code that was already redeemed — either by the intended customer, or by an unintended user who received or found the code via a coupon site or forwarded email. Go to Admin → Discounts, search for the code, and check the Times used counter. If it shows 1 use and your customer says they never used it, the code was burned by someone else — issue a new code directly to the customer. If Times used is 0 but the code still fails, check Customer eligibility: most referral apps restrict codes to new customers only, so returning customers see an "invalid" error even if they've never touched that specific code.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why isn't my Shopify affiliate tracking working at checkout?</div>
+        <div class="faq-a">Affiliate tracking failures at checkout are almost always caused by cookie loss. Affiliate apps track attribution by writing a cookie when the customer clicks the affiliate link. If the customer clicks the link, browses, then completes checkout in a different browser session or on a different device — the cookie is gone. Safari ITP aggressively deletes tracking cookies, sometimes within hours. The result: the customer buys, the merchant sees a completed order with a "direct" traffic source, and the affiliate sees their click never converted. The fix is switching to code-based affiliate tracking: each affiliate gets a custom discount code (SARAH15). The code survives any device, any session, any browser — because it's typed at checkout, not stored in a cookie.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can a referral discount code be combined with another discount code at Shopify checkout?</div>
+        <div class="faq-a">On standard Shopify plans (Basic, Shopify, Advanced), only one discount code is allowed per checkout — hard platform limit. If a customer has a referral code and a promotional code, one of them will fail. The practical workaround: switch to automatic discounts for store-wide sales. Automatic discounts apply without entering a code and don't count against the one-code limit. A customer can then apply their referral code AND benefit from your sitewide sale with no conflict. Shopify Plus merchants can enable Discount Combine in Admin → Discounts to allow codes to stack. Standard plan merchants cannot stack codes regardless of any app or setting.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why does my influencer promo code say "code has already been used" when I just issued it?</div>
+        <div class="faq-a">If an influencer code is set to a single-use limit and is shared publicly (Instagram, YouTube, TikTok), coupon browser extensions harvest it and apply it to random checkouts. The first person to trigger the extension at your store burns the code. The influencer's actual audience then sees "already been used." Solution: set usage limits proportionally to your expected audience size — if the influencer has 5,000 followers, a limit of 50-200 uses is more appropriate than 1. Add a new-customer-only restriction to block most coupon extension users who are existing customers. Check if the code has been published on coupon sites by searching: `"YOURCODE" discount` in Google.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do I test my Shopify affiliate or referral program end-to-end?</div>
+        <div class="faq-a">Run four tests: (1) Same-session affiliate test — click your affiliate tracking link in incognito, add to cart, checkout in the same session, verify attribution in your affiliate app dashboard within 15 minutes. (2) Cross-session cookie loss test — click affiliate link, close incognito, open new incognito, navigate to your store URL directly (not the affiliate link), complete checkout. Verify what your affiliate app shows — this simulates the most common real-world attribution failure. (3) Referral code test — issue a test code from your referral app, paste it at checkout in incognito as a new customer, verify the discount applies and the referrer gets credit. (4) Code conflict test — apply your referral code, then try adding a second promo code. Verify the error message is clear and expected, not a generic checkout error that customers might interpret as a system failure.</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">Discount Codes</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking">Stacking Conflicts</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-store-credit">Store Credit</a> &nbsp;·&nbsp;
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Extensions</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

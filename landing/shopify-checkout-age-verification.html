@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Age Verification Not Working at Checkout — Age Gate Blocking Customers, Checkout Extensibility Break (2026)</title>
+  <meta name="description" content="Shopify age verification not working at checkout, age gate blocking all customers, checkout extensibility breaking age gate app, direct URL bypassing age verification — complete guide for liquor, vape, CBD, and tobacco Shopify merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-age-verification" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-age-verification" />
+  <meta property="og:title" content="Shopify Age Verification Not Working at Checkout — Age Gate Blocking Customers" />
+  <meta property="og:description" content="Shopify has no native age verification. Every age gate for alcohol, tobacco, vape, or CBD is a third-party app — and most only protect the product page, not the checkout. Three failure modes: Checkout Extensibility migration breaks old apps, direct URLs bypass product-page gates, and subscription renewals skip age verification entirely." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Age Verification Not Working at Checkout — Age Gate Blocking Customers, Checkout Extensibility Break",
+    "description": "Shopify has no native age verification system. Every age gate for alcohol, vape, CBD, tobacco, or adult content on a Shopify store is a third-party app — and most of those apps only protect the product page, not the checkout. This guide covers the three-layer age verification architecture (product gate, cart gate, checkout gate), seven failure modes, the Checkout Extensibility migration that silently breaks most age gate apps, the direct checkout URL bypass problem, and why subscription renewals skip age verification entirely.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-age-verification",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify age verification blocking all customers, not just underage ones?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When an age verification app blocks all customers rather than just those who fail verification, the most common cause is a broken session state — the app cannot write or read the verified flag to browser storage. This happens most often after a theme update, a cookie consent banner blocking localStorage access, or a Content Security Policy (CSP) change that prevents the age gate app's JavaScript from executing. To diagnose: open the product page in an incognito window, open the browser DevTools Console, and look for JavaScript errors from the age gate app. Check the Application tab → Storage to see whether the app's verified cookie or localStorage key is being set after you click 'I am of legal age.' If no key is written, the app's script is failing silently. The second most common cause is the age gate app checking for a session flag that expired — some apps use a 24-hour or 7-day session window. If your customers are hitting this, check the session TTL settings in the age gate app's dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can customers bypass Shopify age verification by going directly to the checkout URL?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — this is one of the most common and least discussed age verification gaps on Shopify. Most age gate apps protect the storefront (the product page, the collection page, sometimes the cart). But the Shopify checkout runs on a separate subdomain (checkout.shopify.com) and is a separate application entirely. An age gate app that only injects JavaScript into your theme cannot reach the checkout. A customer who receives a direct checkout URL from a friend, from an abandoned cart email, or from a shared cart link can complete the purchase without ever encountering the age gate popup. The only age verification that cannot be bypassed this way is a Checkout UI Extension — an age gate component built specifically for Shopify's checkout extensibility layer. AgeChecker.Net and Minimum.cc both offer checkout extensions. If you sell age-restricted products, you should treat any age gate that does not have a Checkout UI Extension as incomplete compliance."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify age gate stop working after a theme update?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Theme updates break age gate apps in two ways. First, if your theme was updated to a newer version that uses Checkout Extensibility (the post-checkout.liquid architecture), any age gate app that rendered its gate via checkout.liquid is now operating on a deprecated code path. Shopify's new checkout does not execute checkout.liquid modifications — it only runs Checkout UI Extensions. If your age gate app hasn't released a Checkout UI Extension or you haven't installed it, the checkout layer of the gate is gone. Second, theme updates sometimes rename or remove the Liquid hooks that age gate apps use to inject their JavaScript and modal HTML. The app's App Embed or App Block may have been deactivated during the theme switch. Go to your Shopify Admin → Online Store → Themes → Customize → App Embeds (in the left sidebar) and verify your age gate app is listed and toggled on. If it's toggled off or missing, re-enable it or reinstall the app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify age verification work with subscription renewals (Recharge, Skio)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No — subscription renewals bypass age verification entirely, and this is a serious compliance gap for merchants selling age-restricted subscription products (wine clubs, cigar subscriptions, CBD subscriptions). When Recharge, Skio, or Bold Subscriptions processes a renewal, it triggers a headless checkout on the Shopify API — there is no browser session, no storefront, no modal, and no checkout UI. The age verification that happened during the initial subscription signup is not re-verified at renewal. This is not a bug in the age gate app; it is architectural. The app has no mechanism to intercept a server-side renewal trigger. The compliance responsibility for subscription renewals on age-restricted products falls on the merchant to collect age data at signup, store it in the customer record, and verify it programmatically before processing renewals. Some age gate apps (AgeChecker.Net) offer a customer-record tagging feature that marks verified customers — Recharge can then check for this tag before processing a renewal and decline if the tag is absent."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between age verification apps for US merchants vs. UK or EU merchants?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "US merchants selling alcohol, tobacco, or vape products primarily need to meet state-level age verification requirements (21+ for alcohol in all states, 21+ for tobacco/vape federally since 2020 under the Tobacco 21 law). Most US-focused apps (AgeChecker.Net) use a simple date-of-birth entry with optional ID verification tier for states with stricter requirements (like California's AB-1570 for online alcohol delivery). UK merchants face BBFC age verification requirements for certain adult content categories, which mandate 'robust' age verification — a birthday entry alone is not sufficient. BBFC-compliant verification typically requires a credit card check, digital ID, or voucher-based system. Minimum.cc is specifically designed for UK and EU regulatory compliance. EU merchants must also consider GDPR requirements around storing age verification data — collecting a birth date is personal data and requires explicit consent under Article 6. German merchants face KJM (Commission for Youth Media Protection) requirements for alcohol and tobacco that go beyond what most Shopify apps support. If you sell across jurisdictions, you need an app that can apply different verification methods by shipping destination country."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    /* NAV */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    /* ALERT BANNER */
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    /* SECTION */
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    /* ARCHITECTURE GRID */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    /* FAILURE MATRIX */
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    /* DEEP DIVE */
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    /* APP COMPARISON TABLE */
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    /* DIAGNOSIS CHECKLIST */
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    /* CONTEXT CLUSTER */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .cluster-title { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .cta-btn:hover { text-decoration: none; opacity: 0.9; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .guide-card-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+      margin-top: 0;
+    }
+    footer p { font-size: 13px; color: var(--text-dim); margin: 0; }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid, .cluster-grid, .guide-grid { grid-template-columns: 1fr; }
+      .failure-table, .app-table { font-size: 11px; }
+      .failure-table th, .failure-table td, .app-table th, .app-table td { padding: 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Checkout Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Subscriptions</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+    <h1>Shopify Age Verification Not Working at Checkout — Age Gate Blocking Customers, Checkout Extensibility Break</h1>
+    <p class="hero-sub">
+      Shopify has no native age verification system. Every age gate for alcohol, vape, CBD, tobacco, or adult content is a third-party app — and most of those apps only protect the product page, not the checkout. Three failure modes kill more orders than merchants realize: Checkout Extensibility migrations silence old age gate apps, direct checkout URLs bypass product-page gates entirely, and subscription renewals skip age verification altogether.
+    </p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Covers liquor · vape · CBD · tobacco · adult content merchants</span>
+    </div>
+  </header>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner">
+    <strong>The Core Insight:</strong> Most Shopify age gate apps only verify customers on the <strong>product page</strong> — a popup modal that stores a "verified" flag in the browser. That flag cannot follow the customer to the Shopify checkout domain. Any customer who receives a direct checkout URL, clears cookies, or uses a different device can complete a purchase on an age-restricted product without ever seeing an age gate. <strong>Only apps with a Checkout UI Extension close this gap.</strong>
+  </div>
+
+  <!-- ARCHITECTURE SECTION -->
+  <section class="section">
+    <div class="section-label">How It Works</div>
+    <h2>The Three-Layer Age Verification Architecture: Product Gate → Cart Gate → Checkout Gate</h2>
+    <p>Age verification on Shopify can happen at three distinct points in the purchase journey. Most apps only implement the first layer. Understanding which layers your app covers determines what your actual compliance posture looks like.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 1 — Product Gate</div>
+        <div class="arch-card-title">Product Page Modal / Popup</div>
+        <div class="arch-card-desc">A JavaScript modal that appears when a customer lands on a product page or the storefront. Captures a date of birth entry or a yes/no confirmation. Stores a verified flag in browser localStorage or a cookie. This is the layer most apps implement. It is bypassable via direct URLs, cleared cookies, incognito mode, or direct API access to cart endpoints.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 2 — Cart Gate</div>
+        <div class="arch-card-title">Cart Page / Drawer Verification</div>
+        <div class="arch-card-desc">Some apps add a secondary verification step at the cart level — a banner, redirect, or requirement to verify before proceeding to checkout. This layer is more resilient than the product page gate but still runs on the storefront domain. It cannot intercept purchases made via Shopify's native "Buy Now" button (which skips the cart entirely) or via accelerated checkouts like Shop Pay or Google Pay.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 3 — Checkout Gate</div>
+        <div class="arch-card-title">Checkout UI Extension Verification</div>
+        <div class="arch-card-desc">A verification component embedded directly into Shopify's checkout via the Checkout Extensibility API. This is the only layer that cannot be bypassed by direct URL access. It runs on checkout.shopify.com, not on the storefront. Apps must have a published Checkout UI Extension to implement this layer. Only AgeChecker.Net, Minimum.cc, and a small number of other apps currently support this.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAILURE MATRIX -->
+  <section class="section">
+    <div class="section-label">Failure Analysis</div>
+    <h2>Age Verification Failure Matrix — 7 Failure Modes</h2>
+    <p>Age verification failures fall into two categories: the gate blocks legitimate customers (false positive), or the gate fails to block underage customers (false negative / bypass). Both are serious — one destroys conversion, the other creates regulatory liability.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Failure Mode</th>
+          <th>Symptom</th>
+          <th>Layer Affected</th>
+          <th>Severity</th>
+          <th>Fix Direction</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Checkout Extensibility migration</td>
+          <td>Age gate disappeared from checkout after theme update; checkout.liquid no longer executes</td>
+          <td>Layer 3</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Install Checkout UI Extension for your age gate app</td>
+        </tr>
+        <tr>
+          <td>Direct checkout URL bypass</td>
+          <td>Customers complete purchase without seeing age gate; abandoned cart emails link directly to checkout</td>
+          <td>Layer 1 &amp; 2</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Upgrade to app with Checkout UI Extension (Layer 3)</td>
+        </tr>
+        <tr>
+          <td>Subscription renewal bypass</td>
+          <td>Subscription renewal triggers headless checkout; no age verification occurs at rebill</td>
+          <td>All layers</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Tag verified customers; configure subscription app to check verification tag</td>
+        </tr>
+        <tr>
+          <td>Cookie consent CMP conflict</td>
+          <td>Age gate popup never appears; cookie banner is blocking age gate script from writing localStorage</td>
+          <td>Layer 1</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Categorize age gate cookies as "Necessary" in CMP; or move gate above CMP initialization</td>
+        </tr>
+        <tr>
+          <td>App Embed deactivated after theme switch</td>
+          <td>Age gate disappeared after theme update; app embed toggle is off in new theme</td>
+          <td>Layer 1 &amp; 2</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Admin → Online Store → Themes → Customize → App Embeds → re-enable gate app</td>
+        </tr>
+        <tr>
+          <td>Accelerated checkout bypass (Shop Pay / Google Pay)</td>
+          <td>Customers using Shop Pay or Google Pay skip cart and product pages; bypass product-page gate</td>
+          <td>Layer 1 &amp; 2</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Disable accelerated checkouts for age-restricted products, or use Layer 3 app</td>
+        </tr>
+        <tr>
+          <td>Session TTL expiry blocking returning customers</td>
+          <td>Previously verified customers hit gate again after 24–72 hours; gate set to short session window</td>
+          <td>Layer 1</td>
+          <td><span class="badge badge-blue">Medium</span></td>
+          <td>Extend session TTL in age gate app settings; or use persistent customer tag verification</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DEEP DIVE 1: CHECKOUT EXTENSIBILITY -->
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>Checkout Extensibility Migration: The Silent Age Gate Killer</h2>
+    <p>The most common age gate failure in 2025–2026 is merchants migrating to Shopify's new checkout architecture (Checkout Extensibility) and their age gate app losing all checkout-level verification silently.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">The Problem</div>
+      <h3>checkout.liquid Is Dead — and Most Age Gate Apps Haven't Adapted</h3>
+      <p>Shopify's old checkout customization model allowed apps to inject JavaScript and HTML into checkout.liquid — the template file that rendered the checkout. Age gate apps used this to show a date-of-birth verification step during checkout itself. When Shopify launched Checkout Extensibility (the new model for Plus and standard checkouts on newer themes), checkout.liquid was deprecated. Shopify's new checkout does not execute JavaScript injected via checkout.liquid. It only renders Checkout UI Extensions — React components built using Shopify's Checkout UI SDK.</p>
+      <p>If your age gate app renders its checkout layer via checkout.liquid and your store migrated to Checkout Extensibility, the checkout layer is gone. The product page gate may still work. But the checkout has no age verification. The failure is silent — no error message, no broken UI. Customers just complete checkout without being asked for verification.</p>
+      <p>To check if this is your situation:</p>
+      <div class="mono-block">Shopify Admin → Settings → Checkout → scroll to "Checkout customization"
+If it says "Checkout Extensibility" → you are on the new architecture
+If it says "checkout.liquid" → you are on the old architecture
+
+Then: Shopify Admin → Apps → [your age gate app] → check for "Checkout UI Extension"
+If no Checkout UI Extension is listed → your checkout layer is broken on Extensibility</div>
+      <p>The fix requires your age gate app to have released and you to have installed a Checkout UI Extension. AgeChecker.Net published their Checkout UI Extension in late 2024. Minimum.cc supports it natively. If your current age gate app does not offer a Checkout UI Extension, you must either wait for them to release one or switch to an app that already supports it.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">Diagnosis Steps</div>
+      <h3>How to Verify Your Checkout Extensibility Status and Age Gate Coverage</h3>
+      <p><strong>Step 1:</strong> Confirm checkout architecture. Go to Shopify Admin → Settings → Checkout. The "Checkout customization" section shows whether you're on checkout.liquid (old) or Checkout Extensibility (new).</p>
+      <p><strong>Step 2:</strong> Check for Checkout UI Extension. Go to Shopify Admin → Settings → Checkout → scroll to "Checkout UI Extensions." Look for your age gate app in the list. If it's not there, the checkout layer is missing.</p>
+      <p><strong>Step 3:</strong> Run an end-to-end test. Open a private/incognito browser window (no cookies). Add an age-restricted product to your cart. Copy the checkout URL from the browser address bar after clicking "Checkout." Open a new incognito tab and paste the URL directly. Does age verification appear? If not, your Layer 3 coverage is missing.</p>
+      <p><strong>Step 4:</strong> Test accelerated checkouts. On your product page, click "Buy with Shop Pay" (if enabled). Does age verification appear before the Shop Pay modal closes? If not, accelerated checkouts bypass your age gate.</p>
+    </div>
+  </section>
+
+  <!-- DEEP DIVE 2: SUBSCRIPTION BYPASS -->
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>Subscription Renewals: The Headless Age Verification Gap</h2>
+    <p>For merchants selling age-restricted products on subscription — wine clubs, cigar boxes, cannabis delivery, CBD supplements — subscription renewals represent a recurring compliance gap that no standard age gate app addresses by default.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">The Problem</div>
+      <h3>Recharge, Skio, and Bold Subscriptions Bypass All Age Gates at Renewal</h3>
+      <p>When a subscription renewal fires (Recharge, Skio, Bold Subscriptions, or any other headless subscription processor), it triggers a Shopify checkout via the Admin API — not via the storefront. There is no browser session. No product page loads. No cart is displayed. The checkout is created programmatically on the server side and completed without any UI rendering at all.</p>
+      <p>This means every single layer of your age verification stack is bypassed at every renewal: the product page modal (Layer 1) has no page to inject into, the cart gate (Layer 2) has no cart drawer to show, and the Checkout UI Extension (Layer 3) does not execute during API-triggered headless checkouts.</p>
+      <p>The regulatory risk here is real. If a customer's subscription continues after they turn 18 (and your product requires 21+), or if a customer cancels and someone else takes over the payment method, renewals will process without re-verification. For alcohol merchants in particular, this creates potential liability under state ABC regulations.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">The Fix</div>
+      <h3>Customer Tag Verification: The Only Reliable Bridge to Headless Checkout</h3>
+      <p>The mechanism that survives headless renewals is a <strong>customer tag</strong>. AgeChecker.Net supports tagging verified customers in Shopify with a custom tag (e.g., <code>age-verified</code>) at the time of initial verification. Recharge and Skio both support customer tag checks — you can configure them to refuse renewal processing if the customer does not have the required tag.</p>
+      <div class="mono-block">Recharge: Customer Portal → Settings → Customer Management → Customer Tags
+→ Add required tag: age-verified
+→ Renewals for customers without this tag: Pause or Cancel (your choice)
+
+AgeChecker.Net: Dashboard → Settings → Shopify Integration
+→ Enable "Tag verified customers" → Tag: age-verified</div>
+      <p>This approach has a gap: customers verified before you enabled tagging won't have the tag. You'll need to bulk-export verified customers from your age gate app and bulk-import the tag into Shopify. AgeChecker.Net's support team can assist with this backfill. Without it, enabling the Recharge tag requirement will pause legitimate subscriptions for existing verified customers.</p>
+      <p>For merchants on Skio, the same pattern applies via Skio's customer tag requirement feature. Contact Skio support to configure a verification tag requirement on your age-restricted subscription products.</p>
+    </div>
+  </section>
+
+  <!-- APP COMPARISON TABLE -->
+  <section class="section">
+    <div class="section-label">App Comparison</div>
+    <h2>Shopify Age Verification App Comparison — 5 Apps, 6 Dimensions</h2>
+    <p>Age verification apps differ significantly in which layers they cover, which regulatory frameworks they support, and whether they work with Checkout Extensibility. This table covers the apps most commonly used by Shopify merchants in regulated product categories.</p>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>App</th>
+          <th>Checkout UI Extension</th>
+          <th>Subscription Tag Support</th>
+          <th>Verification Method</th>
+          <th>Regulatory Focus</th>
+          <th>Subscription App Conflict Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AgeChecker.Net</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-green">Yes — customer tag</span></td>
+          <td>DOB entry + ID verification tier</td>
+          <td>US federal / state (alcohol, tobacco, vape)</td>
+          <td><span class="badge badge-green">Low</span> — designed for subscription stores</td>
+        </tr>
+        <tr>
+          <td>Minimum.cc</td>
+          <td><span class="badge badge-green">Yes</span></td>
+          <td><span class="badge badge-amber">Partial</span></td>
+          <td>DOB, credit card check, BBFC-tier ID</td>
+          <td>UK BBFC, EU GDPR, Germany KJM</td>
+          <td><span class="badge badge-amber">Medium</span> — limited subscription app docs</td>
+        </tr>
+        <tr>
+          <td>EasyAge Verifier</td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td>DOB modal only</td>
+          <td>Basic (no jurisdiction-specific compliance)</td>
+          <td><span class="badge badge-green">Low</span> — storefront-only, no checkout touch</td>
+        </tr>
+        <tr>
+          <td>Age Verification by DevIT</td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td>Yes/No confirmation or DOB</td>
+          <td>Basic (no jurisdiction-specific compliance)</td>
+          <td><span class="badge badge-green">Low</span> — storefront-only</td>
+        </tr>
+        <tr>
+          <td>Agify (formerly Metaclean)</td>
+          <td><span class="badge badge-amber">Beta</span></td>
+          <td><span class="badge badge-amber">Roadmap</span></td>
+          <td>DOB, selfie-based AI estimate (optional)</td>
+          <td>US, EU (emerging)</td>
+          <td><span class="badge badge-amber">Medium</span> — beta extension may conflict</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DIAGNOSIS CHECKLIST -->
+  <section class="section">
+    <div class="section-label">Step-by-Step Diagnosis</div>
+    <h2>Age Verification Checkout Failure — 5-Step Diagnosis</h2>
+    <p>Work through these steps in order. Most age gate checkout failures trace to one of the first three.</p>
+
+    <ul class="check-list">
+      <li>
+        <div class="check-num">1</div>
+        <div class="check-body">
+          <strong>Identify which layers your app covers</strong>
+          <span>Go to your age gate app's dashboard and check its documentation. Does it have a Checkout UI Extension? Does it cover Layer 1 (product page), Layer 2 (cart), or Layer 3 (checkout)? Log this before testing — you need to know what the app is supposed to do before you can determine whether it's failing.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">2</div>
+        <div class="check-body">
+          <strong>Test the direct checkout URL bypass</strong>
+          <span>Add an age-restricted product to a fresh cart in incognito mode. Note the checkout URL. Open a brand new incognito window (no cookies at all) and paste the checkout URL directly. If you can reach the Shopify checkout page without any age verification prompt, you have a Layer 3 gap. This is the most common undetected failure mode.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">3</div>
+        <div class="check-body">
+          <strong>Check App Embed status in current active theme</strong>
+          <span>After any theme update, Shopify does not automatically transfer App Embeds or App Blocks to the new theme. Go to Admin → Online Store → Themes → click Customize on your live theme → click App Embeds in the left panel → verify your age gate app is listed and toggled ON. If it's missing, you need to reinstall the app embed in the new theme.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">4</div>
+        <div class="check-body">
+          <strong>Check cookie consent manager (CMP) conflict</strong>
+          <span>If you have a cookie consent banner (OneTrust, Cookiebot, Axeptio, etc.), open the product page in incognito and open the browser console (F12). Click "Accept All" on the cookie banner, then reload the page. If the age gate appears only after accepting cookies, your CMP is blocking the age gate script. Fix: in your CMP settings, categorize age verification cookies as "Strictly Necessary" so they load before consent.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">5</div>
+        <div class="check-body">
+          <strong>Test subscription renewal path (if applicable)</strong>
+          <span>If you sell age-restricted subscription products: check whether your subscription app (Recharge, Skio) supports customer tag requirements. Check whether your age gate app (AgeChecker.Net) can tag verified customers in Shopify. If both support tags, configure the integration. If your age gate app does not support customer tagging, evaluate switching to AgeChecker.Net or contact your current app's support about their subscription renewal compliance roadmap.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- CONTEXT CLUSTER -->
+  <section class="section">
+    <div class="section-label">Related Checkout Failures</div>
+    <h2>Age Verification Touches Five Other Checkout Clusters</h2>
+    <p>Age gate failures share symptoms with app conflicts, extension migrations, subscription errors, and international checkout problems. The clusters below are the most common adjacent failure points for age-restricted product merchants.</p>
+
+    <div class="cluster-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="cluster-card">
+        <div class="cluster-label">App Conflicts</div>
+        <div class="cluster-title">Shopify App Blocking Checkout — the Conflict Investigation Framework</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="cluster-card">
+        <div class="cluster-label">Extensions</div>
+        <div class="cluster-title">Shopify Checkout Extensions and Checkout Extensibility Issues</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="cluster-card">
+        <div class="cluster-label">Subscriptions</div>
+        <div class="cluster-title">Shopify Subscription Checkout Not Working (Recharge / Skio)</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="cluster-card">
+        <div class="cluster-label">International</div>
+        <div class="cluster-title">Shopify Markets Checkout Not Working — International Checkout Error</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" class="cluster-card">
+        <div class="cluster-label">Mobile</div>
+        <div class="cluster-title">Shopify Checkout Not Working on Mobile / iOS Safari</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-guest-checkout" class="cluster-card">
+        <div class="cluster-label">Guest Checkout</div>
+        <div class="cluster-title">Shopify Guest Checkout Not Working / Account Required</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-block">
+    <h2>Age Gate Checkout Failures Are Invisible — Until a Regulator Isn't</h2>
+    <p>When your Checkout Extensibility migration silences your age gate, customers don't see a broken experience — they just complete the purchase. You won't know until a compliance audit or a state ABC notice. CheckPulse monitors your Shopify checkout end-to-end so configuration breaks surface within minutes, not months.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <!-- GUIDE CARDS -->
+  <section class="section">
+    <div class="section-label">Checkout Problem Library</div>
+    <h2>Related Shopify Checkout Guides</h2>
+    <div class="guide-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+        <div class="guide-card-label">App Conflicts</div>
+        <div class="guide-card-title">Shopify App Blocking Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+        <div class="guide-card-label">Extensions</div>
+        <div class="guide-card-title">Shopify Checkout Extensions Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+        <div class="guide-card-label">Subscriptions</div>
+        <div class="guide-card-title">Shopify Subscription Checkout Failure</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international" class="guide-card">
+        <div class="guide-card-label">International</div>
+        <div class="guide-card-title">Shopify Markets Checkout Error</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-mobile" class="guide-card">
+        <div class="guide-card-label">Mobile</div>
+        <div class="guide-card-title">Shopify Checkout on Mobile / iOS Safari</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-warranty-protection-plan" class="guide-card">
+        <div class="guide-card-label">Warranty</div>
+        <div class="guide-card-title">Shopify Warranty Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working" class="guide-card">
+        <div class="guide-card-label">Discount Codes</div>
+        <div class="guide-card-title">Shopify Discount Code Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+        <div class="guide-card-label">CheckPulse</div>
+        <div class="guide-card-title">Automated Checkout Monitor →</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Shopify Age Verification — Frequently Asked Questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Why is Shopify age verification blocking all customers, not just underage ones?</div>
+        <div class="faq-a">When an age verification app blocks all customers rather than just those who fail verification, the most common cause is a broken session state — the app cannot write or read the verified flag to browser storage. This happens most often after a theme update, a cookie consent banner blocking localStorage access, or a Content Security Policy change preventing the age gate app's JavaScript from executing. Open the product page in an incognito window, open DevTools Console, and look for JavaScript errors from the age gate app. Check the Application tab → Storage to see whether the verified cookie or localStorage key is written after you click "I am of legal age." If no key is written, the script is failing silently. The second most common cause is a short session TTL — some apps use a 24-hour or 7-day verification window. Check your app's session settings.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can customers bypass Shopify age verification by going directly to the checkout URL?</div>
+        <div class="faq-a">Yes — this is one of the most common and least discussed age verification gaps on Shopify. Most age gate apps protect the storefront (product page, collection page, sometimes cart). But the Shopify checkout runs on checkout.shopify.com — a separate application. An age gate that only injects JavaScript into your theme cannot reach the checkout. A customer who receives a direct checkout URL from an abandoned cart email, a shared cart link, or a friend can complete the purchase without ever encountering the age gate. The only age verification that cannot be bypassed this way is a Checkout UI Extension — an age gate component built specifically for Shopify's Checkout Extensibility layer. AgeChecker.Net and Minimum.cc both offer checkout extensions. If you sell age-restricted products, treat any age gate without a Checkout UI Extension as incomplete compliance.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why did my Shopify age gate stop working after a theme update?</div>
+        <div class="faq-a">Theme updates break age gate apps in two ways. First, if your theme updated to Checkout Extensibility, any age gate that rendered via checkout.liquid is now on a deprecated path — Shopify's new checkout doesn't execute checkout.liquid modifications. Second, theme updates remove App Embeds from the old theme — they don't automatically transfer to the new one. Go to Admin → Online Store → Themes → Customize on your live theme → App Embeds in the left panel → verify your age gate app is listed and toggled ON. If it's missing or off, re-enable it. For the checkout layer, you need to check whether your app has a Checkout UI Extension and install it via Admin → Settings → Checkout → Checkout UI Extensions.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does Shopify age verification work with subscription renewals (Recharge, Skio)?</div>
+        <div class="faq-a">No — subscription renewals bypass age verification entirely, and this is a serious compliance gap for merchants selling age-restricted subscription products (wine clubs, cigar subscriptions, CBD subscriptions). When Recharge, Skio, or Bold Subscriptions processes a renewal, it triggers a headless checkout via the Shopify API — no browser session, no storefront, no UI. Every age verification layer is bypassed. The fix is customer tagging: AgeChecker.Net can tag verified customers in Shopify (e.g., age-verified). Recharge and Skio can be configured to refuse renewal for customers missing this tag. This requires configuring both apps and backfilling the tag for existing verified customers — contact AgeChecker.Net support for the backfill process.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What age verification method does Shopify require for UK merchants selling alcohol or adult content?</div>
+        <div class="faq-a">Shopify itself has no age verification requirement — it's the merchant's legal obligation under UK law. For UK alcohol merchants, BBFC age verification standards (from the Online Safety Act and preceding regulations) require "robust" verification methods — a birthday entry alone is not sufficient for certain content categories. Robust methods include credit card checks, digital ID verification (via Post Office EasyID, Yoti, etc.), or voucher-based systems. For standard alcohol retail in the UK, a date-of-birth modal with a clear terms statement is the current industry norm, though this is evolving. Minimum.cc is the most commonly used Shopify app for UK/EU merchants that need BBFC-tier or GDPR-compliant age verification. For German merchants, KJM (Kommission für Jugendmedienschutz) requirements for tobacco and alcohol go beyond what most Shopify apps support — consult a German digital law firm for KJM-compliant age verification options.</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> —
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Subscriptions</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

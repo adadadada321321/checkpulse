@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Digital Gift Card Email Not Received — Gift Card Not Delivered After Purchase, Scheduled Delivery Failed (2026)</title>
+  <meta name="description" content="Shopify digital gift card email not received, gift card code never arrived after purchase, Govalo or GiftKart scheduled delivery failed, gift card email going to spam — complete guide for Shopify merchants selling digital gift cards." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-gift-cards" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-gift-cards" />
+  <meta property="og:title" content="Shopify Digital Gift Card Email Not Received — Gift Card Not Delivered After Purchase" />
+  <meta property="og:description" content="Shopify digital gift cards use two distinct delivery systems: Shopify's native gift card email and third-party app delivery (Govalo, GiftKart, Rise.ai). Six silent failure modes — spam filter blocks, scheduled delivery failures, wrong recipient email, multi-currency redemption gaps, resend loops, and DMARC misconfigurations — leave buyers thinking the recipient got the gift card when they didn't." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Digital Gift Card Email Not Received — Gift Card Not Delivered After Purchase",
+    "description": "Shopify digital gift cards use two distinct delivery systems: Shopify's native gift card email (from noreply@shopify.com) and third-party app delivery (Govalo, GiftKart, Rise.ai). Six silent failure modes — spam filter blocks, scheduled delivery failures, wrong recipient email, multi-currency redemption gaps, resend loops, and DMARC misconfigurations — leave buyers convinced the recipient got the gift card when they never did. This guide covers the full gift card delivery architecture, each failure mode, how to diagnose which system broke, and how to fix or work around each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-gift-cards",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did the Shopify gift card email not arrive after purchase?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are four distinct reasons a Shopify gift card email fails to arrive. First, spam or corporate email filters: Shopify's native gift card email comes from noreply@shopify.com. Corporate inboxes on Office 365 or Google Workspace often route emails from mass-sender domains to spam or junk. The recipient never sees it, and there is no bounce notification back to the buyer. Second, typo in recipient email: when the buyer types the recipient's email address manually at checkout, a single-character typo sends the gift card to a nonexistent address. Shopify marks the order fulfilled. No delivery failure surfaces to the buyer. Third, the gift card code was generated but the email delivery failed silently — this is rare but happens during Shopify infrastructure issues. The code exists in Shopify Admin under Products → Gift Cards. The merchant can look it up and share it manually. Fourth, if you are using a third-party gift card app (Govalo, GiftKart, Rise.ai), the delivery goes through the app's own email infrastructure, not Shopify's. If the app's email service (SendGrid, Postmark, Mailgun) has a delivery issue or the app is misconfigured, delivery fails independently of Shopify's system."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I find and resend a Shopify gift card code when the email was not received?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To find the gift card code: go to Shopify Admin → Products → Gift Cards. Find the gift card by the order number or the recipient email. Click the gift card to see its code, balance, and status. If it shows as Active, the code was generated — the problem is delivery, not code generation. To resend: on the gift card detail page, click 'Send email' or 'Resend.' WARNING: this resends to the same email address. If the first email went to spam, the resend will also go to spam. If there was a typo in the recipient email, the resend goes to the wrong address again. For the spam case: ask the recipient to search their spam folder for 'Shopify' or 'gift card.' For the typo case: you will need to refund the original gift card, create a new gift card for the correct amount, and issue it manually to the correct email. Shopify does not allow changing the email address on an existing gift card. Note: the 'Resend' option does not work for third-party app gift cards (Govalo, GiftKart) — those resends must be triggered from inside the app's dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify scheduled gift card delivery not send on the right date?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Scheduled gift card delivery is not a Shopify native feature — Shopify's built-in gift card product type delivers immediately at purchase. Scheduled delivery requires a third-party app: Govalo, GiftKart, Swym Wishlist Gift Cards, or similar. When a scheduled delivery fails, the causes are: (1) The app's subscription lapsed. If the merchant's billing failed and the app subscription expired, the scheduled delivery queue stops processing. The merchant's dashboard may show the job as 'pending' indefinitely. (2) The app experienced a platform outage or internal scheduling bug. This is rare but has occurred during high-volume periods (holiday season). (3) The gift card app was uninstalled and reinstalled, which may have cleared the pending delivery queue. (4) The recipient email address had a permanent bounce recorded by the app's email provider, and the scheduled send was blocked before attempting delivery. To diagnose: log into the gift card app's admin dashboard. Find the gift card by order or recipient email. Check whether the delivery shows as 'Scheduled,' 'Sent,' 'Failed,' or 'Bounced.' If it shows as Failed or Bounced, the app's dashboard will typically show the error reason."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify gift card be used in a different currency than it was issued?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify native gift cards are issued in the store's primary currency and store their value in that currency. When a store uses Shopify Markets for multi-currency selling, gift card redemption behavior depends on the checkout currency. If a gift card was issued for $50 USD and the recipient tries to use it on a store that is displaying prices in GBP, Shopify will apply the gift card's USD value — $50 — toward the GBP-denominated cart total. Depending on the exchange rate and whether the store uses fixed or market-rate conversions, the effective discount may be more or less than the buyer intended. The recipient's cart may show an error if the gift card currency does not match the checkout currency when using certain Shopify Markets configurations. Third-party gift card apps (Govalo, GiftKart) handle multi-currency differently — some issue gift cards in a 'neutral' currency and apply conversion at redemption time, while others issue in a specific currency and enforce currency matching. Check your app's documentation for its multi-currency redemption behavior. If you operate multiple storefronts in different currencies, test gift card redemption across storefronts before your next high-volume period."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the Shopify gift card email go to spam?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's native gift card email is sent from noreply@shopify.com using Shopify's shared email sending infrastructure. Shopify's sending domain has strong SPF, DKIM, and DMARC records — the technical reputation is high. However, the email is categorized as a transactional email from a third-party e-commerce platform. Email clients (especially corporate Microsoft 365 and Google Workspace accounts with strict filtering) may route it to Focused Inbox exclusions, Clutter folders, or Spam based on behavioral signals. For most personal Gmail and consumer email addresses, Shopify gift card emails arrive in the inbox reliably. For business email addresses at companies with strict email security policies, delivery to spam is common. If you are using a third-party gift card app (Govalo, GiftKart), the email comes from the app's own sending domain, not Shopify's. If the app's sending domain does not have correctly configured SPF, DKIM, and DMARC records, or if the app shares a sending IP with low-reputation senders, spam filtering rates increase significantly. To check: log into your gift card app's settings and look for 'Email Sender,' 'SMTP settings,' or 'Custom domain sending.' Some apps allow you to use your own domain for gift card email delivery, which improves deliverability for your own customers."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .cluster-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .cluster-card:hover .cluster-title { color: var(--text); }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .guide-card:hover .guide-card-title { color: var(--text); }
+
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: #150f00;
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 24px;
+      margin-top: 20px;
+    }
+    footer .container { display: flex; flex-direction: column; gap: 16px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .footer-logo-mark {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--amber);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #000;
+    }
+    .footer-logo-text { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .cluster-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+      .failure-table { font-size: 12px; }
+      footer .container { gap: 12px; }
+      .footer-links { gap: 6px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitor Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-eyebrow">Shopify Gift Card Delivery Failure</div>
+      <h1>Shopify Digital Gift Card Email Not Received — Gift Card Not Delivered After Purchase</h1>
+      <p class="hero-sub">Shopify digital gift cards use two separate delivery systems. Six failure modes — spam filters, wrong recipient email, scheduled delivery gaps, resend loops, multi-currency conflicts, and DMARC misconfigurations — leave buyers certain the recipient got the gift card when they never did.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: Native gift cards, Govalo, GiftKart, Rise.ai, Swym</span>
+      </div>
+    </div>
+
+    <!-- ALERT -->
+    <div class="alert-banner">
+      <strong>The Silent Part:</strong> When a Shopify gift card email goes to spam or bounces, the merchant's Shopify Admin shows the gift card as <strong>Active</strong> and the order as <strong>Fulfilled</strong>. There is no delivery failure notification. The buyer assumes the recipient got it. The recipient assumes the buyer forgot. The merchant finds out when someone complains days later — or not at all.
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>Two Distinct Gift Card Delivery Systems — Different Failure Modes</h2>
+      <p class="section-intro">Shopify's native gift card system and third-party gift card apps are completely separate delivery pipelines. Which one you're using determines where to diagnose.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">System 1 — Native</div>
+          <div class="arch-card-title">Shopify Native Gift Cards</div>
+          <div class="arch-card-desc">Gift card product type built into Shopify. Email sent from noreply@shopify.com. Code generated in Admin → Products → Gift Cards. No scheduling — delivery is immediate at purchase. Resend available from gift card detail page.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">System 2 — Third Party</div>
+          <div class="arch-card-title">App-Delivered Gift Cards</div>
+          <div class="arch-card-desc">Govalo, GiftKart, Rise.ai Gift Cards, Swym. Email sent from the app's own sending infrastructure. Supports scheduling, custom design, PDF attachment, recipient video messages. Resend from inside the app — not Shopify Admin.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">System 3 — Hybrid</div>
+          <div class="arch-card-title">Rise.ai Store Credit + Gift</div>
+          <div class="arch-card-desc">Rise.ai manages both store credit and gift cards. Gift card delivery uses Rise.ai email. Store credit is redeemed differently than a gift card code. Customers sometimes confuse the two — "store credit not working" and "gift card not received" may be the same issue.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Recipient Experience</div>
+          <div class="arch-card-title">What the Recipient Gets</div>
+          <div class="arch-card-desc">A unique alphanumeric code they enter at checkout. The code has a balance. At checkout, applying the code deducts from the balance. If the balance covers the total, no payment is needed. If partial, the remainder is charged to a payment method.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAILURE MATRIX -->
+    <section class="section">
+      <div class="section-label">Failure Matrix</div>
+      <h2>Six Digital Gift Card Delivery Failures — What Breaks, Where, and Why</h2>
+      <p class="section-intro">Each failure has a distinct cause and fix. Identifying which system you're on (native vs. third-party app) is the first diagnosis step.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>What the Buyer / Merchant Sees</th>
+            <th>System</th>
+            <th>Severity</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Spam / corporate email filter</td>
+            <td>Gift card email not in recipient inbox; order shows Fulfilled; resend goes to spam again</td>
+            <td>Both</td>
+            <td><span class="badge badge-amber">High</span></td>
+            <td>Ask recipient to check spam; for apps, enable custom sending domain</td>
+          </tr>
+          <tr>
+            <td>Typo in recipient email</td>
+            <td>Buyer typed wrong address; email delivered to nonexistent or wrong inbox; no error returned</td>
+            <td>Both</td>
+            <td><span class="badge badge-amber">High</span></td>
+            <td>Refund original gift card; manually issue new gift card to correct email</td>
+          </tr>
+          <tr>
+            <td>Scheduled delivery failure</td>
+            <td>Gift card was set to deliver on a future date; date passed; recipient never received it</td>
+            <td>App only</td>
+            <td><span class="badge badge-amber">High</span></td>
+            <td>Check app dashboard for pending/failed status; resend from app; check app billing</td>
+          </tr>
+          <tr>
+            <td>Code generated but email failed</td>
+            <td>Order complete; no gift card email arrived; code exists in Admin → Gift Cards</td>
+            <td>Native</td>
+            <td><span class="badge badge-blue">Medium</span></td>
+            <td>Find code in Admin → Gift Cards; share code manually with recipient</td>
+          </tr>
+          <tr>
+            <td>Multi-currency redemption gap</td>
+            <td>Recipient tries to use gift card; checkout shows wrong amount or "gift card not valid for this currency"</td>
+            <td>Both</td>
+            <td><span class="badge badge-blue">Medium</span></td>
+            <td>Check Shopify Markets currency settings; verify app multi-currency config</td>
+          </tr>
+          <tr>
+            <td>DMARC / SPF misconfiguration (app delivery)</td>
+            <td>App sends gift card emails from app domain; emails rejected by recipient's mail server</td>
+            <td>App only</td>
+            <td><span class="badge badge-red">Critical</span></td>
+            <td>Verify app's sending domain SPF/DKIM records; use custom sending domain if available</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- DEEP DIVE 1: SPAM / EMAIL DELIVERY -->
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>The Spam Filter Problem: Why Shopify Gift Card Emails Disappear</h2>
+      <p>Most "gift card not received" reports are email delivery failures — the gift card code was generated correctly, but the email never reached the recipient's inbox.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Native Shopify Gift Cards</div>
+        <h3>noreply@shopify.com — High Technical Reputation, Mixed Inbox Placement</h3>
+        <p>Shopify's native gift card email comes from noreply@shopify.com using Shopify's shared sending infrastructure. Shopify maintains strong SPF, DKIM, and DMARC records — the technical email authentication is correct. For personal Gmail, Outlook.com, and Yahoo accounts, inbox placement is reliable.</p>
+        <p>The problem is corporate email accounts. Microsoft 365 tenants with Exchange Online Protection, Google Workspace with Advanced Protection, and corporate email gateways (Proofpoint, Mimecast, Barracuda) use behavioral reputation scoring in addition to SPF/DKIM. High-volume transactional email from a shared platform like Shopify can be filtered as "bulk commercial email" even with perfect authentication. A gift card email sent to a recipient at a large company often ends up in the Junk or Clutter folder.</p>
+        <p>The merchant has no visibility into this. Shopify's order notification shows the gift card as Active. The order shows as Fulfilled. There is no bounce or spam notification that reaches the merchant.</p>
+        <div class="mono-block">To recover a native gift card whose email was filtered:
+1. Admin → Products → Gift Cards
+2. Filter by date or search by order number
+3. Find the gift card → note the code
+4. Share the code with the recipient directly (text, WhatsApp, etc.)
+5. Tell them: "Your gift card code is [CODE]. Enter it in the 'Gift card or discount code' field at checkout."
+
+To verify the code is still valid:
+Admin → Products → Gift Cards → click the code → check Status = Active and Balance remaining</div>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">App-Delivered Gift Cards</div>
+        <h3>Govalo, GiftKart, Rise.ai — Custom Sending Domains and Deliverability Gaps</h3>
+        <p>Third-party gift card apps send emails from their own domains (e.g., gifts.govalo.com, mail.giftkart.app) using shared sending infrastructure (SendGrid, Postmark, Mailgun). If the app's sending IP pool has mixed-reputation tenants, or if the app's domain does not have correctly configured SPF, DKIM, and DMARC records, deliverability is significantly worse than Shopify's native system.</p>
+        <p>The fix most gift card apps offer is <strong>custom sending domain</strong> — you configure DNS records to allow the app to send email from your own domain (e.g., gifts@yourstore.com). Email received from your own domain passes your own SPF/DKIM checks, which dramatically improves inbox placement for recipients who have ever bought from your store before.</p>
+        <div class="mono-block">To check if your gift card app supports custom sending domain:
+Govalo: Dashboard → Settings → Email → Custom Sending Domain
+GiftKart: Settings → Email Configuration → Custom Domain
+Rise.ai: Settings → Emails → Sender Email
+
+If the option exists, complete the DNS verification steps.
+If it does not exist, contact the app's support — most have this on their roadmap or can enable it manually.</div>
+        <p>If custom sending domain is not available and corporate email filtering is causing repeated failures, the workaround is to manually retrieve the gift card code from the app's dashboard and share it with the recipient through a channel other than email.</p>
+      </div>
+    </section>
+
+    <!-- DEEP DIVE 2: SCHEDULED DELIVERY -->
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Scheduled Delivery Failures: The Birthday Gift That Never Arrived</h2>
+      <p>Scheduled gift card delivery is not a Shopify native feature. Every scheduled delivery requires a third-party app. When the schedule fails, the buyer discovers it after the occasion has passed.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">The Problem</div>
+        <h3>Four Reasons Scheduled Gift Card Delivery Silently Fails</h3>
+        <p><strong>1. App subscription lapse.</strong> If the merchant's monthly billing for the gift card app fails (expired card, dispute, plan downgrade), the app subscription may expire. The app's scheduled delivery queue pauses or stops entirely. Gift cards set to deliver on future dates never fire. The merchant's Shopify Admin shows no indication that anything is wrong — the gift card product still exists and orders still process.</p>
+        <p><strong>2. App uninstall and reinstall.</strong> Merchants sometimes uninstall and reinstall apps during troubleshooting or when changing plans. Most gift card apps do not persist the scheduled delivery queue across reinstalls. Pending scheduled sends are lost when the app is uninstalled.</p>
+        <p><strong>3. Recipient email permanent bounce.</strong> If the recipient email address has previously bounced for any sender using the same email infrastructure (SendGrid, Postmark), the email provider may have a global suppression list for that address. The scheduled delivery attempt is blocked before it reaches the recipient's mail server. The app's dashboard may show the send as "Delivered" even though it was suppressed.</p>
+        <p><strong>4. App-side scheduling bug.</strong> During high-volume periods (Valentine's Day, Mother's Day, Christmas), gift card apps process large volumes of scheduled sends. Processing delays or bugs in the scheduler have been reported across multiple apps. The send fires late — sometimes hours or days after the scheduled date — or not at all.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Diagnosis</div>
+        <h3>How to Check and Recover a Failed Scheduled Delivery</h3>
+        <div class="mono-block">Step 1: Log into the gift card app dashboard
+Step 2: Find the gift card by order number, recipient email, or delivery date
+Step 3: Check status field:
+  - "Scheduled" with a past date → delivery never fired
+  - "Failed" or "Bounced" → delivery attempted but rejected
+  - "Sent" → app believes delivery was successful (check spam)
+
+Step 4: If status shows Scheduled with a past date:
+  - Check your app subscription status (billing)
+  - Manually trigger a resend from the app dashboard
+  - If no resend option, retrieve the gift card code and share manually
+
+Step 5: If status shows Failed or Bounced:
+  - Check the error reason (usually shown in the app dashboard)
+  - Verify the recipient email address is correct
+  - Try resending to a different email address if the original bounced permanently</div>
+      </div>
+    </section>
+
+    <!-- DEEP DIVE 3: WRONG EMAIL / TYPO -->
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Wrong Recipient Email: The Typo That Can't Be Undone</h2>
+      <p>When a buyer types the wrong recipient email address, there is no recovery path that sends the gift card to the intended recipient. You must manually intervene.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">The Problem</div>
+        <h3>Shopify Does Not Validate Recipient Email Addresses</h3>
+        <p>At checkout for a digital gift card product, the buyer enters the recipient's email address in a text field. Shopify validates only that the input looks like an email address (contains @ and a domain). Shopify does not verify that the address exists, that the domain is reachable, or that the inbox accepts delivery.</p>
+        <p>A buyer who types "jane.smith@gamil.com" instead of "jane.smith@gmail.com" sends the gift card to a nonexistent address. The email bounces. Shopify Admin shows the gift card as Active and the order as Fulfilled. There is no bounce notification. The merchant has no way to know unless the buyer contacts support.</p>
+        <p>This is the most common cause of "I bought a gift card but my friend never got it" complaints in Shopify support forums.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">The Fix</div>
+        <h3>Manual Recovery: Refund the Original, Issue a New One</h3>
+        <div class="mono-block">Recovery path for wrong recipient email:
+
+1. Admin → Products → Gift Cards → find the gift card
+2. Note the code, balance, and expiry date
+3. Manually deactivate or expire the original gift card:
+   Admin → Gift Cards → click the card → click "Deactivate"
+   (This prevents the wrong recipient from finding and using the code if the email somehow bounced to an existing inbox)
+
+4. Create a new gift card for the same amount:
+   Admin → Products → Gift Cards → Create gift card → set amount → set correct email
+5. Shopify will send the new gift card email to the correct address
+
+Alternative: if deactivation is too disruptive, retrieve the code and share it
+directly with the buyer so they can forward it to the intended recipient.
+Do NOT resend the original — it goes to the wrong address again.</div>
+        <p>For third-party apps (Govalo, GiftKart): most app dashboards allow editing the recipient email and resending after the original send. Log into the app, find the gift card, edit the email field, and trigger a resend. This is simpler than the Shopify Admin approach.</p>
+        <p>Prevention: some third-party gift card apps offer email confirmation validation ("Are you sure you want to send to this email?") or real-time email validation via an API. If wrong-recipient reports are a recurring issue in your store, evaluate whether your gift card app supports these features.</p>
+      </div>
+    </section>
+
+    <!-- APP COMPARISON TABLE -->
+    <section class="section">
+      <div class="section-label">App Comparison</div>
+      <h2>Shopify Gift Card App Comparison — 5 Apps, 6 Delivery Dimensions</h2>
+      <p>Gift card apps differ in scheduled delivery support, email resend capability, custom sending domain, and multi-currency handling. This table covers the most commonly used apps.</p>
+
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>App</th>
+            <th>Scheduled Delivery</th>
+            <th>Custom Sending Domain</th>
+            <th>Resend from Dashboard</th>
+            <th>Multi-Currency</th>
+            <th>Rise.ai Store Credit Confusion Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shopify Native</td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-amber">Limited</span></td>
+            <td><span class="badge badge-green">Low</span> — separate system</td>
+          </tr>
+          <tr>
+            <td>Govalo</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Low</span> — purpose-built gift card app</td>
+          </tr>
+          <tr>
+            <td>GiftKart</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-amber">Optional</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+          </tr>
+          <tr>
+            <td>Rise.ai</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-amber">Settings-based</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-red">High</span> — manages both gift cards and store credit; customers confuse the two</td>
+          </tr>
+          <tr>
+            <td>Swym Gift Cards</td>
+            <td><span class="badge badge-amber">Limited</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td><span class="badge badge-amber">Limited</span></td>
+            <td><span class="badge badge-green">Low</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- DIAGNOSIS CHECKLIST -->
+    <section class="section">
+      <div class="section-label">Step-by-Step Diagnosis</div>
+      <h2>Digital Gift Card Delivery Failure — 5-Step Diagnosis</h2>
+      <p>Work through these steps in order. Most gift card delivery failures are identified at step 1 or 2.</p>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Confirm which delivery system you're on</strong>
+            <span>Are you using Shopify's native gift card product type, or a third-party app (Govalo, GiftKart, Rise.ai)? If you're unsure: Admin → Apps — look for a gift card app. If none is installed, you're on native. This determines where the code and delivery status live. Native: Admin → Products → Gift Cards. App: inside the app dashboard.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Verify the gift card code was generated</strong>
+            <span>Find the gift card in Admin → Products → Gift Cards (native) or your app dashboard. If it shows as Active with a balance, the code was generated correctly — the problem is delivery. If no code exists, there was a code generation failure (rare for native, less rare for apps during outages).</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Check the recipient email address for typos</strong>
+            <span>View the gift card detail to see the email address it was sent to. Compare it to what the buyer intended. Look for common typos: gmail vs gamil, .co vs .com, missing letters. If there is a typo, do NOT resend — it goes to the wrong address again. Follow the manual recovery steps (deactivate original, issue new gift card to correct email).</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Ask the recipient to check spam / junk / promotions</strong>
+            <span>For native Shopify: the email comes from noreply@shopify.com — ask the recipient to search their inbox for "Shopify" or "gift card." For apps: the email comes from the app's domain — tell the recipient the app name so they know what to search for. Corporate inboxes: ask them to check the Junk folder, Focused Inbox (Outlook), and Clutter folder. If found in spam, they can mark it as "Not Spam" and the code is in the email body.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Share the gift card code directly if email recovery fails</strong>
+            <span>If the email cannot be found and resend is not viable (wrong address or corporate block), retrieve the code directly: Admin → Products → Gift Cards → click the card → copy the code. Share it with the buyer via text, WhatsApp, or DM. The recipient enters it at checkout in the "Gift card or discount code" field. The code works regardless of whether the email was received.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- CONTEXT CLUSTER -->
+    <section class="section">
+      <div class="section-label">Related Checkout Failures</div>
+      <h2>Digital Gift Card Failures Touch Five Other Checkout Clusters</h2>
+      <p>Gift card delivery issues often share root causes with order confirmation email delivery, store credit confusion, loyalty stacking conflicts, and gift order fraud flags. The clusters below are the most common adjacent failure points.</p>
+
+      <div class="cluster-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" class="cluster-card">
+          <div class="cluster-label">Order Confirmation</div>
+          <div class="cluster-title">Shopify Order Confirmation Not Received — Email Delivery Failure</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-store-credit" class="cluster-card">
+          <div class="cluster-label">Store Credit</div>
+          <div class="cluster-title">Shopify Store Credit Not Working at Checkout (Rise.ai)</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" class="cluster-card">
+          <div class="cluster-label">Gift Card Stacking</div>
+          <div class="cluster-title">Shopify Gift Card + Loyalty Points Stacking Conflict</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" class="cluster-card">
+          <div class="cluster-label">Gift Orders</div>
+          <div class="cluster-title">Shopify Gift Order Flagged as Fraud — Billing vs. Shipping</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" class="cluster-card">
+          <div class="cluster-label">Digital Products</div>
+          <div class="cluster-title">Shopify Digital Download Not Received After Purchase</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-gift-card-not-working-at-checkout" class="cluster-card">
+          <div class="cluster-label">Gift Card Redemption</div>
+          <div class="cluster-title">Shopify Gift Card Not Working at Checkout</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-block">
+      <h2>Gift Card Delivery Failures Are Invisible — Until a Customer Complains</h2>
+      <p>When a Shopify gift card email goes to spam or a scheduled send fails, your Admin shows Active and Fulfilled. You won't know until a buyer opens a dispute or leaves a review. CheckPulse monitors your Shopify checkout end-to-end so gift card flow failures surface within minutes, not after the occasion has passed.</p>
+      <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+    </div>
+
+    <!-- GUIDE CARDS -->
+    <section class="section">
+      <div class="section-label">Checkout Problem Library</div>
+      <h2>Related Shopify Checkout Guides</h2>
+      <div class="guide-grid">
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-gift-card-not-working-at-checkout" class="guide-card">
+          <div class="guide-card-label">Gift Card Redemption</div>
+          <div class="guide-card-title">Gift Card Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-loyalty-stacking" class="guide-card">
+          <div class="guide-card-label">Stacking Conflicts</div>
+          <div class="guide-card-title">Gift Card + Loyalty Stacking</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-store-credit" class="guide-card">
+          <div class="guide-card-label">Store Credit</div>
+          <div class="guide-card-title">Store Credit Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation" class="guide-card">
+          <div class="guide-card-label">Email Delivery</div>
+          <div class="guide-card-title">Order Confirmation Not Received</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" class="guide-card">
+          <div class="guide-card-label">Digital Products</div>
+          <div class="guide-card-title">Digital Download Not Received</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" class="guide-card">
+          <div class="guide-card-label">Gift Orders</div>
+          <div class="guide-card-title">Gift Order Fraud Flags</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards" class="guide-card">
+          <div class="guide-card-label">Loyalty Rewards</div>
+          <div class="guide-card-title">Loyalty Points Not Working at Checkout</div>
+        </a>
+        <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+          <div class="guide-card-label">CheckPulse</div>
+          <div class="guide-card-title">Automated Checkout Monitor →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Digital Gift Card Delivery — Frequently Asked Questions</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why did the Shopify gift card email not arrive after purchase?</div>
+          <div class="faq-a">There are four causes. First, spam filtering: Shopify's native email from noreply@shopify.com often ends up in corporate junk folders (Office 365, Google Workspace). The code was delivered — the email was not. Second, typo in recipient email: the buyer typed the wrong address and Shopify delivered to a nonexistent inbox with no error. Third, email delivery infrastructure failure (rare): the code exists in Admin → Products → Gift Cards but the email never fired. Fourth, app delivery failure: if you use Govalo, GiftKart, or Rise.ai, the delivery uses the app's email infrastructure — not Shopify's — and the app's system may have had a failure independent of Shopify. Check the app dashboard for delivery status.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I find and resend a Shopify gift card code?</div>
+          <div class="faq-a">For native Shopify gift cards: Admin → Products → Gift Cards → find the card → the code is visible on the detail page. Click "Send email" or "Resend." Warning: resend goes to the same email address — if the original bounced or went to spam, the resend has the same outcome. For spam cases, share the code directly via text or DM. For typo cases, deactivate the original, then create a new gift card to the correct email. For third-party app gift cards: do NOT try to resend from Shopify Admin. The resend must come from inside the gift card app dashboard (Govalo, GiftKart, Rise.ai settings).</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why did my scheduled Shopify gift card delivery not send on time?</div>
+          <div class="faq-a">Scheduled delivery is a third-party app feature — Shopify native does not support it. Failures occur when the app subscription lapses (billing failure), when the app is uninstalled and reinstalled (clears the queue), when the recipient email has a permanent bounce flag in the app's email infrastructure, or when the app experiences a scheduler failure during high-volume periods. Check the app dashboard for the delivery status. If the status shows "Scheduled" with a past date, the send never fired — manually trigger a resend from the dashboard or retrieve the code and share it directly.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can a Shopify gift card be used in a different currency than it was issued?</div>
+          <div class="faq-a">Shopify native gift cards are issued in the store's primary currency and store their balance in that currency. On stores using Shopify Markets, gift card redemption behavior varies by configuration. In some configurations, the gift card amount is applied in the issuing currency, which may not match the checkout currency — leading to confusing checkout amounts. Third-party apps like Govalo and Rise.ai handle multi-currency differently, some with flexible conversion at redemption time. If your store operates across multiple currency markets and sells gift cards, test gift card redemption in each currency market before enabling multi-currency selling.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I stop Shopify gift card emails from going to spam?</div>
+          <div class="faq-a">For native Shopify: you cannot change the sending domain (noreply@shopify.com). The only options are to tell buyers to inform recipients to whitelist Shopify, or to use a third-party gift card app with custom sending domain support. For apps (Govalo, GiftKart, Rise.ai): check whether the app supports custom sending domain. If it does, configure your own domain's DNS records (SPF, DKIM) so the app sends from your domain instead of the app's shared domain. This significantly improves inbox placement for your established customers. If the app does not support custom sending domain, contact their support — most have this on their roadmap.</div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /.container -->
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="./free-check">Free Store Check</a>
+        <a href="./guide">Monitoring Guide</a>
+        <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+        <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+        <a href="./shopify-checkout-error-codes">Error Codes</a>
+        <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+        <a href="./shopify-checkout-speed-test">Speed Test</a>
+        <a href="./shopify-checkout-cro">Checkout CRO</a>
+        <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+        <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+        <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+        <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+        <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+        <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="./shopify-checkout-digital-products">Digital Products</a>
+        <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+        <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+        <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+        <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+        <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+        <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+        <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+        <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+        <a href="./shopify-checkout-store-credit">Store Credit</a>
+        <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+        <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+        <a href="./shopify-checkout-age-verification">Age Verification</a>
+        <a href="./shopify-checkout-product-customization">Product Customization</a>
+        <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

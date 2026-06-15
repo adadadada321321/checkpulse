@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Membership Checkout Not Working — Bold Memberships, Locksmith, Member Pricing &amp; Access Failures (2026)</title>
+  <meta name="description" content="Shopify has no native membership product type. When member pricing does not apply, Locksmith gates block real members, or membership access is revoked after renewal failure — every failure is silent from Shopify's side. Complete guide for Shopify merchants running membership programs." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-memberships" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-memberships" />
+  <meta property="og:title" content="Shopify Membership Checkout Not Working — Bold Memberships, Locksmith, Member Pricing Failures" />
+  <meta property="og:description" content="Shopify has no native membership product type. Member pricing, access gating, and content restrictions are all handled by third-party apps — Bold Memberships, Locksmith, Conjured Memberships, or Recharge. When any of these fail, members see full prices, hit access walls, or lose access after a billing event. This guide covers the full membership architecture, every silent failure mode, and how to recover." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Membership Checkout Not Working — Bold Memberships, Locksmith, Member Pricing Failures",
+    "description": "Shopify has no native membership product type. Member pricing, access gating, and content restrictions are all handled by third-party apps — Bold Memberships, Locksmith, Conjured Memberships, or Recharge. When any of these fail, members see full prices, hit access walls, or lose access after a billing event. Six silent failure modes: member pricing not applying, Locksmith gate blocking real members, membership renewal revokes access, guest checkout bypasses gating, Bold price rule conflicts with discount codes, and SSO login wall broken.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-memberships",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is member pricing not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Member pricing on Shopify is not a native feature. It is applied by a third-party app — most commonly Bold Memberships, Bold Custom Pricing, or a customer-tag-based price rule — that identifies logged-in members by their Shopify customer tag and then modifies the price before the product is added to the cart. When member pricing fails to appear at checkout, there are four common causes: (1) The customer is logged in but their Shopify account is missing the correct customer tag — check the customer's record in Shopify Admin under Customers and verify the tag matches exactly what the app expects. (2) The customer is browsing anonymously and has not logged in — Shopify cannot apply customer-tag-based pricing to guests. (3) The Bold Memberships or Bold Custom Pricing app has a billing lapse, and the app's API calls are being blocked. Check the app's billing status in the Shopify App Store. (4) Shopify's session cache is serving a stale price — have the customer clear their browser cache or try an incognito window. Member pricing apps work by injecting discounted prices at the storefront level, and the modification happens before the product hits the cart. If the app is not running, the full retail price is shown throughout checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Locksmith blocking a member who should have access?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Locksmith gates access to Shopify collections, products, or pages based on conditions: customer tag, passcode, purchase history, or geographical location. When a legitimate member is blocked, there are three typical causes: (1) The member's Shopify customer tag does not match the tag specified in the Locksmith lock — Locksmith's tag conditions are case-sensitive and must match exactly. If a member's tag is 'VIP' but the lock requires 'vip', access is denied. (2) The member logged in after loading the page — Locksmith evaluates access at page load time, so a member who added a product while logged out and then logged in before checkout may encounter a gate on the product page even though they are now authenticated. The member must reload the page after logging in. (3) The lock is set to a condition that is no longer true — for example, a 'must have purchased [product]' condition, where the purchase record was not found because the order was placed on a different account or the email addresses do not match. To debug a Locksmith block, use the Locksmith 'Test access' feature in the app dashboard: enter the customer's email and the locked resource URL to see exactly which condition is failing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did a member lose access to member-only products after a renewal?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most Shopify membership apps (Conjured Memberships, Recharge-based memberships, Bold Memberships) represent active membership status through a Shopify customer tag. When a membership renewal fails — due to a declined card, insufficient funds, or a billing processor error — the membership app removes the customer tag from the Shopify customer record. Without the tag, all Locksmith locks and Bold price rules that rely on that tag immediately stop working. The member sees full prices and is locked out of member-only collections. This access loss happens silently: the member receives a dunning email from the membership app, but in the meantime they may try to shop and be confused by a sudden price increase or access wall. The fix: the member must complete the failed payment in their account portal to restore the tag. If the tag was manually added by a merchant and then inadvertently removed by the app, the merchant can re-add the tag in Shopify Admin under Customers while the billing issue is resolved."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a Shopify member-only product be purchased by a guest using checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, and this is one of the most common Locksmith configuration mistakes. Locksmith gates access at the storefront layer — it hides or blocks the product page, collection, or add-to-cart button for non-members. However, Locksmith does not gate the Shopify checkout itself. If a non-member obtains the direct product URL or is shared an add-to-cart link, they can add the product to their cart and complete checkout without Locksmith triggering a gate. Shopify's checkout is a separate system from the storefront and does not run Locksmith's access evaluation. To prevent unauthorized purchases of member-only products, you must also gate the product at the cart or checkout level — use Shopify Checkout Extensibility (Shopify Plus) to add a checkout validation block, or configure the membership app to do a server-side check on the order before it is fulfilled. Without this secondary gate, Locksmith's storefront-only protection can be bypassed through direct cart links."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does a member discount code not work when member pricing is already applied?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify enforces a rule that only one discount can apply to each line item. When a membership app applies member pricing, it typically does this by setting a compare-at price and a discounted price directly on the product variant (via a price-list or a script-based override). When a member then applies a discount code at checkout, Shopify may refuse to stack the two discounts — it treats the member pricing as already a discount and the code as a second, conflicting discount. Shopify Plus merchants using Shopify Scripts have more control and can write scripts that allow stacking. For non-Plus merchants, Bold Custom Pricing applies member discounts through product price manipulation rather than Shopify's discount engine, which means both can coexist — but this depends on the specific app and how it implements pricing. Check your membership app's documentation for 'discount code stacking' or 'combining discounts.' The most reliable fix for non-Plus stores is to avoid giving members discount codes and instead bake all savings into the member price directly."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .cluster-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .cluster-card:hover .cluster-title { color: var(--text); }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .guide-card:hover .guide-card-title { color: var(--text); }
+
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: #150f00;
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 24px;
+      margin-top: 20px;
+    }
+    footer .container { display: flex; flex-direction: column; gap: 16px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .footer-logo-mark {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--amber);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #000;
+    }
+    .footer-logo-text { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .cluster-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+      .failure-table { font-size: 12px; }
+      footer .container { gap: 12px; }
+      .footer-links { gap: 6px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitor Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Membership Checkout Failures</div>
+      <h1>Shopify Doesn't Have a Native Membership Product Type — And That's Why Member Pricing Breaks</h1>
+      <p class="hero-sub">Shopify has no built-in membership system. Member pricing, content gating, and member-only access are all handled by third-party apps — Bold Memberships, Locksmith, Conjured Memberships, or Recharge. When any of these apps fail silently, members see full prices at checkout, hit access walls on products they paid to unlock, or lose their member status after a billing event. Shopify Admin shows nothing unusual throughout.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Covers: Bold Memberships · Locksmith · Conjured Memberships · Recharge · Memberstack</span>
+      </div>
+
+      <div class="alert-banner">
+        <strong>The core problem:</strong> Shopify tracks membership status through customer tags. Every membership app — Bold, Locksmith, Conjured, Recharge — reads the customer tag to decide whether to show member pricing or unlock gated content. When the tag is missing, wrong, or removed by a billing event, access and pricing break instantly. Shopify Admin shows the customer account as normal throughout. The failure is completely invisible from the merchant side unless someone reports it.
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>How Shopify Memberships Actually Work</h2>
+      <p class="section-intro">Shopify's product types are Physical, Digital, Gift Card, and Service. There is no Membership type. Merchants build membership programs by stacking multiple third-party apps, each responsible for a different layer of the membership stack.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Layer 1 — Identity</div>
+          <div class="arch-card-title">Shopify Customer Account + Tag</div>
+          <div class="arch-card-desc">The membership status lives as a customer tag in Shopify (e.g. "member", "gold-member", "vip"). Every other app reads this tag. If the tag is wrong, nothing works.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 2 — Billing</div>
+          <div class="arch-card-title">Recharge / Conjured / Bold</div>
+          <div class="arch-card-desc">Handles the recurring payment for membership. On successful payment, adds the customer tag. On failed payment, removes or revokes the tag after a dunning period.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 3 — Pricing</div>
+          <div class="arch-card-title">Bold Custom Pricing / Customer-Specific Pricing</div>
+          <div class="arch-card-desc">Reads the customer tag and applies a member price to the product before it is added to the cart. Shopify Plus merchants can use Price Lists natively. Non-Plus requires an app.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 4 — Access</div>
+          <div class="arch-card-title">Locksmith / Conjured Access</div>
+          <div class="arch-card-desc">Hides or restricts products, collections, and pages at the storefront level. Reads the customer tag to decide whether to show or hide content. Does not gate the Shopify checkout itself.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 5 — Checkout</div>
+          <div class="arch-card-title">Shopify Checkout (standard)</div>
+          <div class="arch-card-desc">Shopify's checkout has no membership awareness. It processes any cart regardless of customer tag. Membership validation at checkout requires Shopify Plus (Checkout Extensibility) or a post-order webhook.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 6 — Fulfillment</div>
+          <div class="arch-card-title">Shopify Order + App Webhook</div>
+          <div class="arch-card-desc">After checkout, the membership app may receive an order webhook to record the purchase, grant access to digital member content, or update the customer's membership period. Webhook failure = no access granted.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Six Ways Shopify Memberships Break Without Warning</h2>
+      <p class="section-intro">Every failure below is invisible in Shopify Admin. The order is fulfilled, the customer account is active, and the store looks fine — until members start contacting support.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>Shopify Admin Shows</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Member pricing not applying at checkout</td>
+            <td>Customer tag missing, wrong, or app billing lapsed</td>
+            <td>Normal customer account</td>
+            <td><span class="badge badge-red">Critical</span> Members pay full price</td>
+          </tr>
+          <tr>
+            <td>Locksmith blocking a legitimate member</td>
+            <td>Tag case mismatch, session not refreshed after login, condition changed</td>
+            <td>Normal customer record</td>
+            <td><span class="badge badge-red">Critical</span> Member cannot access paid content</td>
+          </tr>
+          <tr>
+            <td>Access revoked after renewal failure</td>
+            <td>Declined card → membership app removes tag → Locksmith and pricing fail immediately</td>
+            <td>Customer account active</td>
+            <td><span class="badge badge-red">Critical</span> Active member loses access mid-session</td>
+          </tr>
+          <tr>
+            <td>Guest checkout bypasses Locksmith gate</td>
+            <td>Locksmith only gates the storefront; Shopify checkout has no membership awareness</td>
+            <td>Order fulfilled normally</td>
+            <td><span class="badge badge-amber">High</span> Non-members purchase member-only products</td>
+          </tr>
+          <tr>
+            <td>Member discount code conflicts with member pricing</td>
+            <td>Shopify one-discount-per-line-item rule; Bold pricing and discount codes treated as two discounts</td>
+            <td>Checkout shows error or discount not applied</td>
+            <td><span class="badge badge-amber">High</span> Member cannot redeem code on top of member price</td>
+          </tr>
+          <tr>
+            <td>Membership purchase grants no access</td>
+            <td>App order webhook failed; customer tag not added after membership product purchased</td>
+            <td>Order fulfilled, payment captured</td>
+            <td><span class="badge badge-red">Critical</span> Customer paid for membership but has no access</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>5-Step Membership Checkout Diagnosis</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Verify the customer tag in Shopify Admin</strong>
+            <span>Go to Shopify Admin → Customers → find the affected member → check the Tags field. The tag must match exactly what your membership app expects — case-sensitive, no extra spaces. If the tag is missing, the entire membership stack is broken for this customer regardless of which app you check next.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Check your membership app's billing status</strong>
+            <span>A lapsed app subscription (Bold Memberships, Conjured, Recharge) causes the app to stop processing requests. Go to Shopify Admin → Apps and verify the membership app is active and its billing is current. A billing lapse often triggers no visible error in the storefront — member pricing silently disappears.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Use Locksmith's built-in access test</strong>
+            <span>In the Locksmith app dashboard, navigate to the locked resource (product, collection, or page), click "Test access," and enter the member's email address. Locksmith will show you exactly which condition is passing or failing for that specific customer — this takes the guesswork out of tag-condition debugging.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Check for a failed renewal in the membership app dashboard</strong>
+            <span>In Conjured Memberships, Recharge, or Bold Memberships, check the customer's subscription record for a failed payment or dunning event. A failed renewal typically revokes the customer tag after 3–7 days of dunning. The customer loses pricing and access the moment the tag is removed, even if they are mid-session.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Reproduce in incognito to isolate the session</strong>
+            <span>Have the affected member log out completely, clear cookies, and re-log into their Shopify account in an incognito window. Then browse to the member-only product or attempt checkout. This eliminates stale session cache and confirms whether the failure is persistent or session-bound. If the issue disappears after re-login, the member's session token was stale — no fix needed beyond re-login.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Three Failure Modes in Detail</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 1</div>
+        <h3>Member Pricing Not Applying — The Customer Tag Chain</h3>
+        <p>Member pricing on non-Plus Shopify stores works through a chain: the membership app sets a customer tag on signup → Bold Custom Pricing (or equivalent) reads that tag at page load → applies a price override to the product variant before it is added to the cart. Every link in this chain must work for the member to see their price.</p>
+        <p>The most common break point is the customer tag. Bold Custom Pricing does not create the tag — that is the membership app's job. If a member signed up but the membership app failed to write the tag (due to a webhook timeout, an app outage during signup, or a plan limit), Bold never sees an active membership and serves the retail price.</p>
+        <div class="mono-block">Shopify Admin → Customers → [member email] → Tags field
+Expected: "member" (or your app's configured tag)
+If empty or wrong: pricing and access both fail for this customer</div>
+        <p>For Shopify Plus merchants, Customer-Specific Pricing (Shopify's native price lists) is a more reliable alternative because it does not depend on an app intermediary. Prices are set directly on the customer record via the Admin API and are evaluated server-side at checkout — not client-side by a third-party script. If you are on Plus and experiencing pricing failures, check whether the customer is assigned to the correct price list in Shopify Admin → Customers → [member] → Price list.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 2</div>
+        <h3>Locksmith Blocking a Legitimate Member — The Checkout Gap</h3>
+        <p>Locksmith is the most widely used Shopify access-control app. It works by injecting JavaScript into the storefront that evaluates the logged-in customer's tags against the lock conditions. If the condition passes, the content is shown. If it fails, the content is hidden or replaced with an access message.</p>
+        <p>Three things consistently break Locksmith gates for legitimate members. First, tag case sensitivity: if the lock says "Member" and the customer tag says "member", Locksmith denies access. Second, session timing: a customer who was anonymous when they loaded the product page, then logged in without reloading, will still be evaluated as anonymous — Locksmith evaluated the session at page load, not at login. Third, the checkout gap: Locksmith gates the storefront only. If a non-member obtains a direct product URL or a cart permalink, they can add the product to their cart and complete checkout without any Locksmith intervention.</p>
+        <div class="mono-block">Locksmith dashboard → [locked resource] → "Test access" → enter member email
+Shows: which specific condition is passing or failing
+Also check: Settings → "Key conditions" → verify tag case matches Shopify Admin exactly</div>
+        <p>To close the checkout gap on Shopify Plus, use Checkout Extensibility to add a checkout validation function that verifies the customer's tag before allowing the order to proceed. For non-Plus stores, the only server-side option is a post-purchase webhook that checks the order, detects unauthorized purchases, and cancels or refunds them automatically — a reactive rather than preventive approach.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 3</div>
+        <h3>Renewal Failure Revokes Access Instantly — The Dunning Cliff</h3>
+        <p>When a Recharge or Conjured Memberships subscription renewal fails, the app begins a dunning sequence — it retries the payment over several days and sends reminder emails. At the end of the dunning period (typically 3–7 days), if the payment has not been recovered, the app removes the customer tag from the Shopify customer record.</p>
+        <p>The moment the tag is removed, the member loses access to everything that depends on the tag: Locksmith gates lock immediately, Bold Custom Pricing reverts to retail prices, and any member-only product or collection becomes inaccessible. The member may have been in the middle of a browsing or checkout session when this happens — their cart still shows the member price (because the cart was priced before the tag was removed), but if they refresh or start a new session, the member price is gone.</p>
+        <p>This is one of the most disorienting member experiences on Shopify. The member believes their membership is active (they paid for another month just days ago), but their access disappears without explanation. They see no error — just a sudden change to retail pricing and locked content.</p>
+        <div class="mono-block">Recharge / Conjured dashboard → Customers → [member] → Subscription tab
+Check: Last billing attempt, Dunning status, Active/Inactive status
+Fix: Re-activate subscription → app re-adds customer tag → access restored within minutes</div>
+        <p>To reduce dunning-cliff damage: configure your membership app to send the member a proactive warning 3 days before dunning ends. Most apps support this. The goal is to get the member to update their payment method before access is revoked, not after. Also consider a grace period setting — some apps allow you to delay tag removal by an extra 2–3 days, giving the member time to respond without losing access.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">App Comparison</div>
+      <h2>Shopify Membership App Comparison (2026)</h2>
+      <p class="section-intro">No single app handles the entire membership stack. Most stores use two or three together. Understanding what each app does — and does not do — is the key to diagnosing failures.</p>
+
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>App</th>
+            <th>What It Handles</th>
+            <th>What It Does Not Handle</th>
+            <th>Common Failure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Bold Memberships / Bold Custom Pricing</td>
+            <td>Member pricing via customer tag + price rules; recurring billing (with Bold Subscriptions)</td>
+            <td>Access gating (content/product locking); checkout-level enforcement</td>
+            <td>Price not applying when customer tag is missing or app billing lapses</td>
+          </tr>
+          <tr>
+            <td>Locksmith</td>
+            <td>Storefront access gates (collections, products, pages, cart) based on customer tag, passcode, purchase history, geolocation</td>
+            <td>Pricing; recurring billing; checkout enforcement (does not gate Shopify checkout itself)</td>
+            <td>Tag case mismatch; legitimate members blocked; non-members bypass via direct URL</td>
+          </tr>
+          <tr>
+            <td>Conjured Memberships</td>
+            <td>Full membership stack: recurring billing + customer tag management + basic access control</td>
+            <td>Deep storefront access control (use Locksmith for complex gating); Shopify Plus price lists</td>
+            <td>Tag removal after renewal failure; webhook delay on signup creating an access window</td>
+          </tr>
+          <tr>
+            <td>Recharge (as membership)</td>
+            <td>Recurring billing; customer tag add/remove on renewal; dunning management</td>
+            <td>Pricing (needs Bold or Shopify Plus); storefront gating (needs Locksmith)</td>
+            <td>Tag removed at dunning end; Recharge + Locksmith + Bold tag synchronization failures</td>
+          </tr>
+          <tr>
+            <td>Memberstack / Memberful</td>
+            <td>Headless membership: billing, access control, and content gating outside Shopify's storefront</td>
+            <td>Native Shopify checkout integration; Shopify customer tag management is limited</td>
+            <td>Shopify order not linked to Memberstack record; member must manage two accounts</td>
+          </tr>
+          <tr>
+            <td>Shopify Plus — Native</td>
+            <td>Customer-Specific Pricing (price lists); Checkout Extensibility (validation functions); B2B company pricing</td>
+            <td>Recurring billing; storefront content gating (still needs Locksmith); content access management</td>
+            <td>Customer not assigned to price list; checkout validation function not deployed</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Membership-Adjacent Checkout Problems</h2>
+      <p class="section-intro">Membership failures often trigger or are confused with these related checkout issues.</p>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="./shopify-checkout-subscription-renewals">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Subscription Renewal Failures — Recharge Rebill, Dunning, Card Update</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-loyalty-rewards">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Loyalty Points Not Working — Smile.io, Yotpo, Rewards Not Applying</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-gift-card-loyalty-stacking">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Gift Card + Loyalty Stacking — Discount Conflict at Checkout</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-store-credit">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Store Credit Not Working — Rise.ai, Guest Checkout Invisibility</div>
+        </a>
+        <a class="guide-card" href="./shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">B2B Checkout — Wholesale Pricing, Net Terms, Company Accounts</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Fraud Prevention — High-Risk False Positives Blocking Legitimate Orders</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Membership Checkout — Common Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why is member pricing not showing at Shopify checkout?</div>
+          <div class="faq-a">Member pricing on Shopify is applied by a third-party app — most commonly Bold Custom Pricing or a customer-tag-based price rule. The four common causes: (1) the customer's Shopify account is missing the correct member tag — check Admin → Customers → Tags; (2) the customer is browsing as a guest without logging in; (3) the Bold Memberships or pricing app has a billing lapse; (4) a stale browser session is serving an old price — ask the member to clear cache or use incognito. Member pricing works by modifying the price before the product enters the cart — if the app is not running, the full retail price is always shown throughout checkout.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Locksmith blocking a member who should have access?</div>
+          <div class="faq-a">Locksmith gates are tag-based and case-sensitive. Check that the lock condition tag matches the customer's tag in Shopify Admin exactly — "Member" and "member" are treated as different tags. If the tag matches and the member is still blocked, check whether they loaded the page before logging in — Locksmith evaluates the session at page load, so members who logged in after loading the page must refresh to trigger a re-evaluation. Use Locksmith's built-in "Test access" tool: enter the customer's email and the locked URL to see the exact failing condition.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why did a member lose access to member-only products after a renewal?</div>
+          <div class="faq-a">Most membership apps (Conjured, Recharge, Bold) represent active membership as a Shopify customer tag. When a renewal fails, the app starts a dunning sequence — after the dunning period (3–7 days), it removes the customer tag. Without the tag, Locksmith gates lock and Bold pricing reverts to retail immediately. The member must complete the failed payment in their account portal to restore the tag. Consider enabling proactive dunning warning emails so members update their card before access is revoked, not after.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can a Shopify member-only product be purchased by a guest using checkout?</div>
+          <div class="faq-a">Yes. Locksmith gates the storefront only — it hides or restricts the product page and add-to-cart button. But Locksmith does not gate the Shopify checkout itself. A non-member who obtains the direct product URL or a cart permalink can complete checkout without Locksmith intervening. To prevent this on Shopify Plus, deploy a checkout validation function via Checkout Extensibility that checks the customer tag before allowing the order. For non-Plus stores, the only server-side option is a post-purchase order webhook that detects and refunds unauthorized purchases.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does a member discount code not work when member pricing is already applied?</div>
+          <div class="faq-a">Shopify enforces a one-discount-per-line-item rule. Bold Custom Pricing applies member discounts by modifying the product price directly — it does not use Shopify's discount engine. This means both the member price and a discount code can technically coexist for non-Plus merchants using Bold. However, if your membership app uses Shopify's native discount system (draft orders, automatic discounts), Shopify will treat both as discounts and refuse to stack them. The most reliable fix for non-Plus stores: avoid issuing discount codes to members and build all savings into the member price. For Plus, Shopify Scripts can enable stacking explicitly.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Working Right Now?</h2>
+      <p>Membership pricing failures, access blocks, and checkout errors are often invisible until a member reports them. CheckPulse monitors your checkout every few minutes and alerts you the moment something breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+    </div>
+
+  </div><!-- /.container -->
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="./free-check">Free Store Check</a>
+        <a href="./guide">Monitoring Guide</a>
+        <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+        <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+        <a href="./shopify-checkout-error-codes">Error Codes</a>
+        <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+        <a href="./shopify-checkout-speed-test">Speed Test</a>
+        <a href="./shopify-checkout-cro">Checkout CRO</a>
+        <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+        <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+        <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+        <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+        <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+        <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="./shopify-checkout-digital-products">Digital Products</a>
+        <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+        <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+        <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+        <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+        <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+        <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+        <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+        <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+        <a href="./shopify-checkout-store-credit">Store Credit</a>
+        <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+        <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+        <a href="./shopify-checkout-age-verification">Age Verification</a>
+        <a href="./shopify-checkout-product-customization">Product Customization</a>
+        <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+        <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+        <a href="./shopify-checkout-memberships">Memberships</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

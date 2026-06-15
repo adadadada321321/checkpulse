@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify B2B Net Terms Not Working — Net 30/60/90 Not Showing, Invoice Not Generated, Payment Due Reminder Missing (2026)</title>
+  <meta name="description" content="Shopify Plus B2B net terms (Net 30/60/90) require Shopify Payments and exact company account configuration. When net terms don't appear, invoices aren't generated, or payment reminders stop, here is the complete diagnosis guide." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-b2b-net-terms" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-b2b-net-terms" />
+  <meta property="og:title" content="Shopify B2B Net Terms Not Working — Net 30/60/90 Not Showing, Invoice, Payment Reminder Failures" />
+  <meta property="og:description" content="Shopify's B2B net terms deferred payment flow has strict hard dependencies: Shopify Plus, Shopify Payments gateway, company account with terms enabled, and zero overdue balance. If any one is missing, the net terms option silently vanishes from checkout — with no error message anywhere in Shopify Admin." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify B2B Net Terms Not Working — Net 30/60/90 Not Showing, Invoice Not Generated, Payment Reminder Failures",
+    "description": "Shopify Plus B2B net payment terms (Net 30, Net 60, Net 90) have strict requirements: Shopify Plus plan, Shopify Payments as active gateway, company account with net terms enabled, and zero overdue balance. Any missing dependency causes the net terms option to silently disappear from checkout. This guide covers the full net terms invoice lifecycle, six silent failure modes, and the exact admin paths to diagnose and restore each one.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-b2b-net-terms",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why are Shopify B2B net payment terms not showing at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify B2B net terms (Net 30, Net 60, Net 90) are a Shopify Plus feature with four hard requirements that must all be true simultaneously. If any one fails, the net terms option silently disappears from checkout with no error. (1) Your store must be on Shopify Plus — net terms are not available on any lower plan. Check Admin → Settings → Plan. (2) Shopify Payments must be your active payment gateway — net terms are only available when Shopify Payments processes the order. Third-party gateways (Stripe direct, Authorize.net, PayPal, Braintree) do not support Shopify net terms. Check Admin → Settings → Payments. (3) The buyer's company account must have net terms enabled — go to Admin → Customers → Companies → [Company] → Payment Terms and verify a net terms configuration is set. If Payment Terms is blank or set to 'Payment on fulfillment' only, the option won't appear. (4) The company must have no overdue invoices — Shopify blocks new net-term orders when the company has outstanding overdue balances. Check Admin → Customers → Companies → [Company] → Orders tab for any unpaid invoices past their due date. All four conditions must be true. The most common cause is the third-party gateway issue — merchants who migrated from Stripe direct to Shopify Payments often discover net terms never appeared because of the gateway dependency."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify B2B not generating an invoice after a net terms order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a B2B buyer places an order using net payment terms, Shopify should automatically generate a PDF invoice and send it to the buyer's email. If the invoice is not generated or not sent, the most common causes are: (1) The order was placed but the payment terms were not applied — this can happen if the company's net terms configuration was set up after the buyer started their checkout session. The session carries the payment state from when it was initiated. The buyer would need to restart checkout. Verify in the order detail: Admin → Orders → [Order] → Payment section — it should show 'Net 30' (or your terms) with a due date. If it shows 'Pending' without a due date, the terms weren't applied. (2) The invoice email is going to spam — Shopify sends B2B invoices from its own email infrastructure. Check the buyer's spam folder. Ask them to add Shopify's sending domain to their allowlist. (3) The invoice was generated but the buyer's email address on file is incorrect — verify the company contact email in Admin → Customers → Companies → [Company] → Contacts. (4) For custom or draft-order-based B2B flows, the invoice is not automatically generated — you must manually send it from the order detail page using 'Send invoice.' Shopify's automatic invoice generation only applies to orders placed through the native B2B checkout flow with net terms applied at checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are Shopify B2B payment due reminders not being sent?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify sends automated payment reminder emails to B2B buyers as their net-terms invoice due date approaches — typically 7 days before and on the due date. If these reminders are not being received, the most common causes are: (1) The reminder emails are going to the buyer's spam folder. B2B reminder emails come from Shopify's sending infrastructure. Have the buyer check their spam and ask IT to allowlist the Shopify sending domain. (2) The correct contact on the company account is not set up to receive invoices. Go to Admin → Customers → Companies → [Company] → Contacts → verify the contact has the 'Billing' or 'Ordering' permission. Shopify sends reminders to the billing contact, not necessarily the email used during checkout. (3) Shopify's automatic reminder emails only trigger for orders with a due date — if the net terms due date was not applied to the order (the payment section shows 'Pending' without a due date), no reminders will be sent. Check the order payment section. (4) Your Shopify notification email settings may have been configured to suppress or redirect order notification emails. Check Admin → Settings → Notifications for any custom overrides. Shopify does not offer a built-in dashboard showing which reminder emails were sent — you cannot verify this from Admin. The only verification path is to have the buyer confirm receipt or to check their spam folder."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is a Shopify B2B company being blocked from placing new orders?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are two reasons Shopify B2B blocks a company from placing new orders: outstanding overdue invoices, and credit limit exceeded. (1) Overdue invoice block: Shopify automatically prevents a company from placing new net-terms orders when they have one or more overdue invoices — invoices where the payment due date has passed without payment. The buyer sees a message at checkout that new orders cannot be placed until outstanding balances are settled. Go to Admin → Customers → Companies → [Company] → Orders and look for orders with a past-due date and no payment. To unblock: either collect payment on the overdue invoice or, in edge cases, adjust the invoice due date in the order payment section. (2) Credit limit block: Shopify B2B supports setting a credit limit on a company account. If a new order would put the company over their credit limit, Shopify blocks the order at checkout. Go to Admin → Customers → Companies → [Company] → Payment Terms → Credit Limit to see and adjust the limit. Note: the credit limit reflects the total outstanding net-terms balance, not just overdue amounts — a company with $9,000 outstanding against a $10,000 limit will be blocked on any new order over $1,000, even if all their invoices are current and not overdue."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify B2B net terms be used without Shopify Payments?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify B2B net payment terms are only available when Shopify Payments is the active payment gateway. This is a hard platform constraint, not a configuration option. Merchants using Stripe direct, Authorize.net, PayPal, Braintree, or any other third-party gateway cannot enable net terms for their B2B buyers — the net terms option will never appear at checkout regardless of how the company account is configured. The reason is architectural: Shopify's net terms flow depends on Shopify's own payment infrastructure to handle deferred charge capture, invoice generation, and the payment collection workflow when the invoice is due. These capabilities are not exposed to third-party payment gateways through Shopify's payment APIs. Merchants on custom payment setups have two options: (1) migrate their B2B payment processing to Shopify Payments — this enables native net terms but means accepting Shopify's processing rates and geographic availability; or (2) manage B2B net terms outside Shopify entirely — using an external ERP or invoicing tool (QuickBooks, NetSuite, Xero) for the deferred payment flow, with Shopify recording the order but not handling the deferred payment collection."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify B2B Checkout Troubleshooting</div>
+      <h1>Shopify B2B Net Terms Not Working — Net 30/60/90 Not Showing, Invoice Not Generated, Payment Reminder Failures</h1>
+      <p class="hero-sub">
+        Shopify Plus B2B net payment terms (Net 30, Net 60, Net 90) have four hard dependencies that must all be true simultaneously. When even one is missing — wrong gateway, unconfigured company account, overdue balance — the net terms option silently disappears at checkout with no error message anywhere in Shopify Admin.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: Shopify Plus B2B stores, wholesale merchants, enterprise buyers</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Net terms are a Shopify Plus–only feature and require Shopify Payments.</strong> Merchants on lower plans or using third-party gateways (Stripe, Authorize.net, PayPal) cannot enable net terms for B2B buyers regardless of how the company account is configured. This single constraint silently blocks net terms for the majority of merchants who try to set them up.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>How Shopify B2B Net Terms Work — The Full Invoice Lifecycle</h2>
+      <p class="section-intro">Net terms on Shopify are a deferred payment flow. Unlike standard checkout where payment is captured at order placement, net terms defer capture to a future due date. Each stage of the lifecycle can break independently.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Stage 1 — Prerequisites</div>
+          <div class="arch-card-title">Four Hard Dependencies</div>
+          <div class="arch-card-desc">Shopify Plus plan + Shopify Payments as active gateway + company account with net terms configured + zero overdue invoices. All four must be true. Missing any one silently removes the net terms option at checkout.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Stage 2 — Checkout</div>
+          <div class="arch-card-title">Net Terms Appears at Payment Step</div>
+          <div class="arch-card-desc">Authenticated B2B buyer selects their net terms option (Net 30, Net 60, Net 90) at the payment step. Order is placed with deferred payment — no card is charged. An invoice due date is calculated and assigned to the order.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Stage 3 — Invoice</div>
+          <div class="arch-card-title">PDF Invoice Generated and Emailed</div>
+          <div class="arch-card-desc">Shopify generates a PDF invoice and emails it to the company's billing contact. The invoice shows the order total, due date, and payment instructions. This step commonly fails if the billing contact email is incorrect or the invoice goes to spam.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Stage 4 — Reminders</div>
+          <div class="arch-card-title">Automated Payment Reminders</div>
+          <div class="arch-card-desc">Shopify sends automated reminder emails as the due date approaches (typically 7 days before and on the due date). Buyers with IT email filters often miss these. There is no built-in Shopify Admin dashboard showing which reminders were sent.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Stage 5 — Collection</div>
+          <div class="arch-card-title">Payment Captured on Due Date</div>
+          <div class="arch-card-desc">On the due date, Shopify attempts to capture payment via Shopify Payments. If the buyer pays manually (bank transfer, check), the merchant marks the invoice paid in Admin. Overdue invoices block the buyer from placing new orders.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Stage 6 — Block</div>
+          <div class="arch-card-title">Overdue Invoice Blocks Future Orders</div>
+          <div class="arch-card-desc">When an invoice passes its due date without payment, Shopify automatically blocks the company from placing new net-terms orders at checkout. The block is immediate, silent to the merchant, and only lifted when the overdue invoice is marked paid.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Six Ways Shopify B2B Net Terms Break Without Any Admin Alert</h2>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>What Shopify Admin Shows</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Net terms option not appearing at checkout</td>
+            <td>Missing any of four prerequisites: non-Plus plan, third-party gateway, company account not configured, overdue invoice exists</td>
+            <td>Payment step shows standard payment methods only; no error or explanation</td>
+            <td><span class="badge badge-red">Critical</span> B2B buyer cannot place order on agreed terms; blocked without explanation</td>
+          </tr>
+          <tr>
+            <td>Invoice PDF not generated after order</td>
+            <td>Net terms applied but billing contact email incorrect; invoice email goes to spam; draft-order flow bypasses auto-invoice</td>
+            <td>Order shows Payment Terms with due date; no invoice-sent indicator</td>
+            <td><span class="badge badge-red">Critical</span> Buyer has no record of order or payment obligation; payment delays</td>
+          </tr>
+          <tr>
+            <td>Payment reminder emails not received by buyer</td>
+            <td>Emails going to spam; billing contact not set on company account; wrong email on file; IT email filters blocking Shopify domain</td>
+            <td>No reminder log in Admin; no delivery confirmation</td>
+            <td><span class="badge badge-amber">High</span> Invoice goes overdue; merchant–buyer relationship damaged</td>
+          </tr>
+          <tr>
+            <td>Legitimate buyer blocked from ordering</td>
+            <td>One overdue invoice blocks all new net-terms orders, even if other invoices are current; credit limit exceeded</td>
+            <td>Checkout shows error; Admin shows no alert to merchant</td>
+            <td><span class="badge badge-amber">High</span> Active customer cannot order; lost revenue; requires manual merchant intervention</td>
+          </tr>
+          <tr>
+            <td>Net terms disappear after switching payment gateway</td>
+            <td>Merchant migrates from Shopify Payments to a third-party processor; net terms silently disabled for all company accounts</td>
+            <td>Company accounts still show net terms configured; checkout no longer offers the option</td>
+            <td><span class="badge badge-red">Critical</span> All B2B buyers lose net terms simultaneously; no notification to merchant</td>
+          </tr>
+          <tr>
+            <td>Credit limit blocks order without notifying merchant</td>
+            <td>Company's outstanding net-terms balance reaches credit limit; new orders blocked even if all invoices are current</td>
+            <td>Buyer sees checkout error; Admin shows no alert or flag on company record</td>
+            <td><span class="badge badge-amber">High</span> High-value repeat customer blocked on large order; relationship risk</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>5-Step B2B Net Terms Diagnosis</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Verify all four prerequisites in Shopify Admin</strong>
+            <span>Go to Admin → Settings → Plan: confirm Shopify Plus is active. Go to Admin → Settings → Payments: confirm Shopify Payments is the active gateway and no third-party processor is primary. Go to Admin → Customers → Companies → [Company] → Payment Terms: confirm net terms (Net 30, Net 60, or Net 90) are configured and not blank. Go to Admin → Customers → Companies → [Company] → Orders: check for any orders with a past-due date and an unpaid status. Any one of these failing silently removes net terms from checkout.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Check the company's billing contact email</strong>
+            <span>Go to Admin → Customers → Companies → [Company] → Contacts. Verify at least one contact has the Billing or Ordering permission and that the email address is current. Shopify sends the invoice PDF and payment reminders to the billing contact, not necessarily the email used during the last checkout session. If the billing contact email is outdated or incorrect, all invoice and reminder emails are silently lost.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Verify the order's payment section shows net terms with a due date</strong>
+            <span>Go to Admin → Orders → [Order] → scroll to the Payment section. A correctly applied net-terms order shows "Net 30" (or your configured terms) with a specific due date listed. If the payment section shows "Pending" without a due date, the net terms were not applied during checkout — the buyer may have started checkout before the company account was configured. The buyer must restart checkout for the terms to apply. You cannot backdate net terms onto a completed order.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Check the buyer's spam folder for invoice and reminder emails</strong>
+            <span>Shopify sends B2B invoice and reminder emails from its own email infrastructure (typically a shopify.com or myshopify.com sending domain). Corporate IT environments with strict email filters frequently quarantine these. Ask the buyer to check spam, junk, and quarantine folders. If emails are consistently filtered, the buyer's IT team needs to allowlist Shopify's sending IP range or the shopify.com domain. Shopify Admin has no delivery log for these emails — you cannot confirm delivery from Admin.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Test the net terms flow from the buyer's account in a separate browser session</strong>
+            <span>Log into your store using the B2B buyer's company account credentials (or create a test buyer account under the company). Add products to cart, proceed to checkout, and verify the net terms option appears at the payment step. If it does not appear, one of the four prerequisites is failing — go back to step 1. If net terms appear in the test but the real buyer cannot see them, the issue is session-specific: the buyer may have an existing checkout session from before net terms were configured. Ask them to clear their cart, log out, log back in, and start a fresh checkout.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Three Failure Modes in Detail</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 1</div>
+        <h3>The Shopify Payments Lock-In — Why Third-Party Gateways Break Net Terms</h3>
+        <p>This is the most surprising constraint in Shopify B2B net terms: the feature is only available if Shopify Payments is your active payment gateway. Merchants using Stripe (direct integration), Authorize.net, PayPal, Braintree, Adyen, or any other third-party gateway cannot enable net terms — the option simply does not appear at checkout regardless of how the company account is configured.</p>
+        <p>The reason is architectural. Shopify's net terms flow relies on Shopify's internal payment infrastructure to handle deferred capture, invoice generation, and the payment collection workflow when the invoice comes due. These capabilities are tightly coupled to Shopify Payments and are not exposed to third-party gateway integrations through Shopify's payment APIs.</p>
+        <div class="mono-block">Admin → Settings → Payments
+Verify: Shopify Payments = Active (green checkmark)
+If third-party gateway is primary → net terms are silently unavailable
+Fix: Migrate B2B payment processing to Shopify Payments
+Alternative: Manage net terms outside Shopify (QuickBooks, NetSuite, Xero)</div>
+        <p>Merchants who switch gateways during a store migration — even briefly — discover that all previously configured net terms options silently stop appearing at checkout. If your B2B buyers recently lost access to net terms without any other change, verify the payment gateway first. The company account configuration is unchanged but the gateway dependency is gone.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 2</div>
+        <h3>Invoice Not Generated — The Draft Order Gap</h3>
+        <p>Shopify automatically generates a PDF invoice for net-terms orders placed through the native B2B checkout flow. However, many B2B merchants use draft orders — created manually by a sales rep or via the Admin — for large or custom orders. Draft orders follow a different code path and do not automatically generate invoices even when net terms are selected.</p>
+        <p>For a draft order with net terms, the merchant must manually send the invoice from the order detail page. Go to Admin → Orders → [Draft Order] → click "Send invoice." This manually triggers the invoice email with the payment due date. If this step is skipped, the buyer receives only the draft order email (which does not include the invoice PDF or the payment terms language) and may not know a payment is due or when.</p>
+        <div class="mono-block">Native B2B checkout flow → invoice auto-generated and emailed ✓
+Draft order + net terms → must manually click "Send invoice" in Admin
+Check: Admin → Orders → [Order] → Timeline — look for "Invoice sent" event
+If Timeline shows no invoice event → buyer has not received an invoice</div>
+        <p>A second invoice generation gap: if the billing contact's email address is wrong, Shopify records the invoice as sent (the event appears in the order Timeline) but the email bounces silently. Shopify Admin does not show bounced emails. Always verify the billing contact email directly in the company account before concluding an invoice was successfully delivered.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive 3</div>
+        <h3>The Overdue Block — How One Late Invoice Freezes a Buyer's Account</h3>
+        <p>Shopify's overdue invoice block is a cascade risk: a single invoice that goes unpaid past its due date blocks the entire company from placing any new net-terms orders. The block applies company-wide, not just to the individual who placed the overdue order. If a company has five active buyers, all five are blocked until the overdue invoice is resolved.</p>
+        <p>The block is immediate and silent. The merchant receives no notification in Shopify Admin that a company has been blocked. The buyer sees a checkout error — but the error message does not specify that overdue invoices are the cause. From the buyer's perspective, their account appears broken; from the merchant's perspective, Admin looks normal.</p>
+        <div class="mono-block">Admin → Customers → Companies → [Company] → Orders
+Filter by: Payment Status = Overdue
+Find orders with due date in the past and status not Paid
+Resolve: collect payment → mark invoice paid → buyer access restored immediately</div>
+        <p>To prevent the cascade: set up a proactive dunning workflow. Shopify's built-in reminders fire at 7 days before and on the due date — but corporate AR departments often need 14–30 days notice to process a payment. Consider sending a manual email reminder 30 days before the due date for large invoices, in addition to relying on Shopify's automated reminders. Some merchants use Shopify Flow to trigger custom reminder sequences based on invoice age and amount.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Approach Comparison</div>
+      <h2>B2B Net Terms on Shopify — Native vs. External Approaches (2026)</h2>
+      <p class="section-intro">Shopify's native net terms are the simplest path but have hard constraints. Merchants who can't use Shopify Payments or need more flexibility typically handle net terms outside Shopify.</p>
+
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>What It Handles</th>
+            <th>What It Does Not Handle</th>
+            <th>Common Failure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shopify Native B2B Net Terms</td>
+            <td>Net 30/60/90 at checkout; PDF invoice; automated reminders; overdue blocking; credit limits; Shopify Admin visibility</td>
+            <td>Requires Shopify Plus + Shopify Payments; no partial payments; no custom invoice templates; no delivery confirmation for emails</td>
+            <td>Third-party gateway migration silently disables; overdue invoice blocks all buyers without merchant alert</td>
+          </tr>
+          <tr>
+            <td>Shopify Draft Orders + Manual Invoice</td>
+            <td>Flexible for custom and large orders; any payment method; works on any Shopify plan; merchant controls invoice timing</td>
+            <td>No automated reminders; no overdue tracking in Admin; requires manual invoice sending for every order; no buyer self-service payment</td>
+            <td>Invoice not sent (merchant forgets to click "Send invoice"); no systematic overdue follow-up</td>
+          </tr>
+          <tr>
+            <td>QuickBooks / Xero / NetSuite (external)</td>
+            <td>Full AR management; partial payments; custom payment terms; automated dunning sequences; overdue escalation; audit trail</td>
+            <td>Not integrated with Shopify checkout; buyer must receive invoice outside Shopify; manual reconciliation between Shopify orders and invoices</td>
+            <td>Order placed in Shopify but invoice not created in ERP; reconciliation lag causes missed payments</td>
+          </tr>
+          <tr>
+            <td>Shopify Flow + Custom Net Terms Workflow</td>
+            <td>Custom reminder sequences based on invoice age; slack/email alerts when invoices approach due date; overdue notifications to merchant</td>
+            <td>Still requires native net terms prerequisites (Plus + Shopify Payments); Flow does not bypass the gateway or plan constraints</td>
+            <td>Flow triggers on order creation but net terms not applied (order placed without net terms) — Flow fires but no invoice exists to act on</td>
+          </tr>
+          <tr>
+            <td>Order Desk / Skubana (middleware)</td>
+            <td>Routes B2B orders to external billing systems; syncs payment status back to Shopify; supports non-Shopify-Payments gateways</td>
+            <td>Adds significant integration complexity; requires custom mapping; not a Shopify-native experience; higher implementation cost</td>
+            <td>Sync failures between Shopify and external billing system; order marked paid in one system but not the other</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>B2B and Payment-Adjacent Checkout Problems</h2>
+      <p class="section-intro">B2B net terms failures often overlap with or are confused with these related checkout issues.</p>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="./shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">B2B Checkout Not Working — Company Accounts, Price Lists, Draft Order Errors</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-subscription-renewals">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Subscription Renewal Failures — Recharge Rebill, Dunning, Card Update</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-order-confirmation">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Order Confirmation Not Received — Email, Order Status Page Failures</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Fraud Prevention — High-Risk False Positives Blocking Legitimate Orders</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-payment-methods">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Payment Methods — Apple Pay Not Showing, BNPL, Gateway Issues</div>
+        </a>
+        <a class="guide-card" href="./shopify-checkout-extensions">
+          <div class="guide-card-label">Related Guide</div>
+          <div class="guide-card-title">Checkout Extensions — Checkout Extensibility, B2B Custom Validation</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify B2B Net Terms — Common Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why are Shopify B2B net payment terms not showing at checkout?</div>
+          <div class="faq-a">Four prerequisites must all be true simultaneously: (1) Shopify Plus plan active; (2) Shopify Payments as the active payment gateway; (3) the buyer's company account has net terms configured in Admin → Customers → Companies → [Company] → Payment Terms; (4) the company has no overdue invoices. Missing any one silently removes the net terms option from checkout with no error message. The most common cause is Shopify Payments not being the active gateway — any third-party processor blocks net terms entirely.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Shopify B2B not generating an invoice after a net terms order?</div>
+          <div class="faq-a">Shopify auto-generates invoices only for orders placed through the native B2B checkout with net terms applied. Draft orders require manually clicking "Send invoice" in Admin. If net terms were configured after a buyer started their checkout session, the terms may not have applied — verify the order's Payment section shows "Net 30" with a specific due date. If billing contact email is wrong, the invoice is sent but bounces silently (Shopify records it as sent; no bounce notification appears in Admin).</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why are Shopify B2B payment due reminders not being sent?</div>
+          <div class="faq-a">Reminders are sent to the billing contact on the company account, not necessarily the checkout email. Check Admin → Customers → Companies → [Company] → Contacts for a contact with Billing permission and a current email. Corporate IT email filters frequently quarantine Shopify reminder emails. Shopify Admin has no delivery log — you cannot confirm reminders were received from Admin. Ask buyers to check spam and have their IT team allowlist Shopify's sending domain.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is a Shopify B2B company blocked from placing new orders?</div>
+          <div class="faq-a">Two causes: (1) An overdue invoice — one unpaid invoice past its due date blocks all new net-terms orders company-wide immediately. Go to Admin → Customers → Companies → [Company] → Orders, filter for Overdue status, collect payment or mark paid to unblock. (2) Credit limit exceeded — the company's outstanding net-terms balance (including all current, not-yet-due invoices) has reached or exceeded their credit limit. Adjust the limit in Admin → Customers → Companies → [Company] → Payment Terms → Credit Limit.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can Shopify B2B net terms be used without Shopify Payments?</div>
+          <div class="faq-a">No. This is a hard platform constraint. Shopify net terms require Shopify Payments as the active gateway — third-party processors (Stripe direct, Authorize.net, PayPal, Braintree, Adyen) cannot be used with Shopify net terms. Merchants who need net terms without Shopify Payments must handle deferred payment outside Shopify using draft orders plus external invoicing (QuickBooks, Xero, NetSuite) or B2B middleware that bridges Shopify orders to an external AR system.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify B2B Net Terms Flow Working Right Now?</h2>
+      <p>Net terms failures — options not appearing, invoices not delivered, overdue blocks — happen silently between your checkout and your buyers. CheckPulse monitors your checkout continuously and alerts you the moment something breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run a Free Checkout Check</a>
+    </div>
+
+  </div><!-- /.container -->
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <span class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="./free-check">Free Store Check</a>
+        <a href="./guide">Monitoring Guide</a>
+        <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+        <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+        <a href="./shopify-checkout-error-codes">Error Codes</a>
+        <a href="./shopify-checkout-black-friday">BFCM Guide</a>
+        <a href="./shopify-checkout-speed-test">Speed Test</a>
+        <a href="./shopify-checkout-cro">Checkout CRO</a>
+        <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+        <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+        <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+        <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+        <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+        <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="./shopify-checkout-digital-products">Digital Products</a>
+        <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+        <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+        <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+        <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+        <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+        <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+        <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+        <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+        <a href="./shopify-checkout-store-credit">Store Credit</a>
+        <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+        <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+        <a href="./shopify-checkout-age-verification">Age Verification</a>
+        <a href="./shopify-checkout-product-customization">Product Customization</a>
+        <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+        <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+        <a href="./shopify-checkout-memberships">Memberships</a>
+        <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+        <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

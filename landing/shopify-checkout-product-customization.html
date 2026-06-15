@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Product Customization Not Working — Line Item Properties Lost, Infinite Options Checkout Error (2026)</title>
+  <meta name="description" content="Shopify product customization not working at checkout, line item properties not showing in order, Infinite Options checkout error, engraving or monogram lost after purchase — complete guide for custom product merchants. Covers Buy Now bypass, required field gaps, theme update breaks, and subscription app conflicts." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-product-customization" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-product-customization" />
+  <meta property="og:title" content="Shopify Checkout Product Customization Not Working — Line Item Properties Lost, Infinite Options Error" />
+  <meta property="og:description" content="Shopify has no native product customization system. Every engraving, monogram, personalization, and custom text field is a third-party app that writes line item properties. When those properties are never written — because of a Buy Now bypass, a JS error, or a theme conflict — the order arrives with no customization and no error message." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Product Customization Not Working — Line Item Properties Lost, Infinite Options Checkout Error",
+    "description": "Shopify has no native product customization system. Every engraving field, monogram option, personalization text box, and custom image upload on a Shopify store is delivered by a third-party app (Infinite Options, SC Product Options, Product Customizer, Teeinblue) that writes line item properties to the cart. When those properties are never written — because the customer clicked Buy Now, because a JavaScript error killed the widget, or because a theme update deactivated the App Embed — the order arrives with no customization data and no error message. This guide covers the three-layer customization architecture (product page widget → cart line item property → order attribute), seven failure modes, the Buy Now bypass problem, required field gaps, and a 5-step diagnosis checklist.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-product-customization",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-15",
+    "dateModified": "2026-06-15"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify Infinite Options not work when customers use the Buy Now button?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Buy Now button (and Shop Pay's express checkout button) sends the customer directly to the Shopify checkout, bypassing the cart entirely. Infinite Options by Hulk Apps — and most other product customization apps — inject their widget on the product page and write the customization data as line item properties at the moment the customer clicks Add to Cart. When a customer clicks Buy Now instead, the product is added to a temporary one-item cart and the checkout is opened immediately, before the customization widget has had a chance to collect and write the customization fields. The result: the order arrives at Shopify Admin with no Properties on the line item, no engraving text, no font selection, no color choice. Infinite Options has a 'Disable Buy Now' feature in its settings that hides the Buy Now and Shop Pay buttons on product pages where customization is required. Enable it for all customizable products. Some apps also offer a 'redirect to cart' mode so Buy Now clicks go through the cart page instead of directly to checkout. Check your app's documentation for which approach is supported. If you cannot disable Buy Now, the alternative is to make the customization optional and collect it by email after purchase — but this adds operational overhead."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are line item properties not showing in the Shopify order after a custom product purchase?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are two distinct problems: properties not written versus properties not displayed. If properties are not written, the order will show no Properties section on the line item in Shopify Admin — the customization data was lost before checkout. The most common causes are Buy Now bypass, App Embed disabled, or a JavaScript error on the product page that prevented the widget from loading. If properties ARE written but not displaying correctly, check whether you are looking at the right place in Shopify Admin: go to Orders → click the order → scroll to the line item — the Properties appear as a small gray list below the product name and variant. They do not appear in the email notification by default unless you have edited your order confirmation email template to include {{ item.properties }}. For packing slips: the default Shopify packing slip does not include line item properties. You need a third-party app (Order Printer Pro, Govalo Print, etc.) or a custom packing slip template that explicitly includes the properties loop. If you are on Shopify Markets or have multiple storefronts, also check whether the property is being passed correctly from the localized storefront — some internationalization apps strip custom line item properties during cart transformation."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify product customization stop working after a theme update?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Theme updates break product customization apps in three ways. First, App Embeds do not transfer automatically when you switch or update a theme — the customization app's App Embed or App Block must be manually re-enabled in the new theme. Go to Shopify Admin → Online Store → Themes → click Customize on your active theme → click App Embeds in the left sidebar → find your customization app and toggle it ON. If the App Embed is off, the widget never renders and no properties are written. Second, many customization apps inject their widget using a target CSS selector specific to your theme's product form (for example, .product-form__buttons or #AddToCartForm). When a theme update renames these selectors, the app cannot find its injection point and the widget disappears silently. Check your app's dashboard for a 'Widget position' or 'Theme compatibility' setting. Third, some older product customization apps used checkout.liquid modifications to validate required customization fields at checkout. When Checkout Extensibility deprecated checkout.liquid, those validation scripts stopped running. Customers can now proceed to checkout without filling in required fields. The only way to restore checkout-level validation is if your app has released a Checkout UI Extension that performs the validation inside the new checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify customers bypass required customization fields and complete checkout without providing their personalization?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — and this is one of the most operationally painful gaps in Shopify product customization. Required field validation in most customization apps happens at the Add to Cart step, not at checkout. If a customer bypasses the product page (via a direct cart URL, a shared checkout link, the Buy Now button, or an abandoned cart email that restores a cart), they can reach the Shopify checkout with no customization properties at all. The 'required' flag has no enforcement mechanism at checkout unless your app has a Checkout UI Extension that re-validates inside the new checkout. Without that extension, the required field is effectively optional once the customer is past the product page. There are three practical mitigations: (1) Disable Buy Now and Shop Pay on customizable products (reduces the most common bypass path). (2) Use a customization app that has a Checkout UI Extension (currently rare — most apps have not built one). (3) Add an order fulfillment hold: use Shopify Flow to hold orders where the expected line item property key is missing, then email the customer to collect the missing information before fulfillment. This does not prevent the purchase but does catch the gap before production."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify product customization work with subscription apps like Recharge?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This depends on the specific app combination, but it is one of the highest-conflict pairings in the Shopify ecosystem. The core problem: subscription apps (Recharge, Skio, Bold Subscriptions) and customization apps (Infinite Options, SC Product Options) both need to modify the cart line item at checkout — subscriptions by attaching a selling plan ID, customization by writing properties. When both apps attempt to transform the same line item simultaneously, one of three things happens: the subscription app's transformation strips the customization properties, the customization app's transformation removes the selling plan (causing the subscription to convert to a one-time purchase silently), or checkout throws an error and neither completes. The safest current approach for subscription + customization is to separate the two concerns: use Shopify's native variant system for any customization that is subscription-relevant (for example, engraving on a subscription product should be a fixed variant, not a dynamic text field), and only use a customization app's dynamic fields for non-subscription products. Recharge has documented a line item property pass-through feature for initial subscription orders — the customization data can be stored in the Recharge subscription record. But renewal orders are headless API calls and do not pass through any product page widget, so customization properties cannot be collected at renewal. Contact your customization app's support for their specific Recharge/Skio compatibility status."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    /* NAV */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    /* ALERT BANNER */
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    /* SECTION */
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    /* ARCHITECTURE GRID */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+
+    /* FAILURE MATRIX */
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    /* DEEP DIVE */
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    /* APP COMPARISON TABLE */
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .app-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .app-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .app-table tr:nth-child(even) td { background: var(--surface); }
+    .app-table td:first-child { color: var(--text); font-weight: 600; }
+
+    /* CHECKLIST */
+    .check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .check-body {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .check-body strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+    /* CLUSTER GRID */
+    .cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .cluster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      transition: border-color 0.15s;
+    }
+    .cluster-card:hover { border-color: var(--amber); text-decoration: none; }
+    .cluster-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .cluster-title {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* CTA */
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 10px;
+      padding: 30px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(16px, 2.5vw, 20px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 20px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 10px 22px;
+      border-radius: 6px;
+    }
+    .cta-btn:hover { background: #d97706; text-decoration: none; }
+
+    /* GUIDE CARDS */
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 14px;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* FAQ */
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 0;
+      margin-top: 0;
+    }
+    footer p { font-size: 12px; color: var(--text-dim); line-height: 1.9; }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="https://adadadada321321.github.io/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+      <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">Shopify Checkout — Product Customization</div>
+    <h1>Shopify Checkout Product Customization Not Working — Line Item Properties Lost, Engraving / Monogram Not Showing in Order</h1>
+    <p class="hero-sub">
+      Shopify has no native product customization system. Every engraving field, monogram text box, personalization option, and custom image upload is a third-party app that writes <strong>line item properties</strong> to the cart. When those properties are never written — because the customer clicked Buy Now, because a JavaScript error killed the widget, or because a theme update deactivated the App Embed — the order arrives with no customization data and no error message.
+    </p>
+    <div class="hero-meta">
+      <span>Updated: June 2026</span>
+      <span>Affects: Infinite Options · SC Product Options · Product Customizer · Teeinblue · Hulk</span>
+    </div>
+
+    <div class="alert-banner">
+      <strong>The silent failure:</strong> When product customization is lost at checkout, neither the merchant nor the customer receives an error. The order completes normally. The merchant doesn't discover the problem until they open the order and find blank Properties — after they've already started production on the item.
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section class="section">
+    <div class="section-label">How Shopify Product Customization Works</div>
+    <h2>The Three-Layer Architecture — and Where Each Can Break</h2>
+    <p class="section-intro">Every Shopify product customization flow has three components. A failure at any layer means the customization data is either never collected, never written, or never displayed — often with no visible error for the customer or merchant.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 1</div>
+        <div class="arch-card-title">Product Page Widget</div>
+        <div class="arch-card-desc">The customization app injects a widget on the product page — text fields, dropdowns, image uploads, font pickers. Failure here: App Embed disabled after theme update, JS error, widget injection selector broken by theme change, or customer bypassing the product page entirely.</div>
+      </div>
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Layer 2 — Most Common Failure</div>
+        <div class="arch-card-title">Cart Line Item Properties</div>
+        <div class="arch-card-desc">When Add to Cart is clicked, the app writes the customization data as line item properties attached to the cart line. This step is skipped entirely when Buy Now or Shop Pay express is used — those buttons bypass the cart and open checkout immediately, before properties can be written.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-label">Layer 3</div>
+        <div class="arch-card-title">Order Attribute Display</div>
+        <div class="arch-card-desc">Line item properties carry through Shopify's checkout to the order. In Admin, they appear under the line item as a small gray Properties list. They are NOT in the default packing slip or order confirmation email unless explicitly added to those templates.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAILURE MATRIX -->
+  <section class="section">
+    <div class="section-label">Failure Matrix</div>
+    <h2>Seven Product Customization Failure Modes</h2>
+    <p class="section-intro">These are ordered by frequency across Shopify support threads. The Buy Now bypass is responsible for the majority of "customization lost" reports.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Failure Mode</th>
+          <th>Severity</th>
+          <th>Root Cause</th>
+          <th>Detection</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Buy Now / Shop Pay bypass</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Express checkout skips the cart, so line item properties are never written by the customization widget</td>
+          <td>Test: click Buy Now on a customizable product — customization is missing from the resulting order</td>
+          <td>Disable Buy Now button on customizable products via app settings or theme edit; redirect to cart instead</td>
+        </tr>
+        <tr>
+          <td>App Embed disabled after theme update</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Shopify does not auto-transfer App Embeds to a new or updated theme; widget never renders</td>
+          <td>Go to Admin → Online Store → Themes → Customize → App Embeds — check if customization app is toggled ON</td>
+          <td>Re-enable the App Embed in the current active theme; reinstall the App Block on relevant product templates</td>
+        </tr>
+        <tr>
+          <td>Widget injection selector broken</td>
+          <td><span class="badge badge-red">Critical</span></td>
+          <td>Theme update renamed the CSS selector the app uses to inject its widget (e.g., .product-form__buttons renamed)</td>
+          <td>Widget does not appear on product page; browser DevTools console shows JS errors from customization app</td>
+          <td>Update the injection target in the app's settings; contact app support for updated theme compatibility patch</td>
+        </tr>
+        <tr>
+          <td>Required field bypass at checkout</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Required field validation runs at Add to Cart — not at checkout. Cart URLs, abandoned cart links, and Buy Now bypass this validation entirely</td>
+          <td>Add a product to cart via direct URL without filling required fields; confirm order completes with no error</td>
+          <td>Use Shopify Flow to hold orders where expected property keys are missing; email customer to collect info before fulfillment</td>
+        </tr>
+        <tr>
+          <td>Subscription app cart transformation conflict</td>
+          <td><span class="badge badge-amber">High</span></td>
+          <td>Subscription app (Recharge, Skio) transforms cart line items to attach selling plan ID; process strips line item properties set by customization app</td>
+          <td>Test: add a subscription + customized product; check order — either selling plan or properties will be missing</td>
+          <td>Separate subscription and customization concerns; use native Shopify variants for subscription-customization combos; contact both app vendors for compatibility docs</td>
+        </tr>
+        <tr>
+          <td>Checkout.liquid validation no longer runs</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td>Some older apps used checkout.liquid scripts to re-validate required fields at checkout; Checkout Extensibility deprecated checkout.liquid</td>
+          <td>Open checkout with items that should have required fields; confirm no validation message appears</td>
+          <td>Check whether your customization app has released a Checkout UI Extension for validation; migrate to an app with extension support</td>
+        </tr>
+        <tr>
+          <td>Properties not visible in packing slip / confirmation email</td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td>Shopify's default packing slip and order confirmation email templates do not include line item properties; they exist in the order but are not shown</td>
+          <td>Check Admin order view → line item → Properties section. If properties exist there but not in email/packing slip, it is a template issue, not a data issue</td>
+          <td>Edit order confirmation email template to include {% for p in item.properties %}{{ p.name }}: {{ p.value }}{% endfor %}; use Order Printer Pro for property-aware packing slips</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DEEP DIVE 1: BUY NOW BYPASS -->
+  <section class="section">
+    <div class="section-label">Deep Dive</div>
+    <h2>The Buy Now Bypass — Why Express Checkout Kills Customization</h2>
+
+    <div class="deepdive">
+      <div class="deepdive-label">Architecture Detail</div>
+      <h3>How Buy Now Skips the Customization Step</h3>
+      <p>When a customer clicks Add to Cart on a customized product, the customization app's JavaScript intercepts the form submission, collects all widget field values, packages them as a <code>properties</code> object, and passes them to the Shopify Cart API alongside the variant ID and quantity. This is the only moment when customization data is written to the cart.</p>
+      <p>The Buy Now button — and the Shop Pay express button — bypass this interception entirely. They call Shopify's Draft Order or Checkout Create API directly, passing only the variant ID and quantity. The customization app's form submission listener is never triggered. No properties are collected. No properties are written. The resulting cart goes straight to checkout with a bare line item.</p>
+      <p>This is not a bug in the customization app. It is an architectural limitation: the app can only intercept Add to Cart events, not the Buy Now checkout-create call. The only way to make Buy Now work with customization is to rebuild the Buy Now flow so that it opens the cart (or a custom page) first — which defeats the purpose of express checkout.</p>
+      <div class="mono-block"># Infinite Options buy_now_button_disable setting
+# In Infinite Options dashboard → Settings → Advanced:
+# "Disable dynamic checkout buttons" = ON
+# This hides Buy Now, Shop Pay, Google Pay, Apple Pay
+# on all product pages with active option sets</div>
+      <p>The practical recommendation: disable dynamic checkout buttons (Buy Now, Shop Pay) on all product pages where customization is required. For gift cards and non-customized products, leave them enabled. The loss in conversion rate from disabling express checkout on customized products is almost always smaller than the operational cost of fulfilling orders with missing customization data.</p>
+    </div>
+
+    <!-- DEEP DIVE 2: CHECKOUT EXTENSIBILITY -->
+    <div class="deepdive">
+      <div class="deepdive-label">Architecture Detail</div>
+      <h3>Checkout Extensibility and the Loss of Required Field Validation</h3>
+      <p>Before Checkout Extensibility, some product customization apps (notably SC Product Options / Bold Product Options) used checkout.liquid to add a validation step at checkout. If a line item had a required property field that was empty, the checkout.liquid script would block the customer from completing the order.</p>
+      <p>Shopify's Checkout Extensibility — the post-checkout.liquid architecture — deprecated all checkout.liquid modifications. These validation scripts stopped running silently when merchants migrated their themes to the new extensibility layer. Merchants who previously relied on the checkout-level validation block discovered that customers could now complete orders with empty required fields.</p>
+      <p>As of mid-2026, very few product customization apps have released Checkout UI Extensions that replicate the required field validation inside the new checkout. The gap is real and known to app vendors. The only current workaround that does not require waiting for an app to release a Checkout UI Extension is an order-level hold via Shopify Flow:</p>
+      <div class="mono-block"># Shopify Flow: hold orders with missing customization
+Trigger: Order Created
+Condition: Order has line item where Properties does not contain key "Engraving Text"
+Action: Hold fulfillment → Tag order "missing-customization"
+Action: Send internal email alert with order ID</div>
+      <p>This does not prevent the purchase, but it does create an operational gate before fulfillment. The merchant can email the customer to collect the missing customization before the item goes into production.</p>
+    </div>
+  </section>
+
+  <!-- APP COMPARISON -->
+  <section class="section">
+    <div class="section-label">App Comparison</div>
+    <h2>Five Shopify Product Customization Apps — Checkout Behavior Compared</h2>
+    <p class="section-intro">These five apps cover the majority of Shopify product customization use cases. The key differences at checkout relate to Buy Now handling, Checkout Extensibility compatibility, and subscription app conflict risk.</p>
+
+    <table class="app-table">
+      <thead>
+        <tr>
+          <th>App</th>
+          <th>Buy Now Disable</th>
+          <th>Checkout UI Extension</th>
+          <th>Subscription App Conflict Risk</th>
+          <th>Best For</th>
+          <th>Known Limitation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Infinite Options (Hulk Apps)</td>
+          <td><span class="badge badge-green">Yes — toggle</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-amber">Medium</span> — Recharge conflicts documented</td>
+          <td>General custom options (text, dropdown, checkbox, swatch)</td>
+          <td>No checkout-level required field validation post-Extensibility</td>
+        </tr>
+        <tr>
+          <td>SC Product Options (formerly Bold)</td>
+          <td><span class="badge badge-amber">Partial — theme-dependent</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-red">High</span> — Bold Subscriptions + SC Options known conflict</td>
+          <td>Complex conditional logic (show option B only if option A = X)</td>
+          <td>Heavy JS footprint; higher conflict rate with other apps</td>
+        </tr>
+        <tr>
+          <td>Product Customizer</td>
+          <td><span class="badge badge-amber">Partial — redirects to cart</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-green">Low</span> — lighter cart modification</td>
+          <td>Image preview customization (print-on-demand, engraving preview)</td>
+          <td>Limited conditional logic; no file upload on all plans</td>
+        </tr>
+        <tr>
+          <td>Teeinblue</td>
+          <td><span class="badge badge-green">Yes — built-in</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-green">Low</span> — standalone POD flow</td>
+          <td>Print-on-demand with live design preview (text + image layers)</td>
+          <td>POD-specific; not suitable for non-print customization</td>
+        </tr>
+        <tr>
+          <td>Hulk Product Options</td>
+          <td><span class="badge badge-green">Yes — toggle</span></td>
+          <td><span class="badge badge-red">No</span></td>
+          <td><span class="badge badge-amber">Medium</span></td>
+          <td>Price add-ons per option (charge extra for engraving); color swatches</td>
+          <td>Price add-on logic requires careful testing with discount codes</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- DIAGNOSIS CHECKLIST -->
+  <section class="section">
+    <div class="section-label">Step-by-Step Diagnosis</div>
+    <h2>Product Customization Checkout Failure — 5-Step Diagnosis</h2>
+    <p>Work through these steps in order. The Buy Now bypass accounts for the majority of reports. Check it first before investigating theme or app issues.</p>
+
+    <ul class="check-list">
+      <li>
+        <div class="check-num">1</div>
+        <div class="check-body">
+          <strong>Reproduce the failure path exactly</strong>
+          <span>Ask: did the customer use Buy Now, Shop Pay express, or Add to Cart? Buy Now and Shop Pay bypass the customization widget entirely — if the customer used either of these, the customization was never written and this is expected behavior given the current architecture. Test both paths yourself: (a) fill in customization and click Add to Cart → proceed to checkout → verify properties in order. (b) fill in customization and click Buy Now → verify properties. If (a) works and (b) fails, this is a Buy Now bypass issue, not an app bug.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">2</div>
+        <div class="check-body">
+          <strong>Check App Embed status in the current active theme</strong>
+          <span>Go to Shopify Admin → Online Store → Themes → click Customize on your live theme → click App Embeds in the left sidebar → find your customization app and verify it is toggled ON. After any theme update or theme switch, App Embeds from the old theme are not transferred. If your App Embed is off or missing, re-enable it. Then also check the product template: Admin → Themes → Customize → navigate to a product page template → verify the customization app's App Block or section is present.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">3</div>
+        <div class="check-body">
+          <strong>Inspect line item properties in the order</strong>
+          <span>Go to Shopify Admin → Orders → click the affected order → find the line item for the customized product. Directly below the variant name and SKU, there should be a small Properties section listing each customization field and its value. If Properties is present but empty, the widget rendered but the customer didn't fill it in (or bypassed it). If Properties is completely absent from the line item, no properties were ever written to the cart — trace back to steps 1 and 2. If Properties is present with correct values, the problem is display-only (packing slip or email template — see the template fix in Step 5).</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">4</div>
+        <div class="check-body">
+          <strong>Open browser DevTools console on the product page</strong>
+          <span>In an incognito window, navigate to a product page with customization. Open DevTools (F12) → Console tab. Look for JavaScript errors from your customization app (error messages often reference the app name, a CDN domain like hulkapps.com or product-customizer.com, or use terms like "options", "properties", "widget"). An error here means the widget is failing to load or initialize — usually because the injection selector doesn't match your current theme's product form HTML. Check your app's dashboard for a theme compatibility or widget position setting, or contact app support with your theme name and version.</span>
+        </div>
+      </li>
+      <li>
+        <div class="check-num">5</div>
+        <div class="check-body">
+          <strong>Fix display issues in email and packing slip templates</strong>
+          <span>If properties ARE correctly in the order (Step 3 confirmed) but not appearing in the order confirmation email or packing slip: (a) For order confirmation email — go to Admin → Settings → Notifications → Order confirmation → Edit code → find the line items loop → add: {% for p in line_item.properties %}{% unless p.last == blank %}{{ p.first }}: {{ p.last }}&lt;br&gt;{% endunless %}{% endfor %} (b) For packing slips — install Order Printer Pro (free tier available), which includes line item properties in its default packing slip templates. Shopify's native packing slip template does not support properties without custom code.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- CONTEXT CLUSTER -->
+  <section class="section">
+    <div class="section-label">Related Checkout Failures</div>
+    <h2>Product Customization Overlaps Five Other Checkout Clusters</h2>
+    <p>Product customization failures share mechanisms with app conflicts, bundle checkout errors, gift order problems, subscription cart transformations, and checkout extensibility migrations. These are the most common adjacent failure points.</p>
+
+    <div class="cluster-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="cluster-card">
+        <div class="cluster-label">App Conflicts</div>
+        <div class="cluster-title">Shopify App Blocking Checkout — the Conflict Investigation Framework</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" class="cluster-card">
+        <div class="cluster-label">Bundle & Kit</div>
+        <div class="cluster-title">Shopify Bundle Checkout Not Working — Line Item Issues</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" class="cluster-card">
+        <div class="cluster-label">Gift Orders</div>
+        <div class="cluster-title">Shopify Gift Order Properties — Billing vs Shipping Address Conflict</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="cluster-card">
+        <div class="cluster-label">Subscriptions</div>
+        <div class="cluster-title">Shopify Subscription Checkout — Recharge / Skio Cart Conflicts</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="cluster-card">
+        <div class="cluster-label">Extensions</div>
+        <div class="cluster-title">Shopify Checkout Extensibility — What Breaks After Migration</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-digital-products" class="cluster-card">
+        <div class="cluster-label">Digital Products</div>
+        <div class="cluster-title">Shopify Digital Download Not Received After Purchase</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-block">
+    <h2>Customization Loss Is Invisible Until You're Mid-Production</h2>
+    <p>When a Buy Now bypass drops your engraving text, customers don't get an error — they get a completed order with empty Properties. You don't find out until production starts. CheckPulse monitors your Shopify checkout end-to-end so these configuration breaks surface in minutes, not after you've already wasted materials.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <!-- GUIDE CARDS -->
+  <section class="section">
+    <div class="section-label">Checkout Problem Library</div>
+    <h2>Related Shopify Checkout Guides</h2>
+    <div class="guide-grid">
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict" class="guide-card">
+        <div class="guide-card-label">App Conflicts</div>
+        <div class="guide-card-title">Shopify App Blocking Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-bundle-kit" class="guide-card">
+        <div class="guide-card-label">Bundle & Kit</div>
+        <div class="guide-card-title">Shopify Bundle Checkout Not Working</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-orders" class="guide-card">
+        <div class="guide-card-label">Gift Orders</div>
+        <div class="guide-card-title">Shopify Gift Order at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions" class="guide-card">
+        <div class="guide-card-label">Subscriptions</div>
+        <div class="guide-card-title">Shopify Subscription Checkout Failure</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions" class="guide-card">
+        <div class="guide-card-label">Extensions</div>
+        <div class="guide-card-title">Shopify Checkout Extensibility Issues</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-age-verification" class="guide-card">
+        <div class="guide-card-label">Age Verification</div>
+        <div class="guide-card-title">Shopify Age Gate Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-warranty-protection-plan" class="guide-card">
+        <div class="guide-card-label">Warranty</div>
+        <div class="guide-card-title">Shopify Warranty Not Working at Checkout</div>
+      </a>
+      <a href="https://adadadada321321.github.io/checkpulse/" class="guide-card">
+        <div class="guide-card-label">CheckPulse</div>
+        <div class="guide-card-title">Automated Checkout Monitor →</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="section-label">FAQ</div>
+    <h2>Shopify Product Customization Checkout — Frequently Asked Questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify Infinite Options not work when customers use the Buy Now button?</div>
+        <div class="faq-a">The Buy Now button and Shop Pay express button send the customer directly to checkout without passing through the cart. Infinite Options — and most other customization apps — write the customization data (engraving text, font choice, color selection) as line item properties at the moment Add to Cart is clicked. When Buy Now is used instead, the cart is created directly from the variant ID and quantity only, without any properties attached. Infinite Options has a "Disable dynamic checkout buttons" setting in its dashboard under Settings → Advanced. Enable this for all product pages with required customization fields. This hides Buy Now, Shop Pay, Google Pay, and Apple Pay on those pages, ensuring customers go through the cart and the customization widget before reaching checkout.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why are line item properties not showing in the Shopify order after a custom product purchase?</div>
+        <div class="faq-a">There are two distinct issues: properties not written versus properties not displayed. If properties were not written, the order will have no Properties section under the line item in Shopify Admin — the data was lost before checkout (most likely a Buy Now bypass, a disabled App Embed, or a JavaScript error on the product page). If properties WERE written but are not appearing in the order confirmation email or packing slip, that is a template issue. The default Shopify order confirmation email does not include line item properties — you need to edit the notification template to add a properties loop. The default Shopify packing slip also excludes properties — use Order Printer Pro or a custom packing slip template that includes the properties loop. To confirm whether properties exist: Shopify Admin → Orders → click the order → scroll to the line item → look for a small gray "Properties" label with the customization fields listed.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why did my Shopify product customization stop working after a theme update?</div>
+        <div class="faq-a">Theme updates break customization apps in three ways. First, App Embeds do not transfer when you switch or update a theme — re-enable the customization app's App Embed under Admin → Online Store → Themes → Customize → App Embeds. Second, the app injects its widget by targeting a CSS selector in your theme's product form (for example, .product-form__submit or #AddToCartForm). If the theme update renamed these elements, the injection fails silently. Check your app's dashboard for a "Widget position" or "Injection selector" setting and update it. Third, some apps used checkout.liquid scripts for required field validation at checkout — those scripts stopped working when Checkout Extensibility deprecated checkout.liquid. If you relied on checkout-level validation, you need an app with a Checkout UI Extension (very few currently offer one) or a Shopify Flow hold as a workaround.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can Shopify customers bypass required customization fields and complete checkout without providing personalization?</div>
+        <div class="faq-a">Yes — required field validation in most customization apps runs at Add to Cart, not at checkout. Any path that bypasses the product page widget (Buy Now, direct checkout URL, abandoned cart email, shared cart link) will skip the required field check entirely. The only reliable solution is a Checkout UI Extension that re-validates the required property at checkout — as of mid-2026, very few customization apps have released one. The practical workaround: (1) Disable Buy Now on customizable products, (2) use Shopify Flow to tag and hold orders where the expected property key is missing, and (3) email customers to collect the missing customization before fulfillment. This adds operational steps but prevents producing items without customization data.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does Shopify product customization work with subscription apps like Recharge?</div>
+        <div class="faq-a">This is one of the highest-conflict pairings in the Shopify app ecosystem. Subscription apps (Recharge, Skio) and customization apps both modify the cart line item at checkout — subscriptions attach a selling plan ID, customization apps write properties. When both transform the same line item, one of three outcomes occurs: the subscription transformation strips the properties, the customization transformation drops the selling plan (silently converting a subscription to a one-time purchase), or checkout throws an error. Recharge has a line item properties pass-through feature for initial subscription orders — but renewal orders are headless API calls that bypass the product page widget entirely, so customization properties cannot be collected at renewal. Recommendation: for subscription + customization combinations, use Shopify's native variant system for any customization relevant to subscription products, and only use dynamic customization app fields for non-subscription items.</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> —
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">App Conflicts</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">Checkout Extensions</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-subscriptions">Subscriptions</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International</a> ·
+      <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

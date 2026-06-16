@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Split Payment Not Working — Shop Pay Installments Not Available, BNPL Missing at Checkout, Afterpay/Klarna/Sezzle Setup (2026)</title>
+  <meta name="description" content="Shopify has no native split payment. Shop Pay Installments (US/CA only) is the only built-in BNPL option. Afterpay, Klarna Pay Later, Sezzle, and Zip require Shopify Payments with specific country and eligibility conditions. Manual deposit + balance checkout requires custom configuration. This guide covers every failure mode and fix." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment" />
+  <meta property="og:title" content="Shopify Split Payment Not Working — Shop Pay Installments, BNPL, Afterpay, Klarna, Sezzle Setup" />
+  <meta property="og:description" content="Shopify does not have a native split payment or installment feature. Shop Pay Installments is US/CA only and requires merchant eligibility. All other BNPL options (Afterpay, Klarna Pay Later, Sezzle, Zip) require Shopify Payments active, country match, and individual toggle — none are auto-enabled. This guide covers four BNPL paths, seven silent failure modes, and manual deposit configuration." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Split Payment Not Working — Shop Pay Installments Not Available, BNPL Missing at Checkout",
+    "description": "Shopify has no built-in split payment or installment checkout. Shop Pay Installments (US and Canada only) is the closest native option, but requires merchant eligibility through Shopify's underwriting and is not available globally. All other BNPL methods — Afterpay, Klarna Pay Later, Sezzle, Zip, and Paidy — require Shopify Payments as the active gateway, the correct country market configuration, and individual activation toggles that are not enabled by default. Manual deposit-plus-balance split payment for custom orders or B2B requires checkout customization. This guide covers four paths to split payment, seven silent failure modes, and the exact Admin configuration for each method.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shop Pay Installments not available on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay Installments is not available by default — it requires merchant eligibility approval from Shopify and Affirm (the underlying financing partner). The conditions are: (1) Your store must be based in the United States or Canada — Shop Pay Installments is not available in any other country. (2) You must have Shop Pay enabled, which in turn requires Shopify Payments to be your active gateway. (3) Your business must pass Affirm's merchant eligibility assessment, which considers business type, average order value, and industry. (4) Your average order value must typically fall within a certain range — orders under approximately $50 or over $30,000 do not qualify for installment financing. (5) Some product categories are ineligible — firearms, tobacco, adult content, gambling-related products, and certain financial services cannot be sold through installment financing. If Shop Pay Installments is not appearing at checkout, check Admin → Settings → Payments → Shop Pay → and look for an 'Installments' section. If you are on Shopify Payments and in the US or CA but do not see the Installments option, your store may be pending eligibility review or may have been denied due to product category restrictions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I add Afterpay to Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Afterpay (also known as Clearpay in the UK and Europe) can be added to Shopify checkout through Shopify Payments in supported countries. The requirements are: (1) Shopify Payments must be your active payment gateway — Afterpay through Shopify is not available if you use a third-party gateway like Stripe, Adyen, or Braintree. (2) Your store country must be in a supported Afterpay market: United States, Canada, Australia, New Zealand, or the United Kingdom (as Clearpay). Afterpay is not available through Shopify Payments in most EU countries. (3) The checkout currency must match the market — USD for US, AUD for Australia, GBP for UK Clearpay. (4) Afterpay must be individually toggled on: go to Admin → Settings → Payments → Shopify Payments → Manage → scroll to 'Additional payment methods' or 'Buy now, pay later' and activate Afterpay. It is not enabled by default. (5) Order amounts must be within Afterpay's limits — typically $1 to $2,000 USD, though this varies by market and buyer account status. If you are using a third-party gateway and need Afterpay, you can add Afterpay as a separate manual payment method by installing the official Afterpay app from the Shopify App Store, but this creates a parallel checkout flow outside Shopify Payments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify do split payment or deposit plus balance for custom orders?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not have a native deposit-plus-balance split payment system for custom orders. There is no built-in way to charge 50% at checkout and 50% on delivery, for example. For custom orders, B2B deposits, or phased payment, you have three options. First (Shopify Plus only): use Checkout Extensibility to build a custom payment flow that splits the transaction, but this requires significant development work and a payment gateway that supports split charges. Second: use a dedicated deposit app from the Shopify App Store — apps like Partial.ly, Deposit & Partial Payment by Omega, or Pre-Order Now handle deposit collection at checkout and schedule the remaining balance charge separately. These apps typically work by creating two separate transactions rather than a single split charge. Third: for B2B wholesale orders, use Shopify's draft order workflow — create a draft order, send an invoice for the deposit amount, collect payment, then create a second invoice for the balance when it is due. This requires manual tracking and is not automated. The most reliable solution for recurring split payment needs is a dedicated app — Partial.ly integrates directly with Shopify checkout and supports percentage deposits, fixed deposits, and flexible payment schedules including installments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Klarna Pay Later not showing at my Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Klarna Pay Later not appearing at Shopify checkout is almost always caused by one of four conditions: (1) Shopify Payments not active — Klarna Pay Later through Shopify requires Shopify Payments as the gateway. If you use Stripe, Adyen, or any other third-party gateway, Klarna will not appear through the Shopify-native integration. (2) Klarna not toggled on — go to Admin → Settings → Payments → Shopify Payments → Manage → look for Klarna options in the BNPL or additional payment methods section. Klarna has multiple products (Pay Now, Pay Later, Pay in 3, Financing) and each may require a separate toggle. Enabling one does not enable the others. (3) Country or currency mismatch — Klarna Pay Later availability varies significantly by country. It is widely available in Sweden, Germany, Netherlands, Austria, and the UK, but availability in the US is more limited (Klarna there focuses more on the Klarna app experience). The checkout currency must match Klarna's supported currency for the market. (4) Order amount outside Klarna's range — Klarna has per-transaction limits that vary by country and product type. Orders under about $10 or over certain thresholds (which Klarna does not publicly disclose) will not show Klarna Pay Later as an option even if everything else is correctly configured. Check Klarna's merchant documentation for current country-specific limits."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify support BNPL for B2B wholesale orders?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Standard BNPL methods (Afterpay, Klarna, Sezzle, Shop Pay Installments) are designed for consumer retail, not B2B wholesale. They do not appear at checkout for Shopify B2B company account sessions because these methods require individual consumer credit assessment and are not appropriate for business-to-business invoicing. For B2B split payment or deferred payment on wholesale orders, Shopify offers B2B Net Terms (Shopify Plus only) — this allows approved company accounts to place orders and pay on Net 30, Net 60, or Net 90 day terms. Net Terms is not technically BNPL in the consumer sense — it generates a purchase order and invoice workflow rather than financing the purchase through a third party. Configuration: Admin → Customers → Companies → [Company] → Payment terms. You set the payment due date for each company individually. For B2B deposits (partial payment upfront), you need a deposit app or the draft order workflow — the same limitations apply as for consumer split payments. There is no native B2B installment financing in Shopify."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .country-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .country-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .country-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .country-table tr:nth-child(even) td { background: var(--surface); }
+    .country-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify BNPL &amp; Split Payment Troubleshooting</div>
+      <h1>Shopify Split Payment Not Working — Shop Pay Installments Not Available, Afterpay/Klarna/Sezzle Missing, BNPL Not Showing at Checkout</h1>
+      <p class="hero-sub">
+        Shopify has no native split payment or installment feature. Shop Pay Installments (US/CA only) is the closest built-in option but requires merchant eligibility approval. Every other BNPL method — Afterpay, Klarna Pay Later, Sezzle, Zip, and Paidy — requires Shopify Payments active, a supported country market, and a manual toggle. None are automatically enabled.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: US/CA stores (Installments), global stores with BNPL, B2B deposit workflows</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Shopify does not have a built-in split payment system.</strong> Shop Pay Installments requires US/CA location and merchant eligibility. All other BNPL methods (Afterpay, Klarna, Sezzle, Zip) require Shopify Payments as the active gateway, a country match, and a separate activation toggle. Third-party gateways (Stripe, Adyen) block all native BNPL options. Manual deposit + balance for custom/B2B orders requires a dedicated app.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Architecture</div>
+      <h2>Four Paths to Split Payment on Shopify — and When Each One Applies</h2>
+      <p class="section-intro">Shopify splits the "buy now, pay later" problem into four distinct architectures. Each requires different setup, has different geographic availability, and fails silently in different ways. Understanding which path applies to your store is the first diagnostic step.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Path 1 — US/CA Only</div>
+          <div class="arch-card-title">Shop Pay Installments</div>
+          <div class="arch-card-desc">The only built-in Shopify installment product. Powered by Affirm. US and Canada stores only. Requires Shopify Payments + Shop Pay enabled. Merchant eligibility assessment required — not all stores qualify. Orders $50–$30,000 only. No EU/UK/APAC availability.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Path 2 — Shopify Payments BNPL</div>
+          <div class="arch-card-title">Afterpay, Klarna, Sezzle, Zip via Shopify Payments</div>
+          <div class="arch-card-desc">Available in supported markets when Shopify Payments is the active gateway. Each method is a separate toggle (off by default). Country and currency must match per method. Third-party gateways block all of these — they are Shopify Payments-exclusive integrations.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">Path 3 — Third-Party BNPL App</div>
+          <div class="arch-card-title">Direct BNPL App Integration</div>
+          <div class="arch-card-desc">For stores not on Shopify Payments (or in countries where Shopify Payments BNPL is unavailable), install the BNPL provider's official Shopify app (Afterpay, Klarna, Sezzle). These create a parallel checkout overlay — the buyer is redirected to the provider's site. More friction than native integration.</div>
+        </div>
+        <div class="arch-card green">
+          <div class="arch-card-label">Path 4 — Custom / B2B</div>
+          <div class="arch-card-title">Deposit + Balance Apps or Net Terms</div>
+          <div class="arch-card-desc">For manual split payment (50% deposit at checkout, 50% on delivery) or B2B deferred payment, use a deposit app (Partial.ly, Omega Deposit) or Shopify B2B Net Terms (Plus only). No native Shopify support — always requires an app or custom development.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Common Blocker</div>
+          <div class="arch-card-title">Third-Party Gateway = No Native BNPL</div>
+          <div class="arch-card-desc">If your active gateway is Stripe, PayPal, Braintree, Adyen, or any non-Shopify processor, all Shopify Payments BNPL options (Afterpay, Klarna, Sezzle, Shop Pay Installments) are unavailable. You must use Path 3 (dedicated BNPL app) or switch to Shopify Payments.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">B2B Edge Case</div>
+          <div class="arch-card-title">BNPL Does Not Apply to B2B Sessions</div>
+          <div class="arch-card-desc">Consumer BNPL methods (Afterpay, Klarna, Shop Pay Installments) do not appear for Shopify Plus B2B company account checkouts. B2B split payment uses Net Terms (net 30/60/90) or deposit apps — these are entirely separate architectures from consumer BNPL.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways BNPL Silently Fails to Appear at Shopify Checkout</h2>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>What Shopify Admin Shows</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shop Pay Installments option absent from checkout</td>
+            <td>Store is outside US/CA; merchant eligibility not approved; Shop Pay not enabled; order amount out of range ($50–$30,000)</td>
+            <td>No error in Admin; Payments settings may show Shop Pay active but no Installments section visible</td>
+            <td><span class="badge badge-amber">High</span> Buyers expecting BNPL abandon — especially for high-AOV products like furniture, electronics, appliances</td>
+          </tr>
+          <tr>
+            <td>Afterpay not showing despite being enabled in Shopify Payments</td>
+            <td>Third-party gateway active (Stripe, PayPal etc.) is overriding Shopify Payments; or Afterpay not individually toggled; or store country not in supported market</td>
+            <td>Shopify Payments visible in Admin but gateway conflict prevents BNPL from surfacing; no checkout error</td>
+            <td><span class="badge badge-red">Critical</span> Buyers lose installment option; complete abandonment for AOV above buyer's upfront budget</td>
+          </tr>
+          <tr>
+            <td>Klarna shows in Payments settings but not at checkout</td>
+            <td>Checkout currency not matching Klarna's required currency for the market; Klarna product enabled but wrong variant (Pay Now vs Pay Later vs Pay in 3)</td>
+            <td>Klarna toggle appears active; no checkout error; option simply absent from payment step</td>
+            <td><span class="badge badge-amber">High</span> Loss of Klarna buyers; Klarna drives measurable AOV lift in Nordic, DACH, and UK markets</td>
+          </tr>
+          <tr>
+            <td>Sezzle/Zip not available in buyer's country</td>
+            <td>Sezzle is US/CA only; Zip availability varies by region; buyer's billing country not supported; no geo-restricted UI warning</td>
+            <td>Option simply absent at checkout for out-of-market buyers; no explanation shown</td>
+            <td><span class="badge badge-blue">Info</span> Not a bug — geographic restriction by design; fix by adding market-appropriate BNPL instead</td>
+          </tr>
+          <tr>
+            <td>BNPL disappears after switching payment gateway</td>
+            <td>Switching from Shopify Payments to any third-party gateway disables all Shopify Payments-native BNPL; settings appear unchanged in Admin but methods no longer surface</td>
+            <td>Admin shows previous BNPL toggles still enabled; gateway change silently invalidates them all</td>
+            <td><span class="badge badge-red">Critical</span> Stores migrating gateways often lose BNPL without noticing until buyers report it missing</td>
+          </tr>
+          <tr>
+            <td>Deposit app collects payment but doesn't charge balance</td>
+            <td>Deposit app webhook fails on balance charge date; customer card expired or authorization lapsed; no automatic retry or merchant notification</td>
+            <td>Order in Shopify shows partial payment; no automatic alert when balance charge fails</td>
+            <td><span class="badge badge-red">Critical</span> Revenue loss; order shipped without full payment collected; manual recovery required</td>
+          </tr>
+          <tr>
+            <td>BNPL not appearing for B2B company account checkout</td>
+            <td>Consumer BNPL methods are suppressed for Shopify Plus B2B authenticated sessions by design; they require individual credit assessment incompatible with company accounts</td>
+            <td>No error; BNPL methods simply absent from B2B checkout payment step</td>
+            <td><span class="badge badge-blue">Info</span> Expected behavior — B2B deferred payment uses Net Terms, not consumer BNPL; configure B2B path separately</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>5-Step BNPL &amp; Split Payment Diagnosis</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Confirm Shopify Payments is your active gateway</strong>
+            <span>Go to Admin → Settings → Payments. Check that Shopify Payments is shown as the primary payment provider. If you see Stripe, PayPal, Braintree, Adyen, or any other provider listed as the main gateway, all Shopify Payments-native BNPL options (Shop Pay Installments, Afterpay, Klarna, Sezzle, Zip) are unavailable. Your only option for BNPL in that case is installing the BNPL provider's dedicated Shopify app (Path 3). If you want to use native BNPL integrations, you must switch your primary gateway to Shopify Payments — which may affect your existing payment flows and requires re-testing checkout end-to-end.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Individually toggle each BNPL method in Shopify Payments → Manage</strong>
+            <span>In Admin → Settings → Payments → Shopify Payments → click Manage → scroll to the 'Additional payment methods' or 'Buy now, pay later' section. Each BNPL method has its own toggle: Afterpay, Klarna (multiple products), Sezzle, Zip/Quadpay, Paidy (Japan). None are enabled by default. Enabling one does not enable the others. Check each one you want active. Save changes. Then open checkout in incognito from a supported country to verify the method appears — Admin toggles being on does not guarantee appearance if country or currency conditions are not met.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Verify the buyer's country and checkout currency match the BNPL method's requirements</strong>
+            <span>Each BNPL method is tied to specific countries and requires the checkout to present in the correct currency. Afterpay requires: US (USD), CA (CAD), AU (AUD), NZ (NZD), UK as Clearpay (GBP). Klarna Pay Later: widely available in DE, SE, NL, AT, FI, NO, DK (EUR or local currency). Sezzle: US and CA only. Zip: AU, NZ, US, UK, ZA. If the buyer's billing or shipping address is outside a supported country, or if Shopify Markets is displaying the price in a non-matching currency, the BNPL option will not appear at checkout — with no error message to the buyer or merchant.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>For Shop Pay Installments: verify merchant eligibility and order amount range</strong>
+            <span>If you are in the US or CA and have Shopify Payments active but do not see an Installments option in Admin → Settings → Payments → Shop Pay, your store may not yet be eligible. Eligibility is assessed by Affirm based on business type, industry, and payment history. Ineligible industries include gambling, adult content, firearms, tobacco, and certain financial services. Additionally, Shop Pay Installments only appears at checkout for orders between approximately $50 and $30,000 USD — orders outside this range do not show the installment option even if your store is fully configured. Contact Shopify Support through Admin to request eligibility review if the option is absent entirely.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>For deposit/split payment: use a dedicated app and monitor balance charge webhooks</strong>
+            <span>If you need manual split payment (deposit at checkout + balance later), Shopify does not have a native solution. Install a deposit app such as Partial.ly, Deposit &amp; Partial Payment by Omega, or a similar tool from the Shopify App Store. After installation: (a) configure the deposit percentage or fixed amount per product or product type; (b) set the balance charge date (days after purchase, or event-based like "delivery"); (c) critically — verify the app has webhook monitoring and sends you a notification if the balance charge fails (card expired, authorization lapsed). Balance charge failures are the most common production issue with deposit apps and they are silent by default if the app does not send failure alerts.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive</div>
+      <h2>Three BNPL Failure Patterns in Detail</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A</div>
+        <h3>Shop Pay Installments Eligibility — Why It's Invisible to Most Stores Outside the US</h3>
+        <p>Shop Pay Installments is frequently searched by merchants who assume it is a global feature — it is not. It launched in the US in 2021 and expanded to Canada in 2023. As of 2026, it remains exclusively a US/CA product. The underlying financing is provided by Affirm (US) and Paybright (CA), both of which perform real-time credit assessment on the buyer at the time of purchase. Shopify does not have equivalent BNPL financing partners for EU, UK, or APAC markets through this specific program.</p>
+        <p>Even within the US, the merchant must pass Affirm's eligibility criteria. Shopify processes the eligibility check automatically when you enable Shop Pay, but the result is not explicitly communicated — stores that are not eligible simply do not see the Installments section in Admin. This leads to merchants assuming the feature is hidden or requires activation, when in fact they have been rejected silently. If you are based in the US, have Shopify Payments active, have Shop Pay enabled, but see no Installments option under Admin → Settings → Payments → Shop Pay, contact Shopify Support and specifically ask about installment eligibility status. They can tell you whether your store is under review, approved, or ineligible and the reason.</p>
+        <div class="mono-block">Eligibility check path:
+Admin → Settings → Payments → Shop Pay → look for "Installments" section
+If absent: contact Support → ask about eligibility status
+Ineligible categories: adult, gambling, firearms, tobacco, financial services
+Order range: $50 minimum, ~$30,000 maximum</div>
+        <p>For stores outside US/CA that need installment payment, the options are third-party BNPL apps (Klarna app, Afterpay app, Sezzle app installed directly) or regional BNPL providers that have their own Shopify integrations — for example, Scalapay in Italy/France/Spain, Alma in France, or Paidy in Japan.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B</div>
+        <h3>Klarna vs Afterpay vs Sezzle on Shopify — Configuration Differences and Why They Fail Differently</h3>
+        <p>All three are enabled through the same Shopify Payments → Manage interface, but they have meaningfully different configuration requirements and fail in different ways. Understanding the differences prevents treating them as interchangeable.</p>
+        <p><strong>Afterpay</strong> is the most broadly available through Shopify Payments: US, CA, AU, NZ, and UK (as Clearpay). Afterpay performs its own buyer eligibility check in real time. If an Afterpay-eligible order is between approximately $1 and $2,000, the option appears. The most common failure: merchants in the EU enable Afterpay expecting it to show for German or French customers — it will not. Afterpay's European market presence runs through a separate Clearpay product that requires the dedicated Clearpay app, not the Shopify Payments toggle.</p>
+        <p><strong>Klarna</strong> has multiple products in Shopify Payments: Pay Now (immediate bank transfer), Pay Later (invoice in 14-30 days), Pay in 3 (split into 3 installments), and Financing (longer-term). These are separate toggles. Nordic and DACH merchants commonly enable Klarna Financing but need Pay in 3 — the wrong product is active and the expected option does not appear. Additionally, Klarna's availability in the US is limited compared to Sweden, Germany, or the UK — US merchants expecting Klarna Pay Later to behave the same as in Europe are often surprised by inconsistent appearance.</p>
+        <p><strong>Sezzle</strong> is US and Canada only, focused on younger demographics with limited credit history. It has a lower average order value range than Afterpay or Klarna. Sezzle's main failure mode is merchants in Canada enabling it and finding it absent because the buyer's billing address is in a non-supported province or because the cart total is outside Sezzle's range ($35–$2,500 typically). Sezzle is the least available globally and has the narrowest eligibility window.</p>
+        <div class="mono-block">BNPL method by region (Shopify Payments native integration):
+US:  Shop Pay Installments, Afterpay, Sezzle, Klarna (limited), Zip
+CA:  Shop Pay Installments, Afterpay, Sezzle
+AU:  Afterpay, Zip/Quadpay
+NZ:  Afterpay, Zip
+UK:  Clearpay (via Afterpay toggle), Klarna Pay Later/Pay in 3
+EU:  Klarna (DE/SE/NL/AT/FI/NO/DK/CH), Scalapay (IT/FR/ES via app)
+JP:  Paidy (via Shopify Payments Paidy toggle)</div>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C</div>
+        <h3>Manual Deposit + Balance for Custom Orders — The Only Real Split Payment on Shopify</h3>
+        <p>The phrase "split payment" on Shopify most commonly means consumer BNPL (Afterpay, Klarna), but for merchants selling custom products, made-to-order furniture, event services, or high-value B2B orders, it means something different: collecting a deposit at order placement and charging the remaining balance at delivery or completion. Shopify has no native mechanism for this workflow.</p>
+        <p>The most functional solution is the app Partial.ly. It integrates with Shopify checkout and allows the merchant to define: percentage or fixed deposit amount per product (e.g. 30% deposit), the number of installments for the remaining balance, the dates or triggers for balance charges, and automatic retry logic when a payment fails. The buyer completes the deposit at checkout through normal Shopify payment flow; Partial.ly handles subsequent charges using stored payment authorization. The main risk: stored payment authorizations expire. If a buyer placed a custom order with a 90-day lead time and your deposit app tries to charge the balance at day 90, the authorization may have lapsed. Configure the app to re-request payment authorization before the charge date when the lead time is long.</p>
+        <p>For B2B wholesale specifically, Shopify Plus B2B Net Terms is a cleaner solution than a deposit app — it removes the payment complexity entirely at checkout and generates an invoice with a due date (Net 30, 60, or 90). The buyer does not pay at checkout at all. This requires: Shopify Plus plan, B2B company accounts enabled, and Net Terms configured per company. It does not involve card storage or authorization — it is a pure invoice workflow.</p>
+        <div class="mono-block">Deposit app setup checklist (Partial.ly or equivalent):
+1. Define deposit % per product or product type
+2. Set balance charge trigger (date, event, or manual)
+3. Configure failed payment notification to merchant (not just buyer)
+4. Set authorization re-request window (for lead times >30 days)
+5. Test full flow: place order → confirm deposit charged → verify balance charge fires correctly
+6. Monitor order notes in Shopify for balance payment status</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Reference</div>
+      <h2>BNPL Availability by Country and Method — Shopify Payments Native Integration</h2>
+      <p class="section-intro">Which BNPL methods are available through Shopify Payments native integration (no app required) per country. "Via app only" means a separate provider app must be installed from the Shopify App Store.</p>
+
+      <table class="country-table">
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>Shop Pay Installments</th>
+            <th>Afterpay / Clearpay</th>
+            <th>Klarna</th>
+            <th>Sezzle / Zip</th>
+            <th>Other / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>United States</td>
+            <td><span class="badge badge-green">Available</span> Affirm-powered, eligibility required</td>
+            <td><span class="badge badge-green">Available</span> Afterpay (toggle in SP)</td>
+            <td><span class="badge badge-amber">Limited</span> Klarna app preferred for US</td>
+            <td><span class="badge badge-green">Available</span> Sezzle + Zip/Quadpay</td>
+            <td>Most complete BNPL market on Shopify</td>
+          </tr>
+          <tr>
+            <td>Canada</td>
+            <td><span class="badge badge-green">Available</span> Paybright-powered, CAD</td>
+            <td><span class="badge badge-green">Available</span> Afterpay (CAD)</td>
+            <td><span class="badge badge-red">Not available</span> via native SP</td>
+            <td><span class="badge badge-green">Available</span> Sezzle (CAD)</td>
+            <td>No Klarna in SP for CA natively</td>
+          </tr>
+          <tr>
+            <td>Australia</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-green">Available</span> Afterpay (AUD) — market leader</td>
+            <td><span class="badge badge-red">Not available</span> via SP</td>
+            <td><span class="badge badge-green">Available</span> Zip (AUD) — strong AU presence</td>
+            <td>Afterpay originated in AU — widest BNPL adoption</td>
+          </tr>
+          <tr>
+            <td>United Kingdom</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-green">Available</span> as Clearpay (GBP)</td>
+            <td><span class="badge badge-green">Available</span> Klarna Pay Later + Pay in 3 (GBP)</td>
+            <td><span class="badge badge-green">Available</span> Zip (GBP)</td>
+            <td>Strong Klarna + Clearpay market</td>
+          </tr>
+          <tr>
+            <td>Germany</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not via SP</span> Clearpay app only</td>
+            <td><span class="badge badge-green">Available</span> Klarna Rechnungskauf (Pay Later) most popular in DE</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td>Klarna dominates; SOFORT replaced by Klarna Pay Now</td>
+          </tr>
+          <tr>
+            <td>Sweden / Nordics</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not via SP</span></td>
+            <td><span class="badge badge-green">Available</span> Klarna (home market — all products)</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td>Klarna originated in SE; highest market penetration globally</td>
+          </tr>
+          <tr>
+            <td>Netherlands / Belgium</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not via SP</span></td>
+            <td><span class="badge badge-green">Available</span> Klarna Pay Later (EUR)</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td>iDEAL (immediate) is primary; Klarna for B2C deferred</td>
+          </tr>
+          <tr>
+            <td>New Zealand</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-green">Available</span> Afterpay (NZD)</td>
+            <td><span class="badge badge-red">Not available</span> via SP</td>
+            <td><span class="badge badge-green">Available</span> Zip (NZD)</td>
+            <td>Afterpay strong in NZ; same setup as AU</td>
+          </tr>
+          <tr>
+            <td>Japan</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not available</span> via SP</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td>Paidy available via Shopify Payments toggle (JPY); konbini for offline</td>
+          </tr>
+          <tr>
+            <td>France / Italy / Spain</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td><span class="badge badge-red">Not via SP</span></td>
+            <td><span class="badge badge-green">Available</span> Klarna Pay Later (EUR) — growing</td>
+            <td><span class="badge badge-red">Not available</span></td>
+            <td>Scalapay (IT/FR/ES) strong — app only, no SP native integration</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Split Payment &amp; BNPL — Frequently Asked Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why is Shop Pay Installments not available on my Shopify store?</div>
+          <div class="faq-a">Shop Pay Installments is US and Canada only, requires Shopify Payments active, and requires merchant eligibility approval from Affirm (the financing partner). If you do not see an Installments section under Admin → Settings → Payments → Shop Pay, your store may be ineligible (wrong country, ineligible product category, or pending review). Contact Shopify Support to check eligibility status. Order amounts outside $50–$30,000 also do not show Installments at checkout even on eligible stores.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I add Afterpay to Shopify checkout?</div>
+          <div class="faq-a">Afterpay is available through Shopify Payments in the US, CA, AU, NZ, and UK (as Clearpay). Go to Admin → Settings → Payments → Shopify Payments → Manage → find Afterpay in the additional payment methods section and toggle it on. Shopify Payments must be your active gateway. If you use a third-party gateway, you must install the official Afterpay app from the Shopify App Store instead, which creates a separate checkout overlay.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can Shopify do split payment or deposit plus balance for custom orders?</div>
+          <div class="faq-a">Shopify has no native deposit-plus-balance split payment. For custom orders, use a deposit app like Partial.ly or Deposit &amp; Partial Payment by Omega (Shopify App Store). These apps collect a deposit at checkout and schedule the balance charge separately. For B2B wholesale, use Shopify Plus B2B Net Terms (Net 30/60/90) instead — this skips payment at checkout entirely and issues an invoice with a due date.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Klarna Pay Later not showing at my Shopify checkout?</div>
+          <div class="faq-a">Four causes: (1) Shopify Payments not active as your gateway, (2) Klarna not individually toggled on in Payments → Manage (Klarna has multiple products — Pay Now, Pay Later, Pay in 3, Financing — each is a separate toggle), (3) checkout currency doesn't match Klarna's market requirements, (4) the order amount is outside Klarna's range for your market. Enable Klarna products one by one and test from the correct country with the correct currency.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Does Shopify support BNPL for B2B wholesale orders?</div>
+          <div class="faq-a">Consumer BNPL (Afterpay, Klarna, Shop Pay Installments) does not appear for Shopify Plus B2B company account checkout sessions. It requires individual consumer credit assessment which is incompatible with company accounts. For B2B deferred payment, use Shopify B2B Net Terms (Shopify Plus required) — this lets approved companies place orders on Net 30/60/90 day payment terms without paying at checkout.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Related Checkout &amp; Payment Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">
+          <div class="guide-card-label">Payment Methods</div>
+          <div class="guide-card-title">Payment Methods Not Showing at Checkout</div>
+          Apple Pay, Google Pay, and card methods missing
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">
+          <div class="guide-card-label">Local Payments</div>
+          <div class="guide-card-title">iDEAL, OXXO, Bancontact, PIX Not Showing</div>
+          Country-specific payment methods not appearing
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">B2B</div>
+          <div class="guide-card-title">Shopify B2B Checkout Not Working</div>
+          Wholesale, company accounts, Net Terms issues
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-b2b-net-terms">
+          <div class="guide-card-label">Net Terms</div>
+          <div class="guide-card-title">B2B Net Terms Not Showing at Checkout</div>
+          Net 30/60/90 deferred payment configuration
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-accepting-payment">
+          <div class="guide-card-label">Payment Failures</div>
+          <div class="guide-card-title">Payment Not Going Through at Checkout</div>
+          Cards declined, payment not processing
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">Shopify Markets Checkout Not Working</div>
+          Currency, country, and cross-border checkout errors
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>BNPL options disappearing, payment method toggles not reflecting at checkout, and gateway switches silently breaking split payment are all real-time issues. CheckPulse monitors your checkout continuously — 4-step automated test runs every few minutes, instant email alert if anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

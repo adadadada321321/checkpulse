@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Address Autocomplete Not Working — Google Maps API, Address Suggestions Missing, Postal Code Lookup Failing (2026)</title>
+  <meta name="description" content="Shopify checkout address autocomplete not working: Google Maps API quota exhausted, address suggestions not appearing, postal code lookup failing, partial autofill, mobile vs desktop differences. Five root causes, six silent failure modes, and exact fix paths for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working" />
+  <meta property="og:title" content="Shopify Checkout Address Autocomplete Not Working — Google Maps API, Address Suggestions Missing" />
+  <meta property="og:description" content="Shopify checkout address autocomplete not working: Google Maps API quota, suggestions missing, postal code lookup failing, partial autofill, extension conflicts. Fix paths for all root causes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Address Autocomplete Not Working — Google Maps API, Address Suggestions Missing, Postal Code Lookup Failing",
+    "description": "Shopify checkout address autocomplete is powered by the Google Maps Places API. When it stops working, the most common root causes are: Google Maps API quota exhausted (merchant-provided key), autocomplete not available in certain countries, a checkout extension overriding the native address form, browser privacy extensions blocking Google APIs, or a custom domain misconfiguration. Autocomplete can also fail silently — suggestions appear but selecting one populates wrong fields, or postal code lookup returns wrong city/state data. This guide covers five root causes, six silent failure modes, per-region availability, and exact Admin fix paths.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did Shopify checkout address autocomplete suddenly stop working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout address autocomplete is powered by the Google Maps Places API. The most common reason it stops suddenly is an API quota limit being reached — either on Shopify's platform-wide quota or on a merchant-provided Google Maps API key that was configured in an earlier setup. If you added a custom Google Maps API key through a Shopify app or theme settings and that key's daily quota ran out (or the key was restricted incorrectly in the Google Cloud Console), autocomplete will stop showing suggestions. Check: remove any custom API key configuration first and test whether Shopify's default autocomplete returns. If it does, the issue is your custom key. If not, the issue is either your store's region not being supported or a checkout extension conflict."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do address autocomplete suggestions appear but selecting one doesn't fill all the fields?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is partial autofill — the most common silent failure mode for Shopify checkout address autocomplete. When a customer selects a suggestion from the Google Maps dropdown, Shopify maps the Google Places result to specific checkout fields (address line 1, city, province/state, postal code, country). Partial autofill happens when: (1) the Google Places result for that address doesn't include all the structured components Shopify expects — for example, some addresses in rural areas have no 'neighborhood' or 'sublocality' component, causing city or postal code to not auto-populate; (2) a checkout extension is modifying the address form fields and the field IDs no longer match what Shopify's autocomplete script targets; (3) the address was selected from autocomplete suggestions but the Google Maps data for that specific address is incomplete. Fix: instruct customers to manually correct any unpopulated fields after selecting the autocomplete suggestion. For extension-caused partial autofill, test in checkout with extensions disabled."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does address autocomplete work on desktop but not on mobile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Desktop and mobile handle address autocomplete differently. On mobile, the device's native keyboard autocomplete (iOS keyboard address suggestions, Android autofill) can conflict with Shopify's Google Maps-based suggestions — the native keyboard dropdown can appear simultaneously with or instead of the Google Maps dropdown, and native suggestions don't populate all checkout fields the same way. On iOS Safari specifically, the 'autocomplete' attribute behavior differs between versions, and content blockers (including built-in Safari Intelligent Tracking Prevention) may block Google Maps API requests. On Android Chrome, Google's own autofill can intercept the address field before the Google Maps Places dropdown appears. Diagnosis: test on desktop Chrome without extensions first to establish baseline. Then test on mobile Safari and Chrome. If desktop works and mobile doesn't, the issue is mobile-specific — either native keyboard/autofill conflict or iOS Safari content blocking."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is postal code lookup at Shopify checkout returning wrong city or state?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout uses Google Maps Places API data for postal code lookup. When you type a postal code, the autocomplete script queries Google for the associated city, state, and country. Wrong results can come from: (1) outdated Google Maps data — new postal codes, recently changed municipal boundaries, or postal code reassignments may not yet be in Google's database; (2) postal codes that span multiple cities — Google's Places API returns one canonical city for a given postal code, but that city may not match the customer's actual city; (3) postal codes shared across state/province lines — rare but exists in some countries; (4) international postal codes that use different formats or hierarchies than what Google's structured-component mapping expects (e.g., UK postcodes, Canadian FSAs). If wrong city/state is a recurring customer complaint: add a note in your checkout or use Checkout Extensibility to add help text indicating customers should verify the auto-populated city/state before placing the order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is address autocomplete not available in my country's Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Google Maps Places API is not available in all countries. Shopify checkout address autocomplete inherits these restrictions. Countries where autocomplete is limited or absent include: China (Google Maps is blocked; Shopify uses alternative mapping in some cases), Iran, North Korea, Sudan, Syria, and Cuba (Google services are restricted due to US export controls). In other countries, Google Maps coverage may be available but Places API support is limited — for example, some addresses in smaller towns or rural areas in Southeast Asia, Central America, or Central Africa may not have enough structured data in Google's database to produce useful autocomplete suggestions. If you're selling internationally and customers in specific countries report autocomplete not working: this is expected behavior, not a store configuration problem. Communicate to these customers that manual address entry is required."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+
+    .fix-list {
+      list-style: none;
+      margin-top: 10px;
+    }
+    .fix-list li {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .fix-list li:last-child { border-bottom: none; }
+    .fix-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .fix-body { flex: 1; }
+    .fix-body strong { color: var(--text); font-size: 13px; display: block; margin-bottom: 4px; }
+    .fix-body span { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+    .faq-list { margin-top: 10px; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: border-color 0.15s;
+      line-height: 1.5;
+      display: block;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(16px, 2.5vw, 22px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 22px;
+      line-height: 1.7;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+    .cta-btn:hover { background: #d97706; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0 40px;
+      margin-top: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; text-decoration: none; }
+    .footer-logo-mark {
+      width: 24px; height: 24px; background: var(--amber); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #000;
+    }
+    .footer-logo-text { font-size: 14px; font-weight: 700; color: var(--text); }
+    .footer-copy { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+
+    .reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.4s ease, transform 0.4s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout — Address Autocomplete</div>
+      <h1>Shopify Checkout Address Autocomplete Not Working</h1>
+      <p class="hero-sub">
+        Shopify checkout uses Google Maps Places API for address autocomplete. When suggestions stop appearing, fill incorrectly, or fail silently on mobile — there are five distinct root causes. This guide covers each one with exact fix paths.
+      </p>
+      <div class="hero-meta">
+        <span>5 root causes</span>
+        <span>6 silent failure modes</span>
+        <span>3 deep dives</span>
+        <span>Updated June 2026</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Key insight:</strong> Shopify does not build or maintain its own address autocomplete — it relies entirely on Google Maps Places API. When autocomplete breaks, the fault is almost always one of: a misconfigured or quota-exhausted API key, a checkout extension overriding the address form, browser-level API blocking, or the customer's country not being supported by the Google Places API. Shopify's native checkout (without extensions) cannot "fix" autocomplete on its own if the underlying Maps API call fails.
+    </div>
+
+    <section class="section reveal">
+      <div class="section-label">Architecture</div>
+      <h2>How Shopify Checkout Address Autocomplete Works</h2>
+      <p class="section-intro">Understanding what Shopify actually does under the hood is the fastest path to diagnosing autocomplete failures. The system has four layers, each of which can fail independently.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Layer 1</div>
+          <div class="arch-card-title">Google Maps Places API</div>
+          <div class="arch-card-desc">Shopify calls the Places Autocomplete API when a customer types in the address field. Google returns a list of candidate addresses. Shopify renders them as a dropdown. If the API call fails or returns no results, no dropdown appears.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">Layer 2</div>
+          <div class="arch-card-title">API Key (Shopify or Merchant)</div>
+          <div class="arch-card-desc">By default, Shopify uses its own platform-level Google Maps API key. Some apps and themes allow merchants to configure their own key. If a merchant-configured key is invalid, expired, or quota-exhausted, autocomplete fails for that store only.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Layer 3</div>
+          <div class="arch-card-title">Address Field Mapping</div>
+          <div class="arch-card-desc">When a customer selects a suggestion, Shopify maps the Google Places "address components" (street number, route, locality, postal code, country) to specific checkout form fields. If field IDs are wrong (due to extension modification), mapping breaks and only some fields populate.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Layer 4</div>
+          <div class="arch-card-title">Browser / Network</div>
+          <div class="arch-card-desc">Content blockers (uBlock Origin, Ghostery, Brave Shield), corporate firewalls, or regional restrictions (China, Iran) can block the Maps API request entirely before it reaches Google. The autocomplete script loads but the API call is silently dropped.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Root Causes</div>
+      <h2>Five Root Causes of Address Autocomplete Failure</h2>
+      <p class="section-intro">These are the five most common causes, ordered by frequency. Most merchants hit Cause 1 (extension conflict) or Cause 2 (API key issue) first.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Root Cause</th>
+            <th>What Merchants See</th>
+            <th>Scope</th>
+            <th>Fix Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Checkout Extension Conflict</td>
+            <td>Autocomplete worked before, stopped after installing an app (Rebuy, Bold, Zipify, OneClickUpsell, custom extension)</td>
+            <td><span class="badge badge-amber">Store-wide</span></td>
+            <td>Disable extensions one by one and retest</td>
+          </tr>
+          <tr>
+            <td>Merchant API Key — Quota / Invalid</td>
+            <td>Stopped suddenly mid-day or after changing API key settings; Shopify error logs show Maps API errors</td>
+            <td><span class="badge badge-amber">Store-wide</span></td>
+            <td>Remove merchant key; revert to Shopify default</td>
+          </tr>
+          <tr>
+            <td>Browser / Privacy Extension Blocking</td>
+            <td>Works in Chrome/Edge but not Firefox; works in Incognito but not normal browser window</td>
+            <td><span class="badge badge-blue">Per-customer</span></td>
+            <td>Customer disables content blocker for the checkout domain</td>
+          </tr>
+          <tr>
+            <td>Country / Region Not Supported</td>
+            <td>Autocomplete never worked for customers in specific countries (China, Iran, Cuba, some rural regions)</td>
+            <td><span class="badge badge-blue">Per-country</span></td>
+            <td>Expected behavior — manual entry only for unsupported regions</td>
+          </tr>
+          <tr>
+            <td>Custom Domain / Checkout URL Mismatch</td>
+            <td>Autocomplete works on checkout.shopify.com but not on the store's custom domain</td>
+            <td><span class="badge badge-red">Custom domain</span></td>
+            <td>Update API key allowed referrer in Google Cloud Console</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Silent Failures</div>
+      <h2>Six Silent Failure Modes</h2>
+      <p class="section-intro">These failures don't produce visible errors. Customers experience confusion, incorrect data entry, or abandoned orders — but no error message appears at checkout.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Silent Failure</th>
+            <th>Symptom</th>
+            <th>Why It Happens</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Partial autofill — missing city or postal code</td>
+            <td>Customer selects suggestion; city and postal code remain blank</td>
+            <td>Google Places result lacks structured components for that specific address; rural or new addresses most affected</td>
+          </tr>
+          <tr>
+            <td>Wrong city for entered postal code</td>
+            <td>Postal code auto-populates a different city than the customer's actual city</td>
+            <td>Google's canonical city for that postal code differs from the customer's community name; common with multi-city postal codes</td>
+          </tr>
+          <tr>
+            <td>Mobile native keyboard overrides suggestions</td>
+            <td>iOS keyboard or Android autofill dropdown appears; Google suggestions don't show</td>
+            <td>Native keyboard autocomplete intercepts the address field before Google Places can respond</td>
+          </tr>
+          <tr>
+            <td>Suggestions appear but don't match the customer's country</td>
+            <td>Customer in Germany types their address; autocomplete shows US addresses first</td>
+            <td>Country bias parameter not correctly passed to Google API; common when store has no active market configured for that country</td>
+          </tr>
+          <tr>
+            <td>Autocomplete dropdown closes on mobile tap</td>
+            <td>Customer taps a suggestion; dropdown closes but address field doesn't populate</td>
+            <td>Touch event vs. click event handling conflict between Shopify's autocomplete script and a checkout extension's event listeners</td>
+          </tr>
+          <tr>
+            <td>Business name populates in Company field unexpectedly</td>
+            <td>Customer types their home address; Google returns it as a known business location and populates the Company field with the business name</td>
+            <td>Google Places classifies the address as a business "point of interest" and includes the establishment name in the result; Shopify maps it to the Company field</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive A</div>
+      <h2>Google Maps Places API — Quota, Keys, and How to Test</h2>
+      <p class="section-intro">Most merchant-side autocomplete failures originate from API key configuration. Here is how to diagnose and resolve them.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive — API Key Diagnosis</div>
+        <h3>Shopify Default Key vs. Merchant-Configured Key</h3>
+        <p>By default, Shopify uses a platform-wide Google Maps API key shared across all Shopify stores. Merchants do not have visibility into or control over this key's quota. If Shopify's platform-level key experiences quota issues, all stores are affected simultaneously — this is extremely rare and would be reported on Shopify's status page.</p>
+        <p>The more common scenario: a merchant (or their developer/app) configured a custom Google Maps API key in Shopify's theme settings or through an app like "Address Validator," "Store Locator," or a checkout customization app. This custom key overrides Shopify's default. If this custom key has: (a) daily quota exhausted, (b) API restrictions that don't include "Places API" or "Maps JavaScript API," (c) HTTP referrer restrictions that don't include the checkout domain, or (d) been invalidated in the Google Cloud Console — autocomplete fails only for that store.</p>
+        <p><strong>How to identify if a custom key is configured:</strong> Shopify Admin → Online Store → Themes → Edit Code → search for "google_maps_api_key", "maps_api_key", or "MAPS_API_KEY" in theme files. Also check Apps → look for any address or mapping-related app → check the app's settings page for an API key field.</p>
+        <p><strong>Fastest fix:</strong> Remove the custom API key entirely (clear the field, save). Shopify reverts to its platform default. Test checkout autocomplete immediately. If autocomplete returns, your custom key was the problem — fix the key configuration in Google Cloud Console or leave Shopify's default key in place.</p>
+        <p><strong>How to check Google Cloud Console for a custom key:</strong> console.cloud.google.com → APIs &amp; Services → Credentials → click the API key → check "API restrictions" (must include Places API) → check "Application restrictions" (HTTP referrers must include *.myshopify.com/* and your custom checkout domain). A wildcard (*) referrer restriction is acceptable for testing but not recommended for production (security risk).</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive — Quota Monitoring</div>
+        <h3>Understanding Google Maps Places API Quota</h3>
+        <p>Google Maps Places Autocomplete API has a free tier of 0 requests (Places API switched to a fully paid model in 2018 with a $200/month credit). Each autocomplete session costs approximately $0.017 per session (a session = all keystrokes + one place detail lookup). For a store with 1,000 daily checkout visitors and an average of 80% entering an address with autocomplete: ~800 sessions/day × $0.017 = ~$13.60/day = ~$408/month. The $200 Google credit covers about half — merchants should budget ~$200+/month for autocomplete on any meaningful volume.</p>
+        <p>If your store suddenly stops showing autocomplete mid-day, check Google Cloud Console → APIs &amp; Services → Quotas → Maps API Requests. If you see a sharp drop to zero that correlates with when autocomplete stopped, you've hit your billing limit or daily quota cap. Increase your billing limit or remove the per-day spend cap in Google Cloud Console billing settings.</p>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive B</div>
+      <h2>Per-Country Address Autocomplete Availability</h2>
+      <p class="section-intro">Google Maps Places API coverage varies significantly by country. For international stores, this directly affects which customers can use autocomplete and which must enter their address manually.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Country / Region</th>
+            <th>Autocomplete Support</th>
+            <th>Notes for Shopify Merchants</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>United States, Canada, UK, Australia</td>
+            <td><span class="badge badge-green">Full</span></td>
+            <td>Address-level precision, postal code + city auto-populate reliably</td>
+          </tr>
+          <tr>
+            <td>Germany, France, Netherlands, Belgium</td>
+            <td><span class="badge badge-green">Full</span></td>
+            <td>German addresses: house number comes after street name in German format; autocomplete handles this correctly</td>
+          </tr>
+          <tr>
+            <td>Japan</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>Japanese addresses use prefecture → city → ward → block → building hierarchy; autocomplete covers major cities well, rural areas less reliably. Kanji vs. romaji entry affects results.</td>
+          </tr>
+          <tr>
+            <td>Brazil</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>Major cities (São Paulo, Rio, Brasília) have good coverage. CEP (postal code) lookup is reliable. Smaller municipalities or new developments may not have structured data.</td>
+          </tr>
+          <tr>
+            <td>India</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>Urban addresses in major cities work well. PIN codes are supported but city/state auto-populate is inconsistent for smaller towns and new pin zones.</td>
+          </tr>
+          <tr>
+            <td>Mexico</td>
+            <td><span class="badge badge-amber">Partial</span></td>
+            <td>Colonia (neighborhood) is a required part of Mexican addresses; autocomplete may not populate it consistently. Manual entry often needed.</td>
+          </tr>
+          <tr>
+            <td>China</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td>Google services are blocked in mainland China. Autocomplete will never work for customers in China. Manual entry required. Consider a China-specific address app if significant volume.</td>
+          </tr>
+          <tr>
+            <td>Iran, North Korea, Cuba, Sudan, Syria</td>
+            <td><span class="badge badge-red">Restricted</span></td>
+            <td>US export controls restrict Google services. Autocomplete unavailable. Manual entry only.</td>
+          </tr>
+          <tr>
+            <td>Southeast Asia (Indonesia, Vietnam, Philippines)</td>
+            <td><span class="badge badge-amber">Limited</span></td>
+            <td>Major city coverage is good. Provincial/rural addresses may have incomplete structured data. Postal code lookup reliability varies by country.</td>
+          </tr>
+          <tr>
+            <td>Sub-Saharan Africa</td>
+            <td><span class="badge badge-amber">Limited</span></td>
+            <td>Major capitals covered. Many rural areas lack street-level data in Google Maps. Informal settlement addresses may not appear at all.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive C</div>
+      <h2>Checkout Extension Conflicts — Diagnosis and Fix</h2>
+      <p class="section-intro">Checkout extensions (apps that modify the Shopify checkout form) are the most common cause of address autocomplete breaking. Here is a systematic diagnosis process.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive — Extension Conflict Diagnosis</div>
+        <h3>How Extensions Break Autocomplete</h3>
+        <p>Shopify's address autocomplete script targets checkout form fields by their HTML ID attributes (e.g., <code>#checkout_shipping_address_address1</code>). When a checkout extension replaces or wraps these fields with its own components, the IDs can change (e.g., <code>#ext-address-field-1</code>). The autocomplete script no longer finds the fields it expects, so it either stops initializing or fires events on elements that don't exist — the dropdown appears but selecting a suggestion does nothing.</p>
+        <p><strong>Diagnostic test (2 minutes):</strong> Open your store's checkout in a private/incognito window on desktop Chrome. Go through to the shipping address step. Type 3–4 characters of a known address in the address field. If the Google Maps dropdown appears and works correctly — and you know it doesn't work for some customers — the issue is browser-specific (Cause 3: content blocker). If the dropdown doesn't appear even in incognito clean Chrome, continue to extension diagnosis.</p>
+        <p><strong>Extension isolation:</strong> Admin → Apps → identify apps with "checkout," "upsell," "post-purchase," "rebuy," "bold," "zipify," or "pagefly" in the name. Temporarily uninstall or disable the extension from the checkout (in the app's settings, not in Apps). Retest autocomplete. Repeat until you find the conflicting app. Contact that app's developer with the specific conflict: "Your extension replaces the native Shopify checkout address field IDs, breaking Google Maps autocomplete. Please implement your field overrides in a way that preserves the native field IDs or re-attaches the autocomplete listener after DOM modification."</p>
+        <p><strong>Shopify Plus — Checkout Editor:</strong> If you've customized your checkout layout in the Checkout Editor (Admin → Settings → Checkout → Customize), a layout change that moves or duplicates the shipping address section can break the autocomplete listener's DOM targeting. Open the Checkout Editor → Sections → Address → verify the shipping address block is using the default Shopify implementation, not a custom component. Reverting to the default address block fixes this in most cases.</p>
+        <p><strong>Checkout UI Extensions:</strong> If you've deployed a custom Checkout UI Extension that modifies the shipping address step, the extension's component tree may shadow the native address fields. In your extension code: do not replace the <code>&lt;ShippingAddressField /&gt;</code> component with a custom text input — instead, add your UI before or after the native field using the extension's supported slot positions.</p>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Fix Checklist</div>
+      <h2>6-Step Address Autocomplete Fix Checklist</h2>
+      <p class="section-intro">Run through these steps in order. Most stores find the fix at step 1 or 2.</p>
+
+      <ul class="fix-list">
+        <li>
+          <div class="fix-num">1</div>
+          <div class="fix-body">
+            <strong>Test in clean incognito Chrome — establish baseline</strong>
+            <span>Open checkout in a private Chrome window with no extensions. Type 3–4 characters in the address field. If autocomplete appears and works → customer-side blocker (step 3). If it doesn't work → store-side issue (continue to step 2).</span>
+          </div>
+        </li>
+        <li>
+          <div class="fix-num">2</div>
+          <div class="fix-body">
+            <strong>Check for a custom Google Maps API key in your store</strong>
+            <span>Admin → Online Store → Themes → Edit Code → search "google_maps_api_key". Also check any address-related apps for custom key settings. If a custom key exists, remove it and test. Shopify reverts to its platform-level key — if autocomplete returns, your custom key was the issue.</span>
+          </div>
+        </li>
+        <li>
+          <div class="fix-num">3</div>
+          <div class="fix-body">
+            <strong>Identify and isolate checkout extension conflicts</strong>
+            <span>Admin → Apps → temporarily disable apps that touch checkout (upsells, address validators, checkout customizers). Retest after each disable. When autocomplete returns, you've found the conflicting app — contact their support with the specific DOM conflict.</span>
+          </div>
+        </li>
+        <li>
+          <div class="fix-num">4</div>
+          <div class="fix-body">
+            <strong>Verify custom domain referrer restriction in Google Cloud Console</strong>
+            <span>If you use a custom checkout domain: console.cloud.google.com → APIs &amp; Services → Credentials → your API key → Application restrictions → HTTP referrers. Add your custom checkout domain (e.g., checkout.yourdomain.com/*) to the allowed list. Without this, the Maps API will reject requests from your custom domain.</span>
+          </div>
+        </li>
+        <li>
+          <div class="fix-num">5</div>
+          <div class="fix-body">
+            <strong>Test on mobile specifically — check for native keyboard conflict</strong>
+            <span>Open checkout on an iPhone (Safari) and Android (Chrome). On iOS: if the keyboard autocomplete bar shows address suggestions above the keyboard instead of Google's dropdown, this is native keyboard conflict — expected behavior, not a bug. On Android: if Google Autofill overlay appears instead of Maps suggestions, disable Google Autofill for the checkout URL in Chrome settings temporarily to test.</span>
+          </div>
+        </li>
+        <li>
+          <div class="fix-num">6</div>
+          <div class="fix-body">
+            <strong>Communicate country-specific limitations to affected customers</strong>
+            <span>For customers in China, Iran, or countries with limited Google Maps coverage: add a help text note at the address step ("Address suggestions may not be available in your country — please enter your address manually"). This can be done via Checkout Editor (Plus) or a Checkout UI Extension. It reduces support tickets and abandonment from customers confused about why autocomplete doesn't appear.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">FAQ</div>
+      <h2>Address Autocomplete — Frequently Asked Questions</h2>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q">Why did Shopify checkout address autocomplete suddenly stop working?</div>
+          <div class="faq-a">The most common sudden-stop causes: (1) a checkout extension was installed or updated that conflicts with the autocomplete script, (2) a custom Google Maps API key was added or modified and has a configuration error. Test in clean incognito Chrome first. If it works there, look at browser extensions. If it doesn't, check your store's checkout apps and API key settings.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why do address suggestions appear but selecting one doesn't fill all the fields?</div>
+          <div class="faq-a">Partial autofill — the most common silent autocomplete failure. Causes: (1) the Google Places result for that address is missing structured components (no postal code data, city unclear); (2) a checkout extension changed address field IDs so Shopify's mapping script can't find them. Test with a well-known urban address (e.g., "123 Main St, New York") — if that populates correctly but your customer's address doesn't, it's a data gap issue. If even the test address partially fails, it's an extension conflict.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does address autocomplete work on desktop but not on mobile?</div>
+          <div class="faq-a">Mobile platforms have their own address autocomplete systems that can conflict with Google Maps suggestions. On iOS Safari, native keyboard address suggestions and content blockers can prevent the Google dropdown from appearing. On Android Chrome, Google Autofill sometimes intercepts address fields. Test in Chrome on Android first (fewest conflicts). If mobile-only: this is a known cross-platform UX limitation — Shopify doesn't have a server-side fix for native keyboard override.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is the postal code lookup returning the wrong city?</div>
+          <div class="faq-a">Google Maps returns one canonical city for each postal code. If that postal code spans multiple communities or was reassigned in a municipal consolidation, Google's data may show a different city than what your customer considers their address. This is a Google Maps data accuracy issue, not a Shopify bug. Add a note in checkout: "Please verify the auto-populated city and state before placing your order."</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can I add my own Google Maps API key to improve autocomplete in Shopify?</div>
+          <div class="faq-a">Shopify does not provide an official merchant-facing setting to configure a custom Google Maps API key for checkout autocomplete. Some third-party apps offer this, but using a custom key introduces dependency on your own key's quota, billing, and configuration — and often breaks autocomplete when the key is misconfigured. In most cases, Shopify's platform-level key performs better for checkout specifically. Only use a custom key if you have a specific, confirmed need (e.g., using a custom domain with strict referrer restrictions).</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does address autocomplete show results from the wrong country?</div>
+          <div class="faq-a">Shopify passes a country bias parameter to the Google Places API based on the customer's detected market or the store's primary market. If Shopify's market detection is incorrect (e.g., a German customer is placed in the US market), autocomplete suggestions will be biased toward the wrong country. Fix: Admin → Settings → Markets → verify the correct market is configured for the relevant countries, including correct geographic definitions. Customers in the correctly configured market should then see country-appropriate autocomplete suggestions.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Related Guides</div>
+      <h2>Other Shopify Checkout Form and Address Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">
+          <div class="guide-card-label">Form Validation</div>
+          <div class="guide-card-title">Address Validation Failed</div>
+          Address not recognized, city field errors, postal code not accepted at Shopify checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">
+          <div class="guide-card-label">Phone Field</div>
+          <div class="guide-card-title">Phone Number Not Working</div>
+          E.164 format errors, country code mismatch, phone field required blocking checkout, SMS failures.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">
+          <div class="guide-card-label">Localization</div>
+          <div class="guide-card-title">Wrong Language / Postal Code / Format</div>
+          Checkout displaying wrong language, phone format, postal code validation failing by country.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">International Checkout Errors</div>
+          Shopify Markets checkout not working, international payment methods, cross-border VAT.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-app-conflict">
+          <div class="guide-card-label">App Conflicts</div>
+          <div class="guide-card-title">App Blocking Checkout</div>
+          Checkout extensions and third-party apps breaking checkout — diagnosis and fix.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensions">
+          <div class="guide-card-label">Extensions</div>
+          <div class="guide-card-title">Checkout Extensibility</div>
+          What you can and cannot customize in Shopify checkout with extensions.
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>Address autocomplete failures, form field conflicts, and checkout extension errors can silently increase abandonment — you won't know until a customer complains. CheckPulse monitors your checkout continuously — 4-step automated test runs every few minutes, instant email alert if anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

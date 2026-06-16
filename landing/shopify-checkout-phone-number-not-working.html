@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Phone Number Not Working — Invalid Format, Country Code Error, E.164 Validation, Required Field Blocking Checkout (2026)</title>
+  <meta name="description" content="Shopify checkout phone number errors: invalid format, country code mismatch, E.164 requirement, required field blocking checkout, Shop Pay auto-fill wrong prefix, SMS notification failing silently. This guide covers five root causes, seven silent failure modes, and exact fix paths for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working" />
+  <meta property="og:title" content="Shopify Checkout Phone Number Not Working — Invalid Format, Country Code Error, E.164 Validation" />
+  <meta property="og:description" content="Shopify checkout phone number errors: invalid format, country code mismatch, E.164 requirement, required field blocking checkout, Shop Pay auto-fill wrong prefix, SMS notification failing silently." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Phone Number Not Working — Invalid Format, Country Code Error, E.164 Validation, Required Field Blocking Checkout",
+    "description": "Shopify checkout phone number validation enforces E.164 format (international dialing format with country code) for some markets and payment methods, while accepting local formats for others. The field can be Required, Optional, or Hidden per-market — a misconfiguration blocks all customers who skip the field. Third-party checkout extensions can override Shopify's native validation with stricter regex, rejecting phone numbers that Shopify itself would accept. Shop Pay auto-fill can insert the wrong country code prefix for international customers. SMS and WhatsApp order notifications can fail silently even after checkout completes successfully. This guide covers five root causes, seven silent failure modes, per-country format requirements, and exact Admin fix paths.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-16",
+    "dateModified": "2026-06-16"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout say my phone number is invalid even though it's correct?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout validates phone numbers against the E.164 international format for certain markets and payment methods. E.164 requires a country code prefix (e.g., +1 for US/Canada, +44 for UK) followed by the subscriber number with no spaces, dashes, or parentheses. If a customer enters a local 10-digit number without the country code prefix, Shopify may accept it for domestic checkout but reject it for international markets or when Shop Pay is the active payment method. The most common trigger: a customer is in an international market (e.g., a US store selling to Germany) and enters their number in German local format (0171 1234567) instead of E.164 format (+49 171 1234567). Fix: Admin → Settings → Markets → Germany → Checkout → set phone field to Optional if it isn't business-critical, or add a phone format hint in the checkout field placeholder using Checkout Extensibility."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the phone number field required and blocking my customers from checking out?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The phone field Required/Optional/Hidden setting is configurable per market in Shopify Admin. It is NOT a global setting — if a market was set to Required at some point (often by a previous merchant, app, or consultant), customers in that market cannot proceed past the contact step without entering a phone number. To check: Admin → Settings → Markets → select the relevant market → Checkout and accounts → Phone number in checkout → change from Required to Optional. Additionally, some checkout extensibility apps set the phone field to required as part of their validation logic — check installed apps that touch checkout (Rebuy, Bold, Zipify, etc.) and disable their phone validation if it conflicts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shop Pay insert the wrong country code in the phone field?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay stores the customer's phone number from their Shop Pay account profile. If the customer originally created their Shop Pay account in one country (e.g., US, stored as +1XXXXXXXXXX) and is now checking out from a store in another country (e.g., Australia), Shop Pay auto-fills the phone field with the US number and +1 prefix — even if the checkout field expects an Australian number (+61). The checkout may then validate the pre-filled number against the store's market rules and reject it. Fix for merchants: no direct control over Shop Pay auto-fill behavior. Mitigation: set phone field to Optional for international markets so failed auto-fill doesn't block checkout. Fix for customers: clear the Shop Pay auto-filled value and manually enter their correct number with the right country code prefix."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are SMS order notifications not being sent after checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "SMS order notifications (via Shop app or third-party apps like Klaviyo, Postscript, Attentive) require a phone number that successfully validates against E.164 format at the time of notification dispatch — which is separate from whether Shopify accepted the number at checkout. A phone number can pass Shopify's checkout validation but fail SMS dispatch validation if: (1) it's in local format without country code (e.g., 10 digits, no +1), (2) it includes formatting characters like spaces, dashes, or parentheses that were stripped by checkout but not reformatted to E.164 before being passed to the SMS provider, (3) the phone number field was collected as Optional and the customer left it blank. Check: Admin → Orders → click any recent order → look for the phone number in customer details — if it shows (555) 123-4567 instead of +15551234567, the SMS provider likely can't dispatch to it. Fix: configure your SMS app to normalize phone numbers to E.164 before dispatch, or use a Checkout Extension to enforce E.164 at input time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify reject my phone number when I add the country code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is the double-prefix problem. Shopify's phone input field in some markets displays a country code selector (the flag dropdown) that prepends the dialing code automatically. If a customer also types the country code into the number field (e.g., the flag shows +1 and they type 1-555-123-4567), the submitted number becomes +11-555-123-4567 — an invalid E.164 string with a duplicated country code. The fix is always to enter only the subscriber number into the field, without any country code prefix, when the field already shows a flag/code selector. If customers are confused: use Checkout Extensibility to add a placeholder text like 'Enter number without country code (e.g., 555 123 4567)' directly in the phone field. This is configurable via the checkout editor for Shopify Plus stores or via a Checkout UI Extension."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .country-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .country-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .country-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .country-table tr:nth-child(even) td { background: var(--surface); }
+    .country-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout Phone Number Troubleshooting</div>
+      <h1>Shopify Checkout Rejects Valid Phone Numbers — Format Errors, Country Code Conflicts, E.164 Validation</h1>
+      <p class="hero-sub">
+        Shopify checkout validates phone numbers differently depending on your market settings, active payment methods, and whether checkout extensions are installed. A number that is perfectly valid in one context gets rejected in another. The phone field can be Required, Optional, or Hidden per market — a wrong setting blocks every customer who doesn't have a phone. Shop Pay auto-fill inserts the saved account number with the original country code regardless of where the customer is checking out. And SMS order notifications can fail silently even when checkout completes successfully. This guide covers every way the phone number field breaks, and the exact paths to fix each one.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: international stores, Markets users, Shop Pay, SMS notifications, checkout extensions</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Shopify does not enforce a single global phone number format.</strong> Validation depends on: market settings (Required vs Optional), active payment method (Shop Pay enforces E.164 more strictly), checkout extensions installed, and whether the customer's phone is used for SMS notifications. A number that passes checkout can still fail SMS dispatch.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Root Causes</div>
+      <h2>Five Reasons Shopify Checkout Rejects a Phone Number</h2>
+      <p class="section-intro">Phone number rejection in Shopify checkout comes from five distinct sources. The error message is usually the same — "Enter a valid phone number" or "Phone number is invalid" — but the fix path is completely different depending on which of these is triggering it.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Cause 1 — E.164 Format</div>
+          <div class="arch-card-title">Missing or Wrong Country Code</div>
+          <div class="arch-card-desc">International markets expect E.164 format: +[country code][subscriber number] with no spaces, dashes, or parentheses. A US customer entering (555) 123-4567 passes domestic checkout but fails for stores using Shopify Markets with international settings or Shop Pay as primary payment method.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Cause 2 — Required Field</div>
+          <div class="arch-card-title">Phone Field Set to Required</div>
+          <div class="arch-card-desc">The phone field is configurable per market as Required, Optional, or Hidden. If set to Required and a customer skips it or Shop Pay auto-fill fails to populate it, checkout is blocked at the contact step with no clear explanation to the customer.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">Cause 3 — Double Prefix</div>
+          <div class="arch-card-title">Country Code Entered Twice</div>
+          <div class="arch-card-desc">When Shopify displays a country code flag selector next to the phone field, the dialing code is prepended automatically. If the customer also types the country code (e.g., types "1" when the +1 flag is already selected), the result is +11XXXXXXXXXX — an invalid E.164 string that Shopify's validator rejects.</div>
+        </div>
+        <div class="arch-card green">
+          <div class="arch-card-label">Cause 4 — Shop Pay Auto-fill</div>
+          <div class="arch-card-title">Wrong Country Code Auto-filled</div>
+          <div class="arch-card-desc">Shop Pay stores the phone number from the customer's account profile. If the account was created in a different country, Shop Pay auto-fills the phone field with the original country code regardless of where the checkout is happening — triggering format validation failure in the current market.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Cause 5 — App Conflict</div>
+          <div class="arch-card-title">Checkout Extension Overriding Validation</div>
+          <div class="arch-card-desc">Third-party checkout apps (Rebuy, Bold, Zipify, custom Checkout UI Extensions) can attach custom phone validation on top of Shopify's native validation. The app's regex may be stricter or region-specific, rejecting numbers that Shopify itself accepts. The customer sees the app's error message, not Shopify's.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways Phone Validation Silently Breaks Shopify Checkout</h2>
+      <p class="section-intro">Not all phone number failures block checkout. Some allow checkout to complete but silently break downstream systems — SMS notifications, WhatsApp order updates, carrier verification, and fraud scoring all depend on a properly formatted phone number that Shopify may have accepted in a lax format.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Root Cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Enter a valid phone number" blocking checkout</td>
+            <td>International customer entering local format without country code prefix</td>
+            <td>Set phone field to Optional for international markets, or add placeholder text instructing customers to include country code. Markets → select market → Checkout → Phone number field</td>
+          </tr>
+          <tr>
+            <td>Phone field blocks ALL customers, even with valid numbers</td>
+            <td>Phone field set to Required and a checkout extension is overriding the field with broken validation</td>
+            <td>Admin → Settings → Markets → set phone to Optional; then audit installed checkout apps for custom phone validation — disable it or update the extension's regex pattern</td>
+          </tr>
+          <tr>
+            <td>Shop Pay pre-fills phone but checkout still shows error</td>
+            <td>Shop Pay auto-filled phone from a different country; format conflict with current market validation</td>
+            <td>No merchant-side fix for Shop Pay auto-fill behavior. Set phone to Optional so auto-fill failure doesn't block checkout. Customers must manually correct the pre-filled number</td>
+          </tr>
+          <tr>
+            <td>Customer types country code, gets "invalid number" error</td>
+            <td>Double-prefix: Shopify's flag selector already adds country code, customer also typed it</td>
+            <td>Add checkout field placeholder: "Enter number without country code." Shopify Plus: use Checkout Editor to customize phone field placeholder text. Non-Plus: Checkout UI Extension required</td>
+          </tr>
+          <tr>
+            <td>SMS notifications not received after successful checkout</td>
+            <td>Phone number accepted at checkout in local format; SMS provider requires E.164 for dispatch</td>
+            <td>Configure SMS app (Klaviyo, Postscript, Attentive) to normalize phone to E.164 before sending. Or enforce E.164 at checkout input via Checkout UI Extension with real-time format validation</td>
+          </tr>
+          <tr>
+            <td>WhatsApp order updates not delivering</td>
+            <td>Phone stored without country code; WhatsApp API requires E.164 strictly</td>
+            <td>In the WhatsApp business messaging app (or integrated platform), configure phone normalization to prepend the country code based on the order's billing/shipping country before dispatch</td>
+          </tr>
+          <tr>
+            <td>Checkout completes but order flagged as high-risk / fraud</td>
+            <td>Phone number in local format can't be verified by carrier lookup fraud tools; no carrier match = risk signal</td>
+            <td>Enforce E.164 at checkout input so carrier lookup fraud tools can validate the number against the correct country's carrier database. Review fraud filter rules to avoid false positives on local-format numbers</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive A</div>
+      <h2>E.164 Format — What It Is and When Shopify Enforces It</h2>
+      <p class="section-intro">E.164 is the international phone numbering format defined by the ITU. It consists of a + sign, followed by a country calling code (1–3 digits), followed by the subscriber number (up to 15 digits total), with no spaces, dashes, or parentheses.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A</div>
+        <h3>What E.164 Looks Like vs. Local Format</h3>
+        <p>A US phone number in E.164 is +15551234567. The same number in common local formats — (555) 123-4567, 555-123-4567, 555.123.4567 — all become +15551234567 in E.164. A UK number in E.164 is +447700900123; the same number in UK local format is 07700 900123 (note the leading 0 which is dropped in E.164 and replaced by the +44 country code).</p>
+        <div class="mono-block">
+E.164:   +1 555 123 4567  →  +15551234567  ✓
+E.164:   +44 7700 900123  →  +447700900123  ✓
+Local:   (555) 123-4567   →  rejected in international markets  ✗
+Local:   07700 900123     →  rejected; leading 0 is UK local format  ✗
+Double:  +1 1-555-1234567 →  +115551234567  ✗  (double country code)
+        </div>
+        <p>Shopify enforces E.164 in three specific contexts: (1) when the checkout market has international payment methods active, (2) when Shop Pay is the active payment method — Shop Pay's backend validates against E.164 strictly for account linking, (3) when a Checkout UI Extension or app has added custom phone validation that calls Shopify's libphonenumber-compatible validator. In domestic-only checkout with no extensions and no Shop Pay, Shopify often accepts local formats — this is why the same number works on one store but not another.</p>
+        <p>To test whether your store enforces E.164: go through checkout as a customer and enter a local-format number. If it passes, your store is in lenient mode. If it fails with "Enter a valid phone number," E.164 is being enforced — either by market settings, Shop Pay, or an extension.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A — Fix Path</div>
+        <h3>How to Configure Phone Field Per Market</h3>
+        <p>Admin → Settings → Markets → [select market] → Checkout and accounts → Phone number in checkout. The three options are: <strong>Required</strong> (customer cannot complete checkout without a valid phone), <strong>Optional</strong> (customer can skip the phone field entirely — recommended for most stores), <strong>Hidden</strong> (phone field does not appear — use only if you have no post-purchase SMS or WhatsApp workflow).</p>
+        <p>For international stores: set phone to Optional in all international markets unless you have a specific, mandatory reason to require it. Requiring phone creates the highest checkout abandonment in markets where customers are unaccustomed to sharing phone at checkout (Germany, Netherlands, France, Japan). Optional means customers who want SMS updates will enter their number; customers who don't can proceed normally.</p>
+        <div class="mono-block">
+Admin → Settings → Markets → Europe (or individual market)
+  → Checkout and accounts
+    → Phone number in checkout
+      → Optional  ← recommended for international
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive B</div>
+      <h2>Per-Country Phone Format Reference</h2>
+      <p class="section-intro">Different countries have different phone number lengths, local format conventions, and common customer entry patterns. Understanding what local customers type vs. what Shopify expects is the first step to diagnosing per-market phone validation failures.</p>
+
+      <table class="country-table">
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>Country Code</th>
+            <th>E.164 Format</th>
+            <th>Local Customer Entry (common)</th>
+            <th>Common Failure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>United States / Canada</td>
+            <td>+1</td>
+            <td>+1XXXXXXXXXX (11 digits)</td>
+            <td>(555) 123-4567 or 555-123-4567</td>
+            <td>Local format passes domestic; fails in international market context</td>
+          </tr>
+          <tr>
+            <td>United Kingdom</td>
+            <td>+44</td>
+            <td>+44XXXXXXXXXX (12 digits)</td>
+            <td>07700 900123 (leading 0)</td>
+            <td>Leading 0 not stripped; +440 prefix becomes invalid</td>
+          </tr>
+          <tr>
+            <td>Germany</td>
+            <td>+49</td>
+            <td>+49XXXXXXXXX (variable)</td>
+            <td>0171 1234567 (leading 0)</td>
+            <td>Same as UK — leading 0 creates +490 prefix</td>
+          </tr>
+          <tr>
+            <td>France</td>
+            <td>+33</td>
+            <td>+33XXXXXXXXX (11 digits)</td>
+            <td>06 12 34 56 78 (leading 0, spaces)</td>
+            <td>Spaces + leading 0 both rejected; must be +33612345678</td>
+          </tr>
+          <tr>
+            <td>Japan</td>
+            <td>+81</td>
+            <td>+81XXXXXXXXXX (variable)</td>
+            <td>090-1234-5678 (leading 0, dashes)</td>
+            <td>Leading 0 and dashes cause rejection; must be +819012345678</td>
+          </tr>
+          <tr>
+            <td>Brazil</td>
+            <td>+55</td>
+            <td>+55XXXXXXXXXXX (13 digits for mobile)</td>
+            <td>(11) 91234-5678</td>
+            <td>Area code in parentheses + 9-digit mobile prefix; local format widely varies by region</td>
+          </tr>
+          <tr>
+            <td>Australia</td>
+            <td>+61</td>
+            <td>+61XXXXXXXXX (11 digits)</td>
+            <td>0412 345 678 (leading 0)</td>
+            <td>Leading 0 creates +610 prefix; must be +61412345678</td>
+          </tr>
+          <tr>
+            <td>India</td>
+            <td>+91</td>
+            <td>+91XXXXXXXXXX (12 digits)</td>
+            <td>09876543210 (leading 0) or 9876543210</td>
+            <td>Leading 0 varies by region; 10-digit without prefix often accepted domestically but fails internationally</td>
+          </tr>
+          <tr>
+            <td>Mexico</td>
+            <td>+52</td>
+            <td>+52XXXXXXXXXX (12 digits)</td>
+            <td>(55) 1234 5678</td>
+            <td>Mexico added a 10th digit to mobile numbers in 2019; some validation tools still expect 9-digit format</td>
+          </tr>
+          <tr>
+            <td>Netherlands</td>
+            <td>+31</td>
+            <td>+31XXXXXXXXX (11 digits)</td>
+            <td>06 12345678 (leading 0)</td>
+            <td>Leading 0 + spaces; must be +31612345678</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive C</div>
+      <h2>Checkout Extension Phone Validation Conflicts</h2>
+      <p class="section-intro">Third-party apps that touch the checkout (Rebuy, Bold Checkout, Zipify Pages, custom Checkout UI Extensions, and post-purchase apps) can add JavaScript-side phone validation on top of Shopify's native validation. These layers can conflict, producing errors that Shopify's own validator would never show.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — Diagnosis</div>
+        <h3>Identifying Whether an Extension Is Causing the Phone Error</h3>
+        <p>The fastest diagnostic: open checkout in a browser with all extensions disabled (Chrome → Settings → More tools → Extensions → disable all; or use a clean private window on a different browser). Go through checkout and enter the same phone number that was failing. If it now passes, a browser extension is not the issue — a Shopify checkout app is. If it still fails, Shopify's native validation is the source.</p>
+        <p>To identify which checkout app: Admin → Apps → look for any app with "checkout," "upsell," "extension," or "post-purchase" in the name. Temporarily disable each one and retest checkout with a phone number. The one whose removal fixes the error is the conflicting app.</p>
+        <div class="mono-block">
+Diagnostic steps:
+1. Test checkout in clean browser → phone fails → native Shopify validation
+2. Test checkout in clean browser → phone passes → extension/app conflict
+3. Apps → disable checkout apps one by one → retest after each
+4. Identify conflicting app → contact developer for regex fix or disable phone validation
+        </div>
+        <p>Common app-side phone validation mistakes: regex patterns that don't account for E.164 format (they expect local format only), patterns that require exactly 10 digits (fails for countries with 11–12 digit numbers), patterns that reject the + prefix (treating it as an invalid character instead of a country code indicator).</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — Fix</div>
+        <h3>Shopify Plus: Enforce E.164 at Input via Checkout Editor</h3>
+        <p>Shopify Plus merchants can customize the checkout phone field directly in the Checkout Editor without a custom extension. The editor allows: changing the field label, adding placeholder text (e.g., "Include country code: +1 555 123 4567"), and marking the field as required or optional per market. This is the lowest-friction way to guide customers to enter correctly formatted numbers.</p>
+        <p>For real-time E.164 format enforcement (showing an error as the customer types, not after they try to submit), a Checkout UI Extension is required. The extension can use the libphonenumber-js library to validate the entered number against the detected country code in real time, and display a country-specific format hint. This requires Shopify Plus and a deployed extension — not possible with Checkout Editor alone.</p>
+        <div class="mono-block">
+Shopify Plus Checkout Editor:
+Admin → Sales channels → Online Store → Customize → Checkout
+  → Contact section → Phone field
+    → Edit label: "Phone number (with country code)"
+    → Edit placeholder: "+1 555 123 4567"
+    → Required: Optional (recommended)
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>Phone Number Fix Checklist — Start Here</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Check per-market phone field setting</strong>
+            <span>Admin → Settings → Markets → [market] → Checkout and accounts → Phone number in checkout. If set to Required and causing abandonment, change to Optional. This is the fastest fix for "phone blocking checkout" reports.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Check for double-prefix issue</strong>
+            <span>Does your checkout show a flag/country code selector next to the phone field? If yes, instruct customers to enter only the subscriber number — not the country code — in the field. Customize the placeholder text to make this clear (Checkout Editor for Plus, Checkout UI Extension for non-Plus).</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Test with Shop Pay disabled</strong>
+            <span>If the error appears specifically when Shop Pay is the selected payment method, the issue is Shop Pay's stricter E.164 enforcement or auto-fill conflict. Test the same phone number with a different payment method (credit card) — if it passes, the issue is Shop Pay-specific.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Audit checkout extensions for custom phone validation</strong>
+            <span>Admin → Apps → identify any apps touching the checkout. Disable them one by one and retest. If the phone error disappears after disabling an app, contact that app's developer to fix their phone validation regex or configure it to accept E.164 format.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Verify SMS notification phone normalization</strong>
+            <span>If checkout passes but SMS notifications fail: check stored phone format in recent orders (Admin → Orders → customer details). If numbers are stored in local format (no country code), configure your SMS app to normalize to E.164 before dispatch, or enforce E.164 at checkout input.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">6</div>
+          <div class="check-body">
+            <strong>For international stores: audit per-country format expectations</strong>
+            <span>Check the country table above for the specific format customers expect to enter vs. what Shopify requires. Germany, UK, Australia, Japan, and France all have leading-0 local formats that conflict with E.164. Consider adding country-specific format hints in your checkout or post-purchase instructions.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Phone Number Validation — Frequently Asked Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify checkout say my phone number is invalid even though it's correct?</div>
+          <div class="faq-a">Shopify validates phone numbers against E.164 international format for certain markets and payment methods. E.164 requires a country code prefix (e.g., +1 for US/Canada, +44 for UK) followed by the subscriber number with no spaces, dashes, or parentheses. If you're in an international market or using Shop Pay, enter your number with the country code: +1 555 123 4567 instead of (555) 123-4567. If your number passes domestic checkout but not international — this is why.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is the phone number field required and blocking my customers from checking out?</div>
+          <div class="faq-a">The phone field Required/Optional/Hidden setting is configurable per market. To check: Admin → Settings → Markets → select the relevant market → Checkout and accounts → Phone number in checkout → change from Required to Optional. Some checkout extensibility apps also set the phone field to required — audit installed apps that touch checkout and disable their phone validation if it conflicts.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does Shop Pay insert the wrong country code in the phone field?</div>
+          <div class="faq-a">Shop Pay stores the customer's phone from their account profile, created in their home country. If they're checking out from a store with different market settings, the auto-filled number may have the wrong country prefix. Merchants can't control Shop Pay auto-fill — the mitigation is setting phone to Optional so auto-fill failures don't block checkout. Customers must manually correct the pre-filled number.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why are SMS order notifications not being sent after checkout?</div>
+          <div class="faq-a">A phone number can pass Shopify's checkout validation but fail SMS dispatch if it's in local format (no country code). SMS providers (Klaviyo, Postscript, Attentive) require E.164 for dispatch. Configure your SMS app to normalize phone numbers to E.164 before sending — most major SMS apps have a built-in normalization setting. Alternatively, enforce E.164 at checkout input using a Checkout UI Extension.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify reject my phone number when I add the country code?</div>
+          <div class="faq-a">This is the double-prefix problem. Shopify's flag selector prepends the dialing code automatically. If you also type the country code (e.g., the flag shows +1 and you type 1-555-123-4567), the result is +11-555-123-4567 — invalid E.164. Always enter only the subscriber number in the field when a flag selector is visible. For clarity, add placeholder text: "Enter number without country code."</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Other Shopify Checkout Form and Localization Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">
+          <div class="guide-card-label">Form Validation</div>
+          <div class="guide-card-title">Address Validation Failed</div>
+          Address not recognized, city field errors, postal code not accepted at Shopify checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">
+          <div class="guide-card-label">Localization</div>
+          <div class="guide-card-title">Wrong Language / Postal Code / Format</div>
+          Checkout displaying wrong language, phone format, postal code validation failing by country.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">
+          <div class="guide-card-label">International</div>
+          <div class="guide-card-title">International Checkout Errors</div>
+          Shopify Markets checkout not working, international payment methods, cross-border VAT.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">
+          <div class="guide-card-label">Tax</div>
+          <div class="guide-card-title">EU VAT Exemption Not Working</div>
+          B2B VAT number not removing tax, VIES validation, UK reverse charge at checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">
+          <div class="guide-card-label">Payments</div>
+          <div class="guide-card-title">Payment Methods Not Showing</div>
+          Apple Pay not appearing, Shop Pay missing, BNPL not showing at checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">
+          <div class="guide-card-label">Local Payments</div>
+          <div class="guide-card-title">Local Payment Methods Missing</div>
+          iDEAL, OXXO, Bancontact, PIX, Konbini not showing in Shopify Markets checkout.
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>Phone validation errors, form field configuration issues, and checkout extension conflicts can block customers silently — you won't know until a customer complains or you check your abandonment rate. CheckPulse monitors your checkout continuously — 4-step automated test runs every few minutes, instant email alert if anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

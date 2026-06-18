@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Payment Link Not Working — Buy Button, Direct Checkout URL, Draft Order Link, Cart Permalink Broken (2026)</title>
+  <meta name="description" content="Shopify payment link not working: draft order links expire after 30 days, cart permalinks break when variants are deleted, Buy Button iframe blocked by CSP, discount codes in URLs silently fail. Five root causes, seven silent failure modes, and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-link-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-link-not-working" />
+  <meta property="og:title" content="Shopify Payment Link Not Working — Buy Button, Draft Order Link, Cart Permalink, Direct Checkout URL" />
+  <meta property="og:description" content="Shopify payment links and direct checkout URLs break in ways that are invisible until customers report them. Five root causes and exact fix paths for each scenario." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Payment Link Not Working — Buy Button, Direct Checkout URL, Draft Order Link, Cart Permalink",
+    "description": "Shopify payment links — whether created via Payment Links, draft orders, cart permalinks, or the Buy Button — break silently in ways that are hard to detect without monitoring. Draft order links expire after 30 days, cart permalinks lose their line items when variants are edited or deleted, Buy Button iframes are blocked by CSP headers, and discount codes embedded in URLs fail quietly when they expire or hit usage limits. This guide covers five root causes, seven silent failure modes, and exact fix paths for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-link-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify payment link not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify payment links and direct checkout URLs can fail for several reasons that have nothing to do with the checkout system itself: (1) Draft order payment links (/a/orders/[token]) expire after 30 days and return a 404 error after that. (2) Cart permalink URLs (/cart/[variant-id]:[quantity]) break silently when the variant ID changes after a product edit — the link loads but the cart is empty or shows a different product. (3) Shopify Payment Links (the product feature in Admin → Products → Payment links) remain valid as long as the underlying product exists and is published, but fail if the product is deleted or taken offline. (4) The store is password protected — customers following any payment link hit the storefront password page and cannot proceed. (5) The Buy Button is blocked by CSP or cross-origin restrictions on the host site. Check which scenario applies before attempting a fix."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify draft order payment link expire?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Draft order payment links use a time-limited token in the URL (/a/orders/[token]/authenticate). Shopify's default draft order checkout link expiry is 30 days from the link generation date. After 30 days the token is invalidated and the URL returns a 404 or redirect to the storefront homepage. The link also becomes invalid if: the draft order is manually cancelled or deleted, the order is already paid (attempting to pay again returns an error), or the draft order was converted to a pending order in a way that generates a new link. To fix: open the draft order in Admin → Drafts → [select order] → send a new invoice to generate a fresh payment link. The new link is valid for another 30 days."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify Buy Button not loading or showing an error?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Shopify Buy Button renders a checkout iframe on your external website. The most common failure modes are: (1) The host website's Content-Security-Policy (CSP) header blocks the iframe — the policy needs to include 'frame-src https://*.shopify.com https://*.myshopify.com' to allow the Buy Button checkout to load. (2) The Buy Button embed code references a product or variant that has been deleted or made unavailable. (3) Mixed content error — the host website is served over HTTP (not HTTPS), and the Shopify checkout iframe is HTTPS-only; browsers block loading HTTPS iframes in HTTP pages. (4) The checkout domain has changed (e.g., after a custom domain setup) but the Buy Button code still references the old domain. Regenerate the Buy Button embed code in Admin → Sales Channels → Buy Button to get a fresh embed with the current configuration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the discount code in my Shopify cart permalink not being applied?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cart permalinks with embedded discount codes use the format /cart/[variant]:[qty]?checkout[discount_code]=COUPONCODE or a redirect via /discount/COUPONCODE?redirect=/cart/.... The discount code silently fails to apply when: the code has expired past its end date, the code has reached its maximum number of uses (single-use codes used by the first customer fail for all subsequent visitors), the customer doesn't meet eligibility requirements (minimum order value, specific customer group, first-order-only restrictions), or the discount type conflicts with the cart contents (product-specific discount for a product not in the cart). The checkout proceeds normally without the discount — the customer may not notice until the payment summary, or may complete checkout without the intended discount. Fix: create a new discount code with higher usage limits, or use automatic discounts (which apply without a code in the URL)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify cart permalink URL show an empty cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cart permalink URLs encode the variant ID and quantity directly in the path: /cart/[variant-id]:[quantity]. When you edit a product in Shopify Admin — changing options, deleting a size or color variant, or running a product migration — Shopify assigns new variant IDs to the changed variants. The old variant ID in your permalink no longer exists, so Shopify drops it from the cart silently. The URL loads without error, but the cart is empty or contains unrelated products. This is a critical issue for product pages in email campaigns, influencer posts, or affiliate links — the link shares widely and then stops working after a routine product edit. Fix: always regenerate cart permalink URLs after any product variant changes, or use product handles instead of variant IDs where possible (/products/[handle]?variant=[id] shows the product page, which is more resilient to edits)."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .failure-table tr:nth-child(odd) td { background: #0d0d0d; }
+    .failure-table .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tag-silent { background: #1a1200; color: var(--amber); border: 1px solid var(--amber-dim); }
+    .tag-visible { background: #0f1a0a; color: var(--green); border: 1px solid #1a4020; }
+    .tag-error { background: #1a0a0a; color: var(--red); border: 1px solid #4a1010; }
+
+    .root-cause {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px;
+      margin-bottom: 12px;
+    }
+    .root-cause-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .root-cause h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.35;
+    }
+    .root-cause p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .root-cause p:last-child { margin-bottom: 0; }
+    .root-cause .fix-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin: 12px 0;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .deepdive {
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-left: 3px solid var(--blue);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #1a1a1a;
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--teal);
+    }
+
+    .check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 16px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .check-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--amber);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .check-body {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .faq { display: flex; flex-direction: column; gap: 10px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .faq-q {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      display: block;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .cta-block {
+      background: #111008;
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      text-align: center;
+    }
+    .cta-block h2 {
+      font-size: clamp(16px, 2.5vw, 20px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .cta-block p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin: 0 auto 20px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 6px;
+      letter-spacing: -0.01em;
+    }
+    .cta-btn:hover { text-decoration: none; background: #d97706; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0 40px;
+      margin-top: 0;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      background: var(--amber);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; color: #000;
+    }
+    .footer-logo-text {
+      font-size: 13px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em;
+    }
+    .footer-copy { font-size: 12px; color: var(--text-dim); margin-bottom: 18px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+
+    .link-type-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .link-type-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .link-type-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .link-type-table tr:nth-child(odd) td { background: #0d0d0d; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout — Payment Links</div>
+      <h1>Shopify Payment Link Not Working — Buy Button, Direct Checkout URL, Draft Order Link, Cart Permalink</h1>
+      <p class="hero-sub">Shopify offers four distinct ways to send customers directly to a purchase: Payment Links, draft order links, cart permalinks, and the Buy Button. Each breaks in different ways — draft order links expire silently, cart URLs break when you edit a product, Buy Button iframes get blocked by security headers, and embedded discount codes stop applying without any error message.</p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>5 root causes</span>
+        <span>7 silent failure modes</span>
+        <span>3 deep dives</span>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Quick Reference</div>
+      <h2>Four Types of Shopify Payment Links — Which One Are You Using?</h2>
+      <p class="section-intro">Before diagnosing, identify which link type is broken. Each has a different URL structure, expiry behavior, and failure mode. The fix for a broken draft order link is completely different from a broken cart permalink.</p>
+
+      <table class="link-type-table">
+        <thead>
+          <tr>
+            <th>Link Type</th>
+            <th>URL Pattern</th>
+            <th>Expiry</th>
+            <th>Common Failure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Shopify Payment Link</strong><br><span style="font-size:11px; color:var(--text-dim)">Admin → Products → Payment links</span></td>
+            <td><code>/products/[handle]?variant=...</code> or direct payment URL</td>
+            <td>No expiry — but fails if product deleted</td>
+            <td>Product unpublished or deleted after link shared</td>
+          </tr>
+          <tr>
+            <td><strong>Draft Order Link</strong><br><span style="font-size:11px; color:var(--text-dim)">Admin → Drafts → Send invoice</span></td>
+            <td><code>/a/orders/[token]/authenticate</code></td>
+            <td>30 days from link generation</td>
+            <td>Token expired; order already paid; order cancelled</td>
+          </tr>
+          <tr>
+            <td><strong>Cart Permalink</strong><br><span style="font-size:11px; color:var(--text-dim)">Marketing, affiliates, email</span></td>
+            <td><code>/cart/[variant-id]:[qty]</code></td>
+            <td>No expiry — but breaks if variant edited</td>
+            <td>Variant ID changed after product edit; item OOS</td>
+          </tr>
+          <tr>
+            <td><strong>Shopify Buy Button</strong><br><span style="font-size:11px; color:var(--text-dim)">External site embed</span></td>
+            <td>Iframe embed on host site</td>
+            <td>Permanent — unless product removed</td>
+            <td>CSP blocks iframe; mixed content; domain mismatch</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Root Causes</div>
+      <h2>Five Root Causes Behind Broken Shopify Payment Links</h2>
+      <p class="section-intro">These five causes account for the vast majority of payment link failures. They share a common trait: the link appears valid from the outside, but something has changed in the store or the link itself since it was created and shared.</p>
+
+      <div class="root-cause">
+        <div class="root-cause-num">Root Cause 1</div>
+        <h3>Draft Order Payment Link Expired After 30 Days</h3>
+        <p>When you send an invoice from a draft order (Admin → Drafts → Send invoice), Shopify generates a unique checkout URL with a time-limited authentication token: <code>/a/orders/[token]/authenticate</code>. This token expires after 30 days. After expiry, the URL returns a 404 or silently redirects to the storefront homepage — the customer sees nothing useful, with no indication that the link has expired or what to do next.</p>
+        <p>This is particularly painful for B2B sales cycles where invoices are sent weeks in advance, wholesale orders with long payment terms, or any sales process where the customer takes time to review before paying.</p>
+        <div class="fix-label">Fix Path</div>
+        <p>Open Admin → Drafts → select the draft order → click "Send invoice" again to generate a new payment link. The new link has another 30-day window. If the order is already marked as cancelled, you'll need to recreate the draft. For B2B contexts where long payment terms are common, consider setting a reminder to resend the invoice before day 28.</p>
+      </div>
+
+      <div class="root-cause">
+        <div class="root-cause-num">Root Cause 2</div>
+        <h3>Cart Permalink Variant ID Changed After Product Edit</h3>
+        <p>Cart permalink URLs encode a specific variant ID: <code>/cart/42345678901:1</code>. In Shopify, every product variant — each combination of size, color, material — has a unique numeric ID. When you edit a product and add, remove, or restructure its variants, Shopify assigns new IDs to the changed variants. The old variant ID in your permalink no longer exists.</p>
+        <p>The failure is silent from the customer's perspective: the URL loads, the cart page shows, but the cart is empty. There is no error message at the URL level. Customers often assume the link is broken and give up rather than looking for the product manually. This breaks marketing emails, affiliate links, influencer posts, and any campaign that pre-loaded a specific variant into a customer's cart.</p>
+        <div class="fix-label">Fix Path</div>
+        <p>After any product variant edit, regenerate all cart permalinks for affected products. Find current variant IDs via Admin → Products → [product] → scroll to Variants → click a variant → the ID is in the browser URL bar. For campaigns where cart permalinks are baked into emails already sent, create a redirect: add a URL redirect in Admin → Online Store → Navigation → URL Redirects, redirecting the old cart URL to the new one.</p>
+      </div>
+
+      <div class="root-cause">
+        <div class="root-cause-num">Root Cause 3</div>
+        <h3>Product Deleted, Unpublished, or Sold Out After Link Was Shared</h3>
+        <p>Shopify Payment Links (the Admin feature) and cart permalinks both reference a product or variant. If the product is unpublished (removed from the Online Store sales channel), deleted, or the variant goes out of stock with an "deny" inventory policy, the payment link fails in different ways: an unpublished product shows the storefront password page or 404, a deleted product link returns 404, and a sold-out variant with "deny" policy loads the checkout but blocks completion at the payment step with "items are no longer available."</p>
+        <p>This commonly happens after a limited-time sale or product launch where items are taken offline after stock runs out — but the payment links or cart URLs continue circulating in customer inboxes and social posts.</p>
+        <div class="fix-label">Fix Path</div>
+        <p>For sold-out items: consider switching the inventory policy to "continue selling" if you can backorder, or update product status to "archived" to ensure the link shows a proper unavailable message rather than a broken checkout. For payment links shared before a product goes offline: publish a redirect or a waitlist landing page at the old product URL. Monitor your Admin → Analytics → Online store sessions report for 404 spikes that indicate broken circulating links.</p>
+      </div>
+
+      <div class="root-cause">
+        <div class="root-cause-num">Root Cause 4</div>
+        <h3>Buy Button Iframe Blocked by CSP or Cross-Origin Restrictions</h3>
+        <p>The Shopify Buy Button renders an iframe on your external website that loads the Shopify checkout. This iframe is blocked by the host site's Content-Security-Policy (CSP) header if it doesn't explicitly allow Shopify's domain in the <code>frame-src</code> directive. Many modern websites, especially those using security-forward frameworks or hosting platforms with default CSP headers, block cross-origin iframes by default.</p>
+        <p>The failure is invisible to most users: the iframe area either shows blank, shows a generic "this content cannot be displayed" error, or simply doesn't render at all. Enterprise users with strict browser security policies may see a browser-level block even when the host site's CSP is permissive. Mixed content is another common cause: if the host site is served over HTTP (not HTTPS), browsers refuse to load the HTTPS Shopify checkout iframe.</p>
+        <div class="fix-label">Fix Path</div>
+        <p>Add Shopify domains to your host site's CSP header: <code>frame-src 'self' https://*.myshopify.com https://*.shopify.com https://checkout.shopifycs.com;</code>. If you don't control the CSP header (e.g., third-party website builder), use the Buy Button's "Link" mode instead of the embed mode — it opens checkout in a new tab rather than an iframe. Ensure the host site is served over HTTPS. If using a CDN or hosting platform, check whether it sets security headers automatically.</p>
+      </div>
+
+      <div class="root-cause">
+        <div class="root-cause-num">Root Cause 5</div>
+        <h3>Embedded Discount Code Expired or Reached Usage Limit</h3>
+        <p>Cart permalinks commonly include an embedded discount code via URL parameter: <code>/cart/[variant]:[qty]?checkout[discount_code]=WELCOME20</code> or via the redirect method <code>/discount/WELCOME20?redirect=/cart/[variant]:[qty]</code>. When the discount code expires, hits its maximum number of uses, or has customer eligibility restrictions that this customer doesn't meet, the checkout loads normally but the discount is not applied — there is no error message in the URL, and the checkout form shows the full price without the discount.</p>
+        <p>Customers who clicked the link expecting a discount may complete the purchase at full price without noticing, or abandon when they realize the promised price isn't reflected. Single-use codes embedded in affiliate links fail for every customer after the first redemption.</p>
+        <div class="fix-label">Fix Path</div>
+        <p>For volume-discounted campaigns: create discount codes with high usage limits rather than single-use codes. For affiliate links: use unique single-use codes per affiliate rather than one shared code. Use automatic discounts (Admin → Discounts → Automatic) instead of URL codes where possible — automatic discounts apply to all eligible carts without any URL parameter, eliminating the URL expiry problem entirely.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways Shopify Payment Links Fail Without an Error Message</h2>
+      <p class="section-intro">The most dangerous failures are the silent ones — the link loads, no error appears, but the customer can't complete the purchase or gets the wrong outcome.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Failure Mode</th>
+            <th>Visibility</th>
+            <th>Revenue Impact</th>
+            <th>How to Detect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cart permalink loads but cart is empty</strong> — variant ID changed after product edit</td>
+            <td><span class="tag tag-silent">Silent</span></td>
+            <td>High — abandoned cart with no recovery trigger</td>
+            <td>Test cart URL after every product edit</td>
+          </tr>
+          <tr>
+            <td><strong>Discount code not applied</strong> — expired or usage limit hit; checkout proceeds at full price</td>
+            <td><span class="tag tag-silent">Silent</span></td>
+            <td>Medium — sale completes but customer pays full price (refund risk)</td>
+            <td>Monitor discount code redemption rate in Admin → Discounts</td>
+          </tr>
+          <tr>
+            <td><strong>Draft order link expired</strong> — 30-day token window passed; URL returns 404 or homepage</td>
+            <td><span class="tag tag-visible">Visible to customer</span></td>
+            <td>High — B2B sale blocked; customer assumes order cancelled</td>
+            <td>Resend invoice before day 28</td>
+          </tr>
+          <tr>
+            <td><strong>OOS item loads checkout, blocks at payment</strong> — inventory "deny" policy; product available in URL but not at payment step</td>
+            <td><span class="tag tag-error">Error at checkout</span></td>
+            <td>High — customer reached payment, entered card details, then blocked</td>
+            <td>Monitor inventory levels for linked products</td>
+          </tr>
+          <tr>
+            <td><strong>Buy Button iframe blank</strong> — CSP blocks Shopify iframe; host site security headers restrictive</td>
+            <td><span class="tag tag-silent">Silent</span></td>
+            <td>High — purchase option invisible; customer sees empty content area</td>
+            <td>Open browser dev tools on host site; check CSP errors in console</td>
+          </tr>
+          <tr>
+            <td><strong>Product customization lost</strong> — line item properties not supported in cart permalink URL syntax</td>
+            <td><span class="tag tag-silent">Silent</span></td>
+            <td>Medium — order placed but personalization missing; fulfillment issues</td>
+            <td>Test cart permalink with customization products; verify line items in order</td>
+          </tr>
+          <tr>
+            <td><strong>Draft order duplicate payment</strong> — link re-shared; second customer attempts payment on same order</td>
+            <td><span class="tag tag-error">Error for second payer</span></td>
+            <td>Low (Shopify blocks it) — but generates support confusion and distrust</td>
+            <td>Archive or cancel draft orders after payment; don't share links widely</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive A</div>
+      <h2>Cart Permalink URL Anatomy — How to Build Them and Why Each Part Breaks</h2>
+      <p class="section-intro">Cart permalink URLs are powerful but fragile. Understanding the exact URL structure reveals which parts can fail independently and how to build more resilient links.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A — URL Structure</div>
+        <h3>Cart Permalink URL Format Reference</h3>
+        <p>Shopify cart permalink URLs follow a specific structure. Each component can fail independently:</p>
+        <div class="mono-block">Basic cart permalink:
+  https://yourstore.com/cart/[variant-id]:[quantity]
+
+  Example (one item):
+  /cart/42345678901234:1
+
+  Multiple items (pipe-separated):
+  /cart/42345678901234:1,98765432109876:2
+
+With embedded discount code (parameter method):
+  /cart/42345678901234:1?checkout[discount_code]=WELCOME20
+
+With discount redirect (applies discount, then adds to cart):
+  /discount/WELCOME20?redirect=/cart/42345678901234:1
+
+With cart attributes (line item properties NOT supported):
+  /cart/42345678901234:1?attributes[source]=instagram
+  → The "attributes" parameter sets cart-level attributes, NOT line item properties
+  → Line item properties (engraving, monogram, gift message) CANNOT be passed via URL
+  → Must be set on the product page via Shopify form fields</div>
+
+        <p><strong>Why variant IDs break:</strong> Shopify assigns numeric variant IDs internally. When you restructure a product's options — reordering, merging, or deleting variants — Shopify creates new variant records with new IDs. The old ID either no longer exists (404 when Shopify tries to find the variant) or maps to a different product variant than intended. There is no redirect from old to new variant ID.</p>
+        <p>Find current variant IDs: Admin → Products → [product] → click a variant → the URL shows the ID as <code>variants/[id]/edit</code>. Alternatively, use the Shopify Admin API: <code>GET /admin/api/2024-01/variants.json?product_id=[product-id]</code> returns all variant IDs for a product.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A — Resilient Link Strategy</div>
+        <h3>Building Cart Links That Don't Break After Product Edits</h3>
+        <p>The most resilient approach avoids encoding the variant ID in campaign URLs that you can't update after sharing:</p>
+        <div class="mono-block">Option 1: Product page with variant pre-selected (more resilient):
+  /products/[handle]?variant=[variant-id]
+  → Shows the product page with the specific variant selected
+  → If the variant ID changes, falls back to the default variant (visible, not silent error)
+  → Customer can still add to cart from the product page
+
+Option 2: Product page with option parameters:
+  /products/[handle]?color=blue&size=medium
+  → Selects variant by option values rather than ID
+  → More resilient to variant restructuring (ID can change, option names usually don't)
+  → Only works if the option names match exactly
+
+Option 3: Automatic discount + product page:
+  /discount/SUMMER30?redirect=/products/[handle]
+  → Applies discount cookie, then sends to product page
+  → Customer selects variant themselves — no ID encoding at all
+  → Discount applies automatically without URL parameters on the checkout</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive B</div>
+      <h2>Draft Order Payment Links — Expiry, Resending, and B2B Edge Cases</h2>
+      <p class="section-intro">Draft order payment links are the right tool for custom quotes, wholesale orders, and B2B sales — but their 30-day expiry and one-time-use nature create operational traps.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B — Draft Order Lifecycle</div>
+        <h3>Draft Order Payment Link States and Transitions</h3>
+        <p>A draft order payment link can be in one of several states, each with different behavior when a customer clicks it:</p>
+        <div class="mono-block">State: ACTIVE (link works)
+  → Draft order status: Open
+  → Link age: Under 30 days from last "Send invoice"
+  → Customer clicks: Goes directly to checkout with order pre-filled
+
+State: EXPIRED (link returns 404 or homepage)
+  → Draft order status: Open (order still exists, link just expired)
+  → Link age: Over 30 days
+  → Fix: Admin → Drafts → [order] → Send invoice again → new link generated
+  → Customer gets new email with fresh 30-day link
+
+State: ALREADY_PAID (link shows "already processed")
+  → Draft order status: Completed (converted to order)
+  → Customer clicks: Error — payment cannot be made twice
+  → Fix: Create a new draft order if a second payment is needed
+
+State: CANCELLED (link returns error or homepage)
+  → Draft order status: Cancelled
+  → Fix: Recreate the draft order — cancelled orders cannot be reopened
+
+State: CONVERTED_TO_ORDER (link may redirect to order status page)
+  → Draft order was submitted but not yet paid
+  → Behavior varies by Shopify plan and configuration</div>
+
+        <p><strong>B2B tip:</strong> For net-30 payment terms, the draft order link will expire before the payment is due. Set a calendar reminder on day 25 to resend the invoice. Each resend generates a fresh 30-day link. Alternatively, use Shopify's B2B Net Terms feature (Shopify Plus) which handles deferred payment workflows natively without the link expiry problem.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B — Resending and Recovery</div>
+        <h3>How to Resend a Draft Order Invoice</h3>
+        <div class="mono-block">Resend invoice (generates new 30-day link):
+  Admin → Drafts → [select draft order]
+  → Click "Send invoice" button (top right of draft order page)
+  → Choose: Send via email (Shopify sends) or Copy link (paste manually)
+  → Each "Send invoice" action generates a fresh token
+
+Copy the payment link directly (to paste into email or message):
+  Admin → Drafts → [select draft order]
+  → Click "Send invoice" → Select "Copy link" tab
+  → Paste into your own email client
+
+Check if link is expired without customer reporting it:
+  Admin → Drafts → filter by "Open" status
+  → Sort by "Created at" — orders older than 30 days with "Open" status have expired links
+  → Use bulk actions: select all → "Send invoice" to refresh all open draft links at once</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive C</div>
+      <h2>Buy Button — CSP Configuration, Domain Allowlist, and Checkout Extensibility</h2>
+      <p class="section-intro">The Shopify Buy Button is the correct tool for selling through external websites, blogs, or email newsletters. Its iframe-based architecture introduces unique failure modes that don't exist with native Shopify storefront checkout.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — CSP Fix</div>
+        <h3>Fixing Content-Security-Policy Errors for Buy Button</h3>
+        <p>When the Buy Button iframe is blocked by CSP, the browser console shows an error like: <code>Refused to display 'https://checkout.shopify.com/...' in a frame because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'self'"</code>.</p>
+        <div class="mono-block">Required CSP directives for Buy Button iframe:
+
+frame-src 'self'
+  https://*.myshopify.com
+  https://*.shopify.com
+  https://checkout.shopify.com
+  https://pay.shopify.com;
+
+Full example CSP header (add to your host site's server config):
+  Content-Security-Policy:
+    default-src 'self';
+    frame-src 'self' https://*.myshopify.com https://*.shopify.com;
+    script-src 'self' https://sdks.shopifycdn.com;
+    connect-src 'self' https://*.myshopify.com;
+
+WordPress (via plugin or functions.php):
+  header("Content-Security-Policy: frame-src 'self' https://*.myshopify.com;");
+
+Cloudflare (Transform Rules):
+  Add response header modification: Content-Security-Policy append frame-src https://*.myshopify.com</div>
+
+        <p><strong>Alternative if you can't modify CSP:</strong> Switch the Buy Button from "Embed" mode to "Link" mode in the Buy Button configuration. Link mode opens the Shopify checkout in a new tab instead of an iframe — no CSP requirements, no cross-origin restrictions. The tradeoff is a slightly higher friction UX (page navigation instead of inline checkout).</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — Checkout Extensibility Compatibility</div>
+        <h3>Buy Button and Checkout Extensibility</h3>
+        <p>Shopify's Checkout Extensibility (required for Shopify Plus stores to customize checkout after August 2024) changed how the checkout renders. Some Buy Button configurations created before the extensibility migration may reference deprecated checkout page structures or UI Extension slots that no longer exist in the new checkout architecture.</p>
+        <div class="mono-block">Signs the Buy Button is affected by Checkout Extensibility migration:
+  → Cart button works but checkout loads blank or partially
+  → Checkout extensions (upsells, custom fields) don't appear in Buy Button checkout
+  → Different checkout experience between storefront and Buy Button
+
+Fix:
+  Admin → Sales Channels → Buy Button → [your button]
+  → Click "Edit" → "Regenerate embed code"
+  → Replace old embed code on your external site with the new code
+  → The regenerated code uses the current checkout architecture</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>Payment Link Fix Checklist — Start Here</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Identify which link type is broken</strong>
+            <span>Check the URL pattern: <code>/a/orders/[token]</code> = draft order link; <code>/cart/[number]:[number]</code> = cart permalink; Buy Button = iframe embed on external site. Each has a different fix path — diagnosing the wrong type wastes time.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>For draft order links: check if the order is still open and under 30 days</strong>
+            <span>Admin → Drafts → find the order. If status is "Open" and it was created more than 30 days ago: resend the invoice via "Send invoice" → "Copy link". If status is "Completed" (already paid) or "Cancelled": the link is permanently invalid and a new draft or a regular order is needed.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>For cart permalinks: verify the variant ID still exists</strong>
+            <span>Extract the variant ID from the URL (the number before the colon in <code>/cart/[variant-id]:[qty]</code>). In Admin → Products, search for that product and open the variant — if it no longer exists, the ID is stale. Rebuild the cart URL with the current variant ID found in the variant edit page URL.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>For discount codes in URLs: check code status in Admin → Discounts</strong>
+            <span>Open the discount code in Admin → Discounts. Check: end date (has it passed?), usage count vs. usage limit (has it hit the cap?), customer eligibility (first-order-only codes fail for returning customers). For codes near their limit, increase the usage count or create a new code.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>For Buy Button: check browser console for CSP errors</strong>
+            <span>Open the external site where the Buy Button is embedded, open browser dev tools (F12), go to Console tab, and look for "Refused to display" or "Content Security Policy" errors referencing Shopify domains. If found: update the host site's CSP header to include <code>frame-src https://*.myshopify.com</code>. If you can't modify CSP: switch Buy Button to Link mode.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">6</div>
+          <div class="check-body">
+            <strong>Verify the product is published and in stock</strong>
+            <span>Admin → Products → find the product. Check: Sales channel visibility (must include "Online Store"), inventory count (must be above 0 if inventory policy is "Deny" or "Continue selling" as appropriate), product status (must be "Active", not "Draft" or "Archived"). A payment link or cart permalink pointing to an archived or out-of-stock product will either 404 or block checkout completion.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Payment Links — Frequently Asked Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify payment link not working?</div>
+          <div class="faq-a">The most common reasons: the draft order link expired (30-day token limit), the cart permalink references a deleted or edited variant, the product is out of stock or unpublished, or a discount code embedded in the URL has expired or hit its usage limit. Identify which link type you're using first — the fix is different for each. Draft order links: resend the invoice. Cart permalinks: regenerate with the current variant ID. Discount codes: check status in Admin → Discounts and increase the usage limit or create a new code.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How long does a Shopify draft order payment link last?</div>
+          <div class="faq-a">Draft order payment links expire after 30 days from when the invoice was sent. After that, the URL returns a 404 or redirects to the storefront homepage. To generate a fresh link, open the draft order in Admin → Drafts and click "Send invoice" again — this creates a new 30-day token. The draft order itself doesn't expire; only the payment link token does. For B2B orders with net-30 terms, set a reminder to resend the invoice on day 25 to avoid the link expiring before the customer pays.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify cart permalink link showing an empty cart?</div>
+          <div class="faq-a">Cart permalink URLs encode the Shopify variant ID directly. When you edit a product — adding, deleting, or restructuring variants — Shopify assigns new IDs to the changed variants. The old ID in your permalink no longer maps to a product, so the cart silently loads empty instead of with the intended item. Fix: find the current variant ID (Admin → Products → [product] → click the variant → ID is in the URL bar) and rebuild the cart permalink. For future campaigns, consider linking to the product page instead of a cart permalink — product page URLs use the product handle which is stable across variant edits.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is the Shopify Buy Button not loading on my website?</div>
+          <div class="faq-a">The most common causes: (1) your website's Content-Security-Policy header doesn't allow iframes from Shopify domains — add <code>frame-src https://*.myshopify.com https://*.shopify.com;</code> to your CSP header; (2) the website is HTTP and Shopify checkout is HTTPS — browsers block loading HTTPS iframes in HTTP pages; (3) the Buy Button embed code is outdated and references old Shopify checkout architecture after a Checkout Extensibility migration — regenerate the embed code in Admin → Sales Channels → Buy Button. If you can't modify server headers, switch the Buy Button to "Link" mode in the settings to open checkout in a new tab instead of an iframe.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is the discount code in my Shopify cart permalink not applying?</div>
+          <div class="faq-a">Discount codes embedded in cart permalink URLs (<code>?checkout[discount_code]=CODE</code>) silently fail when the code is expired, has reached its maximum use count, or has eligibility restrictions the current customer doesn't meet (first-order-only, specific customer tags, minimum order value). The checkout loads normally at full price — there's no error in the URL or on the page. Check the discount code in Admin → Discounts: verify the end date, usage count vs. limit, and eligibility settings. For campaigns you can't update after sharing, use automatic discounts instead — they apply to all eligible carts without a URL parameter.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Other Shopify Checkout Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-code-not-working">
+          <div class="guide-card-label">Promotions</div>
+          <div class="guide-card-title">Discount Code Not Working</div>
+          Discount code invalid errors, stack limits, eligibility conflicts, automatic vs. manual codes.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">
+          <div class="guide-card-label">Contact Info</div>
+          <div class="guide-card-title">Email Not Working at Checkout</div>
+          Invalid email errors, Apple Hide My Email blocked, confirmation email not received.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">
+          <div class="guide-card-label">Post-Purchase</div>
+          <div class="guide-card-title">Order Confirmation Not Received</div>
+          Order status page errors, confirmation email missing, notification timing issues.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Fraud</div>
+          <div class="guide-card-title">Legitimate Orders Blocked as Fraud</div>
+          High-risk order false positives, real customers declined, fraud score errors.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">B2B</div>
+          <div class="guide-card-title">B2B / Wholesale Checkout Not Working</div>
+          Company accounts, volume pricing, net terms, wholesale-only products at checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">
+          <div class="guide-card-label">Troubleshooting</div>
+          <div class="guide-card-title">Shopify Checkout Not Working</div>
+          General checkout troubleshooting — payment errors, stuck checkout, blank page.
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>Broken cart permalinks, expired draft order links, and Buy Button CSP errors all block real sales silently. CheckPulse monitors your checkout end-to-end — 4-step automated test every few minutes, instant email alert when anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">Email Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

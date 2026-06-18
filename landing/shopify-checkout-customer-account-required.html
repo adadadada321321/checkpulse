@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Customer Account Required — Guest Checkout Blocked, New Customer Accounts Login Prompt, How to Remove (2026)</title>
+  <meta name="description" content="Shopify checkout requiring customer account to purchase: how to remove the login requirement, why the 'Continue as guest' button disappeared, New Customer Accounts migration breaking existing login, and third-party apps enforcing login. Five root causes and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-customer-account-required" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-customer-account-required" />
+  <meta property="og:title" content="Shopify Checkout Customer Account Required — Guest Checkout Blocked, New Customer Accounts Login Prompt" />
+  <meta property="og:description" content="Shopify checkout requiring login blocks guest checkout. Five root causes: Accounts Required setting, New Customer Accounts migration, third-party app gating, B2B company accounts confusion, Shop Pay conflict. Exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Customer Account Required — Guest Checkout Blocked, New Customer Accounts Login Prompt, How to Remove",
+    "description": "When Shopify checkout shows a login prompt or removes the Continue as guest button, it's almost always one of five causes: the Accounts Required setting is enabled, the New Customer Accounts migration changed the login flow confusing existing customers, a third-party app (Locksmith, Wholesale Club, Bold Customer Groups) is enforcing login before checkout, Shopify Plus B2B Company accounts are conflicting with storefront accounts, or Shop Pay is creating an auth state conflict. This guide covers all five root causes, seven silent failure modes, and exact fix paths for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-customer-account-required",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I remove the customer account requirement from Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Go to Shopify Admin → Settings → Checkout → Customer accounts section. You will see three options: Accounts are disabled (no accounts, pure guest checkout), Accounts are optional (guest checkout available, login offered but not required), and Accounts are required (no guest checkout, must log in or create account). If customers are being forced to log in and you want to allow guest checkout, change this setting to 'Accounts are optional'. Save the change — it takes effect immediately for new checkout sessions. Note: if a third-party app (Locksmith, Wholesale Club, Bold Customer Groups) is enforcing login, you will also need to adjust that app's settings separately, because the app's enforcement is independent of Shopify's built-in account setting."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't my customers find the password field at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify migrated from Legacy Customer Accounts (email + password) to New Customer Accounts (passwordless, one-time code via email) starting in 2023. If your store was migrated to New Customer Accounts, customers no longer log in with a password — they enter their email address and receive a six-digit one-time code that expires after 15 minutes. Existing customer passwords from Legacy accounts are NOT transferred to New Customer Accounts. Customers who previously had passwords will receive a one-time code instead when they try to log in. Many customers interpret this as their account being deleted or broken. The fix: add a notice in your store (announcement bar, customer account email, help page) explaining that Shopify has moved to passwordless login and that they should use the one-time code sent to their email. You can check which account system you are on at Admin → Settings → Customer accounts — if you see 'New customer accounts' in the interface, you are on the new system."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do some customers see a login prompt at Shopify checkout even though accounts are optional?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If accounts are set to Optional but some customers are seeing a login-only screen at checkout, the most likely cause is a third-party app enforcement. Apps like Locksmith, Wholesale Club, Bold Customer Groups, and B2B login portals can require authentication before customers can view prices, add to cart, or access the checkout — independently of Shopify's built-in account setting. To diagnose: go to Apps → disable apps one at a time, then test the checkout. The app that resolves the issue when disabled is the one enforcing login. Another cause: browser-side session state. If a customer's browser has a stale authenticated session cookie and that session has expired on the Shopify side, some checkout flows will prompt re-authentication. This typically resolves when the customer clears cookies or uses a private/incognito window."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I enable guest checkout on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To enable guest checkout on Shopify: go to Admin → Settings → Checkout → Customer accounts, and select either 'Accounts are disabled' (no accounts at all — pure guest only) or 'Accounts are optional' (guest checkout available, but customers can also log in or create an account if they want to). 'Accounts are disabled' is the most permissive option and offers no login prompt at all. 'Accounts are optional' is recommended for most stores because it allows repeat customers to log in for faster checkout while still allowing new customers to check out without creating an account. If you are on Shopify Plus with B2B customers, the guest checkout setting only applies to your storefront. B2B Company accounts (Admin → Sales channels → Wholesale/B2B) have separate access controls."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do loyalty points not show up after Shopify's New Customer Accounts migration?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Many loyalty and rewards apps (Smile.io, LoyaltyLion, Yotpo Loyalty, Rise.ai) were built to integrate with Legacy Customer Accounts and use the legacy customer ID or email-based session to look up points balances. After migrating to New Customer Accounts, the authentication token structure and customer portal URL changed (/a/account instead of /account), and some apps could not map the new session to the existing customer record. Symptoms: loyalty widget shows 0 points, earn/redeem block doesn't appear, or customers are treated as new even after logging in. Fix: check the loyalty app's documentation or changelog for a 'New Customer Accounts compatibility' note. Most major apps released compatibility updates in 2024-2025. If the update is available, install it and follow the migration guide. If not, you may need to revert to Legacy Customer Accounts or contact the app developer. You can switch back to Legacy Customer Accounts at Admin → Settings → Customer accounts → switch account type (note: this is a one-way migration for New to Legacy on Plus stores — contact Shopify Support for reverting on non-Plus)."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .relay-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .relay-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .relay-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .relay-table tr:nth-child(even) td { background: var(--surface); }
+    .relay-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .footer-logo-text { font-size: 13px; font-weight: 700; color: var(--text); }
+    .footer-copy { font-size: 12px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.45s ease, transform 0.45s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr; }
+      .guide-grid { grid-template-columns: 1fr 1fr; }
+      .cta-block { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">Email Errors</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout — Customer Accounts</div>
+      <h1>Shopify Checkout Requires Customer Account — Guest Checkout Blocked, "Continue as Guest" Missing, New Customer Accounts Login Prompt</h1>
+      <p class="hero-sub">
+        When Shopify checkout shows "Please log in to continue" or removes the "Continue as guest" option, five root causes account for almost all cases: the Accounts Required setting, Shopify's New Customer Accounts migration confusing existing customers, a third-party app enforcing login independently of Shopify's setting, Shopify Plus B2B Company accounts conflicting with storefront accounts, or a Shop Pay auth state conflict. This guide covers all five, seven silent failure modes, and exact fix paths.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>5 root causes</span>
+        <span>7 silent failures</span>
+        <span>3 deep dives</span>
+      </div>
+
+      <div class="alert-banner">
+        <strong>Most common fix (30 seconds):</strong> Go to Shopify Admin → Settings → Checkout → Customer accounts section. If it says "Accounts are required," change it to "Accounts are optional." This immediately restores guest checkout for new sessions. If a third-party app is still enforcing login, adjust that app's settings separately — the built-in setting and app enforcement are independent.
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Account Mode Overview</div>
+      <h2>Three Account Settings, Two Account Systems</h2>
+      <p class="section-intro">
+        Shopify's customer account behavior is controlled by two independent variables: the account <em>setting</em> (Disabled / Optional / Required) and the account <em>system type</em> (Legacy Customer Accounts or New Customer Accounts). Most checkout login issues come from misunderstanding how these interact.
+      </p>
+
+      <div class="arch-grid">
+        <div class="arch-card green">
+          <div class="arch-card-label">Setting: Disabled</div>
+          <div class="arch-card-title">No Accounts — Pure Guest</div>
+          <div class="arch-card-desc">No login prompt appears. No account creation offered. Customers check out as guest only. All checkout contact info is entered fresh each time. Marketing consent collected at checkout but not linked to a customer record.</div>
+        </div>
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Setting: Optional (Recommended)</div>
+          <div class="arch-card-title">Guest + Login Both Available</div>
+          <div class="arch-card-desc">Guest checkout available. Login or account creation offered but not required. Repeat customers can log in for faster checkout. Most stores should use this setting — it maximizes conversion while supporting customer loyalty.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Setting: Required</div>
+          <div class="arch-card-title">Login Mandatory — No Guest</div>
+          <div class="arch-card-desc">No "Continue as guest" button. Customer must log in or create an account before placing an order. Appropriate for B2B wholesale, membership-only stores, or age-gated purchases. Causes significant friction for first-time buyers.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 18px;">
+        <div class="arch-grid">
+          <div class="arch-card info">
+            <div class="arch-card-label">System Type A</div>
+            <div class="arch-card-title">Legacy Customer Accounts</div>
+            <div class="arch-card-desc">Login URL: /account/login. Authentication: email + password. Password reset via email link. Customer portal at /account/orders. Broad app compatibility (most third-party loyalty, membership, and review apps built for this). Being phased out by Shopify.</div>
+          </div>
+          <div class="arch-card purple">
+            <div class="arch-card-label">System Type B</div>
+            <div class="arch-card-title">New Customer Accounts</div>
+            <div class="arch-card-desc">Login URL: /a/account. Authentication: passwordless — one-time 6-digit code sent via email, expires in 15 minutes. No password field. Customer portal at /a/account/orders. Rolled out 2023–2024. Some third-party apps not yet compatible. Existing customer passwords are NOT migrated.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways Customer Account Issues Kill Checkout Without an Error Message</h2>
+      <p class="section-intro">Most account-related checkout blocks don't show a clear error. Customers hit a wall, assume the store is broken, and leave.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>What the Customer Sees</th>
+            <th>What Actually Happened</th>
+            <th>Impact</th>
+            <th>Detectable?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Please log in or create an account to continue"</td>
+            <td>Accounts set to Required — guest checkout completely removed</td>
+            <td>100% of new customers blocked from purchasing</td>
+            <td><span class="badge badge-green">Yes — visible</span></td>
+          </tr>
+          <tr>
+            <td>No "Continue as guest" button visible</td>
+            <td>Accounts Required mode — the guest path doesn't exist in this mode</td>
+            <td>Customers assume they must create an account; many abandon</td>
+            <td><span class="badge badge-amber">Partial — no error shown</span></td>
+          </tr>
+          <tr>
+            <td>"Enter your email to receive a code" — customer expects password field</td>
+            <td>Store migrated to New Customer Accounts; existing password not transferred</td>
+            <td>Loyal customers think their account was deleted; confusion and support tickets</td>
+            <td><span class="badge badge-red">Silent — no migration notice</span></td>
+          </tr>
+          <tr>
+            <td>Login code email never arrives; customer can't check out (accounts required)</td>
+            <td>One-time code email went to spam, or notification email misconfigured</td>
+            <td>Complete checkout block for affected customers</td>
+            <td><span class="badge badge-red">Silent — no delivery confirmation</span></td>
+          </tr>
+          <tr>
+            <td>Old customer account link (/account/login) stops working</td>
+            <td>Migration to New Customer Accounts changed the login portal URL to /a/account</td>
+            <td>Customers with bookmarked login URLs get a redirect that may confuse them</td>
+            <td><span class="badge badge-red">Silent — no broken link alert</span></td>
+          </tr>
+          <tr>
+            <td>Loyalty points show 0 or missing after customer logs in</td>
+            <td>Loyalty app (Smile.io, LoyaltyLion) not compatible with New Customer Accounts session format</td>
+            <td>Repeat customers can't redeem points; trust in store drops</td>
+            <td><span class="badge badge-red">Silent until customer notices</span></td>
+          </tr>
+          <tr>
+            <td>Membership or wholesale access lost at checkout despite being logged in</td>
+            <td>Third-party app (Locksmith, Bold) doesn't recognize New Customer Accounts session token</td>
+            <td>B2B or wholesale customers see retail prices; can't complete order</td>
+            <td><span class="badge badge-red">Silent — no "session not recognized" error</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Root Causes</div>
+      <h2>Five Root Causes of Customer Account Issues at Checkout</h2>
+      <p class="section-intro">Each cause has a distinct fix path. Identify which applies before making changes — some are a single setting toggle, others require app-level investigation.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Root Cause 1 — Most Common</div>
+          <div class="arch-card-title">"Accounts are required" Setting Enabled</div>
+          <div class="arch-card-desc">Admin → Settings → Checkout → Customer accounts = "Required." This is the most common cause. No guest checkout is possible in this mode. Fix: change to "Optional." Takes effect immediately for new sessions.</div>
+        </div>
+        <div class="arch-card purple">
+          <div class="arch-card-label">Root Cause 2</div>
+          <div class="arch-card-title">New Customer Accounts Migration — No Password Field</div>
+          <div class="arch-card-desc">Store was migrated to New Customer Accounts (passwordless). Existing customers can't find the password field. Legacy passwords are not transferred — customers must use one-time code. Fix: communicate the change clearly via announcement bar or email.</div>
+        </div>
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Root Cause 3</div>
+          <div class="arch-card-title">Third-Party App Enforcing Login Independently</div>
+          <div class="arch-card-desc">Locksmith, Wholesale Club, Bold Customer Groups, or a B2B portal app is enforcing authentication at the product, collection, or cart level — independent of Shopify's account setting. Fix: disable apps one at a time to isolate; adjust the app's login requirement settings.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">Root Cause 4 — Plus Only</div>
+          <div class="arch-card-title">B2B Company Accounts vs Storefront Accounts Confusion</div>
+          <div class="arch-card-desc">Shopify Plus B2B uses "Company accounts" — a separate system from storefront customer accounts. A B2B buyer logged into the storefront is NOT automatically logged into a company account. Fix: use the dedicated B2B login URL (/a/account) and Company accounts flow for wholesale customers.</div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-label">Root Cause 5</div>
+          <div class="arch-card-title">Shop Pay Auth State Conflict</div>
+          <div class="arch-card-desc">Shop Pay uses Shopify's identity infrastructure but has its own session. When accounts are required, Shop Pay customers may bypass the requirement OR get stuck in a re-authentication loop if their Shop Pay session conflicts with the store's account requirement. Fix: test with Shop Pay disabled to isolate; contact Shopify Support if the conflict persists.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive A</div>
+      <h2>New Customer Accounts vs Legacy Accounts — What Changed and What Breaks</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Account System Migration</div>
+        <h3>What Shopify Changed (2023–2024)</h3>
+        <p>Shopify rolled out New Customer Accounts as the replacement for Legacy Customer Accounts starting in 2023. The core change: Legacy accounts used email + password. New Customer Accounts use passwordless authentication — customers enter their email address and receive a one-time 6-digit code (valid for 15 minutes) every time they log in. There is no password field. There is no password reset flow. The customer portal URL changed from <code>/account</code> to <code>/a/account</code>.</p>
+        <p>Shopify's stated reasons for the change: improved security (no password to steal or reuse), better mobile conversion (customers don't need to remember a password), and alignment with modern passwordless authentication patterns.</p>
+        <p><strong>What was NOT migrated:</strong> Customer passwords are permanently discarded when a store moves to New Customer Accounts. The customer's identity (name, order history, addresses) is preserved, but the authentication credential is gone. The first time an existing customer tries to log in, they receive a one-time code — many interpret this as evidence that their account was deleted.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Customer Portal URLs</div>
+        <h3>URL Changes That Break Bookmarks and App Integrations</h3>
+        <p>Legacy Customer Accounts used <code>/account</code> as the base URL:</p>
+        <div class="mono-block">
+/account/login          → Login page (email + password)
+/account/register       → Registration page
+/account/orders         → Order history
+/account/addresses      → Saved addresses
+/account/forgot_password → Password reset
+        </div>
+        <p>New Customer Accounts use <code>/a/account</code> as the base URL:</p>
+        <div class="mono-block">
+/a/account              → Customer portal home (passwordless)
+/a/account/orders       → Order history
+/a/account/profile      → Profile and address management
+(no /register or /forgot_password — code-based auth replaces both)
+        </div>
+        <p>Shopify does redirect <code>/account/login</code> to the new portal, but any deep links (bookmarked order pages, loyalty app links, email templates pointing to /account/orders) may break or redirect incorrectly. Third-party apps that hardcode /account URLs will need updates.</p>
+      </div>
+
+      <table class="relay-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Legacy Customer Accounts</th>
+            <th>New Customer Accounts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Login method</td>
+            <td>Email + password</td>
+            <td>Email → one-time 6-digit code (15 min expiry)</td>
+          </tr>
+          <tr>
+            <td>Portal base URL</td>
+            <td>/account</td>
+            <td>/a/account</td>
+          </tr>
+          <tr>
+            <td>Registration URL</td>
+            <td>/account/register</td>
+            <td>No separate registration — first login creates account</td>
+          </tr>
+          <tr>
+            <td>Password reset</td>
+            <td>/account/forgot_password</td>
+            <td>Not applicable — no passwords</td>
+          </tr>
+          <tr>
+            <td>Existing passwords on migration</td>
+            <td>N/A</td>
+            <td>Permanently discarded — customers use one-time codes</td>
+          </tr>
+          <tr>
+            <td>App compatibility</td>
+            <td>Broad — most apps built for this</td>
+            <td>Partial — check each app's changelog for 2024+ compatibility update</td>
+          </tr>
+          <tr>
+            <td>B2B company accounts</td>
+            <td>Separate — company accounts use their own portal</td>
+            <td>Separate — company accounts still use /a/account but via company login flow</td>
+          </tr>
+          <tr>
+            <td>Guest checkout impact</td>
+            <td>Controlled by account setting (Disabled/Optional/Required)</td>
+            <td>Same — controlled by account setting</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive B</div>
+      <h2>The "Accounts Required" Setting — When to Use It and When Not To</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Setting Location and Impact</div>
+        <h3>Where the Setting Lives and What It Controls</h3>
+        <p><strong>Location:</strong> Shopify Admin → Settings → Checkout → Customer contact method (scroll down) → Customer accounts section. The section header says "Customer accounts" and shows a radio button group with three options.</p>
+        <p><strong>Accounts are disabled:</strong> No login UI appears anywhere in checkout. No account creation is offered. The customer enters their contact info (email) fresh every time. Best for stores that don't want any account friction and don't need repeat purchase benefits. Downside: no order history for customers, no saved addresses, harder to run loyalty programs.</p>
+        <p><strong>Accounts are optional (recommended for most stores):</strong> Guest checkout is available. At the email step, customers can choose to log in or continue as guest. After purchase, they may be invited to create an account. This setting maximizes checkout conversion while still supporting loyalty and repeat purchase features.</p>
+        <p><strong>Accounts are required:</strong> No guest path exists. A customer who is not logged in will see a login/create account screen and cannot proceed until they authenticate. Use cases: wholesale stores where pricing is customer-specific, membership-only stores, age-verification stores that use account data to confirm eligibility, and subscription stores where every purchase creates a customer record. Do not use this setting for general retail — it reduces first-time conversion significantly (studies consistently show 25–35% of cart abandonments are caused by forced account creation).</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Changing the Setting</div>
+        <h3>How to Change the Account Setting and What to Expect</h3>
+        <p>Changing from Required to Optional or Disabled takes effect immediately for new checkout sessions. Customers already in a checkout session at the moment of change may still see the old behavior until their session expires (typically 24 hours). No data is lost when changing the setting.</p>
+        <p>Changing from Legacy to New Customer Accounts (the system type, not just the setting) is more significant: go to Admin → Settings → Customer accounts → "Upgrade to new customer accounts." This migration is irreversible on non-Plus stores without contacting Shopify Support. On Shopify Plus, you can switch back by contacting Support. Before migrating: verify that all third-party apps you use (loyalty, membership, wholesale, reviews) have a compatibility update for New Customer Accounts.</p>
+        <p><strong>If you need accounts required but want to minimize friction:</strong> Enable Shop Pay — Shop Pay customers bypass the account creation step because Shop Pay has its own identity system. Shop Pay users can check out faster than a guest checkout flow. This is the recommended approach for stores that want required accounts but don't want the friction to hurt conversion.</p>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Deep Dive C</div>
+      <h2>Third-Party App Gating — How to Diagnose Which App Is Blocking Checkout</h2>
+
+      <div class="deepdive">
+        <div class="deepdive-label">App-Level Login Enforcement</div>
+        <h3>How Apps Block Checkout Independently of Shopify's Setting</h3>
+        <p>Shopify's built-in account setting controls what happens after the customer reaches the checkout URL. But third-party apps can intercept customers much earlier — at the product page, collection page, add-to-cart action, or cart page — before Shopify's own checkout even loads. This means you can have accounts set to "Optional" in Shopify Admin and still have customers blocked behind a login wall, because an app is enforcing login before the checkout URL is ever reached.</p>
+        <p><strong>Common apps that enforce login:</strong></p>
+        <ul style="margin: 8px 0 8px 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.7;">
+          <li><strong>Locksmith</strong> — locks pages, products, collections behind login or passcode conditions. Very common for wholesale and membership stores.</li>
+          <li><strong>Wholesale Club / Wholesale Helper</strong> — shows wholesale pricing only to logged-in customers tagged as wholesale. Guest visitors see retail prices or can't add to cart.</li>
+          <li><strong>Bold Customer Groups</strong> — segments customers into pricing tiers; requires login to display the correct tier pricing at checkout.</li>
+          <li><strong>B2B Portal apps (Handshake, B2B Ninja, etc.)</strong> — require login to the B2B portal before any wholesale order can be placed.</li>
+          <li><strong>Age Verification apps</strong> — some require account creation to record verified age and store consent records.</li>
+        </ul>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Diagnosis Steps</div>
+        <h3>How to Isolate Which App Is Causing the Block</h3>
+        <p><strong>Step 1 — Confirm Shopify's own setting is not the cause:</strong> Go to Admin → Settings → Checkout → Customer accounts. If it already says "Optional" or "Disabled," the issue is not Shopify's built-in setting.</p>
+        <p><strong>Step 2 — Test in a private/incognito window:</strong> Open your store in a private browser window (no cookies, no existing session). Try to add a product to cart and proceed to checkout. If you see a login prompt before the checkout URL, an app is intercepting.</p>
+        <p><strong>Step 3 — Disable apps one by one:</strong> Go to Admin → Apps → find apps that handle access control, wholesale pricing, or membership. Use "Pause" or the app's own disable option (not uninstall — you don't want to lose settings). After disabling each app, test the checkout again in a fresh private window. The app that resolves the issue when disabled is the one enforcing login.</p>
+        <p><strong>Step 4 — Adjust the app's settings:</strong> Once you've identified the app, go into its configuration and look for settings like "Require login to view prices," "Require login to add to cart," "Restrict checkout to authenticated customers." Adjust these to match your intended behavior. Re-enable the app and test again.</p>
+        <p><strong>Note:</strong> If you want some customers (wholesale/members) to require login while others (retail/guests) do not, most access control apps support customer tag-based conditions — e.g., "require login only for customers without the 'wholesale' tag." This is the correct approach rather than using Shopify's global "Accounts required" setting, which applies to everyone.</p>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Fix Checklist</div>
+      <h2>6-Step Customer Account Fix Path</h2>
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Check the account setting in Shopify Admin</strong>
+            <span>Admin → Settings → Checkout → Customer accounts. If set to "Required" and you want guest checkout, change to "Optional." Applies immediately to new sessions.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Identify your account system type (Legacy or New)</strong>
+            <span>In Admin → Settings → Customer accounts, check whether you see "Legacy customer accounts" or "New customer accounts." If New: customers use one-time code login — no password field. If you recently migrated and customers are confused, add a notice via announcement bar.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>Test checkout in a fresh private/incognito window</strong>
+            <span>Open your store in an incognito window (no cookies, no session). Add a product to cart and attempt checkout. If you see a login prompt before the checkout URL (/checkouts/...), an app is intercepting before Shopify's checkout.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Disable access-control apps one by one to isolate the cause</strong>
+            <span>Temporarily disable Locksmith, Wholesale Club, Bold Customer Groups, or other gating apps. After each disable, test in a fresh private window. When the login prompt disappears, you've found the app. Adjust that app's settings — don't uninstall it.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Verify one-time code email deliverability (New Customer Accounts)</strong>
+            <span>If on New Customer Accounts with "Accounts required," customers who never receive the login code are completely blocked. Check Admin → Settings → Notifications → Sender email and verify SPF/DKIM is configured for your sending domain. Test the code email flow yourself from an unrelated email address.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">6</div>
+          <div class="check-body">
+            <strong>Check third-party app compatibility with New Customer Accounts</strong>
+            <span>If loyalty points are missing or membership access is lost after login, the app may not yet be compatible with New Customer Accounts. Check the app's documentation or changelog for a 2024+ compatibility update. If none exists, contact the app developer or consider reverting to Legacy Customer Accounts (contact Shopify Support).</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">FAQ</div>
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">How do I remove the customer account requirement from Shopify checkout?</div>
+          <div class="faq-a">Go to Shopify Admin → Settings → Checkout → Customer accounts section. Change the setting from "Accounts are required" to "Accounts are optional." This takes effect immediately for new checkout sessions — no redeployment needed. If a third-party app (Locksmith, Wholesale Club, Bold Customer Groups) is also enforcing login, you will need to adjust that app's settings separately, because the app enforcement is independent of Shopify's built-in account setting.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why can't my customers find the password field at Shopify checkout?</div>
+          <div class="faq-a">Your store was likely migrated to New Customer Accounts, which is Shopify's passwordless authentication system. Customers enter their email address and receive a one-time 6-digit code (valid for 15 minutes) instead of entering a password. Existing customer passwords from Legacy accounts are permanently discarded — they are not migrated to the new system. Customers who had passwords will receive a one-time code the first time they try to log in on the new system, which many interpret as their account being deleted. The fix: add an announcement or help article explaining that Shopify has moved to passwordless login and that customers should check their email for a code when they try to log in.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why do some customers see a login prompt at Shopify checkout even though accounts are optional?</div>
+          <div class="faq-a">A third-party app is most likely enforcing login before the checkout even loads. Apps like Locksmith, Wholesale Club, and Bold Customer Groups can require authentication at the product, collection, or cart level — independent of Shopify's built-in account setting. To diagnose: test your store in a fresh private/incognito window. If you see a login prompt before the checkout URL (/checkouts/...), disable apps one at a time until the prompt disappears. Adjust that app's login-requirement settings rather than changing Shopify's global account setting.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I enable guest checkout on Shopify?</div>
+          <div class="faq-a">Go to Admin → Settings → Checkout → Customer accounts and select either "Accounts are disabled" (no login option at all, pure guest) or "Accounts are optional" (guest checkout available, login also offered). "Accounts are optional" is recommended for most stores because it lets repeat customers log in for faster checkout while still allowing new customers to purchase without creating an account. If you are on Shopify Plus with B2B wholesale customers, the guest checkout setting applies to your retail storefront — B2B Company accounts have separate access controls configured in Admin → Sales channels → Wholesale.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why do loyalty points not show up after Shopify's New Customer Accounts migration?</div>
+          <div class="faq-a">Most loyalty apps (Smile.io, LoyaltyLion, Yotpo Loyalty, Rise.ai) were built to integrate with Legacy Customer Accounts and use the legacy session format and /account URL to look up points balances. After migrating to New Customer Accounts, the session token format and portal URL changed, and some apps could not match the new session to the existing customer record — showing 0 points or not recognizing the logged-in customer. Fix: check the loyalty app's documentation or changelog for a "New Customer Accounts compatibility" update (most major apps released these in 2024-2025). Install the update and follow any migration steps. If no update is available, contact the app developer. As a last resort, contact Shopify Support about reverting to Legacy Customer Accounts — this is possible on Plus stores and on some non-Plus stores with Support assistance.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section reveal">
+      <div class="section-label">Related Guides</div>
+      <h2>Other Shopify Checkout Authentication and Customer Flow Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">
+          <div class="guide-card-label">Contact Info</div>
+          <div class="guide-card-title">Email Not Working at Checkout</div>
+          Invalid email errors, Apple Hide My Email blocked, disposable email rejected, Shop Pay wrong email.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">
+          <div class="guide-card-label">Contact Info</div>
+          <div class="guide-card-title">Phone Number Not Working</div>
+          E.164 format errors, country code conflicts, phone field blocking checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Access Blocking</div>
+          <div class="guide-card-title">Legitimate Orders Blocked as Fraud</div>
+          High-risk order false positives, real customers declined, fraud score errors.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">
+          <div class="guide-card-label">Post-Purchase</div>
+          <div class="guide-card-title">Order Confirmation Not Received</div>
+          Order confirmation email missing, status page not loading, notification timing.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-loyalty-rewards">
+          <div class="guide-card-label">Rewards</div>
+          <div class="guide-card-title">Loyalty Points Not Working at Checkout</div>
+          Smile.io checkout error, points not applying, rewards not showing balance.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-memberships">
+          <div class="guide-card-label">Access Control</div>
+          <div class="guide-card-title">Membership Checkout Not Working</div>
+          Bold Memberships error, Locksmith blocking member access, member pricing not applying.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-b2b-checkout-not-working">
+          <div class="guide-card-label">B2B</div>
+          <div class="guide-card-title">B2B / Wholesale Checkout Not Working</div>
+          Net terms not showing, wholesale pricing disappearing, company account issues.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-age-verification">
+          <div class="guide-card-label">Compliance</div>
+          <div class="guide-card-title">Age Verification Blocking Checkout</div>
+          Age gate blocking real customers, checkout extensibility break, subscription renewal bypass.
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>Customer account configuration issues, third-party app gating, and New Customer Accounts migration problems can silently block customers from completing purchases. CheckPulse monitors your checkout continuously — 4-step automated test runs every few minutes, instant email alert if anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">Email Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-link-not-working">Payment Links</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

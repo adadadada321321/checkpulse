@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Webhook Not Firing — orders/create Not Received, Webhook Subscription Disabled, HMAC Verification (2026)</title>
+  <meta name="description" content="Shopify webhooks stop firing for five main reasons: endpoint timeout (5-second limit), subscription auto-disabled after 19 failures, API version sunset, wrong topic (orders/create vs checkouts/create), or HMAC secret mismatch. Five root causes, seven silent failures, and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-webhook-not-firing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-webhook-not-firing" />
+  <meta property="og:title" content="Shopify Webhook Not Firing — orders/create Not Received, Subscription Auto-Disabled, Delivery Failures" />
+  <meta property="og:description" content="Shopify webhooks stop firing silently. Five root causes: endpoint timeout, subscription auto-disabled, API version sunset, wrong topic, HMAC failure. Exact diagnostics and fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Webhook Not Firing — orders/create Not Received, Subscription Auto-Disabled, Delivery Failures Explained",
+    "description": "Shopify webhooks stop delivering silently. The five root causes are: (1) your endpoint takes longer than 5 seconds to respond and Shopify marks it failed; (2) after 19 consecutive delivery failures Shopify silently disables the subscription — no alert, no email; (3) the webhook was subscribed on an API version that Shopify has sunset and deliveries ceased; (4) you subscribed to the wrong topic (orders/create does not fire for abandoned carts — that is checkouts/create); (5) your HMAC verification rejects valid Shopify payloads due to a secret mismatch or incorrect implementation. This guide covers the delivery mechanics, retry schedule, topic reference, and HMAC verification with correct code examples.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-webhook-not-firing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify orders/create webhook not firing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons the orders/create webhook stops firing are: (1) your endpoint is taking longer than 5 seconds to respond — Shopify's webhook delivery has a hard 5-second timeout, and any response that takes longer is marked as a failed delivery; (2) after 19 consecutive delivery failures (approximately 48 hours of retries), Shopify automatically disables your webhook subscription with no notification — you have to re-register it manually; (3) the subscription was created against a Shopify API version that has been sunset, and Shopify stopped delivering on that version; (4) the order is in 'payment pending' state — orders/create fires when the order is confirmed (payment accepted), not when checkout starts. To diagnose: check your webhook subscription status via the Admin API (GET /admin/api/2024-04/webhooks.json) — if the subscription is missing or shows as disabled, that is your answer. To fix a disabled subscription, delete and re-register it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I check if my Shopify webhook subscription was auto-disabled?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not send an email or notification when it auto-disables a webhook subscription. You have to check proactively. Options: (1) Via Admin API — GET /admin/api/2024-04/webhooks.json and look at each subscription's fields; a subscription that has been disabled will be absent (Shopify deletes it after repeated failures) or you will notice it stopped delivering by checking your endpoint logs; (2) Via Shopify CLI — run 'shopify webhook trigger --topic=orders/create --delivery-url=https://your-endpoint.com' to send a test payload and see if your endpoint receives it; (3) Via the Partner Dashboard — if your app was installed via a partner app rather than manual registration, check the app's event log in Partners dashboard. The definitive check is to query the webhooks API and verify your subscription still exists. If it is missing, create it again and fix the underlying endpoint timeout that caused the failures."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between Shopify orders/create and checkouts/create webhooks?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "orders/create fires when an order is confirmed — meaning payment has been accepted (or the order is a free order, draft order, or POS order). It does NOT fire when a customer starts checkout, adds items to cart, or abandons checkout. checkouts/create fires when a customer initiates a checkout session — they have entered the checkout flow but have not necessarily completed payment. checkouts/update fires each time the checkout is modified (address entered, shipping selected, etc.). checkouts/delete fires when a checkout is abandoned and expires. If you are trying to capture abandoned cart data, you need checkouts/create and checkouts/update — not orders/create. If you are trying to trigger fulfillment, email notifications, or order processing, orders/create is correct. Note: the checkouts/* topics are only available to apps with the read_checkouts access scope."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix Shopify webhook HMAC verification failures?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "HMAC verification failures happen when the signature Shopify sends in the X-Shopify-Hmac-SHA256 header does not match what your code computes. The most common mistakes are: (1) Parsing the JSON body before verifying — HMAC is computed over the raw request body bytes, not over re-serialized JSON. Read the raw body first, verify HMAC, then parse; (2) Using the wrong secret — use the client secret from your app settings (for public apps) or the webhook secret you configured (for custom apps). These are different values; (3) Not base64-decoding Shopify's header before comparing — Shopify sends the HMAC as base64-encoded. Compare using a constant-time comparison: compute HMAC-SHA256 over the raw body using your secret, base64-encode the result, then compare to the header value. (4) Rotating your app secret without updating all registered webhooks. If you rotated the secret, existing webhooks still use the old secret until you delete and re-register them."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How many times does Shopify retry a failed webhook delivery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify retries failed webhook deliveries up to 19 times over approximately 48 hours using exponential backoff. A delivery is considered failed if your endpoint does not return an HTTP 2xx response within 5 seconds, or if it returns a non-2xx status code. The retry schedule is roughly: immediate retry, then ~1 minute, ~5 minutes, ~10 minutes, ~30 minutes, ~1 hour, ~2 hours, up to ~48 hours total. After 19 consecutive failures, Shopify automatically deletes the webhook subscription — no notification is sent. To avoid hitting this limit: return HTTP 200 immediately when you receive the webhook (before any database writes or external API calls), then process the payload asynchronously in a background job."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f172a;
+      --ink2: #334155;
+      --ink3: #64748b;
+      --bg: #ffffff;
+      --bg2: #f8fafc;
+      --bg3: #f1f5f9;
+      --accent: #2563eb;
+      --accent2: #1d4ed8;
+      --accent-bg: #eff6ff;
+      --border: #e2e8f0;
+      --warn: #f59e0b;
+      --warn-bg: #fffbeb;
+      --success: #10b981;
+      --success-bg: #ecfdf5;
+      --danger: #ef4444;
+      --danger-bg: #fef2f2;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.65; font-size: 16px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 60px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 18px; color: var(--ink); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { font-size: 14px; color: var(--ink2); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); text-decoration: none; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #fff; padding: 64px 24px 56px; text-align: center; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 100px; padding: 4px 14px; font-size: 13px; font-weight: 500; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(26px,5vw,44px); font-weight: 800; line-height: 1.15; margin-bottom: 16px; max-width: 820px; margin-left: auto; margin-right: auto; }
+    .hero p { font-size: 18px; color: rgba(255,255,255,.8); max-width: 640px; margin: 0 auto 32px; }
+    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* LAYOUT */
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: var(--ink); }
+    h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; color: var(--ink); }
+    h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
+    p { margin-bottom: 14px; color: var(--ink2); }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; color: var(--ink2); }
+    li { margin-bottom: 6px; }
+    strong { color: var(--ink); }
+    .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: 8px; }
+
+    /* CARDS */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
+    .card-accent { border-left: 4px solid var(--accent); }
+    .card-warn { border-left: 4px solid var(--warn); background: var(--warn-bg); }
+    .card-danger { border-left: 4px solid var(--danger); background: var(--danger-bg); }
+    .card-success { border-left: 4px solid var(--success); background: var(--success-bg); }
+
+    /* GRID */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: var(--bg3); font-weight: 700; text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border); color: var(--ink); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink2); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+    .tag-red { background: #fee2e2; color: #b91c1c; }
+    .tag-yellow { background: #fef3c7; color: #92400e; }
+    .tag-green { background: #d1fae5; color: #065f46; }
+    .tag-blue { background: #dbeafe; color: #1e40af; }
+
+    /* CODE */
+    pre { background: #0f172a; color: #e2e8f0; border-radius: var(--radius-sm); padding: 18px; font-size: 13px; overflow-x: auto; margin-bottom: 16px; line-height: 1.6; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+    .inline-code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: var(--ink); }
+
+    /* STEPS */
+    .steps { counter-reset: step; }
+    .step { display: flex; gap: 16px; margin-bottom: 20px; }
+    .step-num { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-body h4 { margin-bottom: 4px; }
+    .step-body p { margin-bottom: 0; font-size: 15px; }
+
+    /* CHECKLIST */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start; color: var(--ink2); font-size: 15px; }
+    .checklist li:last-child { border-bottom: none; }
+    .check-icon { flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; margin-top: 1px; font-size: 10px; }
+
+    /* SILENT FAILURES */
+    .failure-grid { display: grid; gap: 12px; }
+    .failure-item { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start; }
+    .failure-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--danger-bg); border: 1px solid #fca5a5; color: var(--danger); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+
+    /* CTA BOX */
+    .cta-box { background: linear-gradient(135deg, #0f172a, #1e3a8a); color: #fff; border-radius: var(--radius); padding: 40px; text-align: center; }
+    .cta-box h2 { color: #fff; margin-bottom: 10px; }
+    .cta-box p { color: rgba(255,255,255,.8); margin-bottom: 24px; }
+
+    /* FOOTER */
+    footer { background: var(--bg3); border-top: 1px solid var(--border); padding: 40px 24px; }
+    .footer-inner { max-width: 860px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+    .footer-tagline { font-size: 14px; color: var(--ink3); margin-bottom: 24px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13px; }
+    .footer-links a { color: var(--ink3); padding: 3px 0; }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding: 44px 20px 40px; }
+      section { padding: 40px 0; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="./">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="./guide">Guide</a>
+    <a href="./shopify-checkout-not-working">Troubleshoot</a>
+    <a href="./free-check">Free Check</a>
+  </div>
+  <a href="./free-check" class="btn btn-primary btn-sm">Free Checkout Check</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">⚡ Webhook Diagnostics</div>
+  <h1>Shopify Webhook Not Firing:<br>orders/create, Subscription Disabled, HMAC Errors</h1>
+  <p>Shopify webhooks fail silently. Five root causes explain nearly every missed delivery — endpoint timeout, subscription auto-disabled, API version sunset, wrong topic, and HMAC mismatch.</p>
+  <div class="hero-cta">
+    <a href="#root-causes" class="btn btn-primary">See Root Causes</a>
+    <a href="./free-check" class="btn" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);">Run Free Checkout Check</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- QUICK REFERENCE TABLE -->
+  <section>
+    <div class="section-label">Quick Reference</div>
+    <h2>Symptom → Cause → Fix</h2>
+    <p>Find your symptom in the table below, then jump to the relevant root cause section.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Most Likely Cause</th>
+            <th>Severity</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No webhooks received since [date]</td>
+            <td>Subscription auto-disabled after 19 failures</td>
+            <td><span class="tag tag-red">Critical</span></td>
+            <td>Re-register subscription</td>
+          </tr>
+          <tr>
+            <td>Some webhooks missing, not all</td>
+            <td>Endpoint timeout (&gt;5s)</td>
+            <td><span class="tag tag-red">Critical</span></td>
+            <td>Return 200 immediately, process async</td>
+          </tr>
+          <tr>
+            <td>Abandoned carts not triggering</td>
+            <td>Wrong topic — <span class="inline-code">orders/create</span> used instead of <span class="inline-code">checkouts/create</span></td>
+            <td><span class="tag tag-yellow">Config</span></td>
+            <td>Subscribe to correct topic</td>
+          </tr>
+          <tr>
+            <td>HMAC check fails, payload rejected</td>
+            <td>Secret mismatch or JSON parsed before verify</td>
+            <td><span class="tag tag-red">Critical</span></td>
+            <td>Read raw body first, compare base64 HMAC</td>
+          </tr>
+          <tr>
+            <td>Works in test, fails in production</td>
+            <td>API version mismatch or missing scope</td>
+            <td><span class="tag tag-yellow">Config</span></td>
+            <td>Match API version, check access scopes</td>
+          </tr>
+          <tr>
+            <td>Order confirmed but webhook never fired</td>
+            <td>Order stuck in payment pending</td>
+            <td><span class="tag tag-blue">Logic</span></td>
+            <td>Use <span class="inline-code">orders/paid</span> for payment confirmation</td>
+          </tr>
+          <tr>
+            <td>Webhooks firing in bursts then nothing</td>
+            <td>WAF or rate limiter blocking Shopify IPs</td>
+            <td><span class="tag tag-yellow">Config</span></td>
+            <td>Allowlist Shopify IP ranges</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ROOT CAUSES -->
+  <section id="root-causes">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Shopify Webhooks Stop Firing</h2>
+
+    <!-- CAUSE 1 -->
+    <div class="card card-danger" style="margin-top:28px;">
+      <h3>1. Endpoint Timeout — The 5-Second Rule</h3>
+      <p>Shopify requires your webhook endpoint to return an HTTP 2xx response within <strong>5 seconds</strong> of receiving the POST request. If your endpoint takes longer — even 5.1 seconds — Shopify marks the delivery as failed and schedules a retry.</p>
+      <p>This is the most common cause of intermittent missing webhooks. It happens when:</p>
+      <ul>
+        <li>Your endpoint performs synchronous database writes before responding</li>
+        <li>Your endpoint calls an external API (shipping, ERP, email) before responding</li>
+        <li>Your server is under load and response time spikes beyond 5 seconds</li>
+        <li>Cold start latency (serverless functions) adds initial delay</li>
+      </ul>
+      <p><strong>Fix:</strong> Decouple response from processing. Return HTTP 200 immediately upon receiving the webhook, then process the payload asynchronously in a background job or queue.</p>
+      <pre><code>// Node.js example — return 200 immediately
+app.post('/webhooks/orders-create', express.raw({type: 'application/json'}), (req, res) => {
+  // 1. Verify HMAC first (fast — no I/O)
+  if (!verifyShopifyHmac(req)) {
+    return res.status(401).send('Unauthorized');
+  }
+  // 2. Return 200 BEFORE any async work
+  res.status(200).send('OK');
+  // 3. Process asynchronously
+  processOrderWebhook(req.body).catch(console.error);
+});</code></pre>
+    </div>
+
+    <!-- CAUSE 2 -->
+    <div class="card card-danger">
+      <h3>2. Subscription Auto-Disabled After 19 Failures</h3>
+      <p>If your endpoint returns non-2xx responses or times out on 19 consecutive delivery attempts, <strong>Shopify automatically deletes the webhook subscription with no notification</strong>. After deletion, zero webhooks arrive. There is no alert, no email, no dashboard warning.</p>
+      <p>The retry schedule uses exponential backoff — retries spread across approximately 48 hours before the subscription is deleted. This means an endpoint outage over a weekend can silently kill your webhooks with no one noticing until orders are missing from your system.</p>
+      <p><strong>How to check:</strong></p>
+      <pre><code># Shopify Admin API — list all webhook subscriptions
+GET /admin/api/2024-04/webhooks.json
+
+# If your subscription is missing from the response, it was deleted.
+# Re-register it:
+POST /admin/api/2024-04/webhooks.json
+{
+  "webhook": {
+    "topic": "orders/create",
+    "address": "https://your-endpoint.com/webhooks/orders-create",
+    "format": "json",
+    "api_version": "2024-04"
+  }
+}</code></pre>
+      <div class="card-warn" style="margin-top:12px;border-radius:8px;">
+        <strong>Prevention:</strong> Set up uptime monitoring on your webhook endpoint URL. If your endpoint goes down, you want to know before 19 retries exhaust and Shopify deletes the subscription. <a href="./free-check">CheckPulse</a> monitors your checkout and can alert you to endpoint failures.
+      </div>
+    </div>
+
+    <!-- CAUSE 3 -->
+    <div class="card card-accent">
+      <h3>3. API Version Sunset</h3>
+      <p>Shopify deprecates API versions quarterly and eventually sunsets them. A webhook subscription created against a sunset API version stops delivering — Shopify stops processing delivery for webhooks on unsupported versions.</p>
+      <p>Shopify's API version support window: each version is supported for approximately 12 months after release, with quarterly releases (2024-01, 2024-04, 2024-07, 2024-10). Check the <a href="https://shopify.dev/docs/api/usage/versioning" target="_blank" rel="noopener">Shopify API versioning page</a> for current support status.</p>
+      <p><strong>Fix:</strong></p>
+      <ul>
+        <li>List your webhook subscriptions and note the <span class="inline-code">api_version</span> field for each</li>
+        <li>Delete subscriptions on sunset or deprecated versions</li>
+        <li>Re-register subscriptions specifying a current API version (e.g., <span class="inline-code">2024-04</span>)</li>
+        <li>Include API version upgrade in your quarterly maintenance checklist</li>
+      </ul>
+    </div>
+
+    <!-- CAUSE 4 -->
+    <div class="card card-accent">
+      <h3>4. Wrong Topic — orders/create vs checkouts/create</h3>
+      <p>Shopify's webhook topics map to specific events, and the most common confusion is between order events and checkout events. <strong>orders/create fires only when an order is confirmed</strong> — payment accepted, free order placed, or draft order converted. It does NOT fire for abandoned carts.</p>
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <thead>
+            <tr><th>Topic</th><th>When It Fires</th><th>Use Case</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="inline-code">orders/create</span></td>
+              <td>Order confirmed (payment accepted or free/draft)</td>
+              <td>Fulfillment, inventory, ERP sync, confirmation email</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">orders/paid</span></td>
+              <td>Payment captured on an existing order</td>
+              <td>When you need confirmed payment, not just order creation</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">orders/updated</span></td>
+              <td>Any field on an existing order changes</td>
+              <td>Address edits, line item changes, fulfillment updates</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">checkouts/create</span></td>
+              <td>Customer initiates a checkout session</td>
+              <td>Abandoned cart capture, checkout analytics</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">checkouts/update</span></td>
+              <td>Checkout modified (email entered, address, shipping selected)</td>
+              <td>Progressive profile building, real-time cart recovery</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">checkouts/delete</span></td>
+              <td>Checkout expires (abandoned after ~3 hours)</td>
+              <td>Abandoned cart cleanup, analytics</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Note:</strong> The <span class="inline-code">checkouts/*</span> topics require the <span class="inline-code">read_checkouts</span> access scope. If your app does not have this scope, subscribing to checkout topics will return a 422 error.</p>
+      <p>Also note: <strong>test orders placed from the Shopify Admin do not trigger <span class="inline-code">orders/create</span> webhooks by default</strong> in some configurations. Use the Shopify CLI or Partner Dashboard webhook trigger to test without placing real orders.</p>
+    </div>
+
+    <!-- CAUSE 5 -->
+    <div class="card card-danger">
+      <h3>5. HMAC Verification Rejecting Valid Payloads</h3>
+      <p>Shopify sends a <span class="inline-code">X-Shopify-Hmac-SHA256</span> header with every webhook — an HMAC-SHA256 signature of the raw request body, base64-encoded. If your verification logic rejects valid Shopify webhooks, your endpoint returns 401 or 500, Shopify marks it as failed, and retries begin.</p>
+      <p>The three most common implementation mistakes:</p>
+      <ul>
+        <li><strong>Parsing JSON before verifying:</strong> HMAC is computed over the raw bytes. If you call <span class="inline-code">JSON.parse(body)</span> and then re-serialize before hashing, the byte-level representation may differ.</li>
+        <li><strong>Wrong secret:</strong> Public apps use the client secret from the Partner Dashboard. Custom apps use the webhook secret configured in Admin → Settings → Notifications. These are different values.</li>
+        <li><strong>Non-constant-time comparison:</strong> Using string equality (<span class="inline-code">===</span>) instead of a constant-time function exposes a timing attack surface and can also produce false mismatches due to encoding differences.</li>
+      </ul>
+      <pre><code>// Node.js — correct HMAC verification
+const crypto = require('crypto');
+
+function verifyShopifyHmac(req) {
+  const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+  // req.body must be the RAW Buffer — not parsed JSON
+  const digest = crypto
+    .createHmac('sha256', secret)
+    .update(req.body) // raw Buffer
+    .digest('base64');
+  // constant-time comparison
+  return crypto.timingSafeEqual(
+    Buffer.from(digest),
+    Buffer.from(hmacHeader)
+  );
+}</code></pre>
+      <p>If you rotated your app's client secret, existing webhook subscriptions still use the old secret. Delete and re-register all webhook subscriptions after a secret rotation.</p>
+    </div>
+  </section>
+
+  <!-- SILENT FAILURES -->
+  <section>
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Shopify Webhooks Fail Without Warning</h2>
+    <div class="failure-grid">
+      <div class="failure-item">
+        <div class="failure-num">1</div>
+        <div>
+          <h4>Subscription deleted after 19 failures</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">No email, no dashboard alert. Your subscription simply stops existing. Orders continue coming in; your system stops receiving them.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">2</div>
+        <div>
+          <h4>Endpoint returns 200 but silently drops the payload</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">HMAC verification fails, your code returns 200 anyway (to suppress retry), but never processes the order. Shopify considers it delivered. Your system has a hole.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">3</div>
+        <div>
+          <h4>Test order does not trigger orders/create</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">Shopify test orders skip some webhook delivery paths in development store mode. You test, see nothing, assume webhooks are broken — but they work fine in production.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">4</div>
+        <div>
+          <h4>Order stuck in payment pending — orders/create never fires</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">orders/create fires on order confirmation. If a payment is in pending state (bank redirect, BNPL authorization delay), the webhook does not fire until the payment resolves.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">5</div>
+        <div>
+          <h4>API version sunset — silent delivery stop</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">Shopify stops delivering on sunset API versions. No error. Webhooks that worked for months simply stop after the version's end-of-life date.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">6</div>
+        <div>
+          <h4>WAF or rate limiter blocking Shopify IP ranges</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">Cloudflare, AWS WAF, or a custom rate limiter blocks Shopify's delivery IPs. Webhooks arrive in bursts, the limiter triggers, deliveries fail, retries exhaust, subscription is disabled.</p>
+        </div>
+      </div>
+      <div class="failure-item">
+        <div class="failure-num">7</div>
+        <div>
+          <h4>Delivery to staging URL instead of production</h4>
+          <p style="margin:0;font-size:15px;color:var(--ink2);">Webhook registered pointing to a staging or ngrok URL that no longer exists. Deliveries fail silently. Production processes nothing. The subscription URL is easy to overlook during a deployment.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEEP DIVES -->
+  <section>
+    <div class="section-label">Deep Dives</div>
+    <h2>Three Topics Worth Understanding Fully</h2>
+
+    <!-- DEEP DIVE A -->
+    <div style="margin-top:32px;">
+      <h3>A. Webhook Delivery Mechanics — Timeout, Retry, and Auto-Disable</h3>
+      <p>Understanding exactly how Shopify delivers webhooks helps you build a system that never loses an event.</p>
+
+      <h4>The 5-second timeout</h4>
+      <p>Shopify initiates a POST request to your endpoint and waits a maximum of 5 seconds for any HTTP response. If no response arrives in 5 seconds — or if the response is non-2xx — the delivery is marked failed. There is no body inspection; only the status code matters. Return 200 and nothing else as quickly as possible.</p>
+
+      <h4>Retry schedule</h4>
+      <p>Shopify uses exponential backoff across 19 retry attempts spanning approximately 48 hours:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Attempt</th><th>Approx. delay after previous</th><th>Time from first failure</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1 (initial)</td><td>—</td><td>0</td></tr>
+            <tr><td>2</td><td>~1 min</td><td>~1 min</td></tr>
+            <tr><td>3</td><td>~5 min</td><td>~6 min</td></tr>
+            <tr><td>4</td><td>~10 min</td><td>~16 min</td></tr>
+            <tr><td>5</td><td>~30 min</td><td>~46 min</td></tr>
+            <tr><td>6-10</td><td>~1h each</td><td>~5h</td></tr>
+            <tr><td>11-19</td><td>~4-6h each</td><td>~48h</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>After attempt 19, Shopify deletes the subscription. No further deliveries occur. You must re-register.</p>
+
+      <h4>Checking delivery health</h4>
+      <p>Query your webhooks via Admin API and verify the subscription list matches what you expect. For partner apps, the Shopify CLI provides a trigger command:</p>
+      <pre><code># Trigger a test webhook delivery (Shopify CLI)
+shopify webhook trigger --topic=orders/create --delivery-url=https://your-endpoint.com/webhooks/orders-create
+
+# List all registered webhook subscriptions
+curl -X GET \
+  "https://your-store.myshopify.com/admin/api/2024-04/webhooks.json" \
+  -H "X-Shopify-Access-Token: your-token"</code></pre>
+
+      <h4>Idempotency</h4>
+      <p>Because Shopify retries on failed deliveries, your endpoint may receive the same webhook multiple times. Always implement idempotent processing: check if you have already handled the order ID before writing to your database or calling external APIs. Use the <span class="inline-code">X-Shopify-Webhook-Id</span> header as a deduplication key.</p>
+    </div>
+
+    <!-- DEEP DIVE B -->
+    <div style="margin-top:40px;padding-top:32px;border-top:1px solid var(--border);">
+      <h3>B. Topic Reference — Which Events Fire When</h3>
+      <p>Shopify webhooks are organized by resource and event type. These are the order and checkout topics most developers work with.</p>
+
+      <h4>Order lifecycle topics</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Topic</th><th>Fires when</th><th>Does it fire for draft orders?</th><th>Does it fire for POS orders?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="inline-code">orders/create</span></td><td>Order confirmed (payment accepted or zero-value)</td><td>When draft is converted to order</td><td>Yes</td></tr>
+            <tr><td><span class="inline-code">orders/paid</span></td><td>Payment fully captured</td><td>Yes (when paid)</td><td>Yes</td></tr>
+            <tr><td><span class="inline-code">orders/fulfilled</span></td><td>All line items fulfilled</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><span class="inline-code">orders/cancelled</span></td><td>Order cancelled</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><span class="inline-code">orders/updated</span></td><td>Any order field changes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><span class="inline-code">orders/partially_fulfilled</span></td><td>Some but not all line items fulfilled</td><td>Yes</td><td>Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Checkout topics (require read_checkouts scope)</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Topic</th><th>Fires when</th><th>Note</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="inline-code">checkouts/create</span></td><td>Customer enters checkout flow</td><td>Fires before payment — not an order yet</td></tr>
+            <tr><td><span class="inline-code">checkouts/update</span></td><td>Any checkout field updated</td><td>Fires multiple times per checkout session</td></tr>
+            <tr><td><span class="inline-code">checkouts/delete</span></td><td>Checkout expires (abandoned ~3h)</td><td>Use for final abandoned cart cleanup</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Special cases</h4>
+      <ul>
+        <li><strong>Subscription orders (Recharge, Bold):</strong> Subscription apps typically generate orders through the Shopify API — <span class="inline-code">orders/create</span> fires for each renewal order they create. However, the renewal logic itself lives in the app, not in Shopify native webhooks.</li>
+        <li><strong>Draft orders:</strong> Draft order lifecycle has its own topics: <span class="inline-code">draft_orders/create</span>, <span class="inline-code">draft_orders/update</span>, <span class="inline-code">draft_orders/delete</span>.</li>
+        <li><strong>GDPR webhooks:</strong> Three GDPR webhooks are mandatory for public apps: <span class="inline-code">customers/data_request</span>, <span class="inline-code">customers/redact</span>, <span class="inline-code">shop/redact</span>. These must be registered and respond with 200 or Shopify can revoke app access.</li>
+      </ul>
+    </div>
+
+    <!-- DEEP DIVE C -->
+    <div style="margin-top:40px;padding-top:32px;border-top:1px solid var(--border);">
+      <h3>C. HMAC Verification — Correct Implementation and Common Mistakes</h3>
+      <p>HMAC verification is how you confirm a webhook actually came from Shopify and was not tampered with in transit. Getting it wrong breaks all webhook processing.</p>
+
+      <h4>How Shopify computes the HMAC</h4>
+      <ol>
+        <li>Take the raw request body bytes (exactly as received — no parsing, no re-serialization)</li>
+        <li>Compute HMAC-SHA256 using your webhook secret as the key</li>
+        <li>Base64-encode the result</li>
+        <li>Send as the <span class="inline-code">X-Shopify-Hmac-SHA256</span> header</li>
+      </ol>
+      <p>Your verification must mirror this exactly.</p>
+
+      <h4>Correct implementation (Node.js)</h4>
+      <pre><code>const crypto = require('crypto');
+
+// Middleware: parse body as raw buffer
+app.use('/webhooks', express.raw({ type: 'application/json' }));
+
+function verifyWebhook(req, res, next) {
+  const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+  if (!hmacHeader) return res.status(401).send('Missing signature');
+
+  const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+  const digest = crypto
+    .createHmac('sha256', secret)
+    .update(req.body) // Buffer — NOT JSON.parse(req.body)
+    .digest('base64');
+
+  // Use timingSafeEqual to prevent timing attacks
+  const safe = crypto.timingSafeEqual(
+    Buffer.from(digest, 'utf8'),
+    Buffer.from(hmacHeader, 'utf8')
+  );
+
+  if (!safe) return res.status(401).send('Invalid signature');
+  next();
+}</code></pre>
+
+      <h4>Correct implementation (Python)</h4>
+      <pre><code>import hmac
+import hashlib
+import base64
+
+def verify_webhook(data: bytes, hmac_header: str, secret: str) -> bool:
+    # data must be the raw request body bytes
+    digest = hmac.new(
+        secret.encode('utf-8'),
+        data,
+        hashlib.sha256
+    ).digest()
+    computed = base64.b64encode(digest).decode('utf-8')
+    # constant-time comparison
+    return hmac.compare_digest(computed, hmac_header)</code></pre>
+
+      <h4>Common mistakes</h4>
+      <div class="grid-2" style="margin-top:8px;">
+        <div class="card card-danger" style="margin:0;">
+          <h4>Wrong: Parse JSON first</h4>
+          <pre style="font-size:12px;margin:0;"><code>// BAD — JSON re-serialization changes bytes
+const body = JSON.parse(req.body);
+const raw = JSON.stringify(body);
+const digest = hmac.update(raw);</code></pre>
+        </div>
+        <div class="card card-success" style="margin:0;">
+          <h4>Correct: Raw buffer</h4>
+          <pre style="font-size:12px;margin:0;"><code>// GOOD — raw bytes before any parsing
+const digest = hmac
+  .update(req.body) // Buffer
+  .digest('base64');</code></pre>
+        </div>
+      </div>
+
+      <h4 style="margin-top:16px;">After rotating your secret</h4>
+      <p>When you rotate your app's client secret in the Partner Dashboard, Shopify does not automatically update existing webhook subscriptions. You must:</p>
+      <ol>
+        <li>Get the list of all webhook subscriptions (<span class="inline-code">GET /admin/api/2024-04/webhooks.json</span>)</li>
+        <li>Delete each subscription (<span class="inline-code">DELETE /admin/api/2024-04/webhooks/[id].json</span>)</li>
+        <li>Re-register each subscription — they will now use the new secret</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- DIAGNOSTIC CHECKLIST -->
+  <section>
+    <div class="section-label">Diagnostic Checklist</div>
+    <h2>7-Step Webhook Debugging Process</h2>
+    <div class="steps" style="margin-top:24px;">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Verify the subscription still exists</h4>
+          <p>Query <span class="inline-code">GET /admin/api/2024-04/webhooks.json</span> and confirm your subscriptions are present. If missing → they were auto-disabled. Re-register and fix the endpoint.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Check the API version on each subscription</h4>
+          <p>Note the <span class="inline-code">api_version</span> field. Cross-reference against Shopify's current supported versions. Delete and re-register subscriptions on deprecated versions.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Send a test webhook to your endpoint</h4>
+          <p>Use <span class="inline-code">shopify webhook trigger --topic=orders/create --delivery-url=your-url</span> and check if your endpoint receives and processes it correctly. Check endpoint logs for errors or timeouts.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Measure your endpoint response time</h4>
+          <p>Log the time from request receipt to HTTP response. If it exceeds 3 seconds regularly, you are at risk of exceeding the 5-second limit under load. Move processing to a background queue.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h4>Verify HMAC with a known-good payload</h4>
+          <p>Use Shopify CLI's triggered payload to confirm your HMAC verification passes. If it fails: check you are reading raw body bytes, using the correct secret, and doing base64 comparison.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h4>Confirm you are subscribed to the right topic</h4>
+          <p>Map what event you are trying to catch (abandoned cart? confirmed order? payment?) to the correct Shopify topic. See the topic reference table above.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <h4>Check your WAF and rate limiter for Shopify IPs</h4>
+          <p>If you have a WAF (Cloudflare, AWS, Nginx rate limit), confirm Shopify's delivery IP ranges are allowlisted. A WAF blocking Shopify IPs causes intermittent failures that look like random webhook drops.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RELATED ISSUES -->
+  <section>
+    <div class="section-label">Related Issues</div>
+    <h2>Webhook Problems Often Surface as Checkout Symptoms</h2>
+    <p>Webhook failures are a backend problem that shows up as frontend order processing failures. These related guides cover adjacent checkout issues merchants often encounter alongside webhook debugging.</p>
+    <div class="grid-2">
+      <a href="./shopify-checkout-order-confirmation" style="text-decoration:none;">
+        <div class="card" style="height:100%;">
+          <h4>Order Confirmation Not Received</h4>
+          <p style="margin:0;font-size:14px;color:var(--ink3);">Missing confirmation emails are often caused by webhook failures to email providers or transactional email misconfiguration. Covers Shopify email delivery, Klaviyo, Mailchimp.</p>
+        </div>
+      </a>
+      <a href="./shopify-checkout-payment-link-not-working" style="text-decoration:none;">
+        <div class="card" style="height:100%;">
+          <h4>Payment Link Not Working</h4>
+          <p style="margin:0;font-size:14px;color:var(--ink3);">Draft order links, cart permalinks, Buy Button, and discount code links — four different payment link types, each with distinct failure modes and fix paths.</p>
+        </div>
+      </a>
+      <a href="./shopify-checkout-subscription-renewals" style="text-decoration:none;">
+        <div class="card" style="height:100%;">
+          <h4>Subscription Renewal Webhook Failures</h4>
+          <p style="margin:0;font-size:14px;color:var(--ink3);">Subscription renewals are driven by Recharge and Bold webhooks back to Shopify. Failed renewal webhook callbacks cause dunning loops, missed billing, and lost subscribers.</p>
+        </div>
+      </a>
+      <a href="./shopify-checkout-not-working" style="text-decoration:none;">
+        <div class="card" style="height:100%;">
+          <h4>Shopify Checkout Not Working</h4>
+          <p style="margin:0;font-size:14px;color:var(--ink3);">Complete troubleshooting guide for checkout failures — covers payment methods, redirect loops, app conflicts, mobile issues, and more.</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="border-bottom:none;padding-bottom:0;">
+    <div class="cta-box">
+      <h2>Monitor Your Checkout — Not Just Your Webhooks</h2>
+      <p>Webhook failures are one signal. CheckPulse monitors your entire checkout flow every few minutes, alerts you before customers notice, and gives you a permanent health history your team can reference.</p>
+      <a href="./free-check" class="btn btn-primary">Run a Free Checkout Check</a>
+    </div>
+  </section>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">CheckPulse</div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Blank Page</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Error</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="./shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment / BNPL</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

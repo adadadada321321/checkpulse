@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Email Not Working — Invalid Email, Apple Hide My Email, Disposable Email Blocked, Confirmation Email Not Received (2026)</title>
+  <meta name="description" content="Shopify checkout email errors: invalid format, Apple Hide My Email blocked, disposable email rejected, Shop Pay wrong email auto-fill, confirmation email not received. This guide covers five root causes, seven silent failure modes, and exact fix paths for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working" />
+  <meta property="og:title" content="Shopify Checkout Email Not Working — Invalid Format, Apple Hide My Email, Disposable Email Blocked" />
+  <meta property="og:description" content="Shopify checkout email errors: invalid format, Apple Hide My Email blocked, disposable email rejected, Shop Pay wrong email, confirmation email not received. Five root causes and exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Email Not Working — Invalid Format, Apple Hide My Email, Disposable Email Blocked, Confirmation Email Not Received",
+    "description": "Shopify checkout email validation rejects addresses for reasons that have nothing to do with the email being wrong — anti-fraud apps block privacy relay addresses like Apple Hide My Email, disposable email blockers flag legitimate temporary addresses, Shop Pay auto-fills the wrong account email, and mobile autocorrect introduces silent typos. Confirmation emails can disappear into spam or get blocked by corporate mail servers after a perfectly successful checkout. This guide covers five root causes, seven silent failure modes, and exact fix paths for each.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout say my email is invalid even though it's a real email address?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify validates email format against RFC 5322 syntax — it checks for a valid local part, an @ symbol, and a valid domain. Most real emails pass this validation. The most common reason a legitimate email gets rejected is a hidden typo introduced by mobile autocorrect: a space before the @, the @ replaced with a comma or period, or the domain misspelled (gmail.con, hotmail.co). Apple Hide My Email addresses (ending in @privaterelay.appleid.com) are valid RFC 5322 emails and should pass Shopify's native validation — but some third-party anti-fraud apps installed on the store block them because they look like disposable emails. If your email is being rejected: try entering it on a desktop browser to rule out mobile autocorrect, and if it still fails, check whether the store has an anti-fraud app that may be blocking privacy relay addresses."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Apple Hide My Email not working at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Hide My Email generates a random relay address (e.g., xyz.abc@privaterelay.appleid.com) that forwards to your real Apple ID email. These are technically valid email addresses and Shopify's native checkout accepts them. The failure most commonly comes from one of three sources: (1) A merchant's anti-fraud app (FraudLabs Pro, NoFraud, Signifyd) flags @privaterelay.appleid.com as a disposable email domain and blocks the checkout or order. (2) The relay email was disabled by the user in Apple ID settings — Apple only forwards emails if the relay is active; if turned off, order confirmations and shipping notifications go nowhere. (3) The merchant's email marketing platform (Klaviyo, Omnisend, Mailchimp) suppresses relay addresses because they previously bounced when a customer's relay was inactive. Fix for merchants: whitelist @privaterelay.appleid.com in your anti-fraud app's allowed domains list and in your ESP's suppression list."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my confirmation email not arriving after a successful Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify sends order confirmations from its transactional email infrastructure, but several things can prevent the email from reaching the inbox: (1) Spam filtering — Shopify's sending IPs are shared across all Shopify stores; if any merchant on the shared IP was flagged for spam, your store's emails may get filtered. Using a custom sender domain with properly configured SPF and DKIM records dramatically improves deliverability. (2) Typo in the email address entered at checkout — if the customer entered their email incorrectly, the confirmation goes to the wrong address or bounces. Check Admin → Orders → customer email to verify the address on file. (3) Corporate email servers with strict filtering — some enterprise email systems (Microsoft 365, G Suite with restrictive policies) block emails from unrecognized senders. (4) Apple Hide My Email relay inactive — the customer used a relay address that is no longer forwarding. Fix: configure a custom sender email in Shopify Admin → Settings → Notifications → Sender email, set up SPF and DKIM for that domain, and resend the confirmation manually if needed (Admin → Orders → select order → More actions → Resend email)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout block disposable email addresses?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify itself does not block disposable email addresses by default. If disposable emails are being blocked at your checkout, it's a third-party anti-fraud or email validation app — FraudLabs Pro, NoFraud, Signifyd, or dedicated email validation apps — that is detecting and rejecting known disposable email domains (mailinator.com, guerrillamail.com, 10minutemail.com, yopmail.com, and hundreds of others). The problem is that these lists are maintained by third parties and can include false positives: legitimate privacy-focused email services, corporate email relay systems, and Apple's privaterelay.appleid.com domain all appear similar to disposable email services from a domain-list perspective. If customers are being blocked: review your anti-fraud app's email domain blocklist settings and add explicit whitelist entries for legitimate relay domains your customers use."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shop Pay use the wrong email at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay is linked to a specific email address from the customer's Shop Pay account. When a customer signs into Shop Pay at checkout, the checkout email is automatically set to their Shop Pay account email — not whatever they had previously typed in the email field. If the customer's Shop Pay account was created with an old email address or a different address than they intend to use for this order, the checkout will use that Shop Pay email. This is by design — Shop Pay consolidates all orders to one identity. Customers who want to use a different email for a specific order should either: (1) check out as a guest without signing into Shop Pay, or (2) update their Shop Pay account email at shop.app. Merchants cannot override the Shop Pay email auto-fill."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 8px;
+    }
+    .deepdive p:last-child { margin-bottom: 0; }
+    .mono-block {
+      background: #0d0d0d;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--green);
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .relay-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .relay-table th {
+      text-align: left;
+      padding: 9px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .relay-table td {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.4;
+    }
+    .relay-table tr:nth-child(even) td { background: var(--surface); }
+    .relay-table td:first-child { color: var(--text); font-weight: 600; }
+
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+    }
+    .check-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    .check-body strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .check-body span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .guide-card:hover { border-color: var(--amber); text-decoration: none; }
+    .guide-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .guide-card-title { color: var(--text); font-weight: 600; font-size: 13px; }
+
+    .faq { display: flex; flex-direction: column; gap: 16px; }
+    .faq-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 16px 18px;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 32px;
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cta-block h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .cta-block p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 24px;
+      line-height: 1.65;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 28px;
+      border-radius: 6px;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.88; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 0;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--amber);
+      color: #000;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .footer-logo-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+    }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container">
+      <a class="nav-brand" href="https://adadadada321321.github.io/checkpulse/">✓ CheckPulse</a>
+      <div class="nav-links">
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Store Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Monitoring Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Shopify Checkout Email Troubleshooting</div>
+      <h1>Shopify Checkout Email Not Working — Invalid Email, Apple Hide My Email Blocked, Confirmation Email Not Received</h1>
+      <p class="hero-sub">
+        Shopify checkout email problems come in two varieties: the email field refusing to accept a valid address, and the checkout succeeding but the confirmation email never arriving. The causes are different for each. Invalid email errors at checkout most often come from mobile autocorrect typos, anti-fraud apps blocking privacy relay addresses like Apple Hide My Email, or disposable email domain blocklists catching legitimate services. Missing confirmation emails come from spam filtering, a typo in the address, or Apple's relay becoming inactive. Shop Pay adds a third layer — it pre-fills the email from the customer's account profile, not whatever they typed. This guide covers every failure mode and the exact path to fix each one.
+      </p>
+      <div class="hero-meta">
+        <span>Updated June 2026</span>
+        <span>Affects: Apple Hide My Email, privacy relay services, anti-fraud apps, transactional email, Shop Pay</span>
+      </div>
+    </section>
+
+    <div class="alert-banner">
+      <strong>Shopify's native email validation accepts almost any RFC 5322-compliant address</strong> — including Apple Hide My Email relay addresses. Most email rejections at Shopify checkout come from <strong>third-party anti-fraud apps</strong>, not Shopify itself. Missing confirmation emails are a <strong>deliverability problem</strong>, not a checkout problem — the order completed successfully.
+    </div>
+
+    <section class="section">
+      <div class="section-label">Root Causes</div>
+      <h2>Five Reasons Shopify Checkout Rejects or Loses an Email Address</h2>
+      <p class="section-intro">Email failures in Shopify checkout fall into two groups: the field actively rejecting the address (preventing checkout), and the checkout completing but the email not reaching the customer (silent failure). The five root causes span both groups.</p>
+
+      <div class="arch-grid">
+        <div class="arch-card highlight">
+          <div class="arch-card-label">Cause 1 — Format Error</div>
+          <div class="arch-card-title">Invalid Email Format at Input</div>
+          <div class="arch-card-desc">Mobile autocorrect is the most common cause — it inserts a space before the @, replaces @ with a comma or period, or auto-capitalizes the domain (gmail.Com). Double dots (..) in the local part (john..doe@gmail.com) and missing TLD (user@company) also fail RFC 5322 validation. These errors are invisible to the customer who typed confidently on their phone.</div>
+        </div>
+        <div class="arch-card blocked">
+          <div class="arch-card-label">Cause 2 — Anti-Fraud App</div>
+          <div class="arch-card-title">Disposable or Privacy Relay Email Blocked</div>
+          <div class="arch-card-desc">Third-party anti-fraud apps (FraudLabs Pro, NoFraud, Signifyd) maintain blocklists of disposable email domains. Apple Hide My Email (@privaterelay.appleid.com), SimpleLogin, Firefox Relay, and Fastmail aliases all appear on some of these lists despite being legitimate privacy services used by real customers.</div>
+        </div>
+        <div class="arch-card info">
+          <div class="arch-card-label">Cause 3 — Shop Pay Pre-fill</div>
+          <div class="arch-card-title">Wrong Email Auto-filled by Shop Pay</div>
+          <div class="arch-card-desc">When a customer signs into Shop Pay at checkout, the email field is set to their Shop Pay account email — overriding whatever they had typed. If their Shop Pay account was created with an old address, a work email, or an email they no longer check, order confirmations go there instead of their intended inbox. Merchants cannot override this behavior.</div>
+        </div>
+        <div class="arch-card green">
+          <div class="arch-card-label">Cause 4 — Inactive Relay</div>
+          <div class="arch-card-title">Apple Hide My Email Relay Turned Off</div>
+          <div class="arch-card-desc">Apple Hide My Email addresses only work while the relay is active. If the customer disabled "Hide My Email" for a specific app in their Apple ID settings, or if their iCloud subscription lapsed (Hide My Email requires iCloud+), the relay stops forwarding. Checkout succeeds but every subsequent email — confirmation, shipping, marketing — silently disappears.</div>
+        </div>
+        <div class="arch-card purple">
+          <div class="arch-card-label">Cause 5 — Deliverability</div>
+          <div class="arch-card-title">Confirmation Email Blocked or Filtered</div>
+          <div class="arch-card-desc">Shopify sends transactional email from shared infrastructure. Without a custom sender domain with SPF and DKIM configured, some mail servers — particularly corporate Microsoft 365 and Google Workspace deployments with strict policies — reject or quarantine emails from Shopify's sending IPs. The checkout succeeded; the email is the problem.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Silent Failure Modes</div>
+      <h2>Seven Ways Email Problems Silently Break Shopify Checkout</h2>
+      <p class="section-intro">Most email failures don't block checkout — they let the customer through but break every downstream communication. The customer thinks the order worked; they just never hear from the store again. This is how chargebacks start.</p>
+
+      <table class="failure-table">
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Root Cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>"Enter a valid email address" blocking checkout</td>
+            <td>Mobile autocorrect typo: space before @, @ replaced with period or comma, domain misspelled (gmail.con), missing TLD</td>
+            <td>No merchant-side fix — customer must correct the email. Consider adding client-side format hint below the email field via Checkout UI Extension. Check Admin → Orders for recent orders with obviously misspelled domains and proactively resend confirmations</td>
+          </tr>
+          <tr>
+            <td>Apple Hide My Email rejected at checkout</td>
+            <td>Anti-fraud app blocklist includes @privaterelay.appleid.com as a "disposable" domain</td>
+            <td>In your anti-fraud app settings, add @privaterelay.appleid.com to the allowed/whitelist domains. Also whitelist @simplelogin.io, @anonaddy.com, @mozmail.com, @relay.firefox.com for other common privacy relay services</td>
+          </tr>
+          <tr>
+            <td>Order confirmation email not received after successful checkout</td>
+            <td>Spam filtering, inactive Apple Hide My Email relay, typo in email, or corporate mail server rejection</td>
+            <td>Admin → Orders → verify email address → Resend confirmation. Configure custom sender email with SPF/DKIM for better deliverability. Ask customers to check spam folder</td>
+          </tr>
+          <tr>
+            <td>Shop Pay fills wrong email; confirmation goes to old address</td>
+            <td>Shop Pay account email differs from customer's intended email for this order</td>
+            <td>No merchant-side fix. Customers must update their Shop Pay account email at shop.app or check out as a guest to bypass Shop Pay auto-fill</td>
+          </tr>
+          <tr>
+            <td>Checkout completes but all follow-up emails disappear</td>
+            <td>Customer used Apple Hide My Email relay that is now inactive (iCloud+ lapsed or relay disabled in settings)</td>
+            <td>No automatic fix — relay is controlled by the customer. When a customer contacts support about missing emails, check if the email ends in @privaterelay.appleid.com. Inform them the relay may be inactive and ask for a direct email address to resend communications</td>
+          </tr>
+          <tr>
+            <td>Klaviyo / Omnisend flows not triggering for some customers</td>
+            <td>ESP suppression list contains Apple relay addresses that previously hard-bounced when relays were inactive</td>
+            <td>Audit your ESP suppression list for @privaterelay.appleid.com addresses. Remove hard bounces that occurred because the relay was inactive (not because the address was truly invalid). Whitelist the relay domain in your ESP's domain blocklist settings</td>
+          </tr>
+          <tr>
+            <td>Customer account order history missing; order not visible in account</td>
+            <td>Checkout email and customer account email are different — common when Shop Pay uses a different email than the one the customer's Shopify account is registered under</td>
+            <td>Admin → Customers → look up by name or order number → merge duplicate customer profiles if the same person has two email addresses on file. Explain to customer that their order is under a different email address</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive A</div>
+      <h2>Email Format Validation — What Shopify Accepts and Why Mobile Causes Silent Typos</h2>
+      <p class="section-intro">Shopify validates email format using RFC 5322 syntax. The rules are simple — but mobile keyboards make them surprisingly easy to violate without the customer noticing.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A — Valid vs. Invalid Formats</div>
+        <h3>What Shopify Accepts and What It Rejects</h3>
+        <p>Shopify's email validation checks for a valid local part (before the @), exactly one @ symbol, and a valid domain with at least one dot. These are the common failures:</p>
+        <div class="mono-block">
+Valid (Shopify accepts):
+  john.doe@gmail.com              ✓
+  john+tag@company.co.uk          ✓  (plus addressing)
+  xyz.abc@privaterelay.appleid.com ✓  (Apple Hide My Email)
+  user@simplelogin.io             ✓  (privacy relay)
+  JOHN@GMAIL.COM                  ✓  (case-insensitive)
+
+Invalid (Shopify rejects):
+  john .doe@gmail.com             ✗  (space before @)
+  john.doe @gmail.com             ✗  (space after local part)
+  john.doe@gmail,com              ✗  (comma instead of dot — autocorrect)
+  john..doe@gmail.com             ✗  (double dot in local part)
+  johndoe@gmail                   ✗  (missing TLD)
+  @gmail.com                      ✗  (missing local part)
+        </div>
+        <p>The space typo is the most common mobile autocorrect failure. On iOS, the spacebar is immediately adjacent to the @ key — a fat-finger tap inserts a space. On Android, autocorrect can replace the @ symbol with a period or comma if the keyboard "corrects" what it interprets as a punctuation mistake.</p>
+        <p>To reduce mobile typos: use <code>type="email"</code> and <code>autocomplete="email"</code> on the email input (Shopify does this natively). Consider adding <code>inputmode="email"</code> as well — it suppresses autocorrect on most mobile keyboards. Shopify Plus merchants can enforce this via Checkout UI Extension on the email field.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive A — Common Typo Patterns</div>
+        <h3>Email Domain Typos That Reach Real Customers</h3>
+        <p>Customers who submit a typo'd email address complete checkout successfully — Shopify has no way to know the domain is misspelled. You see a completed order; the customer sees nothing because the confirmation email bounced. The patterns below account for over 80% of domain typos in e-commerce:</p>
+        <div class="mono-block">
+gmail.com    → gmial.com, gmail.co, gmal.com, gmail.con, gmai.com
+hotmail.com  → hotmal.com, hotmaill.com, hotmail.co
+yahoo.com    → yaho.com, yahooo.com, yahoo.co
+outlook.com  → outllook.com, outlok.com, outloo.com
+icloud.com   → iclod.com, icoud.com
+        </div>
+        <p>Proactive fix: run a weekly query of Admin → Orders, export customer emails, and filter for known typo patterns. For recent orders with typo domains, contact customers via their phone number (if collected) or social media to get a corrected email and resend the order confirmation. This reduces chargebacks from customers who never received their confirmation and thought the order failed.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive B</div>
+      <h2>Apple Hide My Email and Privacy Relay Services — What Works and What Breaks</h2>
+      <p class="section-intro">Apple Hide My Email is an iCloud+ feature that generates a unique random email address for each app or website. The relay address forwards to the user's real Apple ID email. These addresses are valid and technically functional — but they create problems at several layers of the Shopify ecosystem.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B — How the Relay Works</div>
+        <h3>Apple Hide My Email Technical Flow</h3>
+        <p>When a customer uses "Sign in with Apple" or selects "Hide My Email" during checkout, Apple generates an address like <code>xyz123.abc456@privaterelay.appleid.com</code>. Apple's relay server receives all email sent to that address and forwards it to the customer's real Apple ID email. The relay is active as long as: (1) the customer has an active iCloud+ subscription ($0.99/mo or higher), (2) the relay for that specific address is enabled in Apple ID settings, and (3) Apple's relay infrastructure is operational.</p>
+        <div class="mono-block">
+Apple Hide My Email flow:
+  Shopify → sends to xyz123.abc456@privaterelay.appleid.com
+    → Apple relay server receives
+      → [relay active?] Yes → forwards to customer's real email  ✓
+      → [relay active?] No  → email silently dropped             ✗
+
+Common relay deactivation triggers:
+  - iCloud+ subscription expired
+  - Customer manually disabled relay in Apple ID → iCloud → Hide My Email
+  - Customer used "Sign in with Apple" to create account then later deleted it
+        </div>
+        <p>From Shopify's perspective, every email to a privaterelay.appleid.com address succeeds — there is no bounce. The relay server accepts the email. You will never see a hard bounce or delivery failure in Shopify's notification logs. The only way to know the relay is inactive is if the customer contacts you.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive B — Privacy Relay Reference Table</div>
+        <h3>Common Privacy Email Services Merchants Encounter</h3>
+        <table class="relay-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Domain</th>
+              <th>Requires Subscription?</th>
+              <th>Anti-Fraud Risk</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Apple Hide My Email</td>
+              <td>@privaterelay.appleid.com</td>
+              <td>Yes — iCloud+ ($0.99/mo+)</td>
+              <td>Often flagged as disposable</td>
+              <td>Whitelist in anti-fraud app; inform customers relay must stay active</td>
+            </tr>
+            <tr>
+              <td>SimpleLogin</td>
+              <td>@simplelogin.io, @slmail.me</td>
+              <td>Free tier available</td>
+              <td>Sometimes flagged</td>
+              <td>Whitelist in anti-fraud app</td>
+            </tr>
+            <tr>
+              <td>Firefox Relay</td>
+              <td>@mozmail.com, @relay.firefox.com</td>
+              <td>Free tier available</td>
+              <td>Sometimes flagged</td>
+              <td>Whitelist in anti-fraud app</td>
+            </tr>
+            <tr>
+              <td>Fastmail aliases</td>
+              <td>@fastmail.com variants</td>
+              <td>Yes — Fastmail subscription</td>
+              <td>Rarely flagged</td>
+              <td>No action needed</td>
+            </tr>
+            <tr>
+              <td>Mailinator (public)</td>
+              <td>@mailinator.com</td>
+              <td>No — fully public</td>
+              <td>Always flagged — legitimate to block</td>
+              <td>Keep blocked — used for anonymous orders</td>
+            </tr>
+            <tr>
+              <td>Guerrilla Mail</td>
+              <td>@guerrillamail.com, @sharklasers.com</td>
+              <td>No — fully public</td>
+              <td>Always flagged — legitimate to block</td>
+              <td>Keep blocked</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:12px; color: var(--text-dim); margin-top: 10px;">Key distinction: fully public disposable email services (Mailinator, Guerrilla Mail) have no account ownership — anyone can read emails sent to them. Privacy relay services (Apple, SimpleLogin, Firefox Relay) have authenticated accounts and forward only to the owner. These are fundamentally different risk profiles despite appearing similar in domain-based blocklists.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Deep Dive C</div>
+      <h2>Transactional Email Deliverability — Why Confirmation Emails Go Missing</h2>
+      <p class="section-intro">Shopify order confirmation emails are sent from Shopify's shared infrastructure. Without a custom sender domain, you're competing with the reputation of thousands of other Shopify merchants sharing the same sending IPs. Here's how to fix deliverability at the root.</p>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — Custom Sender Domain</div>
+        <h3>Configuring a Custom Sender Email with SPF and DKIM</h3>
+        <p>By default, Shopify sends notifications from a @shopify-notifications.com subdomain. Setting up a custom sender email routes notifications through your own domain, which you can authenticate with SPF and DKIM records — telling recipient mail servers that you authorized Shopify to send on your behalf.</p>
+        <div class="mono-block">
+Step 1: Admin → Settings → Notifications → Sender email
+  → Enter your custom email: hello@yourdomain.com
+  → Shopify will prompt you to verify domain ownership
+
+Step 2: Add DNS records at your domain registrar
+  SPF:  v=spf1 include:shops.shopify.com ~all
+  DKIM: TXT record with value Shopify provides (auto-generated per store)
+
+Step 3: Verify in Admin → Notifications → Domain status shows "Authenticated"
+
+Result: Emails arrive as "From: hello@yourdomain.com" not "shopify-notifications.com"
+  → Higher deliverability with corporate mail servers
+  → Builds domain reputation over time
+  → Reduces spam filter false positives
+        </div>
+        <p>DMARC is optional but recommended for domains with significant email volume: <code>v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com</code>. Start with p=none to monitor without breaking delivery, then advance to p=quarantine after a few weeks of clean reports.</p>
+      </div>
+
+      <div class="deepdive">
+        <div class="deepdive-label">Deep Dive C — Resending and Manual Recovery</div>
+        <h3>How to Resend Order Confirmations and Recover Missing Emails</h3>
+        <p>If a customer didn't receive their confirmation, the fastest fix is a manual resend — no need to create a new order or issue a refund. Shopify keeps the email address on record for every order regardless of whether the confirmation was delivered.</p>
+        <div class="mono-block">
+Manual resend:
+  Admin → Orders → [select order] → More actions → Resend email
+    → Choose: Order confirmation / Shipping confirmation / etc.
+
+Check email on file:
+  Admin → Orders → [select order] → Customer section → Email address
+    → Compare to what customer says they used
+    → If typo: cannot change email on existing order; create a note and
+      manually email the customer from your support address
+
+Bulk audit for typo domains (export CSV):
+  Admin → Orders → Export → All orders → Email column
+    → Filter for @gmail.con, @hotmail.co, etc. in spreadsheet
+        </div>
+        <p>For ongoing deliverability monitoring: check Admin → Settings → Notifications periodically for any domain authentication warnings. Shopify will flag if SPF or DKIM records become misconfigured after a domain transfer or DNS change.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Diagnosis Checklist</div>
+      <h2>Email Fix Checklist — Start Here</h2>
+
+      <ul class="check-list">
+        <li>
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <strong>Verify the email on the order</strong>
+            <span>Admin → Orders → select order → check the email address in the Customer section. Common findings: typo in domain (gmail.con), old email from Shop Pay account, Apple relay address (@privaterelay.appleid.com). This tells you which failure mode you're dealing with before spending time on the wrong fix.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <strong>Resend the confirmation email</strong>
+            <span>Admin → Orders → [order] → More actions → Resend email → Order confirmation. Ask the customer to check spam folder. If the address is clearly a typo, contact the customer via phone or their alternate contact method (if available) and ask for their correct email to send manually from your support address.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <strong>If Apple Hide My Email or relay address: whitelist in anti-fraud app</strong>
+            <span>If customers are being blocked at checkout: open your anti-fraud app settings (FraudLabs Pro, NoFraud, Signifyd) and add @privaterelay.appleid.com to the allowed domain list. Also add @simplelogin.io, @mozmail.com, @relay.firefox.com. These are real customers using legitimate privacy tools, not fraudsters.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <strong>Set up custom sender email with SPF and DKIM</strong>
+            <span>Admin → Settings → Notifications → Sender email → enter your domain email → follow DNS setup steps. This is the single highest-impact action for improving confirmation email deliverability. Reduces corporate mail server rejections and builds domain sending reputation over time.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">5</div>
+          <div class="check-body">
+            <strong>Audit ESP suppression list for wrongly-bounced relay addresses</strong>
+            <span>If you use Klaviyo, Omnisend, or another ESP: check the suppression/unsubscribe list for @privaterelay.appleid.com addresses. Hard bounces that occurred because a relay was temporarily inactive (not because the address was invalid) should be removed so post-purchase flows can reach these customers again.</span>
+          </div>
+        </li>
+        <li>
+          <div class="check-num">6</div>
+          <div class="check-body">
+            <strong>For Shop Pay email conflicts: inform customer to update Shop Pay account</strong>
+            <span>If the order went to a customer's old Shop Pay email: advise them to log into shop.app to update their account email address. Alternatively, they can check out as a guest in future orders by not using the "Sign in with Shop" button — guest checkout bypasses Shop Pay auto-fill entirely.</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-label">FAQ</div>
+      <h2>Shopify Checkout Email — Frequently Asked Questions</h2>
+
+      <div class="faq">
+        <div class="faq-item">
+          <div class="faq-q">Why does Shopify checkout say my email is invalid even though it's a real email address?</div>
+          <div class="faq-a">Shopify's native email validation accepts virtually any correctly formatted address, including Apple Hide My Email relay addresses. If a valid email is being rejected at checkout, a third-party anti-fraud app installed on the store is most likely blocking it — particularly if the address ends in @privaterelay.appleid.com or another privacy relay domain. The app's domain blocklist treats relay services as disposable email. Ask the merchant to whitelist privacy relay domains, or try entering a different email address to proceed.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is Apple Hide My Email not working at Shopify checkout?</div>
+          <div class="faq-a">Apple Hide My Email addresses (ending in @privaterelay.appleid.com) are technically valid and pass Shopify's native validation. The two most common failure modes: (1) the merchant has an anti-fraud app that blocks @privaterelay.appleid.com as a disposable email domain — fix is to whitelist the domain in the anti-fraud app settings; (2) the relay is inactive because the customer's iCloud+ subscription lapsed or they disabled it in Apple ID settings — fix is for the customer to re-enable the relay or use their real email address instead.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why is my Shopify order confirmation email not arriving?</div>
+          <div class="faq-a">Most commonly: the email went to spam (check spam/junk folder), there's a typo in the email address entered at checkout, or the store doesn't have a custom sender domain configured (making Shopify's emails look suspicious to corporate mail servers). Merchants can resend the confirmation via Admin → Orders → More actions → Resend email. For ongoing deliverability, set up a custom sender email with SPF and DKIM records in Admin → Settings → Notifications.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why does Shop Pay use the wrong email at checkout?</div>
+          <div class="faq-a">Shop Pay auto-fills the email from the customer's Shop Pay account profile, overriding whatever was typed. If the Shop Pay account email is old, order confirmations go there. Customers should update their Shop Pay account email at shop.app, or check out as a guest by not signing in via Shop Pay to use a different email for a specific order. Merchants cannot override or modify which email Shop Pay uses.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Why are some customers not receiving marketing emails after checkout?</div>
+          <div class="faq-a">Three common causes: (1) The customer used Apple Hide My Email and the relay is no longer active — all emails are silently dropped by Apple's relay server. (2) The email address is on your ESP's suppression list from a previous hard bounce when the relay was inactive. (3) The customer subscribed at checkout but your ESP requires double opt-in — the confirmation email went to spam and they never clicked confirm. For (1) and (2): audit your suppression list for relay addresses. For (3): consider disabling double opt-in for Shopify checkout subscribers, or ensure the opt-in confirmation email has strong deliverability.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Related Guides</div>
+      <h2>Other Shopify Checkout Contact and Communication Issues</h2>
+
+      <div class="guide-grid">
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">
+          <div class="guide-card-label">Form Validation</div>
+          <div class="guide-card-title">Phone Number Not Working</div>
+          E.164 format errors, country code conflicts, SMS notifications failing after checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working">
+          <div class="guide-card-label">Form Validation</div>
+          <div class="guide-card-title">Address Autocomplete Not Working</div>
+          Google Maps suggestions missing, address not populating, country coverage gaps.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">
+          <div class="guide-card-label">Form Validation</div>
+          <div class="guide-card-title">Address Validation Failed</div>
+          Address not recognized, city field errors, postal code not accepted at checkout.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">
+          <div class="guide-card-label">Post-Purchase</div>
+          <div class="guide-card-title">Order Confirmation Not Received</div>
+          Order confirmation email missing, status page not loading, notification timing.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">
+          <div class="guide-card-label">Fraud</div>
+          <div class="guide-card-title">Legitimate Orders Blocked as Fraud</div>
+          High-risk order false positives, real customers being declined, fraud score errors.
+        </a>
+        <a class="guide-card" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">
+          <div class="guide-card-label">Localization</div>
+          <div class="guide-card-title">Wrong Language / Format Error</div>
+          Checkout displaying wrong language, postal code validation failing by country.
+        </a>
+      </div>
+    </section>
+
+    <div class="cta-block">
+      <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+      <p>Email validation errors, anti-fraud false positives, and confirmation email deliverability issues can silently block real customers or lose orders after checkout completes. CheckPulse monitors your checkout continuously — 4-step automated test runs every few minutes, instant email alert if anything breaks.</p>
+      <a class="cta-btn" href="https://adadadada321321.github.io/checkpulse/free-check">Run Free Checkout Health Check</a>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container">
+      <a class="footer-logo" href="https://adadadada321321.github.io/checkpulse/">
+        <div class="footer-logo-mark">✓</div>
+        <span class="footer-logo-text">CheckPulse</span>
+      </a>
+      <div class="footer-copy">Shopify checkout monitoring — catch issues before your customers do.</div>
+      <div class="footer-links">
+        <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+        <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+        <a href="https://adadadada321321.github.io/checkpulse/guide">Guide</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Troubleshooting</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-email-not-working">Email Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-international">International Checkout</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-vat-exemption">EU VAT Exemption</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+        <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+        <a href="#">Privacy</a>
+        <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+      }, { threshold: 0.08 });
+      els.forEach(el => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Inventory Reservation Not Working — Ghost OOS, Hold Not Releasing, Overselling, Race Condition (2026)</title>
+  <meta name="description" content="Shopify checkout inventory reservations create ghost out-of-stock errors, fail to hold during flash sales, or don't release after abandonment. Three distinct failure modes: holds not releasing, inventory not being held (overselling), and race conditions at high traffic. Each has a different fix." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-reservation-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-reservation-not-working" />
+  <meta property="og:title" content="Shopify Checkout Inventory Reservation Not Working — Ghost OOS, Overselling, Race Condition" />
+  <meta property="og:description" content="Shopify reserves inventory the moment a checkout session starts — not when the order is placed. Ghost OOS happens when abandoned checkout sessions hold the last unit. Overselling happens when 'Continue selling when out of stock' is enabled or an app bypasses checkout. Race conditions happen at flash sales when multiple customers reach checkout for the same unit simultaneously." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Inventory Reservation Not Working — Ghost OOS, Hold Not Releasing, Overselling, Race Condition",
+    "description": "Shopify reserves inventory at checkout session creation, not at order placement. This creates three distinct failure modes: (1) Ghost OOS — abandoned checkout sessions hold inventory, making items appear sold out when they haven't been purchased; (2) Overselling — inventory isn't held because 'Continue selling when out of stock' is enabled, or an app creates orders via API bypassing checkout; (3) Race conditions — at high traffic, multiple customers can reach checkout for the same last unit, and only the first to submit successfully reserves it. Each failure mode has different diagnostic signals and different fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-inventory-reservation-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How long does Shopify hold inventory during checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify reserves inventory when a checkout session is created — the moment a customer clicks 'Checkout' from the cart. The hold lasts for the lifetime of the checkout session. A checkout session expires when: the customer completes the purchase, the browser session closes and Shopify's background cleanup runs (typically within 10–30 minutes of inactivity), or the session hits Shopify's maximum checkout lifetime (typically a few hours for active sessions). There is no fixed public timer like '10 minutes' — the hold persists as long as the checkout is active. On Shopify Plus, the inventory reservation duration is configurable via the Inventory Reservation API. On standard plans, the duration is controlled by Shopify and cannot be changed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show an item as out of stock when it was never actually purchased?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is called a 'ghost OOS' (ghost out-of-stock) situation. It happens when a customer reaches checkout and Shopify creates a checkout session — which immediately reserves the inventory. If the customer abandons the checkout without completing the purchase, Shopify needs time to detect the abandonment and release the hold. During this window, the item appears sold out to other visitors because its inventory quantity is reserved. For the last unit of a product, this creates a situation where no purchase occurred but the product appears unavailable. The hold is typically released within 10–30 minutes of checkout session inactivity. At high traffic (flash sales, product launches), multiple simultaneous abandonments can keep the item appearing sold out continuously even if no real purchase ever happened."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify letting people buy items that are out of stock?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Overselling in Shopify happens for one of three reasons. (1) 'Continue selling when out of stock' is enabled for the product — check the product page in Shopify admin, scroll to Inventory, and look for the 'Continue selling when out of stock' checkbox. When this is on, Shopify ignores inventory levels at checkout. (2) An app creates orders via the Shopify Orders API directly rather than through the standard checkout flow — the API path bypasses checkout-level inventory validation by default. (3) Draft orders created in Shopify admin or via API skip the checkout inventory hold system. Draft orders don't create a checkout session, so they don't trigger inventory reservation at creation time — the inventory is only deducted when the draft order is converted to a paid order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens when two customers try to buy the last item at the same time on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify handles this at the checkout reservation layer, not the cart layer. Two customers can both have an item in their cart simultaneously — carts don't reserve inventory. The race condition is resolved when both customers reach the checkout page. Whichever customer's checkout session is created first gets the inventory hold. The other customer's checkout creation will succeed (the checkout is created), but when they attempt to complete payment, they receive an error that the item is no longer available. Shopify does not allow two active checkout sessions to hold the same inventory unit. The key implication: showing an item as 'in stock' on the product page is not a guarantee — the checkout step is where the reservation actually happens."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can third-party cart reservation apps conflict with Shopify's checkout inventory system?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Apps that implement their own cart-level inventory reservation (Bold Cart Reserve, EasyLock, add-to-cart reservation apps) maintain their own hold system separate from Shopify's checkout-level reservation. This creates double-hold scenarios: the app reserves inventory at add-to-cart, Shopify reserves it again at checkout creation — for the same item. If a customer abandons their cart, the app may release its hold but Shopify's checkout hold persists (or vice versa), causing the item to remain unavailable longer than expected. Apps that reserve at add-to-cart cannot prevent Shopify's checkout reservation from also holding the item."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1117;
+      --ink-2: #374151;
+      --ink-3: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --surface-3: #f3f4f6;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-surface: #eff6ff;
+      --warn: #b45309;
+      --warn-surface: #fffbeb;
+      --ok: #065f46;
+      --ok-surface: #ecfdf5;
+      --danger: #991b1b;
+      --danger-surface: #fef2f2;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1rem; line-height: 1.65; color: var(--ink); background: var(--surface); }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 1.25rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { border-bottom: 1px solid var(--border); padding: 0.9rem 0; }
+    nav .container { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1rem; margin-left: auto; font-size: 0.875rem; }
+    .nav-links a { color: var(--ink-2); }
+    .nav-cta { background: var(--accent); color: #fff !important; padding: 0.4rem 0.9rem; border-radius: var(--radius-sm); font-weight: 600; }
+    .nav-cta:hover { background: var(--accent-dark); text-decoration: none !important; }
+
+    .hero { padding: 3rem 0 2.25rem; border-bottom: 1px solid var(--border); }
+    .breadcrumb { font-size: 0.8rem; color: var(--ink-3); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--ink-3); }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.15rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.02em; }
+    .hero-meta { font-size: 0.82rem; color: var(--ink-3); display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .hero-lead { margin-top: 1.1rem; font-size: 1.05rem; color: var(--ink-2); max-width: 72ch; line-height: 1.7; }
+
+    .toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 2rem 0; }
+    .toc-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .toc li { font-size: 0.9rem; }
+
+    section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.45rem; font-weight: 800; margin-bottom: 1.1rem; letter-spacing: -0.015em; }
+    h3 { font-size: 1.1rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 0.9rem; color: var(--ink-2); }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.35rem; color: var(--ink-2); display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+    li { line-height: 1.6; }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em; background: var(--surface-3); padding: 0.1em 0.35em; border-radius: 4px; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.25rem; background: var(--surface); }
+    .card-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin-bottom: 0.5rem; }
+    .card h3 { font-size: 0.97rem; font-weight: 700; margin: 0 0 0.45rem; color: var(--ink); }
+    .card p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+    .card.warn { border-color: #fcd34d; background: var(--warn-surface); }
+    .card.ok { border-color: #6ee7b7; background: var(--ok-surface); }
+    .card.danger { border-color: #fca5a5; background: var(--danger-surface); }
+    .card.info { border-color: #bfdbfe; background: var(--accent-surface); }
+
+    .callout { border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1.25rem 0; font-size: 0.9rem; line-height: 1.6; }
+    .callout.warn { background: var(--warn-surface); border-left: 4px solid #f59e0b; color: #78350f; }
+    .callout.ok { background: var(--ok-surface); border-left: 4px solid #10b981; color: #064e3b; }
+    .callout.danger { background: var(--danger-surface); border-left: 4px solid #ef4444; color: #7f1d1d; }
+    .callout.info { background: var(--accent-surface); border-left: 4px solid #3b82f6; color: #1e3a8a; }
+    .callout strong { font-weight: 700; }
+
+    .table-wrap { overflow-x: auto; margin: 1.25rem 0; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th { background: var(--surface-2); font-weight: 700; padding: 0.7rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--ink); }
+    tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: var(--surface-2); }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 99px; }
+    .badge.red { background: #fee2e2; color: #991b1b; }
+    .badge.green { background: #d1fae5; color: #065f46; }
+    .badge.yellow { background: #fef3c7; color: #92400e; }
+    .badge.blue { background: #dbeafe; color: #1e40af; }
+    .badge.gray { background: #f3f4f6; color: #374151; }
+
+    .steps { display: flex; flex-direction: column; gap: 0.75rem; margin: 1.25rem 0; }
+    .step { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 0.1rem; }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; font-size: 0.93rem; color: var(--ink); margin-bottom: 0.2rem; }
+    .step-body p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+
+    .faq { display: flex; flex-direction: column; gap: 1.5rem; margin: 1.25rem 0; }
+    .faq-item { }
+    .faq-q { font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem; }
+    .faq-a { font-size: 0.9rem; color: var(--ink-2); line-height: 1.65; }
+
+    .cta-box { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius: 14px; padding: 2.25rem 2rem; text-align: center; margin: 2.5rem 0; color: #fff; }
+    .cta-box h2 { color: #fff; font-size: 1.55rem; margin-bottom: 0.6rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); font-size: 1rem; margin-bottom: 1.4rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--accent-dark); font-weight: 700; padding: 0.75rem 2rem; border-radius: var(--radius-sm); font-size: 1rem; }
+    .cta-btn:hover { background: #eff6ff; text-decoration: none; }
+    .cta-sub { margin-top: 0.85rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+    .related-grid a { font-size: 0.85rem; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--ink-2); display: block; transition: border-color 0.15s; }
+    .related-grid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 0 2.5rem; margin-top: 3rem; }
+    .footer-brand { font-weight: 800; font-size: 1rem; margin-bottom: 0.3rem; }
+    .footer-copy { font-size: 0.8rem; color: var(--ink-3); display: block; margin-bottom: 1rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .footer-links a { font-size: 0.8rem; color: var(--ink-3); }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      h2 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="./">Check<span>Pulse</span></a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a class="nav-cta" href="./#pricing">Monitor My Checkout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a> › <a href="./shopify-checkout-not-working">Checkout Issues</a> › Inventory Reservation Not Working
+    </div>
+    <h1>Shopify Checkout Inventory Reservation Not Working — Ghost OOS, Hold Not Releasing &amp; Overselling</h1>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Shopify Basic · Shopify · Advanced · Plus</span>
+      <span>3 failure modes · 7-step diagnostic</span>
+    </div>
+    <p class="hero-lead">
+      Shopify reserves inventory the moment a checkout session is created — not when the order is paid. Ghost out-of-stock errors happen when abandoned checkouts hold inventory before the session expires. Overselling happens when inventory tracking is bypassed by a product setting or an app. Race conditions at flash sales let multiple customers reach checkout for the same unit simultaneously, with only one succeeding.
+    </p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">On This Page</div>
+    <ol>
+      <li><a href="#architecture">How Shopify Inventory Reservation Actually Works</a></li>
+      <li><a href="#ghost-oos">Ghost OOS: Holds Not Releasing / Item Stuck as Out of Stock</a></li>
+      <li><a href="#overselling">Inventory Not Being Held — Overselling at Checkout</a></li>
+      <li><a href="#race-condition">Race Conditions During Flash Sales and High Traffic</a></li>
+      <li><a href="#multi-location">Multi-Location Inventory Hold Issues</a></li>
+      <li><a href="#app-conflicts">Third-Party App Conflicts with Inventory Reservation</a></li>
+      <li><a href="#diagnostic">7-Step Inventory Reservation Diagnostic</a></li>
+      <li><a href="#reference">Inventory Hold Behavior Reference Table</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 1: ARCHITECTURE -->
+  <section id="architecture">
+    <h2>How Shopify Inventory Reservation Actually Works</h2>
+    <p>
+      Most merchants assume Shopify deducts inventory when an order is paid. That's not accurate. Shopify reserves inventory at checkout session creation — the moment a customer clicks "Checkout" from the cart. The hold prevents two customers from completing payment for the same last unit.
+    </p>
+
+    <div class="card-grid">
+      <div class="card info">
+        <div class="card-label">Step 1 — Cart</div>
+        <h3>No inventory hold at cart</h3>
+        <p>Adding to cart doesn't reserve anything. Multiple customers can have the same item in their carts simultaneously. Cart-level availability is based on the raw inventory count with no reservation applied.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Step 2 — Checkout Created</div>
+        <h3>Inventory hold begins here</h3>
+        <p>When the customer clicks Checkout, Shopify creates a checkout session and immediately places a hold on the inventory. The available quantity for other customers is reduced at this point — even though no payment has occurred.</p>
+      </div>
+      <div class="card ok">
+        <div class="card-label">Step 3 — Payment Completed</div>
+        <h3>Hold converts to order deduction</h3>
+        <p>When payment succeeds, the checkout session converts to an order and the inventory hold is converted to a permanent deduction. No gap exists between hold and deduction — the transition is atomic.</p>
+      </div>
+      <div class="card danger">
+        <div class="card-label">Step 4 — Checkout Abandoned</div>
+        <h3>Hold must be explicitly released</h3>
+        <p>If the customer abandons checkout, the hold persists until Shopify's session cleanup detects inactivity. This cleanup is not instant — it runs on a schedule, typically within 10–30 minutes of session inactivity. During this window, the item appears sold out.</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>The critical architectural insight:</strong> Shopify's inventory reservation is designed around a checkout session lifecycle, not a payment lifecycle. A single abandoned checkout session for the last unit creates a period where your item appears sold out to every other customer — even if you have zero completed orders.
+    </div>
+
+    <h3>Hold Duration: What Shopify Actually Does</h3>
+    <p>
+      There is no single fixed hold duration that applies to all stores. The hold lifetime depends on plan and configuration:
+    </p>
+    <ul>
+      <li><strong>Standard plans (Basic, Shopify, Advanced):</strong> Hold duration is controlled entirely by Shopify. An active checkout session is kept alive while the browser is open and the customer is interacting. After the browser closes or the customer navigates away, Shopify's background jobs detect inactivity and release the hold — typically within 10–30 minutes, though this is not guaranteed or documented as a hard SLA.</li>
+      <li><strong>Shopify Plus:</strong> The Inventory Reservation API lets Plus merchants explicitly set how long inventory is held at checkout. This can be set from a minimum of 10 minutes up to multiple hours, giving merchants control over the ghost OOS window.</li>
+      <li><strong>Draft orders (all plans):</strong> Draft orders do not create checkout sessions and do not trigger the inventory reservation system at creation. Inventory is only deducted when the draft order is paid.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 2: GHOST OOS -->
+  <section id="ghost-oos">
+    <h2>Ghost OOS: Holds Not Releasing / Item Stuck as Out of Stock</h2>
+    <p>
+      Ghost OOS is the most common inventory reservation complaint: customers report items are sold out, but you have no corresponding orders. The item is being held by active or recently-abandoned checkout sessions.
+    </p>
+
+    <h3>How Ghost OOS Happens</h3>
+    <p>
+      Scenario: You have 1 unit left of a popular product. Customer A reaches checkout — Shopify reserves the unit. Customer A decides not to buy and closes the tab. Shopify needs time to detect the abandonment. During that window — which can be 10–30 minutes — Customer B visits the product page and sees "Out of Stock." Customer B never comes back. The unit is released, but Customer B is gone.
+    </p>
+    <p>
+      At scale during a product launch or flash sale, this compounds: 50 customers simultaneously reach checkout for 10 available units. Shopify successfully reserves all 10. The other 40 checkouts fail to reserve. But even after those 50 customers abandon, the 10 holds persist for the cleanup window, blocking the next wave of customers from seeing availability.
+    </p>
+
+    <h3>Diagnosing Ghost OOS</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Check inventory levels vs. orders</strong>
+          <p>In Shopify admin → Products → [Product] → Inventory, check the available quantity. Then check Orders to count actual purchased units. If available + ordered does not equal your total stock, you have active holds consuming the difference.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check abandoned checkouts</strong>
+          <p>Shopify admin → Orders → Abandoned checkouts. Active abandoned checkouts that contain the out-of-stock item are holding inventory. Shopify Plus merchants can also query active inventory reservations via the Inventory Reservation API.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Wait for automatic release</strong>
+          <p>If you've confirmed the holds exist and are from truly abandoned sessions, they will release automatically. Standard plan merchants cannot force-release checkout-level inventory holds from the admin UI — only session expiry releases them.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Shopify Plus: use Inventory Reservation API to reduce hold duration</strong>
+          <p>If you're on Plus, reduce the <code>locationActivationThreshold</code> or configure a shorter reservation window via the Inventory Reservation API. A 10-minute hold window dramatically reduces ghost OOS impact versus a 60-minute window.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      <strong>You cannot manually delete inventory holds from the Shopify admin on standard plans.</strong> Adjusting inventory quantities manually (adding stock) will show items as available again, but this creates data integrity issues — you're telling Shopify you have more stock than you actually do. Only use manual quantity adjustments if you're certain the holds are truly abandoned and won't convert to orders.
+    </div>
+
+    <h3>Ghost OOS Prevention</h3>
+    <ul>
+      <li><strong>Shopify Plus — shorten the reservation window:</strong> Use the Inventory Reservation API to set a shorter hold duration (10–15 minutes). Most genuine customers complete checkout within 10 minutes; longer holds primarily benefit bots and indecisive browsers.</li>
+      <li><strong>Add a "notify when available" option:</strong> If ghost OOS is persistent, adding a back-in-stock notification app means customers who see OOS can be captured and notified when the hold releases — recovering demand that would otherwise be lost.</li>
+      <li><strong>Increase stock buffers before launches:</strong> For high-demand product launches, having a small inventory buffer (e.g., not selling 100% of available units via Shopify) reduces ghost OOS sensitivity at zero-remaining thresholds.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 3: OVERSELLING -->
+  <section id="overselling">
+    <h2>Inventory Not Being Held — Overselling at Checkout</h2>
+    <p>
+      The opposite problem: customers successfully complete payment for items that should be out of stock. Shopify failed to hold or enforce inventory limits. Four causes account for virtually all overselling cases.
+    </p>
+
+    <div class="card-grid">
+      <div class="card danger">
+        <div class="card-label">Cause 1 — Most Common</div>
+        <h3>"Continue selling when out of stock" is enabled</h3>
+        <p>In the product editor, the "Continue selling when out of stock" checkbox disables inventory enforcement entirely. When checked, Shopify allows checkout to proceed regardless of inventory levels. Check every product and variant individually — this setting is per-variant, not per-product.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 2 — App Orders</div>
+        <h3>Apps creating orders via API bypass checkout</h3>
+        <p>Apps that create orders directly via the Shopify Orders API (subscription apps like Recharge, wholesale apps, POS-adjacent tools) bypass the standard checkout reservation system. The Orders API does not check or reserve inventory by default — it deducts after the fact, which can allow overselling.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 3 — Draft Orders</div>
+        <h3>Draft orders skip inventory reservation</h3>
+        <p>Draft orders created in Shopify admin or via the Draft Orders API do not trigger checkout-level inventory holds. If a draft order is sent to a customer and multiple customers receive draft order payment links, all of them can complete payment even if inventory is insufficient.</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Cause 4 — Multi-Location Gap</div>
+        <h3>Inventory not tracked at all locations</h3>
+        <p>If a product is available at some locations but not tracked at others, Shopify's reservation may reference the wrong location's inventory. Items marked "Not tracked" for inventory bypass all hold logic at checkout for those locations.</p>
+      </div>
+    </div>
+
+    <h3>Checking "Continue Selling When Out of Stock" Per-Variant</h3>
+    <p>
+      This is the most overlooked setting because it appears to be a product-level option but is actually stored per-variant. When you set up a product, the setting is applied globally, but if variants are edited individually, they can drift. The only reliable way to audit is:
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Shopify admin → Products → [Product]</strong>
+          <p>Click on the product, scroll to the Inventory section. If the product has variants, each variant has its own inventory settings page.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Click each variant → check "Continue selling when out of stock"</strong>
+          <p>This checkbox must be unchecked for inventory limits to be enforced at checkout. The checkbox appears under the Inventory section of each variant's detail page.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Audit via Shopify admin bulk editor (for many products)</strong>
+          <p>Products → [select all] → Edit products → add the "Continue selling" column to the bulk editor. This lets you see and correct the setting across all products without opening each individually.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout danger">
+      <strong>Subscription apps and the Orders API.</strong> If you use a subscription billing app (Recharge, Seal Subscriptions, Bold Subscriptions), renewal orders are created via Shopify's Orders API, not via the standard checkout. These orders bypass inventory reservation. If a subscriber's renewal creates an order when inventory is 0, the order succeeds and you'll need to fulfill it manually, backorder it, or cancel it. This is expected behavior — you must configure inventory management within your subscription app settings, not in Shopify's checkout inventory settings.
+    </div>
+  </section>
+
+  <!-- SECTION 4: RACE CONDITIONS -->
+  <section id="race-condition">
+    <h2>Race Conditions During Flash Sales and High Traffic</h2>
+    <p>
+      Race conditions occur when the time between "customer sees item as available" and "checkout reservation fires" is longer than expected — allowing multiple customers to proceed toward payment for the same unit.
+    </p>
+
+    <h3>The Anatomy of a Flash Sale Race Condition</h3>
+    <p>
+      At normal traffic, Shopify's checkout reservation resolves race conditions cleanly: two customers click Checkout simultaneously, one gets the hold, the other sees an error at payment. At very high traffic (thousands of simultaneous requests during a product drop), the system can show stale availability information before the reservation layer catches up.
+    </p>
+    <p>
+      The key vulnerability: Shopify's product page and cart page read inventory from a CDN-cached layer. This cache can lag by a few seconds. During those seconds, customers who load the product page may see "1 in stock" when in reality all units are already held at checkout by concurrent sessions. All those customers add to cart and proceed to checkout — only one will successfully complete payment, but all of them reach the payment step before receiving the "no longer available" error.
+    </p>
+
+    <div class="callout warn">
+      <strong>The "no longer available" error at payment step is intentional behavior.</strong> Shopify's inventory system resolves conflicts at the checkout reservation layer. Customers who reach the payment form and then see this error are not experiencing a bug — they lost the inventory race at the reservation stage. The alternative (allowing the error earlier at checkout creation) would cause more friction for customers who reach checkout first-come-first-served.
+    </div>
+
+    <h3>High-Traffic Flash Sale Inventory Strategies</h3>
+    <div class="card-grid">
+      <div class="card ok">
+        <div class="card-label">Strategy 1</div>
+        <h3>Use Shopify's built-in queue (Plus)</h3>
+        <p>Shopify Plus includes a waiting room / virtual queue feature for high-traffic launches. This serializes access to the product page, preventing thousands of simultaneous checkout creations that create both ghost OOS and degraded performance.</p>
+      </div>
+      <div class="card ok">
+        <div class="card-label">Strategy 2</div>
+        <h3>Pre-launch password page with timed reveal</h3>
+        <p>For product drops, keeping the store password-protected and revealing at a precise time with a countdown creates a more controlled first-wave. The first wave is large but not infinite — reducing simultaneous checkout creation spikes.</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Strategy 3</div>
+        <h3>Reduce cart-to-checkout friction</h3>
+        <p>Flash sale drop-off between cart and checkout is high. Reducing steps (using Shopify's accelerated checkout buttons — Shop Pay, PayPal, Google Pay) means customers who reach checkout convert faster, keeping holds shorter and releasing sooner for the next customer.</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Strategy 4</div>
+        <h3>Stagger product availability</h3>
+        <p>Release inventory in waves rather than all at once. Instead of releasing 100 units simultaneously, release 25 every 15 minutes. Smaller inventory releases create smaller race windows and reduce simultaneous checkout spikes.</p>
+      </div>
+    </div>
+
+    <h3>When "Item No Longer Available" Errors Are the Race Condition Signal</h3>
+    <p>
+      If your checkout monitoring (or customers) reports "This item is no longer available" errors at the payment step during a sale, this is the race condition manifesting. It means customers are reaching payment only to discover the inventory was reserved by a concurrent session. CheckPulse's 4-step checkout monitoring catches this class of error in real time — if your checkout can't complete the payment step, you know before customers report it.
+    </p>
+  </section>
+
+  <!-- SECTION 5: MULTI-LOCATION -->
+  <section id="multi-location">
+    <h2>Multi-Location Inventory Hold Issues</h2>
+    <p>
+      Stores with multiple inventory locations have an additional layer of complexity: inventory reservations are tied to specific locations, and the checkout's fulfillment location assignment determines which location's inventory is held.
+    </p>
+
+    <h3>How Shopify Assigns Fulfillment Location at Checkout</h3>
+    <p>
+      When a checkout session is created, Shopify evaluates the customer's shipping address against your fulfillment settings (shipping zones, local delivery settings, and the Locations settings in Shopify admin). The checkout assigns an inventory hold at the location that will fulfill the order.
+    </p>
+    <p>
+      This creates a specific failure pattern: a product has 0 units at Location A (the assigned fulfillment location) and 50 units at Location B. The checkout reserves from Location A, finds 0 inventory, and the item shows as sold out — even though the store has 50 units in total. The customer sees OOS because the checkout's location assignment doesn't match where the stock actually is.
+    </p>
+
+    <div class="callout warn">
+      <strong>Common trigger for this issue:</strong> Creating a new location (e.g., a warehouse or 3PL) and moving stock there without updating fulfillment priorities. The old default location has 0 stock; the new location has all the stock; checkout reserves from the old location. Fix: Shopify admin → Settings → Shipping and Delivery → Shipping origin → update the active fulfillment location. Or reassign shipping zones to include the new location.
+    </div>
+
+    <h3>Location-Specific Inventory Checks</h3>
+    <ul>
+      <li><strong>Check inventory per location:</strong> Products → [Product] → Inventory → view the "Available" column per location. Not just the total — per location.</li>
+      <li><strong>Check active fulfillment locations:</strong> Settings → Shipping and Delivery → confirm which location is marked as the default shipping origin for each shipping zone.</li>
+      <li><strong>Check "Not tracked" inventory at any location:</strong> If a location has "Not tracked" set for a product, that location's inventory bypasses reservation logic entirely. This means orders can be created against that location with no inventory deduction — a potential overselling path.</li>
+      <li><strong>Third-party 3PLs and fulfillment apps:</strong> If you use a 3PL app (ShipBob, Flexport, etc.), the app manages its own location's inventory. If the 3PL location is the primary fulfillment location, inventory holds reference the 3PL's reported stock counts. Sync delays between the 3PL and Shopify create windows where Shopify's view of inventory is stale.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 6: APP CONFLICTS -->
+  <section id="app-conflicts">
+    <h2>Third-Party App Conflicts with Inventory Reservation</h2>
+    <p>
+      Several categories of apps interact with Shopify's inventory reservation system in ways that create either ghost OOS or overselling, depending on how the app is implemented.
+    </p>
+
+    <h3>Cart Reservation Apps (Add-to-Cart Hold)</h3>
+    <p>
+      Apps that hold inventory at the add-to-cart stage (before checkout) operate in parallel with Shopify's checkout-level reservation. The result is a double-hold: the app holds the item when it goes into the cart, and Shopify holds it again when the customer reaches checkout. When the cart session expires and the app releases its hold, Shopify's checkout hold persists — or vice versa. This creates longer-than-expected hold windows and more ghost OOS incidents than either system would produce alone.
+    </p>
+    <p>
+      Well-built cart reservation apps account for this by monitoring checkout session state via Shopify webhooks and coordinating their release timing. Poorly-built apps do not — they create independent hold lifecycles that compound the problem.
+    </p>
+
+    <h3>Pre-Order Apps</h3>
+    <p>
+      Pre-order apps typically work by either: (a) setting inventory to a high negative number to allow oversell, or (b) using "Continue selling when out of stock" to bypass inventory enforcement. Both approaches mean Shopify's inventory reservation system is effectively disabled for pre-order products. This is intentional for pre-orders, but it means you must rely entirely on the pre-order app's own quantity controls — Shopify checkout won't enforce limits for you.
+    </p>
+
+    <h3>Subscription Renewal Conflicts</h3>
+    <p>
+      Subscription renewal orders created by apps like Recharge use the Orders API and bypass checkout inventory reservation. If you have a product available in both subscription and one-time-purchase formats, a high-demand subscription renewal cycle can oversell inventory that you expected to protect for new checkout-based customers. This is especially common for limited-edition or seasonal subscription products.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>App Type</th>
+            <th>Inventory Impact</th>
+            <th>Failure Mode</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cart reservation apps</td>
+            <td>Double-hold at cart + checkout</td>
+            <td>Ghost OOS (longer window)</td>
+            <td>Disable if checkout hold is sufficient; audit app webhook handling</td>
+          </tr>
+          <tr>
+            <td>Pre-order apps</td>
+            <td>Disables Shopify hold for affected products</td>
+            <td>Overselling if pre-order quantity not capped in app</td>
+            <td>Set quantity limits within the pre-order app; don't rely on Shopify limits</td>
+          </tr>
+          <tr>
+            <td>Subscription billing apps</td>
+            <td>Renewal orders bypass checkout reservation</td>
+            <td>Overselling on limited inventory products</td>
+            <td>Configure inventory checks within subscription app settings</td>
+          </tr>
+          <tr>
+            <td>Wholesale / B2B apps</td>
+            <td>Draft orders or API orders bypass checkout</td>
+            <td>Overselling when retail + wholesale compete for same stock</td>
+            <td>Use separate locations for wholesale vs. retail inventory</td>
+          </tr>
+          <tr>
+            <td>POS apps</td>
+            <td>POS orders deduct from the POS location</td>
+            <td>Inventory sync lag between POS location and online inventory</td>
+            <td>Use dedicated POS location; separate from online fulfillment location</td>
+          </tr>
+          <tr>
+            <td>Bundle apps</td>
+            <td>Components reserved at checkout; bundle-level hold may also exist</td>
+            <td>Double-hold on component inventory</td>
+            <td>Audit whether the bundle app creates independent reservations vs. relying on Shopify's</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 7: DIAGNOSTIC -->
+  <section id="diagnostic">
+    <h2>7-Step Inventory Reservation Diagnostic</h2>
+    <p>
+      Use this flow to determine which failure mode you're experiencing — ghost OOS, overselling, or race condition — before attempting a fix.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Identify which direction the problem goes</strong>
+          <p>Ghost OOS: item appears sold out, but you have inventory and no matching orders. Overselling: orders exist for more units than you had in stock. Race condition: "no longer available" errors at payment during high-traffic periods. Each requires a different diagnostic path.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check product inventory tracking settings</strong>
+          <p>Shopify admin → Products → [Product] → each variant → Inventory. Confirm: "Track quantity" is enabled (not "Don't track"). Confirm: "Continue selling when out of stock" is unchecked for overselling scenarios. These are per-variant settings.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Check abandoned checkouts for active holds</strong>
+          <p>Shopify admin → Orders → Abandoned checkouts. Filter by date and look for abandoned checkouts containing the affected product. Active abandoned checkouts with that product are consuming inventory holds. Plus merchants: use the Inventory Reservation API to query active reservations by location and inventory item ID.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Verify inventory counts per location</strong>
+          <p>Products → [Product] → Inventory → expand to show per-location counts. Confirm the location that's assigned as the default fulfillment location for the affected customer's shipping zone actually has the inventory. Check Settings → Shipping and Delivery for location priority.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Audit apps that create orders or hold carts</strong>
+          <p>Check whether any installed app: creates orders via API (subscription, wholesale, B2B apps), implements cart-level reservation, or manages a pre-order flow with custom inventory logic. Each of these operates outside Shopify's standard checkout reservation system.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Test a live checkout with the affected product</strong>
+          <p>Use an incognito browser with a fresh session. Add the affected product to cart, proceed to checkout, and observe: does the checkout create successfully? Does the available inventory count drop? Use CheckPulse's free checkout check for an automated version of this test with a full diagnostic report.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Check Shopify's system status for platform-wide inventory issues</strong>
+          <p>During high-traffic periods, Shopify's inventory reservation system can have platform-wide degradation that affects all merchants. Check status.shopify.com. If there's an active incident, inventory holds may not be applied or released on the normal schedule — wait for Shopify's resolution rather than chasing a store-specific fix.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: REFERENCE TABLE -->
+  <section id="reference">
+    <h2>Inventory Hold Behavior Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Hold Created?</th>
+            <th>When Released</th>
+            <th>Failure Risk</th>
+            <th>Plan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Customer adds to cart</td>
+            <td><span class="badge red">No</span></td>
+            <td>N/A</td>
+            <td>Multiple carts for same item — no hold</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Customer clicks Checkout</td>
+            <td><span class="badge green">Yes</span></td>
+            <td>Payment complete or session inactivity cleanup</td>
+            <td>Ghost OOS if abandoned</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Customer abandons checkout</td>
+            <td><span class="badge yellow">Hold persists</span></td>
+            <td>10–30 min after inactivity (standard); configurable on Plus</td>
+            <td>Ghost OOS during hold window</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Draft order created (admin)</td>
+            <td><span class="badge red">No</span></td>
+            <td>N/A — deducts on payment</td>
+            <td>Overselling if multiple draft orders exist for same SKU</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Orders API (app-created order)</td>
+            <td><span class="badge red">No checkout hold</span></td>
+            <td>N/A — immediate deduction on order creation</td>
+            <td>Overselling if inventory at 0</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Subscription renewal (Recharge etc.)</td>
+            <td><span class="badge red">No</span></td>
+            <td>N/A</td>
+            <td>Overselling on limited inventory products</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>"Continue selling when OOS" enabled</td>
+            <td><span class="badge red">Hold ignored</span></td>
+            <td>N/A — inventory enforcement disabled</td>
+            <td>Overselling — no limit enforced</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Shopify Plus — custom hold duration</td>
+            <td><span class="badge green">Yes</span></td>
+            <td>After configured duration (10 min minimum)</td>
+            <td>Ghost OOS window adjustable</td>
+            <td>Plus only</td>
+          </tr>
+          <tr>
+            <td>POS sale</td>
+            <td><span class="badge green">Yes (at POS)</span></td>
+            <td>On POS order completion</td>
+            <td>Sync lag between POS location and online</td>
+            <td>All</td>
+          </tr>
+          <tr>
+            <td>Multi-location: stock at wrong location</td>
+            <td><span class="badge yellow">Hold fails</span></td>
+            <td>N/A — reservation fails, item shows OOS</td>
+            <td>False OOS — stock exists but at wrong location</td>
+            <td>All</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 9: FAQ -->
+  <section id="faq">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">How long does Shopify hold inventory during checkout?</div>
+        <div class="faq-a">Shopify reserves inventory at checkout session creation and holds it until the session completes or Shopify's cleanup detects abandonment. For standard plans, the release after abandonment typically happens within 10–30 minutes of inactivity — there is no publicly documented hard timer. On Shopify Plus, you can configure the hold duration via the Inventory Reservation API, with a minimum of 10 minutes. There is no way to set a custom hold duration on Basic, Shopify, or Advanced plans.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why does Shopify show an item as out of stock when it was never actually purchased?</div>
+        <div class="faq-a">Ghost OOS. When a customer reaches checkout, Shopify immediately places a hold on the inventory — even before payment. If the customer abandons the checkout, the hold persists until Shopify detects inactivity and runs the cleanup job. During this window, the item appears sold out to other customers. For the last available unit, this is especially damaging because 100% of that unit's availability is consumed by a hold from someone who didn't buy. The hold releases automatically; it's not permanent.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why is Shopify letting people buy items that are out of stock?</div>
+        <div class="faq-a">One of four causes: (1) "Continue selling when out of stock" is checked for the product/variant — this disables all inventory enforcement. (2) An app is creating orders via the Shopify Orders API rather than through the standard checkout flow — API orders bypass checkout-level inventory validation. (3) Draft orders don't create checkout reservations — all draft order recipients can complete payment even if inventory is insufficient. (4) Inventory isn't tracked at the location used for fulfillment — "Not tracked" status bypasses all hold logic.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What happens when two customers try to buy the last item at the same time on Shopify?</div>
+        <div class="faq-a">Shopify resolves this at checkout session creation. Whichever customer's checkout is created first gets the inventory hold. The second customer's checkout is also created, but when they reach payment, they receive "This item is no longer available." Carts do not reserve inventory — two customers can both have the same item in their cart. The race is only resolved when both try to reach checkout. At high traffic, many customers can see the product as available (from a CDN-cached product page) and proceed to checkout, with all but one failing at the reservation step.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I manually release inventory holds on Shopify?</div>
+        <div class="faq-a">On standard Shopify plans, there is no UI to manually release checkout-level inventory holds. The holds release automatically when the checkout session expires. You can manually adjust inventory quantities in Shopify admin (add stock to make the item appear available again), but this doesn't release the hold — it creates new "available" units on top of the held ones. On Shopify Plus, the Inventory Reservation API allows querying and managing active reservations programmatically, giving more control over hold lifecycle.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does Shopify's inventory reservation work with multi-location inventory?</div>
+        <div class="faq-a">Yes, but reservations are location-specific. The checkout reserves inventory at the location assigned as the fulfillment location for the customer's order, based on shipping zones and location priority settings. If your stock is at Location B but the checkout reserves from Location A (which has 0 stock), the item shows as unavailable even if you have plenty of stock elsewhere. Check Settings → Shipping and Delivery to verify which location is the active fulfillment origin for each shipping zone, and ensure inventory is stocked at the correct location.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h2>Monitor Your Shopify Checkout 24/7</h2>
+    <p>CheckPulse runs a real 4-step checkout every 5 minutes and alerts you within 60 seconds when something breaks — including inventory-related failures at the reservation step.</p>
+    <a class="cta-btn" href="./#pricing">Start Monitoring — Free Trial</a>
+    <div class="cta-sub">Or <a href="./free-check" style="color:rgba(255,255,255,0.8)">run a free checkout health check</a> right now. No account needed.</div>
+  </div>
+
+  <!-- RELATED -->
+  <section>
+    <h2>Related Shopify Checkout Issues</h2>
+    <div class="related-grid">
+      <a href="./shopify-checkout-flash-sale">Flash Sale Checkout Problems</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order Checkout Issues</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="./shopify-checkout-black-friday">BFCM Checkout Preparation</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout Issues</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Checkout Not Syncing</a>
+      <a href="./shopify-checkout-not-working">All Checkout Issues</a>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Migration</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

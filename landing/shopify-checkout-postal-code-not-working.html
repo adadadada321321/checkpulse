@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Postal Code Not Working — ZIP Code Invalid, AVS Billing Mismatch, Wrong Country Format, International Postal Code Error (2026)</title>
+  <meta name="description" content="Shopify checkout postal code errors: invalid format, AVS billing address mismatch, wrong country detected, Canadian A1A 1A1 space stripped, UK postcode rejected, ZIP+4 vs ZIP-5. Two separate validation systems cause most failures. Five root causes and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-postal-code-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-postal-code-not-working" />
+  <meta property="og:title" content="Shopify Checkout Postal Code Not Working — ZIP Invalid, AVS Mismatch, Wrong Country Format" />
+  <meta property="og:description" content="Two independent systems validate postal codes at Shopify checkout: the form validator (country format rules) and the payment network AVS (billing address match). Both can fail for different reasons. Five root causes and exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Postal Code Not Working — ZIP Code Invalid, AVS Billing Mismatch, Wrong Country Format, International Postal Code Error",
+    "description": "Two independent systems validate postal codes at Shopify checkout: the checkout form validator (which enforces country-specific format rules) and the payment network's AVS (Address Verification Service, which compares the billing postal code against bank records). These fail for different reasons and show different symptoms. The form validator blocks submission with 'Enter a valid postal code'; AVS failure shows a generic card decline that never mentions the postal code at all. This guide covers both systems, five root causes, seven silent failure modes, and exact fix paths including the Canadian space-stripping bug, UK postcode lowercase handling, ZIP+4 vs ZIP-5, and Shopify Markets geo-detection errors.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-postal-code-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout say my postal code is invalid even though I entered the right ZIP code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify validates postal codes against the format rules for the selected country. If the country shown at checkout doesn't match your actual country, the format validation will fail even with a correct postal code — a US 5-digit ZIP like 90210 is invalid in the UK postcode validator (which expects a format like SW1A 2AA). The most common cause of this mismatch is Shopify's IP-based geo-detection selecting the wrong country at checkout. Fix: explicitly change the country/region in the checkout form to your actual country, then re-enter the postal code in the correct format. If you're a merchant seeing this for many customers, check your Shopify Markets settings and review how the default country is being set."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my card get declined at Shopify checkout even though I entered the correct billing ZIP code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A card decline caused by a ZIP code mismatch comes from AVS (Address Verification Service), not from Shopify's checkout form. AVS is a fraud-prevention check performed by the payment network — Visa, Mastercard, Amex — during card authorization. It compares the numeric portion of the billing postal code you entered at checkout against the postal code your bank has on file for that card. If they don't match, the bank can decline the transaction or flag it. The most common causes: (1) your billing address at the bank was recently updated and hasn't propagated to the AVS database yet (can take 24–72 hours); (2) you entered your ZIP+4 (e.g., 12345-6789) when the bank stores only ZIP-5 (12345) — some AVS systems do exact numeric matching; (3) you moved recently and the old ZIP is still on file at the bank; (4) the merchant's fraud settings are set to decline on any AVS mismatch (many merchants set this more aggressively). Fix: verify the billing ZIP code with your bank, try the ZIP-5 portion only if you entered ZIP+4, and contact your bank if the mismatch persists."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Canadian postal code not accepted at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Canadian postal codes follow the format A1A 1A1 (alternating letter-number-letter space number-letter-number). Several things cause Shopify checkout to reject a valid Canadian postal code: (1) Missing space — the standard format requires a space in the middle (K1A 0A9), but browser autofill and mobile keyboards often strip the space (K1A0A9), which fails Shopify's format validator. Fix: manually type the space or add it after autofill. (2) Wrong country selected — if the checkout defaulted to US, the postal code field expects a 5-digit number, not an alphanumeric code. Change the country to Canada, then enter the postal code. (3) Lowercase letters — Shopify accepts both upper and lowercase for Canadian postal codes, but some browsers submit without normalizing case. This should not cause a rejection, but if it does, try uppercase. (4) AVS mismatch on billing — Canadian banks participate in AVS and compare billing postal codes; the same propagation delay and format issues apply as for US cards."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the postal code field showing the wrong format at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify dynamically changes the postal code field label, format hint, and validation rules based on the country selected in the address form. If the country is wrong, the postal code field will show the wrong format. The country is usually pre-selected based on IP geolocation — this is correct most of the time, but fails for VPN users, customers at airports or hotels (where the ISP's registered address is in a different country), and customers with IPv6 addresses where geo-lookup coverage is incomplete. Shopify Markets can also set a default country or redirect to a localized storefront, which may pre-select the wrong country for cross-border shoppers. Fix for customers: manually select the correct country from the country/region dropdown at checkout — the postal code field will update to the correct format. Fix for merchants: in Shopify Admin → Markets, review which market handles your main regions and ensure country detection is configured correctly. For stores with significant international traffic, consider enabling explicit country selectors rather than relying solely on geo-detection."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the correct postal code format for international checkout on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify validates postal codes against the format rules for each country. Major formats: United States — 5 digits (12345) or ZIP+4 (12345-6789); Canada — A1A 1A1 (letter-digit-letter space digit-letter-digit, e.g., M5V 2T6); United Kingdom — variable length, letter(s) + digit(s) + space + digit + letter(s) (e.g., SW1A 2AA, EC1A 1BB); Germany — 5 digits (10115); France — 5 digits (75001); Netherlands — 4 digits + space + 2 letters (1234 AB); Australia — 4 digits (2000); Ireland (Eircode) — A65 F4E2 (district code + 4-character routing key). Countries without postal codes (like some Caribbean nations, parts of Africa) may allow the postal code field to be blank when that country is selected. If Shopify is requiring a postal code for a country that doesn't use them, check whether the correct country is selected — some country subdivisions appear similar in name but have different postal code requirements."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+    .arch-card.teal { border-color: var(--teal); }
+    .arch-card.orange { border-color: var(--orange); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin: 18px 0;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p, .deepdive li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+    .deepdive ul, .deepdive ol { padding-left: 18px; margin: 8px 0; }
+    .deepdive li { margin-bottom: 6px; }
+    .deepdive code {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface2);
+      padding: 2px 5px;
+      border-radius: 3px;
+      color: var(--green);
+    }
+    .deepdive strong { color: var(--text); }
+
+    .checklist { list-style: none; padding: 0; margin: 12px 0; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--amber);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--amber-dim);
+      border-radius: 8px;
+      padding: 26px;
+      margin: 32px 0;
+      text-align: center;
+    }
+    .cta-block h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .cta-block p { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.6; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .related-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .related-links a {
+      font-size: 12px;
+      padding: 5px 11px;
+      border: 1px solid var(--border-mid);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      margin-top: 60px;
+    }
+    footer .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .footer-brand { font-size: 14px; font-weight: 700; color: var(--amber); }
+    .footer-copy { font-size: 12px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 12px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text-secondary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="/">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="hero-eyebrow">Shopify Checkout Troubleshooting</div>
+    <h1>Shopify Checkout Postal Code Not Working — ZIP Invalid, AVS Billing Mismatch, Wrong Country Format</h1>
+    <p class="hero-sub">Two independent systems validate postal codes at checkout: Shopify's form validator (enforces country format rules) and the payment network's AVS (compares billing postal code against bank records). Both fail silently for different reasons — and the customer usually sees only a generic error.</p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>5 root causes</span>
+      <span>7 silent failures</span>
+    </div>
+  </div>
+
+  <div class="alert-banner">
+    <strong>The key distinction nobody explains:</strong> "Enter a valid postal code" means the <em>form validator</em> rejected the format — usually a wrong country is selected. A <em>card declined</em> message with no mention of postal code often means <em>AVS failed</em> — the payment network rejected the billing ZIP. These are completely different problems with completely different fixes.
+  </div>
+
+  <!-- ── SECTION 1: The two systems ─────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Two Postal Code Systems at Shopify Checkout</h2>
+    <p class="section-intro">Understanding which system is failing tells you exactly where to fix it. The form validator and AVS operate independently — both can be correct or wrong at the same time.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card highlight">
+        <div class="arch-card-label">System 1 — Form Validator</div>
+        <div class="arch-card-title">Checkout Form Postal Code Field</div>
+        <div class="arch-card-desc">Runs in the browser when the customer fills in the address. Validates format against the selected country's rules (US ZIP-5, Canadian A1A 1A1, UK postcode pattern). Blocks form submission with "Enter a valid postal code" if format doesn't match. Triggered before any payment processing begins.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">System 2 — AVS (Payment Network)</div>
+        <div class="arch-card-title">Address Verification Service</div>
+        <div class="arch-card-desc">Runs at payment authorization time between the payment processor and the card issuer's bank. Compares the numeric portion of the billing postal code entered at checkout against the postal code the bank has on file for that card. Failure shows as a card decline — no mention of postal code in the error message customers see.</div>
+      </div>
+      <div class="arch-card info">
+        <div class="arch-card-label">System 3 — Shopify Markets</div>
+        <div class="arch-card-title">Geo-Detection + Country Preselect</div>
+        <div class="arch-card-desc">Sets the country field at checkout based on IP geolocation or storefront locale. If country is wrong, the form validator uses the wrong country's format rules. Root cause of most international postal code format errors — fix is changing the country dropdown, not the postal code itself.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Root Causes of Postal Code Failures</h2>
+    <p class="section-intro">Each cause requires a different fix. The diagnostic path depends on whether the error appears on the form or at payment.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Root Cause</th>
+          <th>System</th>
+          <th>Error Shown</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wrong country detected → wrong format expected</td>
+          <td><span class="badge badge-blue">Form</span></td>
+          <td>"Enter a valid postal code"</td>
+          <td>Change country dropdown to correct country, re-enter postal code</td>
+        </tr>
+        <tr>
+          <td>AVS billing postal code doesn't match bank records</td>
+          <td><span class="badge badge-red">Payment</span></td>
+          <td>"Card declined" (no ZIP mention)</td>
+          <td>Verify billing ZIP with bank; try ZIP-5 if you entered ZIP+4; wait 24–72h after address update</td>
+        </tr>
+        <tr>
+          <td>Canadian postal code space stripped by autofill</td>
+          <td><span class="badge badge-blue">Form</span></td>
+          <td>"Enter a valid postal code"</td>
+          <td>Manually type space between segments (K1A 0A9 not K1A0A9)</td>
+        </tr>
+        <tr>
+          <td>Shipping vs billing postal code confusion</td>
+          <td><span class="badge badge-red">Payment</span></td>
+          <td>"Card declined"</td>
+          <td>Ensure billing address postal code matches card's registered address, not shipping destination</td>
+        </tr>
+        <tr>
+          <td>Non-standard or optional postal code country</td>
+          <td><span class="badge badge-amber">Both</span></td>
+          <td>Field required or wrong format</td>
+          <td>Select exact correct country; some countries require leaving postal code blank; Irish Eircode needs correct district format</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ─────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Postal Code Errors Fail Without Saying Why</h2>
+
+    <div class="arch-grid">
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #1</div>
+        <div class="arch-card-title">Generic "card declined" hides AVS</div>
+        <div class="arch-card-desc">Shopify shows the customer "Your card was declined. Try a different card." — no mention that the decline reason was a billing postal code mismatch. Customers assume the card itself is the problem and try other cards, all of which also fail if they have the wrong billing ZIP.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #2</div>
+        <div class="arch-card-title">Canadian A1A1A1 passes typing but fails submission</div>
+        <div class="arch-card-desc">A customer types their Canadian postal code correctly (K1A 0A9) but browser autofill replaces the space version with K1A0A9. The field looks correct visually on mobile (no spaces are visible as errors while typing) — the error only appears on form submit.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #3</div>
+        <div class="arch-card-title">ZIP+4 accepted by form, rejected by AVS</div>
+        <div class="arch-card-desc">The form validator accepts both 12345 and 12345-6789 for US addresses. But some AVS systems do an exact numeric match — if the bank has 12345 and the customer entered 123456789 (with the +4), the comparison fails. Fix: use ZIP-5 only in the billing postal code field at checkout.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #4</div>
+        <div class="arch-card-title">Address update lag in AVS database</div>
+        <div class="arch-card-desc">When a cardholder updates their billing address at the bank, the change takes 24–72 hours to propagate to the AVS database used by payment networks. During this window, even a correctly entered new postal code will fail AVS. Most customers don't know this and assume the checkout is broken.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #5</div>
+        <div class="arch-card-title">VPN / airport IP triggers wrong country</div>
+        <div class="arch-card-desc">IP geolocation is used to pre-select the country at checkout. VPN users, travelers on hotel WiFi, and customers behind corporate proxies frequently get the wrong country pre-selected. The postal code format changes silently — a German customer suddenly gets a US 5-digit ZIP validation rule and their German 5-digit PLZ appears to work, but later gets caught in different form validation on review page.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #6</div>
+        <div class="arch-card-title">Military APO/FPO address rejected</div>
+        <div class="arch-card-desc">US military overseas addresses use APO AE, APO AP, or FPO AE with a ZIP code range (09001–09999 for Europe/Middle East, 96200–96699 for Pacific). Some Shopify stores with third-party address validation apps reject these as "invalid US addresses" or block shipping because APO/FPO ZIPs don't match standard state-based routing. Shopify's built-in validation accepts them; the problem is typically an app or shipping rate configuration.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">Silent Failure #7</div>
+        <div class="arch-card-title">Irish Eircode not recognized</div>
+        <div class="arch-card-desc">Ireland switched to Eircode (format: A65 F4E2 — 3-character routing key + 4-character unique identifier) in 2015. Some Shopify stores and third-party address validation apps still expect a traditional numeric postal code for Ireland and reject Eircodes as invalid. Shopify's built-in validation supports Eircodes for IE; if rejection occurs, it's usually a third-party app applying generic validation rules.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Deep Dive A — AVS ─────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dive A</div>
+    <h2>How AVS Works and Why It Fails</h2>
+    <p class="section-intro">AVS (Address Verification Service) is a fraud prevention mechanism built into the Visa, Mastercard, and Amex payment networks. Understanding it explains most "card declined" situations that have nothing to do with the card itself.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">AVS Flow</div>
+      <h3>What AVS Checks During Authorization</h3>
+      <p>When a customer submits payment at Shopify checkout, the following sequence happens in under 2 seconds:</p>
+      <ol>
+        <li><strong>Shopify sends authorization request</strong> to the payment processor (Shopify Payments / Stripe / other) including the billing postal code and street address number.</li>
+        <li><strong>Processor forwards to card network</strong> (Visa, Mastercard, Amex) with the billing address data.</li>
+        <li><strong>Card network queries the issuing bank's AVS database</strong> with the numeric portion of the postal code and the numeric house/building number from the street address.</li>
+        <li><strong>Bank returns an AVS response code</strong>: full match (Y), postal code match only (P), street match only (A), no match (N), not supported by issuer (U), or service unavailable (S).</li>
+        <li><strong>The payment processor applies fraud rules</strong> based on the AVS code. Shopify Payments' default is to decline transactions where <em>both</em> postal code and street address fail (N code). Individual merchant settings can tighten this to decline on any AVS mismatch.</li>
+      </ol>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">AVS Response Codes</div>
+      <h3>What Each AVS Code Means</h3>
+      <table class="failure-table" style="margin-top:0">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Meaning</th>
+            <th>Outcome (default Shopify Payments)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Y</td>
+            <td>Postal code and street address both match</td>
+            <td><span class="badge badge-green">Pass</span></td>
+          </tr>
+          <tr>
+            <td>A</td>
+            <td>Street address matches, postal code does not</td>
+            <td><span class="badge badge-amber">Pass (may flag as medium risk)</span></td>
+          </tr>
+          <tr>
+            <td>P / Z</td>
+            <td>Postal code matches, street address does not (or not provided)</td>
+            <td><span class="badge badge-amber">Pass (lower risk signal)</span></td>
+          </tr>
+          <tr>
+            <td>N</td>
+            <td>Neither postal code nor street address match</td>
+            <td><span class="badge badge-red">Decline (default)</span></td>
+          </tr>
+          <tr>
+            <td>U</td>
+            <td>AVS not supported by issuing bank</td>
+            <td><span class="badge badge-green">Pass (no data to compare)</span></td>
+          </tr>
+          <tr>
+            <td>S</td>
+            <td>AVS service unavailable</td>
+            <td><span class="badge badge-green">Pass (treated as no data)</span></td>
+          </tr>
+          <tr>
+            <td>R</td>
+            <td>Retry — system unavailable, bank timeout</td>
+            <td><span class="badge badge-amber">Usually pass; varies by processor</span></td>
+          </tr>
+          <tr>
+            <td>G</td>
+            <td>Non-US card issuer — AVS not applicable</td>
+            <td><span class="badge badge-green">Pass (international cards exempt)</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px; color:var(--text-dim); margin-top:10px; line-height:1.5;">Note: International cards issued outside the US/UK/Canada typically return code G or U — AVS does not apply. Most AVS failures affect US-issued cards at US stores.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">AVS Fix Paths</div>
+      <h3>What to Do When AVS Is Declining Your Card</h3>
+      <ul>
+        <li><strong>Verify your billing address with your bank:</strong> Log into online banking, find the card's registered billing address, and confirm the exact postal code format stored there. This is the ground truth AVS compares against.</li>
+        <li><strong>Try ZIP-5 only if you entered ZIP+4:</strong> US billing ZIPs — use just the 5-digit ZIP (12345) not ZIP+4 (12345-6789). AVS numeric comparison can fail if one side has 9 digits and the other has 5.</li>
+        <li><strong>Wait 24–72 hours after a billing address update:</strong> AVS database propagation is not instant. If you recently changed your address at your bank, the old postal code may still be in the AVS system.</li>
+        <li><strong>Try a different card:</strong> If multiple cards all fail at the same store, the issue is likely the merchant's fraud settings, not your card. If only one card fails, that card's AVS data is the problem.</li>
+        <li><strong>For merchants:</strong> Review your payment processor's fraud filter settings. Declining on AVS code A (street mismatch only, ZIP matches) is overly aggressive. The recommended default is to decline only on code N (both fail), not on partial mismatches.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Deep Dive B — Format Reference ────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dive B</div>
+    <h2>Postal Code Format Reference by Country</h2>
+    <p class="section-intro">Shopify's form validator enforces these formats when the corresponding country is selected. Mismatches between the selected country and the customer's actual country cause most format errors.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">Format Table</div>
+      <h3>Major Countries and Their Postal Code Formats</h3>
+      <table class="failure-table" style="margin-top:0">
+        <thead>
+          <tr>
+            <th>Country</th>
+            <th>Format</th>
+            <th>Example</th>
+            <th>Common Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>United States</td>
+            <td>5 digits, or 5+4 with hyphen</td>
+            <td>12345 or 12345-6789</td>
+            <td>ZIP+4 causes AVS mismatch; APO ZIPs misclassified</td>
+          </tr>
+          <tr>
+            <td>Canada</td>
+            <td>A1A 1A1 (letter-digit-letter space digit-letter-digit)</td>
+            <td>K1A 0A9</td>
+            <td>Autofill strips the middle space → K1A0A9 fails</td>
+          </tr>
+          <tr>
+            <td>United Kingdom</td>
+            <td>Variable: AN NAA, ANN NAA, AAN NAA, AANN NAA</td>
+            <td>SW1A 2AA, EC1A 1BB</td>
+            <td>Missing space; lowercase; using area code only (SW1A without rest)</td>
+          </tr>
+          <tr>
+            <td>Germany</td>
+            <td>5 digits</td>
+            <td>10115</td>
+            <td>Often confused with US ZIP; rarely causes issues unless wrong country selected</td>
+          </tr>
+          <tr>
+            <td>France</td>
+            <td>5 digits</td>
+            <td>75001</td>
+            <td>Overseas departments (DOM) use 97xxx/98xxx — valid but sometimes flagged</td>
+          </tr>
+          <tr>
+            <td>Netherlands</td>
+            <td>4 digits + space + 2 letters</td>
+            <td>1234 AB</td>
+            <td>Autofill omits space → 1234AB fails</td>
+          </tr>
+          <tr>
+            <td>Australia</td>
+            <td>4 digits</td>
+            <td>2000</td>
+            <td>Rarely fails; same pattern as some European codes</td>
+          </tr>
+          <tr>
+            <td>Ireland</td>
+            <td>Eircode: A65 F4E2 (7 chars, space after 3)</td>
+            <td>D04 Y2Y2</td>
+            <td>Third-party apps reject as "invalid"; Shopify native accepts</td>
+          </tr>
+          <tr>
+            <td>Brazil</td>
+            <td>5 digits + hyphen + 3 digits (CEP)</td>
+            <td>01310-100</td>
+            <td>Without hyphen (01310100) fails format check</td>
+          </tr>
+          <tr>
+            <td>Japan</td>
+            <td>3 digits + hyphen + 4 digits (〒)</td>
+            <td>100-0001</td>
+            <td>Without hyphen fails; wrong country triggers wrong validation</td>
+          </tr>
+          <tr>
+            <td>Countries with no postal codes</td>
+            <td>Not applicable</td>
+            <td>Panama, some Caribbean islands</td>
+            <td>Shopify shows empty field when correct country selected; errors if wrong country pre-selected</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Deep Dive C — Shopify Markets ─────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dive C</div>
+    <h2>Shopify Markets Geo-Detection and Country Pre-Selection</h2>
+    <p class="section-intro">Most international postal code format errors originate here: Shopify detects the wrong country for the customer and pre-populates the wrong postal code format validation.</p>
+
+    <div class="deepdive">
+      <div class="deepdive-label">How It Works</div>
+      <h3>Country Detection at Checkout</h3>
+      <p>When a customer reaches Shopify checkout, the country field is pre-populated through this priority chain:</p>
+      <ol>
+        <li><strong>Explicit storefront locale</strong> — if the customer visited a localized domain or path (e.g., <code>store.com/en-gb</code>), Shopify uses that locale's country.</li>
+        <li><strong>Shopify Markets routing</strong> — if the store uses Shopify Markets and the customer's IP resolves to a specific market, that market's primary country is used.</li>
+        <li><strong>IP geolocation fallback</strong> — if no locale or market overrides apply, Shopify uses MaxMind or similar IP-to-geo database to guess the country.</li>
+        <li><strong>Store default</strong> — if geo-detection fails or returns no result, the store's primary country (set in Shopify Admin → Settings → Store details) is used.</li>
+      </ol>
+      <p>Problems arise at step 3 for VPN users, travelers, corporate proxy users, and anywhere IP geolocation data is stale or inaccurate. The customer can always change the country dropdown manually — the form re-validates the postal code against the new country's rules.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-label">Merchant Fixes</div>
+      <h3>Reducing Geo-Detection Errors for Your Store</h3>
+      <ul>
+        <li><strong>Enable geo-based redirects with an override option:</strong> In Shopify Admin → Online Store → Preferences, enable the country/language selector so customers who land on the wrong version can easily switch. This is more effective than relying on automatic detection.</li>
+        <li><strong>Review Shopify Markets configuration:</strong> Admin → Markets → Manage. Ensure each market covers the correct countries and that there's no overlap causing ambiguous routing. The "Rest of world" catch-all market should have your most permissive checkout settings since it handles edge cases.</li>
+        <li><strong>Test from known international IPs:</strong> Use a VPN to simulate a customer from each of your major customer countries. Verify that the checkout correctly pre-selects the country and postal code format. Document any misdetections.</li>
+        <li><strong>Add explicit country selector to storefront header:</strong> A persistent country/language picker reduces geo-detection dependency — customers self-select their region before reaching checkout, and that selection carries through.</li>
+        <li><strong>Check third-party apps' country detection:</strong> Some checkout apps (upsell apps, address validation apps) have their own country detection logic that can override Shopify's. Review each installed checkout app's settings for country/region handling.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: Checklist ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnostic Checklist</div>
+    <h2>8-Step Postal Code Error Diagnostic</h2>
+
+    <ul class="checklist">
+      <li>
+        <span class="checklist-num">1</span>
+        <div><strong>Identify which system is failing.</strong> "Enter a valid postal code" = form validator (format issue). "Card declined" with no ZIP mention = AVS (billing address mismatch). These require different fixes.</div>
+      </li>
+      <li>
+        <span class="checklist-num">2</span>
+        <div><strong>Check the selected country.</strong> The country dropdown in the checkout address form determines which postal code format rule is applied. If the wrong country is selected, the format validator will reject a perfectly correct postal code.</div>
+      </li>
+      <li>
+        <span class="checklist-num">3</span>
+        <div><strong>For form errors — check the exact format.</strong> Canadian postal codes need a space in the middle (K1A 0A9, not K1A0A9). Dutch postal codes need a space before the letters (1234 AB). UK postcodes need a space and specific length. Compare against the format table above.</div>
+      </li>
+      <li>
+        <span class="checklist-num">4</span>
+        <div><strong>For card declines — verify billing ZIP with your bank.</strong> Log into online banking or call the number on the back of your card. Ask what postal code is on file for the card's billing address. Enter exactly that value at checkout.</div>
+      </li>
+      <li>
+        <span class="checklist-num">5</span>
+        <div><strong>For US cards — try ZIP-5 only.</strong> If you entered ZIP+4 (12345-6789), try the 5-digit version (12345) in the billing postal code field. AVS comparison may fail on exact numeric match when digit counts differ.</div>
+      </li>
+      <li>
+        <span class="checklist-num">6</span>
+        <div><strong>Check if the address was recently updated.</strong> AVS database propagation takes 24–72 hours after updating a billing address at a bank. If you recently moved or changed your address, try your old postal code to confirm this is the cause.</div>
+      </li>
+      <li>
+        <span class="checklist-num">7</span>
+        <div><strong>For merchants — check fraud filter settings.</strong> In Shopify Payments (or your payment processor), review the AVS decline rules. Declining on partial mismatches (AVS code A or P) blocks legitimate customers unnecessarily. Default to declining only on full mismatch (code N).</div>
+      </li>
+      <li>
+        <span class="checklist-num">8</span>
+        <div><strong>Test from multiple countries using a VPN.</strong> If you're a merchant getting reports of postal code errors from international customers, simulate their experience using a VPN exit node in their country. This reveals geo-detection issues that only appear at specific IP ranges.</div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── CTA ────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h3>Catch postal code errors before your customers do</h3>
+    <p>CheckPulse runs automated checkout tests across your store — including billing address validation, payment flows, and country-specific format checks. Know when something breaks before it costs you sales.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Related Problems</div>
+    <h2>Other Shopify Checkout Errors in This Cluster</h2>
+    <div class="related-links">
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Field Error</a>
+      <a href="./shopify-checkout-payment-error">Payment Error at Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Card Not Accepted</a>
+      <a href="./shopify-checkout-international">International Checkout Error</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods Not Showing</a>
+      <a href="./shopify-checkout-vat-exemption">EU VAT Exemption Not Working</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention False Positives</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

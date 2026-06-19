@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Shipping Rate Not Updating — Carrier Calculated Rates Missing, No Shipping Methods Mid-Checkout, Shipping Calculator Error (2026)</title>
+  <meta name="description" content="Shopify checkout shipping rate not updating: carrier-calculated rates disappear, 'no shipping methods available' appears after address change, UPS/FedEx/USPS rates missing, third-party shipping app failing silently. Carrier API timeout is the most common cause — Shopify drops rates with no error message. Six root causes and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-rate-not-updating" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-rate-not-updating" />
+  <meta property="og:title" content="Shopify Checkout Shipping Rate Not Updating — Carrier Rates Missing, No Shipping Methods Available" />
+  <meta property="og:description" content="Shopify dynamically fetches carrier-calculated rates when a customer enters their address. When UPS/FedEx/USPS APIs time out, Shopify silently removes those rate options — no error message, just missing rates or 'no shipping methods available.' Six root causes and exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Shipping Rate Not Updating — Carrier Calculated Rates Missing, No Shipping Methods Mid-Checkout, Shipping Calculator Error",
+    "description": "Shopify fetches shipping rates dynamically twice during checkout: once when the customer enters their shipping address, and again when the cart changes. Flat-rate and free shipping options are always instant. Carrier-calculated rates (UPS, FedEx, USPS, DHL) require a live API call to the carrier during checkout. When those API calls time out — which happens frequently during carrier peak hours and high-traffic events — Shopify silently drops the timed-out rates with no error message. Customers either see only flat-rate options, or 'No shipping methods available' if no flat rates cover their zone. This guide covers all six root causes, seven silent failure modes, and exact fix paths including carrier API timeout, missing shipping zones, third-party app failures, and plan-level restrictions on real-time carrier rates.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-rate-not-updating",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why do Shopify shipping rates disappear after I enter my address?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When you enter your address at Shopify checkout, Shopify makes real-time API calls to any carrier-calculated shipping providers you have configured — UPS, FedEx, USPS, DHL, or third-party apps. These calls have a timeout window (typically 10–15 seconds for carriers, 10 seconds for custom carrier service endpoints). If the carrier's API doesn't respond in time, Shopify silently drops those carrier-calculated options from the rate list. Flat-rate and free shipping options always show instantly because they don't require an API call. The result is that carrier rates disappear without any error message — customers see only flat rates, or 'No shipping methods available' if no flat rates cover their zone. Fix: check your Shopify admin Shipping settings to confirm carrier rates are still listed as active. If carrier rates are configured but not appearing, the carrier API is likely timing out — try refreshing the checkout page, or contact your shipping app provider to check for API outages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show 'No shipping methods available' after I change my address?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Three things can cause this: (1) Carrier API timeout — all rate providers (carriers and apps) timed out, leaving no rates at all. Try refreshing the checkout page to trigger a new rate fetch. (2) Your address is in a zone with no rates configured — every Shopify store defines shipping zones (regions where you ship), and if the customer's address falls outside all configured zones, no rates are shown. Check your Shipping settings and make sure you have a 'Rest of World' zone or appropriate zone coverage for that address. (3) Cart weight or dimensions exceed your configured carrier limits — if your products are heavy or large and the carrier rate calculation returns no valid services, no rates appear. Check if a product weight update recently changed your cart totals."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are UPS or FedEx rates not showing at my Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Real-time UPS, FedEx, USPS, and DHL carrier-calculated rates in Shopify require: (1) your Shopify plan must include 'third-party calculated shipping rates' — on Basic and Shopify plans, this feature requires switching to annual billing (the Annual plan discount unlocks it); (2) you must have added the carrier as a rate provider in your Shopify admin Shipping settings; (3) your carrier account credentials must be valid and entered in the app or Shopify admin; (4) the carrier's API must respond within the timeout window. If carrier rates worked before and stopped, the most common cause is an API timeout due to carrier system load. If they never worked, check whether your plan includes real-time carrier rates and whether product weights are configured — carrier rate APIs require accurate package weight to calculate rates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my shipping app (ShipStation, Shippo, EasyPost, ShipBob) not showing rates at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Third-party shipping apps provide rates through Shopify's Carrier Service API — the app registers an endpoint with Shopify, and Shopify calls that endpoint when a customer enters their address. Three things cause app-provided rates to disappear: (1) the app's rate endpoint timed out (must respond within 10 seconds); (2) the app's API credentials expired or the app was disconnected from your carrier account; (3) the app returned an error response (e.g., package dimensions outside serviceable range, destination country not supported by your negotiated rates). Fix: open the app's settings panel and look for a 'test rates' or connection status indicator. Check that the app is still listed as a registered carrier service in Shopify Admin → Settings → Shipping → Carrier accounts. If the app was recently updated, it may need to be re-authenticated."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do shipping rates show old prices and not update when I change my cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify briefly caches shipping rates for a checkout session. If you change the cart (add an item, change quantity, apply a discount that affects weight) and the shipping options don't update, you may be seeing cached rates from the previous cart state. Fix: refresh the checkout page or navigate back to the cart and return to checkout — this forces a fresh rate calculation. As a merchant, note that Shopify re-fetches rates automatically when the cart changes, but there can be a brief delay. If rates consistently show stale prices, check whether you have a stale checkout session — session-based caching clears when the browser tab is closed and reopened."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+    .arch-card.teal { border-color: var(--teal); }
+    .arch-card.orange { border-color: var(--orange); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p, .deepdive li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .deepdive ul, .deepdive ol { padding-left: 18px; margin-top: 6px; }
+    .deepdive strong { color: var(--text); }
+
+    .diag-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+    }
+    .diag-list li {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .diag-list li:last-child { border-bottom: none; }
+    .checklist-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+      margin-top: 1px;
+    }
+    .diag-list div {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .diag-list div strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--amber-dim);
+      border-radius: 8px;
+      padding: 28px;
+      margin: 32px 0;
+      text-align: center;
+    }
+    .cta-block h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .cta-block p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .related-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 7px 13px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 40px;
+    }
+    footer .container { display: flex; flex-direction: column; gap: 14px; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: var(--amber); }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 5px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    .code-block .kw { color: var(--amber); }
+    .code-block .cm { color: var(--text-dim); }
+    .code-block .str { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero-eyebrow">Shopify Checkout Error — Shipping</div>
+    <h1>Shopify Checkout Shipping Rate Not Updating</h1>
+    <p class="hero-sub">Carrier-calculated rates disappear, "No shipping methods available" appears after address entry, UPS/FedEx/USPS rates missing, shipping calculator stuck loading. Carrier API timeout is the most common cause — Shopify silently drops timed-out rates with no error message shown to the customer.</p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>6 root causes</span>
+      <span>7 silent failure modes</span>
+    </div>
+  </div>
+
+  <!-- ── ALERT ─────────────────────────────────────────────── -->
+  <div class="alert-banner">
+    <strong>The core issue:</strong> Shopify fetches shipping rates dynamically at two points — when the customer enters their shipping address, and when the cart changes. Flat-rate and free-shipping options are always instant. Carrier-calculated rates (UPS, FedEx, USPS, DHL, plus rates from shipping apps) require a real-time API call. When those calls time out, Shopify silently removes the carrier options with no error message. Customers see either only flat-rate options, or "No shipping methods available" if flat rates don't cover that zone.
+  </div>
+
+  <!-- ── SECTION 1: Two systems ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>How Shopify Fetches Shipping Rates</h2>
+    <p class="section-intro">Two independent rate systems run in parallel. One always works. The other can fail silently.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card green">
+        <div class="arch-card-label">System 1 — Always Available</div>
+        <div class="arch-card-title">Static Rates</div>
+        <div class="arch-card-desc">Flat-rate, free shipping, and price-based rates are stored in Shopify. They load instantly — no external API call required. Never affected by timeouts or carrier outages.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">System 2 — Can Fail Silently</div>
+        <div class="arch-card-title">Carrier-Calculated Rates</div>
+        <div class="arch-card-desc">Real-time rates from UPS, FedEx, USPS, DHL, Australia Post, and third-party shipping apps. Shopify makes an external API call for each provider. If any call times out, those rates are silently dropped — no error shown to the customer.</div>
+      </div>
+      <div class="arch-card info">
+        <div class="arch-card-label">When Rates Are Fetched</div>
+        <div class="arch-card-title">Two Trigger Points</div>
+        <div class="arch-card-desc">Trigger 1: customer enters or changes their shipping address. Trigger 2: cart changes (quantity update, add/remove item, discount applied). Each trigger fires a fresh rate calculation for carrier providers.</div>
+      </div>
+      <div class="arch-card highlight">
+        <div class="arch-card-label">Timeout Windows</div>
+        <div class="arch-card-title">10–15 Second Limit</div>
+        <div class="arch-card-desc">Shopify allows 10–15 seconds for carrier API responses (varies by provider integration). Custom Carrier Service API endpoints (merchant-hosted) must respond within exactly 10 seconds. Exceeding the timeout = rates silently dropped.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Six Reasons Shipping Rates Don't Update</h2>
+    <p class="section-intro">The symptom (missing rates, "no shipping methods") is the same for all six causes. The fix path is completely different for each.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Root Cause</th>
+          <th>What the Customer Sees</th>
+          <th>Scope</th>
+          <th>Fix Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Carrier API timeout (UPS/FedEx/USPS)</td>
+          <td>Carrier rates disappear; only flat rates shown (or nothing if no flat rates)</td>
+          <td><span class="badge badge-amber">Intermittent</span></td>
+          <td>Refresh checkout; check carrier API status page; add flat-rate fallback</td>
+        </tr>
+        <tr>
+          <td>Shipping zone missing for customer's address</td>
+          <td>"No shipping methods available to [city, state]"</td>
+          <td><span class="badge badge-red">Persistent</span></td>
+          <td>Add zone in Shopify Admin → Settings → Shipping and Delivery</td>
+        </tr>
+        <tr>
+          <td>Third-party shipping app failure (ShipStation, Shippo, EasyPost, ShipBob)</td>
+          <td>App-provided rates disappear silently mid-checkout</td>
+          <td><span class="badge badge-amber">Intermittent</span></td>
+          <td>Check app connection status; re-authenticate; contact app support</td>
+        </tr>
+        <tr>
+          <td>Cart weight or dimensions exceed carrier limits</td>
+          <td>Carrier rates disappear for heavy/oversized carts</td>
+          <td><span class="badge badge-red">Consistent</span></td>
+          <td>Review product weights; adjust carrier services; add freight option</td>
+        </tr>
+        <tr>
+          <td>Real-time carrier rates not enabled on Shopify plan</td>
+          <td>Carrier rates never appear regardless of configuration</td>
+          <td><span class="badge badge-red">Persistent</span></td>
+          <td>Upgrade to annual billing or Shopify Advanced to unlock feature</td>
+        </tr>
+        <tr>
+          <td>Custom Carrier Service API timeout (merchant endpoint)</td>
+          <td>All custom rates disappear; static rates still work</td>
+          <td><span class="badge badge-amber">Intermittent</span></td>
+          <td>Optimize endpoint to respond &lt;10s; return 200 then process async</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Failures That Show No Error Message</h2>
+    <p class="section-intro">Every one of these causes lost sales. None of them tells the customer what's wrong.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Silent Failure</th>
+          <th>Why It's Silent</th>
+          <th>Detection Method</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Carrier API timeout</td>
+          <td>Shopify drops timed-out rates with no UI error; customer sees reduced rate list</td>
+          <td>Compare rate list vs configured carriers in Shopify admin; test checkout timing</td>
+        </tr>
+        <tr>
+          <td>Shipping app returns HTTP error</td>
+          <td>Shopify excludes erroring app's rates; no indication to customer which app failed</td>
+          <td>Check app error logs; test a fresh checkout and compare rate count</td>
+        </tr>
+        <tr>
+          <td>Product weight not configured</td>
+          <td>Carrier rate API receives weight=0; some carriers return no valid services for zero-weight packages</td>
+          <td>Admin → Products → check weight field on each product in cart</td>
+        </tr>
+        <tr>
+          <td>Address in uncovered shipping zone</td>
+          <td>"No shipping methods" looks identical whether zone is missing or rates are timing out</td>
+          <td>Manually check Shopify Shipping zones against the failing address</td>
+        </tr>
+        <tr>
+          <td>Carrier account credentials expired in app</td>
+          <td>App silently stops returning rates when carrier API key rotates or OAuth expires</td>
+          <td>Check app carrier account status; look for "re-authenticate" prompt in app settings</td>
+        </tr>
+        <tr>
+          <td>Real-time rates plan restriction</td>
+          <td>Shopify doesn't show an error for unconfigured plan features; rates simply don't appear</td>
+          <td>Admin → Settings → Shipping → look for plan upgrade prompt near carrier rate section</td>
+        </tr>
+        <tr>
+          <td>Stale rates from previous address</td>
+          <td>Cached rates from the prior address entry continue displaying after address change</td>
+          <td>Change address, wait 3-5 seconds for update animation; refresh if rates don't change</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 4: Deep Dives ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Three Technical Explanations</h2>
+
+    <!-- Deep Dive A -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive A</div>
+      <h3>Carrier-Calculated Shipping Mechanics — Timeout, Plan Requirements, and Fallback Behavior</h3>
+      <p>When a customer enters their shipping address at Shopify checkout, Shopify simultaneously calls each carrier rate provider configured in your shipping settings. Each call is made in parallel (not sequentially), so multiple carrier APIs are queried at the same time. The total rate-fetch time is approximately the time of the <em>slowest individual provider</em> that responds within the timeout window.</p>
+      <p><strong>Timeout behavior:</strong> Shopify waits up to 10–15 seconds for each carrier-calculated provider (the exact limit depends on the integration type). Custom Carrier Service API endpoints — where the merchant hosts their own rate-calculation endpoint — must respond within <strong>exactly 10 seconds</strong>. If any provider exceeds the timeout, Shopify silently excludes its rates from the checkout display. The remaining providers' rates are still shown. If all providers time out and there are no flat-rate options for the customer's zone, the result is "No shipping methods available."</p>
+      <p><strong>Plan requirement for third-party calculated rates:</strong> Real-time carrier rates (UPS, FedEx, USPS, DHL via their APIs) are not available on all Shopify plans. On the Basic and Shopify (Standard) monthly billing plans, you need to switch to annual billing to unlock "Third-party calculated shipping rates." On Shopify Advanced and Shopify Plus, the feature is always included. If you don't see real-time carrier rates in Admin → Settings → Shipping, this is the most likely reason.</p>
+      <p><strong>Shopify's own carrier rates (via Shopify Shipping):</strong> If you use Shopify Shipping to access USPS/UPS/DHL/Canada Post at discounted rates, these are connected differently — through Shopify's own carrier account integration. These are more reliable than third-party carrier APIs but can still time out during carrier system outages.</p>
+      <p><strong>Recommended fallback strategy:</strong> Always configure at least one flat-rate or price-based rate for every shipping zone as a fallback. When carrier APIs are unavailable (carrier outage, peak traffic, timeout), flat rates ensure customers can still complete checkout. Losing a sale because of a UPS API outage is avoidable.</p>
+    </div>
+
+    <!-- Deep Dive B -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive B</div>
+      <h3>Shipping Zone Configuration — Why "No Shipping Methods Available" Appears for Valid Addresses</h3>
+      <p>Every Shopify store defines shipping zones — geographic regions where the store will ship to, with specific rates configured for each zone. If a customer's shipping address falls outside all configured zones, Shopify shows "No shipping methods available" with no explanation.</p>
+      <p><strong>Common zone configuration gaps:</strong></p>
+      <ul>
+        <li><strong>No "Rest of World" zone:</strong> Stores that ship internationally but haven't added a catch-all zone leave all unlisted countries with no rates. Customers from those countries see the error even if you'd happily ship to them.</li>
+        <li><strong>US-only store, customers in Puerto Rico or Guam:</strong> US territories are not automatically included in "United States" zones — they require separate zone entries.</li>
+        <li><strong>Postal code-based exclusions:</strong> Some carriers have rate rules restricted by ZIP code range. An address outside that range returns no rates from that carrier even if it's in the country zone.</li>
+        <li><strong>State/province-level exclusions:</strong> Some stores configure rates by state (e.g., excluding Hawaii and Alaska from standard rates). Customers in those states see no rates if no alternative zone is configured.</li>
+        <li><strong>Custom shipping profiles:</strong> Products on a custom shipping profile (not the general profile) must have their own zone and rate configuration. A product added to a custom profile but not assigned rates can block checkout for orders containing that product.</li>
+      </ul>
+      <p><strong>Diagnosing zone coverage:</strong> In Shopify Admin → Settings → Shipping and Delivery, click on each shipping profile and review the zone map. Look for addresses your customers report as failing and verify whether a rate exists for that zone. For international stores, ensure a "Rest of World" zone exists with at least one rate option.</p>
+    </div>
+
+    <!-- Deep Dive C -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive C</div>
+      <h3>Third-Party Shipping App Diagnostics — ShipStation, Shippo, EasyPost, ShipBob, and Custom Carrier Services</h3>
+      <p>Apps that provide shipping rates to Shopify use the <strong>Carrier Service API</strong>. When a customer enters their shipping address, Shopify sends a rate request to each registered carrier service endpoint — both Shopify's own carriers and any app endpoints. The apps must respond within 10 seconds with a JSON list of available rates.</p>
+      <p><strong>Why app-provided rates disappear:</strong></p>
+      <ul>
+        <li><strong>App endpoint timeout (&gt;10 seconds):</strong> If the app's rate calculation takes longer than 10 seconds, Shopify drops the response. Causes include high API load on the app's side, slow carrier API calls from within the app, or complex rate-rule evaluation.</li>
+        <li><strong>Carrier account credentials expired:</strong> Apps connect to carrier APIs (UPS, FedEx) using credentials you provided during setup. When those credentials expire (annual key rotations, OAuth token expiry), the app can no longer fetch rates and returns an empty or error response.</li>
+        <li><strong>Shipment constraints not met:</strong> Your negotiated carrier rates may not support certain destinations, package types, or weight classes. The app returns no rates for those combinations.</li>
+        <li><strong>App disconnected from Shopify:</strong> If the Shopify-to-app OAuth connection was revoked (password reset, app update, user-initiated disconnect), the app's carrier service endpoint is no longer called.</li>
+      </ul>
+      <p><strong>Diagnostic steps by app:</strong></p>
+      <ul>
+        <li><strong>ShipStation:</strong> Settings → Shipping → Rates → click "Test rates" for your connected carrier. Also check Settings → Stores → your Shopify store connection status.</li>
+        <li><strong>Shippo:</strong> In the Shippo dashboard, look for "Carrier Connections" and verify each carrier shows "Connected." Test a rate quote manually with a sample address and weight to confirm rates are being returned.</li>
+        <li><strong>EasyPost:</strong> Check the EasyPost dashboard for API errors in the Logs section. Verify carrier account status and that credentials haven't expired.</li>
+        <li><strong>ShipBob:</strong> Contact ShipBob support — rate availability from ShipBob depends on fulfillment center inventory location and zone coverage, which isn't visible in the merchant dashboard.</li>
+      </ul>
+      <p><strong>Verifying a carrier service is still registered:</strong> In Shopify Admin → Settings → Shipping and Delivery → Carrier accounts — look for your app listed as a carrier. If it's missing, the app needs to be reinstalled or the carrier service re-registered. Some apps do this automatically on reconnect; others require manual re-setup.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Diagnostic ──────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnostic</div>
+    <h2>Customer Diagnostic (5 Steps)</h2>
+    <ul class="diag-list">
+      <li>
+        <span class="checklist-num">1</span>
+        <div><strong>Refresh the checkout page.</strong> Carrier API timeouts are often transient. Refreshing forces a new rate calculation request. If carrier rates appear after a refresh, the original request timed out — a persistent flat-rate backup option would have prevented the failed experience.</div>
+      </li>
+      <li>
+        <span class="checklist-num">2</span>
+        <div><strong>Check that your shipping address country matches your actual location.</strong> If the checkout form shows the wrong country (common with VPNs or when traveling), shipping zones and carrier rates for the wrong country may return no options. Update the country field manually.</div>
+      </li>
+      <li>
+        <span class="checklist-num">3</span>
+        <div><strong>Verify your address is complete.</strong> Some carrier APIs require a full address including apartment/suite number, city, state, and postal code to return rates. A partially-entered address can cause carrier rate calculation to fail.</div>
+      </li>
+      <li>
+        <span class="checklist-num">4</span>
+        <div><strong>Try clearing your browser cache and starting a new checkout session.</strong> Stale session data can cause cached rates from a previous address to persist. A fresh session forces a clean rate calculation.</div>
+      </li>
+      <li>
+        <span class="checklist-num">5</span>
+        <div><strong>Contact the store directly.</strong> If rates are consistently missing to your address, the store may not have shipping configured for your region. The store can manually create a draft order with a custom rate or enable shipping to your area.</div>
+      </li>
+    </ul>
+
+    <h2 style="margin-top: 36px;">Merchant Diagnostic (6 Steps)</h2>
+    <ul class="diag-list">
+      <li>
+        <span class="checklist-num">1</span>
+        <div><strong>Test the checkout with the failing address immediately.</strong> Use an incognito browser window to simulate a fresh customer session. Note exactly which rates appear and which are missing. Compare this to your Shopify Shipping settings to identify which provider is absent.</div>
+      </li>
+      <li>
+        <span class="checklist-num">2</span>
+        <div><strong>Check Shopify Admin → Settings → Shipping and Delivery.</strong> Verify: (a) the customer's address falls within a configured shipping zone; (b) rates are configured for that zone; (c) any carrier-calculated rate providers are still listed as active.</div>
+      </li>
+      <li>
+        <span class="checklist-num">3</span>
+        <div><strong>Verify product weights are configured.</strong> Go to Admin → Products → select affected products → check that Weight is set. Carrier rate APIs require accurate weight. Weight = 0 or blank often causes carrier APIs to return no results or an error, which Shopify silently drops.</div>
+      </li>
+      <li>
+        <span class="checklist-num">4</span>
+        <div><strong>Check your Shopify plan for carrier rate access.</strong> In Admin → Settings → Shipping, look for a prompt near carrier accounts. On Basic/Shopify monthly billing, third-party calculated rates require switching to annual billing. If you recently downgraded, this feature may have been removed.</div>
+      </li>
+      <li>
+        <span class="checklist-num">5</span>
+        <div><strong>Check your shipping app's connection status.</strong> Open each shipping app (ShipStation, Shippo, EasyPost, etc.) and verify: (a) the Shopify connection is active; (b) carrier credentials are valid; (c) a test rate calculation succeeds using a sample address and weight.</div>
+      </li>
+      <li>
+        <span class="checklist-num">6</span>
+        <div><strong>Add a flat-rate fallback for every zone.</strong> Regardless of the root cause, adding a flat-rate backup ("Standard Shipping — $7.99") ensures customers can always complete checkout even when carrier APIs are unavailable. This immediately stops the "no shipping methods" conversion loss while you debug the carrier API issue.</div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── SECTION 6: Rate Type Reference ────────────────────── -->
+  <div class="section">
+    <div class="section-label">Quick Reference</div>
+    <h2>Shopify Shipping Rate Types — When Each Can Fail</h2>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Rate Type</th>
+          <th>How It's Calculated</th>
+          <th>Can It Time Out?</th>
+          <th>Plan Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Flat rate (e.g., $5.99 Standard)</td>
+          <td>Stored in Shopify — no API call</td>
+          <td>No</td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>Free shipping</td>
+          <td>Stored in Shopify — no API call</td>
+          <td>No</td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>Price-based / weight-based rate</td>
+          <td>Stored in Shopify — computed locally</td>
+          <td>No</td>
+          <td>All plans</td>
+        </tr>
+        <tr>
+          <td>Shopify Shipping (USPS/UPS/DHL via Shopify account)</td>
+          <td>Real-time Shopify carrier API call</td>
+          <td>Yes — Shopify's own carrier API</td>
+          <td>All plans (US/CA/AU stores)</td>
+        </tr>
+        <tr>
+          <td>Third-party carrier (UPS/FedEx/USPS direct account)</td>
+          <td>Real-time carrier API call via Shopify</td>
+          <td>Yes — 10–15s timeout</td>
+          <td>Annual billing or Advanced/Plus</td>
+        </tr>
+        <tr>
+          <td>Shipping app rates (ShipStation, Shippo, EasyPost)</td>
+          <td>App's Carrier Service API endpoint — real-time</td>
+          <td>Yes — 10s timeout on app endpoint</td>
+          <td>Annual billing or Advanced/Plus</td>
+        </tr>
+        <tr>
+          <td>Custom Carrier Service API (merchant-hosted endpoint)</td>
+          <td>Merchant's own rate endpoint called by Shopify</td>
+          <td>Yes — exactly 10s timeout</td>
+          <td>Advanced or Plus</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── CTA ────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h3>Catch shipping rate failures before they cost you sales</h3>
+    <p>CheckPulse runs automated checkout tests against your store — detecting when shipping rates don't load, carrier API timeouts cause missing options, and zone configuration gaps block customers from completing checkout.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+  </div>
+
+  <!-- ── SECTION 7: Related ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Related Problems</div>
+    <h2>Other Shopify Checkout Errors in This Cluster</h2>
+    <div class="related-links">
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options on Load</a>
+      <a href="./shopify-checkout-app-conflict">App Blocking Checkout</a>
+      <a href="./shopify-checkout-international">International Checkout Error</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-black-friday">Peak Traffic Checkout Failures</a>
+      <a href="./shopify-checkout-payment-error">Payment Error at Checkout</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle Checkout Error</a>
+      <a href="./shopify-checkout-localization-error">Checkout Localization Error</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

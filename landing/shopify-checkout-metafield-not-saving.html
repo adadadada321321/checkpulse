@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Metafield Not Saving — Line Item Properties, Custom Fields, Cart Attributes (2026)</title>
+  <meta name="description" content="Shopify has three separate custom-data systems at checkout: metafields, line item properties, and cart attributes. A mismatch between which system you're writing to and which the order reads from means data silently disappears. Five root causes and fixes for Shopify custom fields not persisting through checkout." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-metafield-not-saving" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-metafield-not-saving" />
+  <meta property="og:title" content="Shopify Checkout Metafield Not Saving — Line Item Properties, Custom Fields, Cart Attributes" />
+  <meta property="og:description" content="Shopify offers three parallel data systems for custom fields at checkout: metafields (structured, namespace/key, API-managed), line item properties (cart-level, customer-entered key-value pairs), and cart attributes (order-level notes and custom data). Each passes through checkout differently. Writing to the wrong one produces silent data loss." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Metafield Not Saving — Line Item Properties, Custom Fields, Cart Attributes",
+    "description": "Shopify offers three parallel data systems for custom fields: metafields (structured namespace/key pairs on orders, products, or customers, managed via Admin API or Checkout Extensibility), line item properties (cart-level key-value pairs attached to a specific line item, entered at product page), and cart attributes (order-level note and custom fields). Each system persists through checkout differently, requires different APIs to write and read, and silently fails when used incorrectly. The most common failure: developers use metafield APIs expecting cart-level behavior, but order metafields cannot be written from the browser at checkout — they require a server-side Admin API call after the order is created. Line item properties written on the cart page can be silently lost when customers use the Buy Now button, which bypasses the cart entirely.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-metafield-not-saving",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the difference between Shopify metafields and line item properties?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Metafields are structured key-value data attached to a Shopify resource (product, variant, order, customer, collection) using a namespace/key format with a defined type (single_line_text_field, number_integer, json, etc.). They are managed via the Admin API or Shopify admin — not from the storefront browser. Order metafields cannot be written at checkout from client-side JavaScript; they require a server-side Admin API call after the order exists. Line item properties are unstructured string key-value pairs attached to a specific cart line item. They are set in the cart (via the Storefront API, AJAX Cart API, or a product form with name=properties[key] inputs) and travel with the line item through checkout to the order. They are visible in Shopify admin under the order's line items. The confusion arises because both look like 'custom fields' — but they live at different levels (order vs line item), require different APIs to write, and have different persistence behavior through checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify line item properties not showing on the order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Line item properties not appearing on orders usually has four causes: (1) The customer used the Buy Now button — Buy Now creates a direct checkout without going through the cart, so properties set on the cart page (via JavaScript that modifies cart items) never attach; only properties in the product form's properties[] inputs are included if the Buy Now button reads the same form. (2) A theme or app override is clearing the cart before redirect — some quick-add-to-cart implementations create a fresh cart item, dropping properties added by previous JavaScript. (3) The property key is prefixed with an underscore (_key) — Shopify hides underscore-prefixed line item properties from the customer-facing order status page and some email templates, though they still exist on the order object. (4) The order notification email template doesn't render line item properties — by default, Liquid order confirmation emails only show line item properties if the template includes the {% for p in line_item.properties %} loop."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I write a Shopify metafield from the checkout page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Standard Shopify checkout (non-Plus) does not allow writing metafields from the checkout UI. Order metafields can only be written via the Admin API after the order exists. The typical workflow: (1) order is placed at checkout, (2) an orders/create webhook fires, (3) your app or webhook handler calls the Admin API to write metafields to the order. For Shopify Plus merchants using Checkout Extensibility, UI extensions can write to CartLine metafields (line item level) or capture customer data that a Function or app writes to the order after creation. Even with Checkout Extensibility, direct metafield writes from checkout UI extensions require the appropriate OAuth scope (write_orders or write_customers) on the app doing the writing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify order metafields missing after checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Order metafields missing after checkout typically comes from: (1) A timing issue — the webhook handler that writes metafields is slower than the order confirmation email, so the email sends before metafields exist; (2) Draft order to live order gap — metafields written to a draft order (via DraftOrder metafields endpoint) are NOT automatically copied to the live order when payment is captured. They must be re-written via the Order metafields endpoint post-payment; (3) Wrong resource type — writing to the product or customer metafield when you meant to write to the order; (4) Namespace/key collision with another app — two apps writing to the same namespace.key where the second write silently overwrites the first; (5) Metafield type mismatch — writing a string value to a number_integer type results in a validation error that may return HTTP 422 without surfacing in your app logs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What are Shopify cart attributes and how are they different from metafields?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cart attributes are order-level note fields attached to the entire cart/order, not to individual line items. There are two types: the 'note' field (a single string, shown in Shopify admin as 'Note from customer') and 'attributes' (a key-value store on the cart object, accessible via cart.attributes in Liquid and the /cart/update.js AJAX endpoint). Cart attributes persist through checkout as order.note and order.note_attributes on the order object. They are NOT metafields — they don't have a type system, they're unstructured strings, and they can't be queried via the metafields GraphQL endpoint. Use cart attributes for simple order-level context (gift message, delivery date preference). Use metafields for structured data that needs to be typed, validated, or queried programmatically."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 10px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .cause-num {
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .cause-content h3 { font-size: 14px; margin-bottom: 4px; }
+    .cause-content p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 4px; color: var(--text); }
+    .failure-card p { font-size: 12px; margin: 0; color: var(--text-dim); }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 8px; counter-reset: step; }
+    .diag-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      counter-increment: step;
+    }
+    .diag-step::before {
+      content: counter(step);
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .diag-step p { font-size: 13px; margin: 0; }
+    .diag-step strong { color: var(--text); }
+
+    .info-box {
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .info-box.amber { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+    .info-box.green { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); }
+    .info-box.red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+    .info-box.blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+    .info-box.purple { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); }
+    .info-box strong { display: block; margin-bottom: 6px; color: var(--text); }
+    .info-box p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+    .info-box code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; color: var(--text); }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .deep-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+    .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); }
+    .badge-gray { background: rgba(255,255,255,0.08); color: var(--text-dim); }
+
+    code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--amber);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 8px; }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 10px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); margin-bottom: 6px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="./">CheckPulse</a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ─────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a>
+      <span>/</span>
+      <span>Shopify Checkout Metafield Not Saving</span>
+    </div>
+    <h1>Shopify Checkout Metafield Not Saving — Line Item Properties, Custom Fields &amp; Cart Attributes</h1>
+    <div class="hero-meta">Checkout custom data · Data persistence · Shopify Admin API · Checkout Extensibility · Updated June 2026</div>
+    <div class="hero-summary">
+      Shopify has three parallel custom-data systems at checkout: <strong>metafields</strong> (structured, namespace/key, API-managed), <strong>line item properties</strong> (cart-level key-value pairs attached to a specific product), and <strong>cart attributes</strong> (order-level note fields). Each travels through checkout differently, requires a different API to write and read, and fails silently when you use the wrong one. The most common mistake: treating metafields as if they can be written at checkout from client-side JavaScript. Order metafields don't exist until after the order is created — they can only be written server-side via the Admin API.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Architecture ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Shopify's Three Custom-Data Systems at Checkout</h2>
+    <p>Before diagnosing why data isn't persisting, you need to know which system you're using and where it lives in the order lifecycle. All three look similar in code but differ fundamentally in scope, timing, and API access.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">System 1</div>
+        <h3>Line Item Properties</h3>
+        <p>Key-value string pairs attached to a single cart line item. Set via <code>properties[key]=value</code> in product forms or the AJAX Cart API. Travels with the line item through checkout. Visible in admin under Orders → line item. Cannot be queried via metafields API.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">System 2</div>
+        <h3>Cart Attributes</h3>
+        <p>Order-level custom fields. Two types: <code>note</code> (single string, "Note from customer" in admin) and <code>attributes</code> (key-value pairs on the cart object). Set via <code>/cart/update.js</code> or Storefront API. Persists as <code>order.note</code> and <code>order.note_attributes</code> on the order. Not metafields.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">System 3</div>
+        <h3>Metafields</h3>
+        <p>Structured typed data attached to a Shopify resource (order, product, variant, customer, collection). Defined with namespace + key + type. Written via Admin API (<code>POST /metafields.json</code>) or GraphQL. Order metafields can only be written server-side after the order exists. Not writable at checkout from the browser.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">System 3a (Plus)</div>
+        <h3>Checkout Extensibility Metafields</h3>
+        <p>Shopify Plus only. Checkout UI Extensions can write CartLine metafields (attached to a line item within the checkout session) via the <code>applyCartLinesChange</code> API. These become order line item properties post-purchase. Customer metafields can be written via UI extensions with <code>write_customers</code> scope.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>The fundamental timing issue</strong>
+      <p>Metafields live on the order. Orders don't exist until checkout completes. This means you cannot write an order metafield during checkout — only after it. The correct pattern: orders/create webhook fires → your app writes metafields via Admin API. Any solution that tries to write order metafields "at checkout" from client-side code will fail silently.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Custom Fields Don't Persist Through Shopify Checkout</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">RC1</div>
+        <div class="cause-content">
+          <h3>Using metafield APIs for cart-level data</h3>
+          <p>The most common mistake: a developer writes to <code>POST /admin/api/metafields.json</code> with <code>resource_type: "order"</code> expecting the data to appear on the checkout, but the order doesn't exist yet. The API call either fails (no order ID to attach to) or writes to a draft order that never gets linked to the live order. The fix: use line item properties for per-product custom data, or cart attributes for order-level notes. Reserve metafields for structured data written by a webhook after the order is placed.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">RC2</div>
+        <div class="cause-content">
+          <h3>Buy Now button bypasses line item properties</h3>
+          <p>Line item properties are set on the cart. The Shopify Buy Now button creates a direct checkout session, bypassing the cart entirely. Any JavaScript that adds properties to a cart line item after the product is added (e.g., via <code>/cart/change.js</code> or a cart-drawer script) will not run for Buy Now purchases. Only properties embedded in the product form's <code>name="properties[key]"</code> inputs are included when the Buy Now button submits the form — and only if the button is inside that same form.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">RC3</div>
+        <div class="cause-content">
+          <h3>Metafield type mismatch causes silent validation failure</h3>
+          <p>Shopify's metafield type system enforces types at write time. Writing a string like <code>"15"</code> to a metafield defined as type <code>number_integer</code> returns HTTP 422 with a validation error. Writing a multi-line string to <code>single_line_text_field</code> fails if the value contains newlines. Writing a JSON object to a non-json type fails. These errors are often swallowed by apps that check only for HTTP 200 from the outer request, not the inner validation message. The metafield appears to save but nothing is persisted. Fix: always validate the metafield type definition before writing, and check the <code>errors</code> object in the response body.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">RC4</div>
+        <div class="cause-content">
+          <h3>Draft order metafields not copied to live order</h3>
+          <p>When an agency or app creates a draft order (B2B quote flow, custom product configurator, invoice tool) and writes metafields to the draft, those metafields live on the <code>DraftOrder</code> resource — not on the <code>Order</code> resource that gets created when the draft is paid. Shopify does not automatically copy draft order metafields to the live order. The app must re-write the metafields via <code>POST /admin/api/orders/{order_id}/metafields.json</code> after the <code>draft_orders/completed</code> webhook fires.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">RC5</div>
+        <div class="cause-content">
+          <h3>Namespace collision between apps</h3>
+          <p>Two apps using the same <code>namespace.key</code> pair silently overwrite each other. App A writes <code>custom.delivery_date</code> = "2026-07-01". App B writes <code>custom.delivery_date</code> = "standard". Last write wins — no conflict error, no notification. The data from App A disappears. Fix: apps must use unique namespaces (typically their app name or a UUID prefix) and document all namespace.key pairs used. If you manage multiple apps writing to the same order, audit <code>GET /admin/api/orders/{id}/metafields.json</code> to see all current values and who wrote last.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Silent Failure Modes</h2>
+    <p>These failures produce no error at checkout. Data simply disappears or arrives wrong.</p>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>Engraving text visible in cart, absent from order</h3>
+        <p>Line item property set via JavaScript after add-to-cart. Buy Now button creates fresh checkout session, JavaScript never runs, property not attached.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Gift message missing from order notification</h3>
+        <p>Cart attribute set correctly, arrives on order as note_attributes. But order confirmation Liquid template doesn't include the note_attributes loop — visible in admin, invisible to merchant.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Metafield write returns 200 but value missing</h3>
+        <p>Type mismatch triggers a validation error inside the response body. App only checks HTTP status code. Value silently rejected, metafield not updated.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Draft order data lost at payment</h3>
+        <p>B2B configurator writes metafields to draft. Customer pays, draft becomes order. Metafields not re-written to live order — they exist on the draft only.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Confirmation email sends before webhook fires</h3>
+        <p>Webhook handler writes order metafields asynchronously. Email sends within seconds of order creation — metafields don't exist yet. Merchant sees no custom data in the notification.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Underscore-prefixed property hidden from customer</h3>
+        <p>Properties with keys starting with <code>_</code> (e.g., <code>_tracking_id</code>) are hidden from the customer-facing order status page and some email templates. Still exist on the order — just not visible to customers. Often confused with "missing" data.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Storefront metafield not accessible — storefront visibility off</h3>
+        <p>Product/variant metafields must have <code>storefront_access: true</code> (or be listed in the Headless channel's accessible metafields) to be readable via Storefront API or in themes. A product metafield defined via Admin API without storefront visibility set returns empty at checkout even though the value exists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Diagnostics ────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnostics</div>
+    <h2>How to Diagnose Where Your Data Is Being Lost</h2>
+
+    <h3 style="margin-bottom:10px;color:var(--amber);">If you're a merchant or developer</h3>
+    <div class="diag-steps">
+      <div class="diag-step">
+        <p><strong>Identify which system you're using.</strong> Is the data per-product (→ line item properties), order-level unstructured (→ cart attributes / note), or structured typed data needed post-order (→ metafields)? Mixing them up is the root cause in most cases.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check if line item properties exist on the cart.</strong> Open your browser console and run <code>fetch('/cart.js').then(r=>r.json()).then(d=>console.log(d.items.map(i=>i.properties)))</code>. If properties are present in the cart but absent on the order, the issue is Buy Now bypass or a cart-clearing operation at checkout redirect.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Verify the order in Shopify admin.</strong> Go to Orders → open the order → scroll to each line item — properties appear as indented key-value pairs under the product name. Also check the note_attributes section near the bottom of the order page for cart attributes.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check metafields via the API.</strong> Run <code>GET /admin/api/2024-01/orders/{order_id}/metafields.json</code> with your Admin API token. If the metafield exists but has the wrong value, you have a namespace collision. If it doesn't exist at all, the write failed — check your webhook handler logs for the orders/create event.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Test the Buy Now path explicitly.</strong> Add the product to cart via the normal form, then also test using the Buy Now button. Compare line item properties on both resulting orders. If properties are present in the first but absent in the second, the issue is Buy Now bypassing your property-injection script.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check metafield type definitions.</strong> In Shopify admin → Settings → Custom data → view your metafield definitions. Compare the defined type against what your app is writing. A common mismatch: app writes JSON string to a <code>single_line_text_field</code>, or writes a float to a <code>number_integer</code>. Fix the type definition or the value format — not both at once.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Deep Dives ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Technical Reference</h2>
+
+    <div class="deep-label">Deep Dive A</div>
+    <h3>Line Item Properties vs Cart Attributes vs Metafields — Full Comparison</h3>
+
+    <div class="table-wrap" style="margin-top:8px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Line Item Properties</th>
+            <th>Cart Attributes</th>
+            <th>Order Metafields</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--text);">Scope</strong></td>
+            <td>Per line item (one product)</td>
+            <td>Entire order</td>
+            <td>Entire order</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Write from browser</strong></td>
+            <td><span class="badge badge-green">Yes</span> — product form inputs or AJAX Cart API</td>
+            <td><span class="badge badge-green">Yes</span> — <code>/cart/update.js</code> attributes field</td>
+            <td><span class="badge badge-red">No</span> — Admin API only (server-side)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Write timing</strong></td>
+            <td>Before checkout starts (on cart)</td>
+            <td>Before checkout starts (on cart)</td>
+            <td>After order created (post-checkout)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Persists through checkout</strong></td>
+            <td><span class="badge badge-green">Yes</span> (except Buy Now bypass)</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>N/A — written after order exists</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Type system</strong></td>
+            <td>String only</td>
+            <td>String only</td>
+            <td>Typed (20+ types including json, boolean, integer, date, file_reference)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Shopify admin display</strong></td>
+            <td>Under each line item on order page</td>
+            <td>note_attributes section on order page</td>
+            <td>Separate metafields section (if definition created) or via API only</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Liquid access in emails</strong></td>
+            <td><code>line_item.properties</code></td>
+            <td><code>order.note</code> + <code>order.note_attributes</code></td>
+            <td><code>order.metafields.namespace.key</code> (Shopify admin templates)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Queryable via API</strong></td>
+            <td>Via order line items endpoint</td>
+            <td>Via order endpoint (<code>note_attributes</code>)</td>
+            <td>Via <code>/metafields.json</code> endpoint or GraphQL</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text);">Best use case</strong></td>
+            <td>Custom engraving, personalization, product configuration</td>
+            <td>Delivery date, gift message, order-level note</td>
+            <td>Structured app data, analytics tags, ERP integration fields</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="deep-divider"></div>
+    <div class="deep-label">Deep Dive B</div>
+    <h3>Shopify Metafield Type System — Common Type Mismatch Errors</h3>
+
+    <p>Shopify enforces metafield types at write time. The full list of available types includes:</p>
+
+    <div class="table-wrap" style="margin-top:8px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Accepts</th>
+            <th>Common Mistake</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>single_line_text_field</code></td>
+            <td>String, no newlines</td>
+            <td>Writing multiline text or JSON string — fails if value contains <code>\n</code></td>
+          </tr>
+          <tr>
+            <td><code>multi_line_text_field</code></td>
+            <td>String with newlines</td>
+            <td>Correct for long notes; don't use for structured data</td>
+          </tr>
+          <tr>
+            <td><code>number_integer</code></td>
+            <td>Integer only, no decimals</td>
+            <td>Writing <code>"15.5"</code> or <code>"15"</code> (string) — 422 validation error</td>
+          </tr>
+          <tr>
+            <td><code>number_decimal</code></td>
+            <td>Decimal number as string</td>
+            <td>Writing a raw JS number instead of a string — type coercion issues</td>
+          </tr>
+          <tr>
+            <td><code>boolean</code></td>
+            <td><code>"true"</code> or <code>"false"</code> as string</td>
+            <td>Writing JavaScript <code>true</code> (boolean, not string) — fails</td>
+          </tr>
+          <tr>
+            <td><code>date</code></td>
+            <td>ISO 8601 date string <code>YYYY-MM-DD</code></td>
+            <td>Writing <code>"June 19, 2026"</code> or Unix timestamp — fails validation</td>
+          </tr>
+          <tr>
+            <td><code>date_time</code></td>
+            <td>ISO 8601 with time</td>
+            <td>Missing timezone offset — Shopify requires full ISO string</td>
+          </tr>
+          <tr>
+            <td><code>json</code></td>
+            <td>Any valid JSON string</td>
+            <td>Passing a JavaScript object instead of <code>JSON.stringify(obj)</code> — writes <code>[object Object]</code></td>
+          </tr>
+          <tr>
+            <td><code>color</code></td>
+            <td>Hex color string <code>#RRGGBB</code></td>
+            <td>Writing <code>"red"</code> or <code>rgb(255,0,0)</code> — fails</td>
+          </tr>
+          <tr>
+            <td><code>url</code></td>
+            <td>Full URL with protocol</td>
+            <td>Writing relative path <code>/products/handle</code> — fails, needs <code>https://</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-box red" style="margin-top:12px;">
+      <strong>How to catch type validation errors</strong>
+      <p>When Shopify rejects a metafield write due to type mismatch, the HTTP status is 422 (Unprocessable Entity). The response body contains an <code>errors</code> object with the field and message. Example: <code>{"errors":{"value":["is invalid"]}}</code>. Most app frameworks log the status code but not the response body — add explicit body logging to your metafield write path to catch these silently-swallowed errors.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+    <div class="deep-label">Deep Dive C</div>
+    <h3>Checkout Extensibility and Metafields (Shopify Plus)</h3>
+
+    <p>For Shopify Plus merchants, Checkout Extensibility opens additional options for reading and writing custom data during the checkout flow. But the scope is more limited than it appears.</p>
+
+    <div class="info-box green" style="margin-top:8px;">
+      <strong>What Checkout UI Extensions can do with custom data</strong>
+      <p>Checkout UI Extensions (Plus) can: (1) Read product and variant metafields if they have storefront access enabled; (2) Write CartLine attributes (equivalent to line item properties, visible on the resulting order's line items); (3) Display customer metafields if the app has <code>write_customers</code> scope; (4) Capture custom fields (text inputs, dropdowns) and store values as CartLine attributes or note_attributes. They cannot write order metafields directly — those still require a post-order webhook handler.</p>
+    </div>
+
+    <div class="info-box blue" style="margin-top:8px;">
+      <strong>CartLine attributes vs CartLine metafields (Shopify Functions)</strong>
+      <p>CartLine attributes (set via <code>applyCartLinesChange</code> with <code>type: "updateCartLine", attributes: [{key, value}]</code>) become line item properties on the order. CartLine metafields (a different concept, set via Shopify Functions at the cart/checkout level) are more structured but require a Cart Transform Function with appropriate permissions. For most use cases, CartLine attributes are sufficient and simpler to implement.</p>
+    </div>
+
+    <div class="info-box amber" style="margin-top:8px;">
+      <strong>Storefront access requirement for reading metafields at checkout</strong>
+      <p>Product, variant, and collection metafields must have storefront access enabled to be readable by Checkout UI Extensions or the Storefront API. To enable: Shopify Admin → Settings → Custom data → [your metafield definition] → toggle "Storefront access" on. Alternatively, via API: include <code>"access": "PUBLIC_READ"</code> in the metafield definition. Without this, the metafield value returns <code>null</code> at checkout even though the data exists — a silent failure that looks like a missing value.</p>
+    </div>
+
+    <div class="info-box purple" style="margin-top:8px;">
+      <strong>Order note_attributes from Checkout Extensibility</strong>
+      <p>Checkout UI Extensions can write to the order's note_attributes by appending to the checkout's <code>attributes</code> via <code>applyAttributeChange</code>. These appear on the order as note_attributes (same as cart attributes written via <code>/cart/update.js</code>). This is the recommended approach for capturing order-level custom data during Plus checkout — it doesn't require a post-order webhook, is visible immediately in Shopify admin, and accessible in Liquid notification templates via <code>order.note_attributes</code>.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Reference Table ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Custom Data Persistence Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>System to Use</th>
+            <th>Write API</th>
+            <th>Survives Buy Now?</th>
+            <th>Visible in Admin?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Custom engraving text per product</td>
+            <td><span class="badge badge-blue">Line Item Property</span></td>
+            <td>Product form <code>properties[key]</code></td>
+            <td><span class="badge badge-amber">Only if in form</span></td>
+            <td>Under line item</td>
+          </tr>
+          <tr>
+            <td>Gift message for entire order</td>
+            <td><span class="badge badge-green">Cart Attribute</span></td>
+            <td><code>/cart/update.js</code> attributes</td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><code>note_attributes</code> section</td>
+          </tr>
+          <tr>
+            <td>Preferred delivery date</td>
+            <td><span class="badge badge-green">Cart Attribute</span></td>
+            <td><code>/cart/update.js</code> or note field</td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Note or note_attributes</td>
+          </tr>
+          <tr>
+            <td>ERP order ID (post-purchase)</td>
+            <td><span class="badge badge-purple">Metafield</span></td>
+            <td>Admin API <code>POST /orders/{id}/metafields.json</code></td>
+            <td>N/A — written after order</td>
+            <td>Custom data section (if definition)</td>
+          </tr>
+          <tr>
+            <td>Tax exemption certificate ID</td>
+            <td><span class="badge badge-purple">Metafield</span></td>
+            <td>Admin API on customer or order resource</td>
+            <td>N/A — server-side only</td>
+            <td>Via API or custom data section</td>
+          </tr>
+          <tr>
+            <td>B2B PO number (draft order)</td>
+            <td><span class="badge badge-blue">Line Item Property</span> or <span class="badge badge-green">Cart Attribute</span></td>
+            <td>Draft order form or cart attribute</td>
+            <td>N/A — B2B checkout</td>
+            <td>Under line item or note_attributes</td>
+          </tr>
+          <tr>
+            <td>Product configurator selections (color, size, text)</td>
+            <td><span class="badge badge-blue">Line Item Property</span></td>
+            <td>Product form <code>properties[key]</code></td>
+            <td><span class="badge badge-amber">Only if in form</span></td>
+            <td>Under line item</td>
+          </tr>
+          <tr>
+            <td>Customer loyalty tier (read at checkout)</td>
+            <td><span class="badge badge-purple">Metafield</span> (customer)</td>
+            <td>Admin API; enable storefront access for Plus</td>
+            <td>N/A — read-only at checkout</td>
+            <td>Customer metafields section</td>
+          </tr>
+          <tr>
+            <td>Subscription renewal metadata</td>
+            <td><span class="badge badge-purple">Metafield</span></td>
+            <td>Admin API post-order or Recharge/app webhook</td>
+            <td>N/A — post-order only</td>
+            <td>Via API or custom data section</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: CTA ─────────────────────────────────────────── -->
+  <div class="section" style="border-bottom:none;">
+    <div class="cta-block">
+      <h3>Monitor Your Shopify Checkout 24/7</h3>
+      <p>Custom field failures, checkout errors, and payment issues — CheckPulse detects them before your customers do.</p>
+      <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check</a>
+    </div>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────────── -->
+  <div class="section" style="padding-top:0;">
+    <div class="section-label">Related Problems</div>
+    <div class="related-links">
+      <a href="./shopify-checkout-product-customization">Product Customization Not Working</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Payment Capture Timing — Authorize vs Capture, Manual Capture Not Working, Auth Expired (2026)</title>
+  <meta name="description" content="Shopify separates payment authorization (bank holds funds) from capture (merchant collects). Manual capture mode means orders can sit 'Authorized' forever with no automatic collection. Authorization windows last 7–30 days by card network — after that, capture fails silently. Five root causes and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-capture-timing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-capture-timing" />
+  <meta property="og:title" content="Shopify Payment Capture Timing — Authorize vs Capture, Manual Capture, Auth Expired" />
+  <meta property="og:description" content="Shopify's two-step payment system (authorization → capture) is invisible to most merchants until it breaks. Manual capture mode leaves orders as 'Authorized' indefinitely. Authorization windows expire after 7–30 days depending on card network — a capture attempt after expiry fails silently, leaving the order unpaid with no alert." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Payment Capture Timing — Authorize vs Capture, Manual Capture, Auth Expired",
+    "description": "Shopify uses a two-step payment flow: authorization (the bank reserves funds on the customer's card) and capture (the merchant actually collects the money). By default, Shopify captures automatically at order placement. When manual capture is enabled — often for pre-orders, high-risk review, or fulfillment workflows — merchants must explicitly capture each order or it remains 'Authorized' indefinitely. Authorization holds expire after 7 days (most debit cards), 7–30 days (credit cards, by card network), or 30 days (Shopify Payments). A capture attempted after the auth window expires fails silently: Shopify may not surface a visible error, the order stays in 'Authorized' status, and payment is never collected. This guide covers the two-layer payment capture architecture, five root causes, seven silent failures, and exact fix paths for each scenario.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-capture-timing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the difference between authorization and capture in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Authorization is the first step: the bank places a hold on the customer's funds and confirms the card is valid and has sufficient balance. The merchant does not receive any money at this point. Capture is the second step: the merchant requests the actual transfer of funds. In Shopify's default 'Automatically capture payment' mode, both steps happen at once when the customer places the order. In 'Manually capture payment' mode, authorization happens at order placement but capture is a separate action the merchant must take later — either via the Shopify admin, a fulfillment workflow, or the API. If capture never happens, the authorization hold expires (7–30 days depending on card network) and the bank releases the hold. The order stays in 'Authorized' status in Shopify but no money was ever collected."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does a Shopify payment authorization last before it expires?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Authorization window lengths depend on the card network and card type, not on Shopify. Typical windows: Visa credit cards — 7 days; Mastercard credit cards — 30 days; American Express — 7 days; Discover — 7 days; Visa/Mastercard debit cards — 5–7 days (banks vary); Shopify Payments has a 7-day window for most transactions. Shopify does not automatically notify merchants when an authorization is about to expire. If you attempt to capture after the window closes, the capture fails — and in many cases, Shopify does not surface this failure prominently. The order remains in 'Authorized' status with no revenue collected. For pre-orders or high-risk review workflows with fulfillment timelines exceeding 7 days, authorization hold is the wrong payment collection mechanism — you need either to capture immediately or to use a delayed payment method (Shopify Plus net terms, deposits via apps)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify order show 'Authorized' but the payment was never collected?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 'Authorized' payment status means Shopify successfully received an authorization hold from the customer's bank but has not yet collected funds. This happens when: (1) Manual capture is enabled in your payment settings and you haven't captured yet; (2) You have an app or workflow that was supposed to capture on fulfillment, but the capture step failed silently; (3) The authorization window has expired — a previous capture attempt failed after the hold lapsed. To resolve: go to Shopify Admin → Orders → click the order → scroll to the payment section — if a 'Capture payment' button appears, the payment has not been collected. Click it to capture. If the button is absent but status shows Authorized, the authorization likely expired — you'll need to contact the customer for a new payment method."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between voiding and refunding a Shopify payment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A void cancels an authorization hold before capture — no money was ever transferred, so a void simply releases the hold on the customer's card. A void is only possible while the authorization is still active (within the card network's window). A refund reverses a capture — money was transferred to the merchant, and the refund sends it back. Refunds typically take 5–10 business days to appear on the customer's statement. In Shopify, if payment status is 'Authorized' and the authorization is still active, you can void it (cancels the hold immediately). If the authorization has already expired, there is nothing to void — the hold was already released automatically by the bank. If payment is 'Captured' or 'Paid', you must refund rather than void. Some third-party gateways don't support void through Shopify — in those cases, Shopify shows a refund option even for uncaptured authorizations."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Shopify payment capture fail after fulfillment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Payment capture after fulfillment typically fails for four reasons: (1) Authorization expired — if fulfillment took longer than the card network's auth window (7–30 days), the hold was released and capture is no longer possible; (2) Card declined at capture time — the card was valid and funded at authorization but has since been cancelled, expired, or depleted (common with debit cards, prepaid cards, or cards used for multiple authorizations); (3) Gateway connection issue — the capture API call to the payment gateway timed out or returned an error, and Shopify didn't retry; (4) Shopify Payments account hold — if your Shopify Payments account has been placed on hold for compliance review between authorization and fulfillment, capture may be blocked. Check the order's Timeline section in Shopify admin for capture attempt logs."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .cause-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .cause-item h3 { font-size: 14px; margin-bottom: 6px; }
+    .cause-item p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 13px 15px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 5px; color: var(--text); }
+    .failure-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .diag-step {
+      display: flex;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-body h3 { font-size: 13px; margin-bottom: 4px; }
+    .step-body p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 22px 0; }
+    .deep-dive { margin-top: 8px; }
+    .deep-label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+    .deep-dive h3 { font-size: 16px; margin-bottom: 10px; }
+    .deep-dive p { font-size: 13px; }
+
+    .info-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .info-box.amber { border-left: 3px solid var(--amber); }
+    .info-box.blue { border-left: 3px solid var(--blue); }
+    .info-box.green { border-left: 3px solid var(--green); }
+    .info-box.red { border-left: 3px solid var(--red); }
+    .info-box strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .info-box p { margin: 0; font-size: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--amber);
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: var(--surface); }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .badge-gray { background: rgba(136,136,136,0.15); color: var(--text-dim); border: 1px solid rgba(136,136,136,0.3); }
+
+    .cta-block {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+      margin: 36px 0;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 10px; }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 13px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); margin-bottom: 6px; font-size: 14px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr 1fr; }
+      .failure-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="/checkpulse/">CheckPulse</a>
+      <span>›</span>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Troubleshooting</a>
+      <span>›</span>
+      <span>Payment Capture Timing</span>
+    </div>
+    <h1>Shopify Payment Capture Timing — Authorize vs Capture, Manual Capture Not Working, Auth Expired</h1>
+    <p style="color:var(--text-secondary);font-size:14px;margin-top:12px;">Orders stuck in "Authorized" status with no payment collected. Capture attempts failing days after fulfillment. Customers charged immediately on pre-orders. Confusion between voiding and refunding. Shopify's two-step payment system (authorization → capture) fails silently when authorization windows expire, manual capture is forgotten, or cards decline between the two steps.</p>
+    <div class="hero-meta">Updated June 2026 &middot; Covers Shopify Basic, Shopify, Advanced, Plus &middot; Shopify Payments, third-party gateways, pre-orders, manual capture</div>
+    <div class="hero-summary">
+      <strong style="color:var(--text);display:block;margin-bottom:6px;">The core issue:</strong>
+      Shopify splits payment into two separate steps: <strong style="color:var(--text);">authorization</strong> (bank holds funds, confirms card is valid) and <strong style="color:var(--text);">capture</strong> (merchant actually collects money). In Shopify's default automatic mode, both happen instantly at order placement — invisible to merchants. When <strong style="color:var(--text);">manual capture</strong> is enabled, authorization happens at checkout but capture is deferred until the merchant acts. Authorization holds expire after <strong style="color:var(--text);">7 days (most cards) to 30 days (Mastercard, Shopify Payments)</strong> — after that window, capture fails silently. The order stays "Authorized" in Shopify with no revenue collected and no automatic alert.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Architecture ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Four Capture Modes in Shopify</h2>
+    <p>Shopify supports four distinct payment collection patterns. Most merchants use only the default (automatic) and don't discover the others until they cause a problem.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">Mode 1 — Default</div>
+        <h3>Automatic Capture</h3>
+        <p>Authorization and capture happen simultaneously at order placement. Customer's card is charged immediately. No merchant action required. Orders show "Paid" instantly. Available on all plans.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">Mode 2 — Manual</div>
+        <h3>Manual Capture</h3>
+        <p>Authorization occurs at checkout, capture requires an explicit merchant action. Orders show "Authorized" until captured. Risk: auth window expires if capture is delayed more than 7–30 days depending on card network.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">Mode 3 — On Fulfillment</div>
+        <h3>Capture at Fulfillment</h3>
+        <p>Some Shopify Plus apps and third-party gateways trigger capture automatically when fulfillment is marked. This creates risk if the fulfillment-to-capture trigger fails silently or if fulfillment is delayed past the auth window.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">Mode 4 — Deferred</div>
+        <h3>Deferred / Deposit Payment</h3>
+        <p>Shopify Plus B2B net terms, deposit apps, or subscription apps collect partial payment at checkout and the remainder later. Each payment leg has its own authorization. Deferred capture requires a new payment method request if the original card is no longer valid.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>Why "the customer paid" is not the same as "funds are in your account"</strong>
+      <p>A successful authorization confirmation email to the merchant does not mean the money has moved. Shopify's payment status shows "Authorized" (hold placed, not collected) vs "Paid" (captured, funds in transit to your bank). Check the payment status in Shopify Admin → Orders → [Order] → Payment section. If it shows "Authorized" with a "Capture payment" button, the funds have not been collected.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Shopify Payment Capture Fails</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 1</div>
+        <h3>Manual capture enabled but merchant forgets to capture — orders sit "Authorized" indefinitely</h3>
+        <p>Manual capture is often enabled for a legitimate reason — fraud review, pre-order workflows, high-value orders — but without a process to ensure every authorized order gets captured within the auth window, orders accumulate in "Authorized" status. Shopify does not send any automatic notification when an order's authorization is about to expire. Merchants typically discover the problem when they attempt to capture an order after fulfillment and the capture fails, or when accounting reconciliation finds "Authorized" orders with no corresponding payment. <strong style="color:var(--text);">Fix:</strong> Go to Shopify Admin → Orders → filter by Payment Status = "Authorized". This shows all uncaptured orders. Set a daily process to capture or void authorized orders before the auth window closes. Consider disabling manual capture unless you have a specific workflow that requires it — most fraud review use cases can be served by Shopify's automatic fraud analysis with order cancellation as the safety valve.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 2</div>
+        <h3>Authorization window expired before capture — capture fails silently, order shows "Authorized" with no payment</h3>
+        <p>When a payment authorization expires, the bank releases the hold on the customer's funds. Any subsequent capture attempt returns an error from the payment gateway. Shopify may or may not surface this error prominently — in many cases, the order remains in "Authorized" status with no visible change, and the merchant doesn't know the capture failed unless they check the order Timeline. This is the most common cause of unrealized revenue for merchants using manual capture or fulfillment-triggered capture with long lead times. <strong style="color:var(--text);">Fix:</strong> Check the order Timeline section in Shopify Admin for capture failure events. To collect payment after an auth expiry: navigate to the order, click the "..." menu, select "Resend invoice" to send the customer a payment link, or use a draft order to create a new payment request. You cannot recapture an expired authorization — a new authorization is required.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 3</div>
+        <h3>Card declined at capture time — valid at authorization but insufficient funds or card status changed by fulfillment</h3>
+        <p>Authorization only verifies that the card exists, is not blocked, and has sufficient available credit at that moment. By the time capture is attempted — days or weeks later — the card's status can change: (1) debit card with exactly the right balance at authorization gets a purchase between auth and capture; (2) credit card reaches its limit from other purchases; (3) card is reported lost or stolen and reissued with a new number; (4) prepaid card balance depleted; (5) card expired (common for pre-orders with months-long fulfillment times). The capture attempt fails and the order stays in "Authorized" status. Unlike authorization failures which happen instantly at checkout, capture failures are asynchronous and easy to miss. <strong style="color:var(--text);">Fix:</strong> Set up an order status automation or use Shopify Flow to monitor for capture failures and trigger a customer notification requesting updated payment details. For pre-orders with long timelines, consider charging a deposit at order time (which can be captured immediately) and collecting the balance at shipping.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 4</div>
+        <h3>Fulfillment-triggered capture workflow fails silently — order fulfilled but no capture event fires</h3>
+        <p>Some merchants configure third-party apps or Shopify Flow workflows to automatically capture payment when an order is marked as fulfilled. This is a common pattern for dropshippers and print-on-demand merchants who want to avoid charging customers until the order ships. When the fulfillment event fires but the capture API call fails — due to a gateway timeout, app webhook failure, or Shopify rate limit — the order shows "Fulfilled" but payment status remains "Authorized". No alert fires. Revenue is not collected. This failure is particularly silent because both systems (fulfillment and payment) look correct in isolation. <strong style="color:var(--text);">Fix:</strong> In Shopify Admin → Orders → filter by Fulfillment Status = "Fulfilled" AND Payment Status = "Authorized". Any orders in this state have a fulfillment without a capture — investigate the capture trigger. If you use Shopify Flow, check the Flow run history for the workflow. For critical capture workflows, add a monitoring step: Shopify Flow can trigger an email alert if payment status is still "Authorized" 24 hours after fulfillment.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 5</div>
+        <h3>Pre-order authorization expires during long fulfillment lead time — customer charged months after ordering</h3>
+        <p>Pre-orders create a fundamental conflict with authorization-based payment: authorization windows are 7–30 days, but pre-order fulfillment may be 30, 60, or 90 days away. Two failure modes emerge: (1) if automatic capture is used, the customer is charged at order placement — months before receiving the product, creating support issues and chargebacks; (2) if manual capture is used, the authorization expires before fulfillment and capture fails, requiring merchants to contact customers for new payment. Neither mode matches customer expectations for pre-orders. <strong style="color:var(--text);">Fix:</strong> Avoid using Shopify's native payment flow for pre-orders with long lead times. Instead: use a deposit app (Bold Deposits, Prepay) that captures a small authorization immediately and creates a separate charge request at fulfillment; or use Shopify's "draft order" flow where the invoice link is sent only when the order is ready to ship; or implement a clear-communication automatic capture (charge now, ship later) strategy with explicit customer consent at checkout.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Payment Capture Fails Without Any Alert</h2>
+    <p>These failures leave orders in a mismatched state — fulfilled but unpaid, or authorized but never captured — without surfacing an error visible to the merchant or customer.</p>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>Order fulfilled, payment never captured</h3>
+        <p>Fulfillment-triggered capture workflow fails silently. Order shows Fulfilled + Authorized. No notification. Goods shipped, payment never collected.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Auth expiry — Shopify shows "Authorized" but nothing is collectible</h3>
+        <p>Authorization expired days ago. "Capture payment" button still appears in Shopify admin but clicking it returns an error. No status change visible without checking Timeline.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Capture error buried in Timeline only</h3>
+        <p>Gateway returns capture failure. Shopify logs it in the order Timeline but sends no email alert, no dashboard flag. Merchant must manually inspect each order to find it.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Void not possible after auth expiry — customer thinks charge was cancelled</h3>
+        <p>Merchant tries to void an auth that already expired. Void fails silently. Bank already released the hold. No refund needed, but merchant and customer are confused about the status.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Card declined at capture — debit card, prepaid, or balance depleted</h3>
+        <p>Auth succeeded on a debit or prepaid card. Funds depleted before capture. Capture fails. Order stays "Authorized" with no customer notification. Goods at risk of being shipped.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Third-party gateway shorter auth window than Shopify expects</h3>
+        <p>Some international gateways or bank-issued cards use 5-day auth windows. Shopify's admin shows 7-day window advice. Merchant waits 6 days before capturing — already expired on the gateway side.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Shopify Payments account hold blocks capture</h3>
+        <p>Shopify Payments account placed under compliance review between authorization and capture. Capture blocked at the platform level. Order Timeline shows failure; no email to merchant explaining the hold.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Diagnostics ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnostics</div>
+    <h2>How to Diagnose Payment Capture Issues</h2>
+
+    <h3 style="margin-bottom:14px;color:var(--text-dim);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">For Merchants</h3>
+    <div class="diag-steps">
+      <div class="diag-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Filter orders by "Authorized" payment status</h3>
+          <p>Shopify Admin → Orders → click "Payment status" filter → select "Authorized". Every order in this list has not been captured. Review auth dates and act before windows close. This should be a zero-count list if manual capture is not intentionally in use.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Check order Timeline for capture failure events</h3>
+          <p>Open the problematic order → scroll to Timeline at the bottom. Look for "Payment capture failed" events with gateway error codes. This is the only place Shopify surfaces capture failure details. Common codes: "authorization_already_voided", "card_declined", "expired_card", "insufficient_funds".</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Find fulfilled-but-unpaid orders</h3>
+          <p>Shopify Admin → Orders → set two filters: Fulfillment Status = "Fulfilled" AND Payment Status = "Authorized". Any results indicate fulfilled orders where capture failed or was never attempted. These are your highest-priority revenue leaks — goods already shipped, payment not collected.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Verify your capture mode setting</h3>
+          <p>Shopify Admin → Settings → Payments → scroll to "Payment capture" section. Confirm whether "Automatically capture payment" or "Manually capture payment" is selected. If manual capture was enabled accidentally (e.g., during a gateway change), this is the root cause of all "Authorized" orders.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Calculate auth window remaining per order</h3>
+          <p>Auth window starts at the order creation timestamp. For Shopify Payments: 7 days for most card types, up to 30 days for some Mastercard. For third-party gateways: check the gateway's documentation or admin panel — windows can be 5–30 days. Prioritize capture on oldest "Authorized" orders first.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>For expired auths: request new payment from customer</h3>
+          <p>If the auth window has passed and capture fails: go to the order → click "..." menu → "Resend invoice" (sends a payment link via email) or use "Create draft order" to issue a new payment request. You cannot recapture an expired authorization — a fresh auth is required from the customer.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Deep Dives ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Authorization Windows, Void vs Refund, and Capture via API</h2>
+
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive A</div>
+      <h3>Authorization Window by Card Network</h3>
+      <p>Authorization windows are set by card networks and issuing banks — Shopify has no control over them. The window starts at the moment of authorization (order placement), not at fulfillment or capture attempt.</p>
+
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Card Type / Network</th>
+              <th>Typical Auth Window</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Visa credit card</td>
+              <td>7 days</td>
+              <td>Shopify Payments follows this for most Visa cards</td>
+            </tr>
+            <tr>
+              <td>Mastercard credit card</td>
+              <td>30 days</td>
+              <td>Longest window among major networks — good for pre-orders with short delays</td>
+            </tr>
+            <tr>
+              <td>American Express</td>
+              <td>7 days</td>
+              <td>Amex can vary by issuing bank; some corporate cards are shorter</td>
+            </tr>
+            <tr>
+              <td>Discover</td>
+              <td>7 days</td>
+              <td>Follows Visa-similar rules in most markets</td>
+            </tr>
+            <tr>
+              <td>Visa / Mastercard debit</td>
+              <td>5–7 days</td>
+              <td>Banks vary widely; many issue only 5-day holds on debit. Most conservative window for manual capture workflows.</td>
+            </tr>
+            <tr>
+              <td>Prepaid cards</td>
+              <td>1–5 days</td>
+              <td>Prepaid card programs set their own hold durations, often shorter than bank cards. Do not use manual capture for prepaid card orders.</td>
+            </tr>
+            <tr>
+              <td>International / local cards</td>
+              <td>3–7 days</td>
+              <td>European, Asian, and Latin American issuers vary significantly. If your merchant gateway is international, verify windows in gateway docs, not Shopify docs.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box red" style="margin-top:14px;">
+        <strong>The safest assumption: 5-day window</strong>
+        <p>Because debit cards (which are widely used) can have 5-day windows and many international cards are shorter, any manual capture workflow should target capture within 5 days of authorization — not 7, not 30. The 30-day Mastercard window is the best case, not the rule to build your workflow around.</p>
+      </div>
+
+      <div class="deep-divider"></div>
+      <div class="deep-label">Deep Dive B</div>
+      <h3>Void vs Refund — When Each Is Possible and How They Differ</h3>
+
+      <p>Merchants frequently try to "refund" an authorized order that was never captured, or try to "void" a captured order. Understanding which is applicable prevents unnecessary gateway errors and customer confusion.</p>
+
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Payment Status Required</th>
+              <th>Money Movement</th>
+              <th>Customer Impact</th>
+              <th>Timeline</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:var(--text);">Void</strong></td>
+              <td>"Authorized" (auth still active)</td>
+              <td>No money moved — hold released</td>
+              <td>Card hold removed; available balance restored immediately or within hours</td>
+              <td>Instant to 24h for bank processing</td>
+            </tr>
+            <tr>
+              <td><strong style="color:var(--text);">Refund</strong></td>
+              <td>"Paid" / "Captured"</td>
+              <td>Money transferred back to customer</td>
+              <td>Credit appears on statement; takes 5–10 business days</td>
+              <td>5–10 business days</td>
+            </tr>
+            <tr>
+              <td><strong style="color:var(--text);">Void (expired auth)</strong></td>
+              <td>"Authorized" (auth expired)</td>
+              <td>No action possible — hold already released by bank</td>
+              <td>No impact — hold already removed by bank</td>
+              <td>Not applicable</td>
+            </tr>
+            <tr>
+              <td><strong style="color:var(--text);">Refund on uncaptured order</strong></td>
+              <td>"Authorized"</td>
+              <td>Some gateways process a $0 refund (no-op); others convert to void automatically</td>
+              <td>Varies by gateway — Shopify Payments will void instead of refund if uncaptured</td>
+              <td>Gateway-dependent</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box blue" style="margin-top:14px;">
+        <strong>Shopify's behavior for "Refund" on an authorized order</strong>
+        <p>When you click "Refund" on an order with "Authorized" payment status in Shopify admin, Shopify Payments automatically converts this to a void (since no capture occurred). The button still says "Refund" in the UI — but the underlying gateway call is a void. Third-party gateways may not support this automatic conversion; in those cases, "Refund" on an uncaptured order may fail with a gateway error or be treated as a zero-amount refund with no effect.</p>
+      </div>
+
+      <div class="deep-divider"></div>
+      <div class="deep-label">Deep Dive C</div>
+      <h3>Capturing Payment via the Shopify Admin and API</h3>
+
+      <p>Shopify offers three ways to capture an authorized payment: the admin UI, Shopify Flow, and the Admin API. Each has different use cases for merchants managing manual capture workflows at scale.</p>
+
+      <div class="info-box green" style="margin-top:8px;">
+        <strong>Admin UI (simplest, one order at a time)</strong>
+        <p>Shopify Admin → Orders → open order → Payment section → click "Capture payment". Enter the amount (can be partial — useful for split shipments). Note: there is no bulk capture button in the UI. Each order must be captured individually unless you use Flow or API.</p>
+      </div>
+
+      <div class="info-box blue" style="margin-top:8px;">
+        <strong>Shopify Flow (automated, event-triggered)</strong>
+        <p>Trigger: "Order fulfilled" or "Fulfillment created". Action: "Capture payment". Condition: optionally filter on payment status = "Authorized". This creates a fulfillment-triggered capture without requiring custom code. Shopify Flow is available on all plans (Basic and above). The workflow runs asynchronously — check Flow run history for failures.</p>
+      </div>
+
+      <div class="info-box amber" style="margin-top:8px;">
+        <strong>Admin API (bulk or conditional capture)</strong>
+        <p>Use the <code>POST /admin/api/2024-01/orders/{order_id}/transactions.json</code> endpoint with <code>{"transaction": {"kind": "capture", "amount": "XX.XX"}}</code>. Requires <code>write_orders</code> scope. Supports partial capture (capture less than the authorized amount). Check the transaction response for <code>status: "success"</code> — a gateway-level failure returns status <code>error</code> with a message in the response body that Shopify admin may not surface clearly.</p>
+      </div>
+
+      <p style="margin-top:14px;">For merchants with high order volumes using manual capture, a daily automated sweep via the API or Shopify Flow is the only reliable way to ensure no authorized order ages past the auth window.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Reference Table ────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Capture Scenario Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Auth Status</th>
+            <th>Can Capture?</th>
+            <th>Can Void?</th>
+            <th>Fix Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Order placed, manual capture, auth active, not yet captured</td>
+            <td><span class="badge badge-amber">Authorized</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Capture via admin, Flow, or API before window closes</td>
+          </tr>
+          <tr>
+            <td>Auth expired, order never captured</td>
+            <td><span class="badge badge-red">Auth Expired</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Request new payment from customer via invoice/draft order</td>
+          </tr>
+          <tr>
+            <td>Order fulfilled, capture workflow failed silently</td>
+            <td><span class="badge badge-amber">Authorized</span></td>
+            <td><span class="badge badge-amber">Maybe</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Check auth age; capture manually if still within window; resend invoice if expired</td>
+          </tr>
+          <tr>
+            <td>Card declined at capture (funds depleted after auth)</td>
+            <td><span class="badge badge-red">Capture Failed</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Contact customer for updated payment method via invoice or phone</td>
+          </tr>
+          <tr>
+            <td>Order paid via automatic capture (default mode)</td>
+            <td><span class="badge badge-green">Paid</span></td>
+            <td>N/A — already captured</td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Issue refund if order needs to be cancelled</td>
+          </tr>
+          <tr>
+            <td>Captured, order cancelled — refund needed</td>
+            <td><span class="badge badge-green">Paid</span></td>
+            <td>N/A</td>
+            <td><span class="badge badge-red">No (captured)</span></td>
+            <td>Process refund via Orders → Refund; 5–10 business day timeline</td>
+          </tr>
+          <tr>
+            <td>Authorized, merchant wants to cancel order</td>
+            <td><span class="badge badge-amber">Authorized</span></td>
+            <td>N/A</td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Void authorization — hold released, no refund needed</td>
+          </tr>
+          <tr>
+            <td>Pre-order with 60-day lead time, auth captured at order</td>
+            <td><span class="badge badge-red">Auth Expired</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td><span class="badge badge-red">No</span></td>
+            <td>Use deposit app or automatic capture + clear comms; never rely on 60-day auth hold</td>
+          </tr>
+          <tr>
+            <td>Shopify Payments account on compliance hold</td>
+            <td><span class="badge badge-amber">Authorized</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Yes</span></td>
+            <td>Contact Shopify support; resolve compliance review before capture</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: CTA ─────────────────────────────────────── -->
+  <div class="section" style="border-bottom:none;">
+    <div class="cta-block">
+      <h3>Monitor Your Shopify Checkout 24/7</h3>
+      <p>Payment capture failures, checkout errors, and gateway issues — CheckPulse detects them before your customers do.</p>
+      <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check</a>
+    </div>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────── -->
+  <div class="section" style="padding-top:0;">
+    <div class="section-label">Related Problems</div>
+    <div class="related-links">
+      <a href="./shopify-checkout-payment-error">Payment Error at Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Payment Not Going Through</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order Checkout Not Working</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Refund to Original Payment Failed</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

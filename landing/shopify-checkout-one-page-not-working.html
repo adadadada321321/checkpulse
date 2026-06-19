@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify One-Page Checkout Not Working — Layout Bugs, App Conflicts, Extension Failures (2026)</title>
+  <meta name="description" content="Shopify's one-page checkout (2023) replaced the 3-step layout and broke apps and themes built for the old flow. Extension rendering failures, payment section not loading, and Plus extensibility conflicts — six root causes and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page-not-working" />
+  <meta property="og:title" content="Shopify One-Page Checkout Not Working — Layout Migration Bugs and Extension Conflicts" />
+  <meta property="og:description" content="Shopify switched all stores to one-page checkout in 2023. Apps built for the 3-page flow broke silently. Checkout UI extensions fail to render on mobile. Payment sections stall when earlier steps have validation errors. This guide covers every failure mode." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify One-Page Checkout Not Working — Layout Bugs, App Conflicts, Extension Failures",
+    "description": "Shopify introduced one-page checkout in August 2023 for new stores and migrated existing stores progressively through 2024. The layout change — consolidating three separate checkout pages into a single scrollable view — was a significant architectural shift. Apps, themes, and custom scripts written for the 3-page flow made assumptions (specific DOM structure, page URLs, load order) that the one-page layout breaks. On Shopify Plus, one-page checkout is required for Checkout Extensibility, which means merchants who upgrade from checkout.liquid customization to Checkout Extensibility must rebuild their customizations as UI extensions — a completely different approach. This guide explains why one-page checkout breaks and how to diagnose each failure type.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-one-page-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why did Shopify change to one-page checkout and when did it happen?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify announced one-page checkout at Editions Summer 2023 and began rolling it out in August 2023. All new stores received it by default. Existing stores were migrated progressively through 2023 and 2024, with the migration completed for most stores by early 2024. The change consolidates what was previously a three-step flow (Contact information → Shipping → Payment) into a single page where all sections are visible and collapsible. Shopify's rationale: fewer page loads, lower checkout abandonment, and a foundation for Checkout Extensibility. The layout change also required apps and themes to update: checkout apps that relied on specific page URLs (/checkout/contact, /checkout/shipping, /checkout/payment) and DOM selectors that existed only in the 3-page layout needed to be rewritten."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the payment section not loading in Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On one-page checkout, the payment section loads after the contact and shipping sections resolve. If either earlier section has a validation error — an invalid address, no shipping rates returned, a flagged email format — the payment section stays in a loading or collapsed state. It won't become interactive until earlier sections are complete. This is different from the 3-page flow where each page was independent. Common causes of payment section not loading: (1) no shipping rates returned for the customer's address (carrier-calculated rates failing, shipping zones not covering the address); (2) checkout UI extension in the contact or shipping section throwing a JavaScript error; (3) network error loading payment method icons or the Shopify Payments gateway script; (4) cart-level validation failure from a CartTransform Function or inventory check; (5) third-party app injecting a script that throws an unhandled error and stalls the checkout lifecycle. Check browser console for JavaScript errors — they often name the failing extension or script."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do Shopify checkout apps need to be updated for one-page checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Apps that used the checkout.liquid template (Plus only, now deprecated), apps that injected scripts targeting specific page URLs (/checkout/contact, /checkout/shipping, /checkout/payment), and apps that relied on DOM selectors from the old 3-step layout need to be updated. The new checkout is a single-page React application served from Shopify's edge infrastructure. It does not expose the same DOM elements or page lifecycle events as the 3-step checkout. Apps must use the official Checkout UI Extension API to add UI to checkout, CartTransform Functions to modify line items and prices, and Discount Functions to customize discounts. Apps that attempted to inject scripts via Checkout.liquid or via theme.liquid (which does not run in checkout) will not function on the one-page layout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Shopify checkout customization stop working after upgrading to Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Before Checkout Extensibility (which requires one-page checkout), Shopify Plus merchants customized checkout via checkout.liquid — a Liquid template file in the theme that controlled checkout layout and appearance. Checkout.liquid was deprecated in August 2024 and removed from new Plus stores and all stores migrating to Checkout Extensibility. Merchants who relied on checkout.liquid for custom CSS, JavaScript, upsell widgets, address blockers, or custom form fields lost all of these when they migrated. The replacement is Checkout Extensibility, which provides: (1) Checkout UI Extensions — React components rendered in designated extension points at specific positions in checkout; (2) Checkout Branding API — controls over fonts, colors, corner radius, and visual style without custom code; (3) Shopify Functions — server-side logic for custom discounts, shipping methods, and payment methods. Everything that lived in checkout.liquid must be rebuilt as one of these. Apps that previously offered checkout.liquid snippets must be rebuilt as proper Checkout UI Extensions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout look different on mobile vs desktop after switching to one-page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "One-page checkout uses a responsive layout that shifts between a two-column (desktop) and single-column (mobile) arrangement. On desktop, the order summary is fixed in the right column. On mobile, the order summary collapses to a header accordion. Checkout UI extensions that were designed with fixed pixel dimensions or that assume a specific column layout can break on mobile — appearing cut off, overflowing, or not rendering at all. Some extension render targets (e.g., checkout:dynamic:render inside the order summary) may behave differently on mobile. Additionally, accelerated payment buttons (Shop Pay, Apple Pay, Google Pay) are shown in a different position on mobile vs desktop in the one-page layout, which can cause confusion when merchants compare screenshots from different devices. Test checkout UI extensions on both Chrome desktop and Safari mobile before marking them as working."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 10px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .cause-num {
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .cause-content h3 { font-size: 14px; margin-bottom: 4px; }
+    .cause-content p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 4px; color: var(--text); }
+    .failure-card p { font-size: 12px; margin: 0; color: var(--text-dim); }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 8px; counter-reset: step; }
+    .diag-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      counter-increment: step;
+    }
+    .diag-step::before {
+      content: counter(step);
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .diag-step p { font-size: 13px; margin: 0; }
+    .diag-step strong { color: var(--text); }
+
+    .info-box {
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .info-box.amber { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+    .info-box.green { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); }
+    .info-box.red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+    .info-box.blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+    .info-box.purple { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); }
+    .info-box strong { display: block; margin-bottom: 6px; color: var(--text); }
+    .info-box p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+    .info-box code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; color: var(--text); }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .deep-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+    .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); }
+    .badge-gray { background: rgba(136,136,136,0.15); color: var(--text-dim); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 26px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); font-size: 14px; margin-bottom: 6px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .footer-links a { color: var(--text-dim); font-size: 12px; }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="./" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./">Monitor</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a>
+      <span>›</span>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <span>›</span>
+      One-Page Checkout Not Working
+    </div>
+
+    <h1>Shopify One-Page Checkout Not Working</h1>
+    <p style="font-size:16px; color:var(--text-secondary); margin-bottom:0;">Layout migration conflicts, extension rendering failures, payment section stuck loading — why one-page checkout breaks and how to diagnose each failure type.</p>
+
+    <div class="hero-meta">Last updated June 2026 &nbsp;·&nbsp; Applies to: All plans (Checkout Extensibility: Plus only) &nbsp;·&nbsp; CheckPulse</div>
+
+    <div class="hero-summary">
+      <strong style="color:var(--text); display:block; margin-bottom:6px;">The core problem</strong>
+      Shopify replaced the traditional 3-page checkout flow with a single-page layout in 2023. Apps, scripts, and themes built for the 3-page flow made assumptions about page URLs, DOM structure, and load order that the one-page layout violates. On Shopify Plus, one-page checkout is required for Checkout Extensibility — the replacement for the now-deprecated <code>checkout.liquid</code> — meaning Plus merchants who migrate lose all prior customizations until they rebuild them as UI extensions. The result: broken upsell widgets, payment sections that stall on "Loading," app extensions that render on desktop but disappear on mobile, and confusing errors with no clear owner.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Architecture ───────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Shopify's Four Checkout Layers</h2>
+    <p>Understanding which layer owns your checkout behavior is the first step in diagnosing failures.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">Layer 1</div>
+        <h3>3-Page Checkout (Legacy)</h3>
+        <p>Contact → Shipping → Payment as three separate page loads. URLs: /checkout/contact, /checkout/shipping, /checkout/payment. Now replaced for all stores by one-page checkout. Apps targeting these URLs or their DOM no longer work.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">Layer 2</div>
+        <h3>One-Page Checkout (2023+)</h3>
+        <p>All three steps on a single React page. Steps collapse and expand sequentially. A single URL (/checkout) for the whole flow. Default for all new stores since August 2023, rolled out to existing stores through 2024. No page navigations — section transitions are client-side.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">Layer 3</div>
+        <h3>Checkout Extensibility (Plus)</h3>
+        <p>The official customization API for one-page checkout. Replaces checkout.liquid. Includes: Checkout UI Extensions (React components in designated slots), Checkout Branding API (visual style), Shopify Functions (discount, shipping, payment logic). Requires Plus plan and Checkout Extensibility enabled in partner dashboard.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">Layer 4</div>
+        <h3>Accelerated Checkout</h3>
+        <p>Shop Pay, Apple Pay, Google Pay, and PayPal Express — these bypass the checkout page entirely for repeat customers. They have their own UI surfaces separate from one-page checkout. Conflicts with one-page layout arise when express buttons appear in unexpected positions or when their completion flow redirects incorrectly.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>checkout.liquid is deprecated — this is the most common source of confusion</strong>
+      <p>Shopify Plus merchants who customized checkout via <code>checkout.liquid</code> (a theme file) had that file removed when they enabled Checkout Extensibility. All custom CSS, JavaScript, upsell widgets, address restrictions, and form field modifications in <code>checkout.liquid</code> stopped working. The replacement requires rebuilding each customization as a Checkout UI Extension or using the Branding API — a completely different development model. <code>checkout.liquid</code> was deprecated in August 2024 for new stores and all Checkout Extensibility-enabled Plus stores.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Six Root Causes of One-Page Checkout Failures</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">01</div>
+        <div class="cause-content">
+          <h3>App targets 3-page DOM or page URLs</h3>
+          <p>Apps that used JavaScript to manipulate checkout by waiting for /checkout/shipping or /checkout/payment page loads, or that queried DOM selectors like <code>#checkout-shipping-method</code> or <code>.step--shipping-method</code>, fail silently on one-page checkout. The one-page layout renders checkout as a React single-page application. The 3-page DOM structure doesn't exist. Scripts that depended on <code>Shopify.Checkout.step</code> or listened for page navigation events get no trigger. The app appears to do nothing, with no visible error to the merchant or customer.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">02</div>
+        <div class="cause-content">
+          <h3>checkout.liquid removed — customizations lost</h3>
+          <p>On Shopify Plus, <code>checkout.liquid</code> was the template file controlling checkout appearance and behavior. Merchants added custom CSS, JavaScript upsell widgets, address restriction logic, trust badges, custom form fields, and analytics scripts directly to this file. When the store migrated to Checkout Extensibility (required for newer Plus features), Shopify stopped rendering <code>checkout.liquid</code>. Everything in it stopped working — visually and functionally — without a clear notification. The checkout reverts to Shopify's default visual style until the Branding API and UI Extensions are configured.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">03</div>
+        <div class="cause-content">
+          <h3>Payment section stalled by upstream section error</h3>
+          <p>One-page checkout renders sections sequentially: contact → shipping → payment. The payment section only becomes interactive after contact and shipping sections are resolved. If an upstream section has a validation error — no shipping rates for the address, a checkout UI extension throwing a JavaScript error, an address autocomplete API timing out — the payment section stays in a loading or disabled state indefinitely. On the 3-page checkout, each page was independent. On one-page checkout, a failure in section two prevents customers from reaching payment even if the payment system itself is working perfectly.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">04</div>
+        <div class="cause-content">
+          <h3>Checkout UI extension fails to render</h3>
+          <p>Checkout UI Extensions are React components deployed via Shopify's CLI and served from Shopify's CDN. They fail to render for several reasons: (1) the extension is deployed to a development store but not the production store; (2) the extension has a runtime error that Shopify's sandbox catches and suppresses (no visible error to the customer — the extension slot just appears empty); (3) the extension is targeting a render target that doesn't exist in the current checkout configuration (e.g., <code>checkout:dynamic:render</code> on a store that hasn't enabled dynamic extensions); (4) the extension's network requests to fetch data timeout; (5) the extension version deployed doesn't match what's activated in the admin. Extensions fail silently — no error message appears in checkout, just an empty extension slot.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">05</div>
+        <div class="cause-content">
+          <h3>Theme-level scripts blocked from checkout</h3>
+          <p>Scripts added to <code>theme.liquid</code> (the main theme template file) do not execute in checkout. Checkout is served from a different subdomain (<code>checkout.shopify.com</code> or the store's custom checkout domain) and does not load the theme. Merchants who add analytics tags, chat widgets, conversion tracking pixels, or custom scripts to <code>theme.liquid</code> expecting them to fire in checkout get no execution. This was also true on the 3-page checkout — it's not specific to one-page. But merchants often discover the issue when they switch to one-page checkout because the migration draws attention to checkout behavior. To add scripts to checkout, use the Additional Scripts field in Shopify admin → Settings → Checkout → Order status page scripts (executes on the order confirmation page only, not during checkout), or use a Checkout UI Extension with the <code>headless</code> render target for tracking, or use Shopify's Web Pixel API for analytics.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">06</div>
+        <div class="cause-content">
+          <h3>Mobile layout breaks extension or order summary</h3>
+          <p>One-page checkout uses a two-column layout on desktop (form on left, order summary on right) and a single-column layout on mobile (order summary collapses to a header accordion). Checkout UI extensions that assume a minimum width or that are designed for the desktop order summary column can break on mobile — appearing cut off at the column boundary, failing to expand correctly, or not rendering at all when the order summary accordion is collapsed. Additionally, accelerated payment buttons (Shop Pay, Apple Pay) appear at the top of the checkout on mobile and below the form on desktop — an inconsistency that confuses merchants testing on different devices and can cause misalignment with custom extension UI that tries to appear near those buttons.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways One-Page Checkout Fails Without a Clear Error</h2>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>Extension slot appears but is empty</h3>
+        <p>The extension mounted but its render returned null or threw an error in the sandbox. Shopify shows the slot with no content. No error message visible to customers or merchants in the checkout UI.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Payment section frozen at "Calculating..."</h3>
+        <p>Shipping rate API returned an error or no rates. One-page checkout can't advance to payment without a valid shipping selection. Customers see an indefinite loading state in the payment section.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Upsell widget disappeared after migration</h3>
+        <p>checkout.liquid upsell (in-checkout cross-sell widget) stopped rendering after enabling Checkout Extensibility. The widget's code still exists in checkout.liquid but the file is no longer served. Nothing breaks visually — the widget just doesn't appear.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Custom checkout CSS not applying</h3>
+        <p>Checkout.liquid CSS overrides (custom fonts, brand colors, button styles) dropped after Extensibility migration. Checkout reverts to Shopify defaults. Branding API controls these now but must be configured separately — it doesn't inherit from checkout.liquid.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Extension works in preview, fails in live</h3>
+        <p>The Shopify CLI development build works with <code>--dev</code> flag but the deployed extension fails. Common cause: API keys or metafield definitions used by the extension exist in the dev store but weren't migrated to the production store.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Analytics pixel not firing at checkout steps</h3>
+        <p>theme.liquid Google Tag Manager or Meta Pixel fires on all storefront pages but not checkout. Checkout is a separate surface. Merchants see attribution gaps — purchases tracked but checkout step events (begin_checkout, add_shipping_info, add_payment_info) missing.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Address autocomplete loads then breaks</h3>
+        <p>Address autocomplete (Google Places, powered by Shopify) works on desktop but times out on mobile connections. On one-page checkout, an address autocomplete timeout can delay the shipping section, which in turn delays the payment section loading.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Diagnostic Steps ──────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnosis</div>
+    <h2>How to Diagnose One-Page Checkout Failures</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <p><strong>Open browser DevTools and check the Console tab.</strong> Navigate to checkout in an incognito window. Open DevTools (F12 or Cmd+Option+I) and go to Console. JavaScript errors from checkout UI extensions, failed network requests, and Shopify checkout lifecycle errors appear here. Look for errors referencing extension IDs, <code>checkout-web</code>, or app-specific script names. These errors won't appear in any Shopify admin dashboard — only in the browser console.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Identify whether the failure is pre-migration or post-migration.</strong> Check your Shopify admin → Settings → Checkout → Checkout customization. If "Checkout Extensibility" is shown as enabled (Plus) or if you see the Checkout editor rather than checkout.liquid, the migration has occurred. Any customizations from checkout.liquid are gone. If Checkout Extensibility is not yet enabled, you may still be on the legacy checkout system and experiencing a different category of bug.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Test in a completely clean session with no apps interfering.</strong> Go to Shopify admin → Apps → and temporarily disable all third-party apps that have checkout permissions. Test checkout end-to-end. If the issue resolves, re-enable apps one at a time to identify the conflicting app. Apps with "checkout" in their permissions (checkout UI extensions, CartTransform Functions, Discount Functions) are the most likely culprits.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check the payment section stall: is shipping resolving?</strong> Fill in contact info and address. Watch whether the shipping section resolves (shows shipping options) before the payment section loads. If shipping never shows options, the issue is in shipping (carrier API, shipping zones) — not payment. If shipping shows but payment doesn't load, check the DevTools Network tab for failing requests to <code>checkout.shopify.com</code> or <code>pay.shopify.com</code>.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Test on mobile Safari specifically.</strong> Open checkout on an iPhone in Safari. One-page checkout layout shifts to single-column. Extension render targets behave differently. Accelerated payment buttons appear at the top. If the issue only reproduces on mobile, the cause is likely a checkout UI extension that doesn't handle the narrower viewport, or an app script that doesn't detect the mobile layout.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check if the extension is deployed to the right store.</strong> In Shopify Partners → your app → Extensions, check which stores have the extension deployed and which version is active. A common mistake: the extension is deployed to a development store and tested there, but pushed to production under a different version that has a bug, or the extension was never deployed to the production store at all. Use <code>shopify app deploy</code> from the CLI and confirm the production store's admin shows the extension under Extensions → Checkout.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Reproduce the checkout.liquid gap by checking the branding.</strong> On Plus with Checkout Extensibility, go to admin → Online Store → Themes → Customize → Checkout. If the checkout looks like Shopify's default (no custom fonts, default colors, standard button style), your checkout.liquid CSS is no longer applying. Configure the Checkout Branding API or use the visual editor to restore brand colors, fonts, and button style. This is a separate step from rebuilding function-based customizations.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Deep Dives ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Migration Path, Extension Architecture, and Tracking Setup</h2>
+
+    <div class="deep-label">A — checkout.liquid to Checkout Extensibility Migration Map</div>
+    <div class="info-box blue">
+      <strong>What was in checkout.liquid → What replaces it</strong>
+      <p><strong>Custom CSS / brand colors / fonts:</strong> Checkout Branding API (admin → Online Store → Themes → Customize → Checkout, or via Admin API <code>checkoutBrandingUpsert</code> mutation). Controls: primary button color, font family, corner radius, form field style, header logo.<br><br>
+      <strong>Custom JavaScript (analytics, chat, tracking):</strong> Shopify Web Pixel API (for analytics/tracking), Checkout UI Extension with <code>headless</code> target (for scripts that need checkout context), or App Bridge. Scripts in <code>theme.liquid</code> don't run in checkout.<br><br>
+      <strong>In-checkout upsell widgets:</strong> Checkout UI Extension targeting <code>purchase.checkout.block.render</code> or <code>purchase.checkout.cart-line-item.render-after</code>. Must be a React component using Shopify's extension UI components.<br><br>
+      <strong>Address restriction / validation:</strong> CartTransform Function (modifies cart before checkout), or a Checkout UI Extension with form validation logic.<br><br>
+      <strong>Custom form fields:</strong> Checkout UI Extension targeting <code>purchase.checkout.contact.render-after</code> using the <code>TextField</code> component. Data stored as order metafields via <code>cartMetafieldsSet</code> or <code>checkoutMetafieldsSet</code>.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <div class="deep-label">B — Checkout UI Extension Render Targets</div>
+    <h3>Where extensions can appear in one-page checkout</h3>
+
+    <div class="info-box amber">
+      <strong>Static extension points (rendered at a fixed position)</strong>
+      <p><code>purchase.checkout.contact.render-after</code> — below the email/contact section<br>
+      <code>purchase.checkout.shipping-option-list.render-after</code> — below shipping options<br>
+      <code>purchase.checkout.payment-method-list.render-after</code> — below payment methods<br>
+      <code>purchase.checkout.reductions.render-after</code> — below discount code field<br>
+      <code>purchase.checkout.cart-line-item.render-after</code> — below each cart line item<br>
+      <code>purchase.checkout.actions.render-before</code> — above the "Complete order" button<br>
+      <code>purchase.thank-you.block.render</code> — on the order confirmation page</p>
+    </div>
+    <div class="info-box green" style="margin-top:0;">
+      <strong>Dynamic extension points (Plus only — Checkout Extensibility)</strong>
+      <p><code>purchase.checkout.block.render</code> — drag-and-drop blocks in the checkout editor. These can be repositioned by the merchant in the visual editor. Requires Checkout Extensibility enabled. The merchant sees a block component in the editor and can drag it between sections.</p>
+    </div>
+    <div class="info-box red" style="margin-top:0;">
+      <strong>Common mistake: targeting non-existent extension points</strong>
+      <p>Extension targets must be declared in the extension's <code>shopify.extension.toml</code> file. If the target doesn't match what's in the config, the extension silently doesn't mount. Verify the target string exactly — even a typo (e.g., <code>purchase.checkout.contact.after</code> instead of <code>purchase.checkout.contact.render-after</code>) results in the extension never appearing with no error.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <div class="deep-label">C — Analytics and Tracking on One-Page Checkout</div>
+    <h3>How to fire checkout step events on the new layout</h3>
+
+    <div class="info-box purple">
+      <strong>Web Pixels (the correct approach)</strong>
+      <p>Shopify's Web Pixel API is the official way to run analytics code inside checkout. Web Pixels run in a sandboxed iframe and receive checkout lifecycle events: <code>checkout_started</code>, <code>checkout_contact_info_submitted</code>, <code>checkout_shipping_info_submitted</code>, <code>checkout_completed</code>. Create a Web Pixel in your app's config (<code>shopify.app.toml</code>) and subscribe to these events. The pixel runs in the sandbox — it cannot access the parent DOM but can make <code>fetch</code> requests to analytics endpoints. Google Analytics 4, Meta Pixel, TikTok Pixel, and most major analytics platforms now have official Shopify app integrations that use Web Pixels instead of script injection.</p>
+    </div>
+    <div class="info-box blue" style="margin-top:0;">
+      <strong>Order status page scripts (legacy — order confirmation only)</strong>
+      <p>Shopify admin → Settings → Checkout → Order status page → Additional scripts. This field accepts JavaScript that runs on the <em>order confirmation page</em> (after purchase), not during checkout. The <code>Shopify.checkout</code> JavaScript object is available here with order details. This is not the same as checkout tracking — it fires after the purchase is complete, not at the begin_checkout or add_payment_info steps. Use it only for post-purchase confirmation tracking.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Reference Table ────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>One-Page Checkout Compatibility Reference</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Customization type</th>
+            <th>3-Page (legacy)</th>
+            <th>One-Page (all stores)</th>
+            <th>Checkout Extensibility (Plus)</th>
+            <th>Replacement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>checkout.liquid custom CSS</td>
+            <td><span class="badge badge-green">Works</span></td>
+            <td><span class="badge badge-red">Removed</span></td>
+            <td><span class="badge badge-red">Removed</span></td>
+            <td>Checkout Branding API</td>
+          </tr>
+          <tr>
+            <td>checkout.liquid JavaScript</td>
+            <td><span class="badge badge-green">Works</span></td>
+            <td><span class="badge badge-red">Removed</span></td>
+            <td><span class="badge badge-red">Removed</span></td>
+            <td>Web Pixel API / UI Extension</td>
+          </tr>
+          <tr>
+            <td>3-page DOM script injection</td>
+            <td><span class="badge badge-green">Works</span></td>
+            <td><span class="badge badge-red">Broken</span></td>
+            <td><span class="badge badge-red">Broken</span></td>
+            <td>Checkout UI Extension</td>
+          </tr>
+          <tr>
+            <td>theme.liquid scripts</td>
+            <td><span class="badge badge-red">Never worked</span></td>
+            <td><span class="badge badge-red">Never worked</span></td>
+            <td><span class="badge badge-red">Never worked</span></td>
+            <td>Web Pixel API</td>
+          </tr>
+          <tr>
+            <td>In-checkout upsell widgets</td>
+            <td><span class="badge badge-amber">checkout.liquid</span></td>
+            <td><span class="badge badge-red">Broken</span></td>
+            <td><span class="badge badge-green">UI Extension</span></td>
+            <td>purchase.checkout.block.render</td>
+          </tr>
+          <tr>
+            <td>Custom checkout fonts/colors</td>
+            <td><span class="badge badge-amber">checkout.liquid</span></td>
+            <td><span class="badge badge-red">Broken</span></td>
+            <td><span class="badge badge-green">Branding API</span></td>
+            <td>checkoutBrandingUpsert mutation</td>
+          </tr>
+          <tr>
+            <td>Address restriction logic</td>
+            <td><span class="badge badge-amber">checkout.liquid</span></td>
+            <td><span class="badge badge-red">Broken</span></td>
+            <td><span class="badge badge-green">CartTransform Fn</span></td>
+            <td>CartTransform Shopify Function</td>
+          </tr>
+          <tr>
+            <td>Analytics step tracking</td>
+            <td><span class="badge badge-amber">checkout.liquid</span></td>
+            <td><span class="badge badge-amber">Varies</span></td>
+            <td><span class="badge badge-green">Web Pixel</span></td>
+            <td>Web Pixel API (checkout events)</td>
+          </tr>
+          <tr>
+            <td>Custom shipping rates</td>
+            <td><span class="badge badge-green">Carrier API</span></td>
+            <td><span class="badge badge-green">Carrier API</span></td>
+            <td><span class="badge badge-green">Delivery Function</span></td>
+            <td>Delivery Customization Function (Plus)</td>
+          </tr>
+          <tr>
+            <td>Custom payment methods</td>
+            <td><span class="badge badge-amber">Plus only</span></td>
+            <td><span class="badge badge-amber">Plus only</span></td>
+            <td><span class="badge badge-green">Payment Function</span></td>
+            <td>Payment Customization Function (Plus)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>The most common post-migration surprise</strong>
+      <p>Merchants enabling Checkout Extensibility for the first time (to use a new Plus feature or UI extension) discover that their checkout suddenly looks plain and their in-checkout upsell widget is gone. Both are caused by checkout.liquid no longer rendering. The fix requires two separate steps: configure the Branding API to restore visual style, and rebuild each checkout.liquid feature as a proper UI Extension. Neither step happens automatically during the migration — Shopify does not port checkout.liquid content to the new system.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: CTA ────────────────────────────────────────────── -->
+  <div class="section" style="border-bottom:none;">
+    <div class="cta-block">
+      <h3>Monitor Your Shopify Checkout 24/7</h3>
+      <p>One-page checkout bugs, extension failures, and payment stalls — CheckPulse detects them before your customers abandon.</p>
+      <a href="./free-check" class="cta-btn">Run a Free Checkout Check</a>
+    </div>
+  </div>
+
+  <!-- ── SECTION 8: Related ────────────────────────────────────────── -->
+  <div class="section" style="padding-top:0;">
+    <div class="section-label">Related Problems</div>
+    <div class="related-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions Guide</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-app-conflict">App Blocking Checkout</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Broken</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Order Editing Not Working — Edit After Payment, Discount Recalculation, Plus API, Subscription Lock (2026)</title>
+  <meta name="description" content="Shopify order editing fails silently when orders are fulfilled, captured, archived, or locked by subscription apps. The Edit Order button disappears. Discounts don't recalculate after line item changes. Plus Order Editing API has different rules than admin editing. Six root causes and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-editing-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-editing-not-working" />
+  <meta property="og:title" content="Shopify Order Editing Not Working — Edit After Payment, Subscription Lock, Plus API" />
+  <meta property="og:description" content="Shopify order editing is blocked when orders are fulfilled, financially settled, archived, or managed by subscription apps. The admin Edit Order button disappears without explanation. Discounts don't recalculate automatically. This guide covers every blocking condition and how to work around them." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Order Editing Not Working — Edit After Payment, Discount Recalculation, Plus API, Subscription Lock",
+    "description": "Shopify order editing operates under three separate systems: admin order editing (available on all plans with restrictions), the Order Editing API (Shopify Plus only), and draft order conversion (a workaround for complex changes). Each has different rules about when editing is permitted. The 'Edit order' button disappears when an order is fulfilled, archived, cancelled, or locked by a third-party app. Discounts from the original order do not automatically recalculate when line items are added or changed. Subscription orders managed by apps like Recharge or Seal Subscriptions are locked against Shopify admin editing. The result: merchants try to fix a customer mistake — a wrong size, an extra item, a shipping address — and hit a silent wall.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-order-editing-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Edit Order button missing in Shopify admin?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 'Edit order' button disappears in Shopify admin when: (1) The order is fully fulfilled — once all line items are marked as fulfilled, the editing option is removed. (2) The order is archived. (3) The order is cancelled. (4) The order was created through a channel or app that doesn't support editing (e.g., certain POS orders, marketplace orders). (5) A subscription app like Recharge, Seal Subscriptions, or Bold Subscriptions controls the order — these apps create orders via their own fulfillment flow and lock them against manual admin editing. (6) The order is a test order in certain configurations. Note: a partially fulfilled order (some line items fulfilled, some not) may still show the Edit button, but editing is restricted to unfulfilled items only."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can you edit a Shopify order after payment has been captured?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, with conditions. Shopify allows order editing after payment capture on all plans, but the financial implications depend on the change type. If you add items, Shopify creates an additional payment request — the customer receives an invoice to pay the difference. If you remove items, Shopify does not automatically issue a refund; you must manually refund the difference after editing. If you change a variant (e.g., size S to size M at the same price), no payment change is needed. What payment capture status does NOT block editing: captured or partially refunded orders can still be edited in admin. What DOES block editing regardless of payment: fulfilled orders, archived orders, cancelled orders. The key rule: fulfillment status gates editing, not payment status."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why don't discounts recalculate when I edit a Shopify order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's order editing system does not retroactively recalculate discounts from the original order when you add or change line items. If the original order had a 20% discount code applied, and you add a new line item during editing, the new item is added at full price — the existing discount does not extend to it. Similarly, if you remove a line item that was required to meet a minimum order threshold for the original discount, the discount is not automatically removed. To handle this correctly: (1) Note the original discount value before editing. (2) After adding items, manually calculate the correct discount for the new item and apply a custom discount to that specific line item during the edit. (3) If the threshold is no longer met after removal, issue a partial refund to correct the discount value. Shopify Plus merchants using the Order Editing API face the same limitation — the API does not auto-recalculate discounts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I edit a Shopify subscription order from Recharge or Seal Subscriptions?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Subscription orders from apps like Recharge, Seal Subscriptions, Bold Subscriptions, or PayWhirl are not editable in the standard Shopify admin order editor. These apps create orders through their own APIs and lock them against Shopify's native editing. To edit a subscription order: (1) Go into the subscription app's own portal (e.g., Recharge merchant portal → Subscriptions → find the customer) and edit the subscription from there — you can change address, product, frequency, or skip/pause. (2) For a one-time order already placed, the subscription app's order is typically a standard Shopify order that you can refund and manually recreate. (3) If the customer needs a product variant change, most subscription apps have a 'swap product' feature in their portal. Do not attempt to cancel the Shopify order and create a new one — this breaks the subscription app's tracking and may cause the next renewal to fail."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Shopify Order Editing API and is it available on all plans?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Shopify Order Editing API is a programmatic interface that allows apps and developers to modify orders after they are placed. It is available exclusively on Shopify Plus. The API supports: adding new line items (new products or variants), removing existing line items, changing quantities, adding custom discounts to specific items during the edit, adding notes to the edit. It does NOT support: changing shipping address (use the admin for that on any plan), changing the shipping method, adding discount codes (only item-level custom discounts), editing orders from third-party channels. Standard plan merchants (Basic, Shopify, Advanced) do not have API access to order editing — they are limited to the admin UI editor, which has the same functional scope but through a manual interface rather than automation. Custom apps on Plus can use the Order Editing API to build automated editing flows (e.g., size exchange portals, fulfillment error correction)."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1117;
+      --ink-2: #374151;
+      --ink-3: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --surface-3: #f3f4f6;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-surface: #eff6ff;
+      --warn: #b45309;
+      --warn-surface: #fffbeb;
+      --ok: #065f46;
+      --ok-surface: #ecfdf5;
+      --danger: #991b1b;
+      --danger-surface: #fef2f2;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1rem; line-height: 1.65; color: var(--ink); background: var(--surface); }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 1.25rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* nav */
+    nav { border-bottom: 1px solid var(--border); padding: 0.9rem 0; }
+    nav .container { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1rem; margin-left: auto; font-size: 0.875rem; }
+    .nav-links a { color: var(--ink-2); }
+    .nav-cta { background: var(--accent); color: #fff !important; padding: 0.4rem 0.9rem; border-radius: var(--radius-sm); font-weight: 600; }
+    .nav-cta:hover { background: var(--accent-dark); text-decoration: none !important; }
+
+    /* hero */
+    .hero { padding: 3rem 0 2.25rem; border-bottom: 1px solid var(--border); }
+    .breadcrumb { font-size: 0.8rem; color: var(--ink-3); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--ink-3); }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.15rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.02em; }
+    .hero-meta { font-size: 0.82rem; color: var(--ink-3); display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .hero-lead { margin-top: 1.1rem; font-size: 1.05rem; color: var(--ink-2); max-width: 72ch; line-height: 1.7; }
+
+    /* toc */
+    .toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 2rem 0; }
+    .toc-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .toc li { font-size: 0.9rem; }
+
+    /* section */
+    section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.45rem; font-weight: 800; margin-bottom: 1.1rem; letter-spacing: -0.015em; }
+    h3 { font-size: 1.1rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 0.9rem; color: var(--ink-2); }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.35rem; color: var(--ink-2); display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+    li { line-height: 1.6; }
+
+    /* cards */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.25rem; background: var(--surface); }
+    .card-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin-bottom: 0.5rem; }
+    .card h3 { font-size: 0.97rem; font-weight: 700; margin: 0 0 0.45rem; color: var(--ink); }
+    .card p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+    .card.warn { border-color: #fcd34d; background: var(--warn-surface); }
+    .card.ok { border-color: #6ee7b7; background: var(--ok-surface); }
+    .card.danger { border-color: #fca5a5; background: var(--danger-surface); }
+    .card.info { border-color: #bfdbfe; background: var(--accent-surface); }
+
+    /* callout */
+    .callout { border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1.25rem 0; font-size: 0.9rem; line-height: 1.6; }
+    .callout.warn { background: var(--warn-surface); border-left: 4px solid #f59e0b; color: #78350f; }
+    .callout.ok { background: var(--ok-surface); border-left: 4px solid #10b981; color: #064e3b; }
+    .callout.danger { background: var(--danger-surface); border-left: 4px solid #ef4444; color: #7f1d1d; }
+    .callout.info { background: var(--accent-surface); border-left: 4px solid #3b82f6; color: #1e3a8a; }
+    .callout strong { font-weight: 700; }
+
+    /* table */
+    .table-wrap { overflow-x: auto; margin: 1.25rem 0; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th { background: var(--surface-2); font-weight: 700; padding: 0.7rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--ink); }
+    tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: var(--surface-2); }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 99px; }
+    .badge.red { background: #fee2e2; color: #991b1b; }
+    .badge.green { background: #d1fae5; color: #065f46; }
+    .badge.yellow { background: #fef3c7; color: #92400e; }
+    .badge.blue { background: #dbeafe; color: #1e40af; }
+
+    /* steps */
+    .steps { display: flex; flex-direction: column; gap: 0.75rem; margin: 1.25rem 0; }
+    .step { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 0.1rem; }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; font-size: 0.93rem; color: var(--ink); margin-bottom: 0.2rem; }
+    .step-body p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+
+    /* faq */
+    .faq { display: flex; flex-direction: column; gap: 1.5rem; margin: 1.25rem 0; }
+    .faq-item {}
+    .faq-q { font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem; }
+    .faq-a { font-size: 0.9rem; color: var(--ink-2); line-height: 1.65; }
+
+    /* cta */
+    .cta-box { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius: 14px; padding: 2.25rem 2rem; text-align: center; margin: 2.5rem 0; color: #fff; }
+    .cta-box h2 { color: #fff; font-size: 1.55rem; margin-bottom: 0.6rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); font-size: 1rem; margin-bottom: 1.4rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--accent-dark); font-weight: 700; padding: 0.75rem 2rem; border-radius: var(--radius-sm); font-size: 1rem; }
+    .cta-btn:hover { background: #eff6ff; text-decoration: none; }
+    .cta-sub { margin-top: 0.85rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+
+    /* related */
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+    .related-grid a { font-size: 0.85rem; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--ink-2); display: block; transition: border-color 0.15s; }
+    .related-grid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    /* footer */
+    footer { border-top: 1px solid var(--border); padding: 2rem 0 2.5rem; margin-top: 3rem; }
+    .footer-brand { font-weight: 800; font-size: 1rem; margin-bottom: 0.3rem; }
+    .footer-copy { font-size: 0.8rem; color: var(--ink-3); display: block; margin-bottom: 1rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .footer-links a { font-size: 0.8rem; color: var(--ink-3); }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      h2 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="./">Check<span>Pulse</span></a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a class="nav-cta" href="./#pricing">Monitor My Checkout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a> › <a href="./shopify-checkout-not-working">Checkout Issues</a> › Order Editing Not Working
+    </div>
+    <h1>Shopify Order Editing Not Working — Edit After Payment, Discount Recalculation, Subscription Lock &amp; Plus API</h1>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Shopify Basic · Shopify · Advanced · Plus</span>
+      <span>6 root causes · 7 diagnostic steps</span>
+    </div>
+    <p class="hero-lead">
+      Shopify order editing is blocked silently in multiple scenarios: fulfilled orders, subscription app locks, archived orders, and Plus-only API access. The "Edit order" button disappears without explanation. Discounts don't recalculate after line item changes. This guide covers every blocking condition, the three separate editing systems, and how to work around each.
+    </p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">On This Page</div>
+    <ol>
+      <li><a href="#three-systems">The Three Shopify Order Editing Systems</a></li>
+      <li><a href="#blocking-conditions">Six Conditions That Block Order Editing</a></li>
+      <li><a href="#discount-problem">Why Discounts Don't Recalculate After Editing</a></li>
+      <li><a href="#subscription-orders">Editing Subscription Orders (Recharge, Seal, Bold)</a></li>
+      <li><a href="#plus-api">Shopify Plus Order Editing API</a></li>
+      <li><a href="#diagnostic">7-Step Diagnostic</a></li>
+      <li><a href="#reference">Editing Permissions Reference Table</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 1: THREE SYSTEMS -->
+  <section id="three-systems">
+    <h2>The Three Shopify Order Editing Systems</h2>
+    <p>
+      Shopify provides three distinct mechanisms for editing orders after they are placed. Each has different plan requirements, capabilities, and restrictions. Confusing them is the most common source of "order editing not working" reports.
+    </p>
+
+    <div class="card-grid">
+      <div class="card info">
+        <div class="card-label">All Plans</div>
+        <h3>Admin Order Editor (UI)</h3>
+        <p>Manual editing in Shopify admin → Orders → [order] → Edit. Add/remove line items, change quantities, apply item-level discounts. Cannot change shipping address or method here.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Shopify Plus Only</div>
+        <h3>Order Editing API</h3>
+        <p>Programmatic editing via <code>orderEditBegin</code> / <code>orderEditAddLineItem</code> / <code>orderEditCommit</code> GraphQL mutations. Powers custom exchange portals and automated correction flows.</p>
+      </div>
+      <div class="card ok">
+        <div class="card-label">All Plans — Workaround</div>
+        <h3>Draft Order Conversion</h3>
+        <p>For complex changes (new address, different shipping rate), cancel the original order and recreate as a draft order. Loses original order number and analytics continuity.</p>
+      </div>
+      <div class="card danger">
+        <div class="card-label">Not Editing — Often Confused</div>
+        <h3>Subscription App Portal</h3>
+        <p>Subscription orders (Recharge, Seal, Bold) must be edited in the app's own merchant portal, not Shopify admin. The Shopify Edit button is hidden for these orders.</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>Key distinction:</strong> The admin order editor and the Order Editing API have the same functional scope — both can add/remove line items and set item-level discounts. The difference is automation: the API lets you build flows that edit orders programmatically, while the admin editor requires manual action per order. The API is Plus-exclusive; the admin editor is available on all plans (subject to blocking conditions).
+    </div>
+  </section>
+
+  <!-- SECTION 2: BLOCKING CONDITIONS -->
+  <section id="blocking-conditions">
+    <h2>Six Conditions That Block Order Editing</h2>
+    <p>
+      The "Edit order" button disappears — or is greyed out — when any of these conditions are true. Shopify does not always display which condition is blocking.
+    </p>
+
+    <h3>1. Order Is Fully Fulfilled</h3>
+    <p>
+      Once every line item in an order is marked as fulfilled (tracking number added, fulfillment service confirmed), the Edit button is removed. Partially fulfilled orders — where some items are shipped and some are not — may still show the Edit button, but editing is limited to unfulfilled line items only. You cannot remove a line item that has already been fulfilled.
+    </p>
+
+    <h3>2. Order Is Archived</h3>
+    <p>
+      Archived orders are not editable. If you or an automation rule (e.g., auto-archive after fulfillment) archived the order, you must unarchive it first: Shopify admin → Orders → find the order → Unarchive → then attempt editing.
+    </p>
+
+    <h3>3. Order Is Cancelled</h3>
+    <p>
+      Cancelled orders cannot be edited. The cancellation is permanent from an editing perspective. To correct a cancelled order, you must create a new order manually or via a draft order.
+    </p>
+
+    <h3>4. Subscription App Lock</h3>
+    <p>
+      Orders generated by subscription apps (Recharge, Seal Subscriptions, Bold Subscriptions, PayWhirl, Ordergroove) are locked in Shopify admin. The subscription app created the order through its own API and retains control. Shopify admin hides the Edit button for these orders. All changes must go through the subscription app's merchant portal.
+    </p>
+
+    <h3>5. Third-Party Channel Orders</h3>
+    <p>
+      Orders imported from Amazon, eBay, Google Shopping, TikTok Shop, or other sales channels may not support editing. The Edit button is hidden because Shopify cannot push changes back to the originating channel's order system. These orders should be managed in the originating channel's platform.
+    </p>
+
+    <h3>6. POS Orders With Certain Configurations</h3>
+    <p>
+      Some Shopify POS orders — particularly those using custom POS apps or fulfillment services — may block editing. Standard POS-in-store orders are generally editable if they meet the other conditions (unfulfilled, unarchived, uncancelled).
+    </p>
+
+    <div class="callout warn">
+      <strong>Common trap:</strong> An order that is captured (payment taken) but NOT fulfilled is still editable. Payment capture status does not block editing — only fulfillment status does. Many merchants assume payment capture locks the order; it doesn't. The financial system handles editing by creating an additional charge or requiring a manual refund of the difference.
+    </div>
+  </section>
+
+  <!-- SECTION 3: DISCOUNT RECALCULATION -->
+  <section id="discount-problem">
+    <h2>Why Discounts Don't Recalculate After Editing</h2>
+    <p>
+      This is the most frequently reported order editing "bug" that is actually expected behavior. When you add or change line items on an existing Shopify order, the original discount applied at checkout does not extend to the new items.
+    </p>
+
+    <h3>What Actually Happens</h3>
+    <p>
+      Shopify's order editor treats the original order's discount as a fixed financial record. The discount was a point-in-time event during checkout — a percentage off the subtotal as it existed then, or a fixed amount. Adding a new $40 item to an order that had 20% off does not apply 20% off to that new item. The new item is added at full price.
+    </p>
+    <p>
+      Removing a line item similarly does not reverse the discount arithmetic. If a 10% discount code was applied to an order with 3 items and you remove 1 item, the discount amount does not automatically decrease to 10% of the new 2-item subtotal. The original fixed discount amount remains as a line on the order.
+    </p>
+
+    <h3>The Threshold Problem</h3>
+    <p>
+      If the original discount required a minimum order value (e.g., "20% off orders over $100") and you remove items that drop the order below $100, Shopify does not automatically invalidate the discount. The discount remains applied. You must manually refund the discount portion to make the order financially accurate.
+    </p>
+
+    <h3>How to Handle Discount Math Manually</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Before editing, record the original discount amount</strong>
+          <p>Note the exact dollar value of the discount on the original order summary (not just the percentage).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Add the new line item at full price</strong>
+          <p>Use the admin editor to add the item. It arrives at full price.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Apply a custom item-level discount</strong>
+          <p>In the editor, click the pencil icon next to the new line item → "Reason for discount" → enter the discount amount or percentage. This applies the discount to just that item.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Send the difference invoice to the customer</strong>
+          <p>Shopify will generate an invoice for any additional amount owed. Send it to the customer before committing the edit.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>For removals, issue a manual refund</strong>
+          <p>After saving the edit, go to Refund → manually enter the refund amount including the proportional discount recalculation. Do not use "auto-calculate refund" — it may not account for the discount correctly.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>Shopify Plus + Order Editing API:</strong> The API has the same limitation. <code>orderEditAddLineItem</code> adds items at full price. You must call <code>orderEditSetQuantity</code> or <code>orderEditAddDiscount</code> after adding each item to apply the correct discount programmatically.
+    </div>
+  </section>
+
+  <!-- SECTION 4: SUBSCRIPTION ORDERS -->
+  <section id="subscription-orders">
+    <h2>Editing Subscription Orders (Recharge, Seal, Bold, PayWhirl)</h2>
+    <p>
+      Subscription orders are a common source of "Edit button missing" reports. These orders look identical to regular orders in Shopify admin but are controlled by the subscription app — not by Shopify's native order system.
+    </p>
+
+    <h3>Why Subscription Orders Are Locked</h3>
+    <p>
+      When a subscription renewal fires, the app (Recharge, Seal, etc.) creates the Shopify order via API with a flag that identifies it as a subscription order. Shopify hides the Edit button because any manual change in admin could break the app's internal state — its subscription record would no longer match the order.
+    </p>
+
+    <h3>How to Edit by App</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-label">Recharge</div>
+        <h3>Recharge Merchant Portal</h3>
+        <p>Go to Recharge admin → Customers → find customer → Subscriptions → Edit. Change product, quantity, shipping address, frequency, or skip next order from here.</p>
+      </div>
+      <div class="card">
+        <div class="card-label">Seal Subscriptions</div>
+        <h3>Seal Dashboard</h3>
+        <p>Seal Subscriptions → Subscribers → find customer → Manage. Product swaps, address changes, and pause/skip available. Individual placed orders cannot be edited retroactively.</p>
+      </div>
+      <div class="card">
+        <div class="card-label">Bold Subscriptions</div>
+        <h3>Bold Orders Panel</h3>
+        <p>Bold Subscriptions → Orders → find subscription order. Bold has limited retroactive editing; most changes affect the next renewal cycle rather than a placed order.</p>
+      </div>
+      <div class="card">
+        <div class="card-label">All Apps — Nuclear Option</div>
+        <h3>Cancel + Draft Order</h3>
+        <p>For a one-time retroactive fix: refund the subscription order, create a manual draft order with correct items, mark as paid. Update the subscription app's next-order configuration separately.</p>
+      </div>
+    </div>
+
+    <div class="callout danger">
+      <strong>Do not cancel the Shopify order to fix it if the subscription is recurring.</strong> Cancelling a Shopify order from admin doesn't cancel the subscription or the renewal schedule in the app. The customer will be charged again on the next renewal date. Cancel the subscription via the app's portal if you need to stop future charges.
+    </div>
+  </section>
+
+  <!-- SECTION 5: PLUS API -->
+  <section id="plus-api">
+    <h2>Shopify Plus Order Editing API</h2>
+    <p>
+      Shopify Plus stores can programmatically edit orders via GraphQL. This powers exchange portals, fulfillment error corrections, and customer service tools that modify orders at scale.
+    </p>
+
+    <h3>API Flow</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong><code>orderEditBegin(id: $orderId)</code></strong>
+          <p>Opens an edit session and returns a <code>calculatedOrder</code> ID. The order is not locked for other operations during this session.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Make mutations on the <code>calculatedOrder</code></strong>
+          <p>Use <code>orderEditAddLineItem</code>, <code>orderEditSetQuantity</code>, <code>orderEditAddVariant</code>, <code>orderEditAddDiscount</code>, <code>orderEditRemoveDiscount</code>. All staged, not yet committed.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong><code>orderEditCommit(id: $calculatedOrderId, notifyCustomer: true)</code></strong>
+          <p>Finalizes the edit. If <code>notifyCustomer: true</code>, Shopify sends an invoice email for any additional amount owed. The edit appears in the order's timeline.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>API Limitations (Often Misunderstood)</h3>
+    <ul>
+      <li><strong>No discount code application:</strong> You can add item-level custom discounts via <code>orderEditAddDiscount</code>, but you cannot apply or change discount codes on the order.</li>
+      <li><strong>No shipping changes:</strong> The API cannot change the shipping line, shipping address, or shipping rate. Address changes must go through Shopify admin's shipping address edit (available on all plans separately from the order editor).</li>
+      <li><strong>No channel order support:</strong> Orders from Amazon, eBay, or other channels cannot be edited via the API.</li>
+      <li><strong>No fulfilled line item changes:</strong> Same restriction as admin — already-fulfilled line items cannot be modified or removed.</li>
+      <li><strong>Discount recalculation:</strong> Same as admin — existing discounts don't extend to new items automatically. Use <code>orderEditAddDiscount</code> explicitly.</li>
+      <li><strong>Plan gating:</strong> The <code>orderEditBegin</code> mutation returns a "This action requires a Shopify Plus subscription" error on non-Plus stores.</li>
+    </ul>
+
+    <div class="callout info">
+      <strong>Silent failure pattern:</strong> The most common Plus API issue is committing an edit without handling the <code>userErrors</code> array in the <code>orderEditCommit</code> response. If the commit fails (order already fulfilled, concurrent edit collision), it returns success: false with an error in <code>userErrors</code> — not a GraphQL-level error. Apps that don't check <code>userErrors</code> log a "successful" edit that never happened.
+    </div>
+  </section>
+
+  <!-- SECTION 6: DIAGNOSTIC -->
+  <section id="diagnostic">
+    <h2>7-Step Diagnostic for Order Editing Not Working</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Check fulfillment status</strong>
+          <p>Shopify admin → order → check "Fulfilled" badge. If fully fulfilled: editing is blocked. If partially fulfilled: only unfulfilled items can be edited.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check archived status</strong>
+          <p>If the order shows "Archived" tag, click the three-dot menu → Unarchive. Refresh and try editing again.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Check for subscription app tag</strong>
+          <p>Scroll to the "Tags" section on the order. Look for tags like <code>Subscription</code>, <code>recharge</code>, <code>seal</code>, or <code>bold</code>. If present, go to the subscription app's portal to make changes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Check the sales channel</strong>
+          <p>Under "Sales channel" on the order detail, if it shows Amazon, eBay, TikTok, or any non-Shopify channel, editing in admin is not supported. Manage in that channel's platform.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Check order status</strong>
+          <p>Cancelled orders cannot be edited. For cancelled orders: create a new draft order with the correct items and mark it as paid.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>For discounts — check if threshold is still met</strong>
+          <p>If removing an item, verify the remaining subtotal still meets the minimum for the original discount code. If not, manually calculate and refund the discount portion.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>For Plus API — check <code>userErrors</code> in commit response</strong>
+          <p>Add error logging on <code>orderEditCommit.userErrors</code>. If the array is non-empty, the edit was rejected. Errors include: order already fulfilled, session expired (begin/commit must complete within 1 hour), or plan restriction.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 7: REFERENCE TABLE -->
+  <section id="reference">
+    <h2>Editing Permissions Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order Condition</th>
+            <th>Admin Editor</th>
+            <th>Plus API</th>
+            <th>Workaround</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Unfulfilled, captured payment</td>
+            <td><span class="badge green">Available</span></td>
+            <td><span class="badge green">Available</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Partially fulfilled</td>
+            <td><span class="badge yellow">Partial</span> (unfulfilled items only)</td>
+            <td><span class="badge yellow">Partial</span> (unfulfilled items only)</td>
+            <td>Edit unfulfilled portion, refund fulfilled portion separately</td>
+          </tr>
+          <tr>
+            <td>Fully fulfilled</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>Refund + new draft order</td>
+          </tr>
+          <tr>
+            <td>Archived</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>Unarchive first</td>
+          </tr>
+          <tr>
+            <td>Cancelled</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>New draft order</td>
+          </tr>
+          <tr>
+            <td>Subscription app order</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>Edit in subscription app portal</td>
+          </tr>
+          <tr>
+            <td>Third-party channel (Amazon, eBay)</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>Edit in originating channel</td>
+          </tr>
+          <tr>
+            <td>Authorized, not captured</td>
+            <td><span class="badge green">Available</span></td>
+            <td><span class="badge green">Available</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Refunded (partial)</td>
+            <td><span class="badge green">Available</span></td>
+            <td><span class="badge green">Available</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Refunded (full)</td>
+            <td><span class="badge red">Blocked</span></td>
+            <td><span class="badge red">Blocked</span></td>
+            <td>New draft order</td>
+          </tr>
+          <tr>
+            <td>Standard plan (non-Plus)</td>
+            <td><span class="badge green">Available</span></td>
+            <td><span class="badge red">Not available</span></td>
+            <td>Use admin editor manually</td>
+          </tr>
+          <tr>
+            <td>Discount — add new item</td>
+            <td><span class="badge yellow">Manual</span> (no auto recalc)</td>
+            <td><span class="badge yellow">Manual</span> (use orderEditAddDiscount)</td>
+            <td>Add item-level custom discount manually</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 8: FAQ -->
+  <section id="faq">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Can I change the shipping address on a Shopify order after payment?</div>
+        <div class="faq-a">Yes. Changing the shipping address is separate from order editing. In Shopify admin → order → click the pencil icon next to the shipping address. This works on all plans, and is not blocked by fulfillment status (you can change address on a fulfilled order to update records, though the shipment may already be in transit). The Order Editing API does NOT support address changes — they must go through admin regardless of plan.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What happens when I add an item to a Shopify order — does the customer get charged automatically?</div>
+        <div class="faq-a">No. When you add a line item that increases the order total, Shopify generates an invoice for the difference and gives you the option to send it to the customer before committing the edit. The additional payment is not captured automatically. The customer must pay the invoice. If you commit the edit without the customer paying, the additional amount shows as "Outstanding" on the order. You can later mark it as paid manually if collected offline, or send the invoice link again.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I remove a line item from a Shopify order without issuing a refund immediately?</div>
+        <div class="faq-a">Yes. Removing a line item in the order editor decreases the order total but does not trigger an automatic refund. The order shows a negative balance ("$X credit available"). You must manually go to Refund and process the refund amount. This separation is intentional — it lets you correct the order record first and handle the refund as a separate step (e.g., if you want to verify the item is returned before refunding).</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does Shopify order editing work with draft orders?</div>
+        <div class="faq-a">Draft orders have a different status lifecycle. While a draft order is still open (unpaid), you can edit it freely — add/remove items, change customer, apply discounts, change shipping. Once a draft order is converted to a paid order (customer pays the invoice), it becomes a regular Shopify order subject to the same editing rules as any other order: blocked if fulfilled, blocked if archived, etc. The "Draft Order" phase is the most flexible editing window.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why does my checkout monitoring tool miss order edit events?</div>
+        <div class="faq-a">Order edits fire <code>orders/updated</code> webhooks, not <code>orders/create</code>. Many checkout monitoring setups subscribe only to <code>orders/create</code> and <code>checkouts/create</code>, missing post-payment order modifications entirely. If your monitoring tool tracks revenue or cart value, an order edit that adds a product will update the order total but won't appear in your monitoring data unless you're also subscribed to <code>orders/updated</code> and comparing order version history.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h2>Monitor Your Shopify Checkout 24/7</h2>
+    <p>CheckPulse runs a real 4-step checkout every 5 minutes and alerts you within 60 seconds when something breaks — before your customers notice.</p>
+    <a class="cta-btn" href="./#pricing">Start Monitoring — Free Trial</a>
+    <div class="cta-sub">Or <a href="./free-check" style="color:rgba(255,255,255,0.8)">run a free checkout health check</a> right now. No account needed.</div>
+  </div>
+
+  <!-- RELATED -->
+  <section>
+    <h2>Related Shopify Checkout Issues</h2>
+    <div class="related-grid">
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Migration</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Auto Discount</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention False Positive</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refund Issues</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Referral Code Not Working</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Migration</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

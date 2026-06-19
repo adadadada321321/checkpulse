@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Discount Stacking Not Working — Gift Card + Coupon + Automatic Discount + Loyalty Conflict (2026)</title>
+  <meta name="description" content="Shopify allows only one discount code per checkout on non-Plus plans. Automatic discounts hide the code field, loyalty app codes count as 'the one,' and third-party app discounts collide silently. Six root causes and fixes for Shopify discount stacking failures at checkout." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-stacking-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-stacking-not-working" />
+  <meta property="og:title" content="Shopify Checkout Discount Stacking Not Working — Coupon + Automatic + Loyalty + Gift Card Conflict" />
+  <meta property="og:description" content="Shopify has four distinct discount mechanisms at checkout — discount codes, automatic discounts, gift cards, and app-generated discounts — and they don't all stack. Non-Plus stores can use only one discount code. Automatic discounts hide the code field. Loyalty app codes count toward the one-code limit. This guide explains every conflict and how to fix it." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Discount Stacking Not Working — Gift Card, Coupon Code, Automatic Discount, Loyalty Conflict",
+    "description": "Shopify operates four parallel discount mechanisms at checkout: discount codes (customer-entered alphanumeric codes), automatic discounts (applied without a code, created in Discounts admin), gift cards (a separate payment method, not a discount), and app-generated discounts (created via the API by third-party apps — loyalty, referral, subscription, bundle apps). These mechanisms have different stacking rules, and the interactions are non-obvious. On non-Plus plans, Shopify only allows one discount code per order. Automatic discounts can conflict with codes. App-generated codes count toward the one-code limit. The result: customers can't stack a loyalty reward with an influencer code, or a gift card redemption blocks a coupon, even though those scenarios should work.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-discount-stacking-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can Shopify customers use two discount codes at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On standard Shopify plans (Basic, Shopify, Advanced), customers can only apply one discount code per checkout. This is a hard platform limit — it cannot be changed through settings or apps. The discount code field accepts only one entry, and applying a second code replaces the first. On Shopify Plus, merchants can use Checkout Extensibility to enable multiple discount codes via Shopify Functions (Discount Combine rules). Gift cards are not discount codes — they are a payment method — and applying a gift card at checkout does not count toward the one-code limit. You can combine one discount code plus one or more gift cards on any plan."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did the Shopify discount code field disappear at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The discount code field disappears at checkout when an automatic discount is applied to the cart. Shopify hides the manual code input when an automatic discount is active because, on non-Plus plans, only one discount is allowed — and the automatic one is already using that slot. However, this behavior changed with Checkout Extensibility: on Plus with custom checkout UI, the field can remain visible and allow code entry alongside automatic discounts when the discount Function permits combination. If the field is missing on a non-Plus store, it's because an automatic discount is already applied. Check Shopify admin → Discounts → filter by 'Automatic' to see which active automatic discounts could be triggering. Customers must remove the automatic discount (if the UI allows) before entering a manual code, or vice versa — they cannot coexist on non-Plus."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why isn't my Shopify loyalty discount stacking with a coupon code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Loyalty apps (Smile.io, LoyaltyLion, Yotpo Loyalty, BON Loyalty) give customers points that are redeemed as discount codes. These codes are standard Shopify discount codes — they count toward the one-code-per-checkout limit. If a customer has an active loyalty redemption code in the discount field and then tries to enter an influencer, referral, or promotion code, the second code replaces the first (or throws an error). The reverse is also true. Solutions: (1) Use the loyalty app's 'Combine' feature if available — some apps can generate a single combined discount code that wraps multiple discount values; (2) Upgrade to Shopify Plus and use Discount Combine Functions to allow stacking; (3) Implement a manual merge: customer service creates a single custom code worth both values. Some loyalty platforms offer Plus-specific Checkout Extensibility integration that bypasses the one-code limit by applying discounts via a Function rather than a code."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify gift cards and discount codes be used together?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Gift cards and discount codes can be combined at checkout on all Shopify plans. Gift cards are treated as a payment method, not a discount — they have a separate input field in the checkout payment section and do not compete with discount codes. A customer can apply a 20% off discount code AND pay with a gift card in the same transaction. The discount reduces the order subtotal first, then the gift card covers part or all of the remaining balance, with any difference charged to a credit card. This is a common source of confusion: merchants report 'gift card + discount not working' when what actually failed was a gift card + automatic discount + coupon code combination, where the coupon was blocked because the automatic discount already occupied the one-code slot."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Shopify Plus discount stacking work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Plus enables discount stacking through two mechanisms: (1) Discount Combine rules in standard discounts — when creating a discount, Plus merchants can configure it to combine with other discounts. Options are: combine with other discount codes, combine with automatic discounts, or both. This allows customers to enter a code that stacks with an active automatic discount, or to use two compatible codes. (2) Checkout Extensibility Discount Functions — custom discount logic written as a Shopify Function that can evaluate the cart and apply multiple discount lines. Functions run server-side and can implement complex stacking rules (e.g., loyalty + referral + sale price). Even on Plus, not all discounts stack by default — each discount must have its Combine settings explicitly configured. A Plus discount that doesn't allow combination behaves the same as a non-Plus discount: it blocks others."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 10px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .cause-num {
+      background: var(--amber-dim);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .cause-content h3 { font-size: 14px; margin-bottom: 4px; }
+    .cause-content p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 4px; color: var(--text); }
+    .failure-card p { font-size: 12px; margin: 0; color: var(--text-dim); }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 8px; counter-reset: step; }
+    .diag-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      counter-increment: step;
+    }
+    .diag-step::before {
+      content: counter(step);
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .diag-step p { font-size: 13px; margin: 0; }
+    .diag-step strong { color: var(--text); }
+
+    .info-box {
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .info-box.amber { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+    .info-box.green { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); }
+    .info-box.red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); }
+    .info-box.blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); }
+    .info-box.purple { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); }
+    .info-box strong { display: block; margin-bottom: 6px; color: var(--text); }
+    .info-box p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+    .info-box code { font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; color: var(--text); }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .deep-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 8px;
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+    .badge-purple { background: rgba(168,85,247,0.15); color: var(--purple); }
+    .badge-gray { background: rgba(136,136,136,0.15); color: var(--text-dim); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 26px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 5px;
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); font-size: 14px; margin-bottom: 6px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .footer-links a { color: var(--text-dim); font-size: 12px; }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="./" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./">Monitor</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a>
+      <span>›</span>
+      <a href="./shopify-checkout-discount-code-not-working">Discounts</a>
+      <span>›</span>
+      Discount Stacking Not Working
+    </div>
+
+    <h1>Shopify Checkout Discount Stacking Not Working</h1>
+    <p style="font-size:16px; color:var(--text-secondary); margin-bottom:0;">Gift card + coupon + automatic discount + loyalty points — why only one applies, and what actually stacks on each plan.</p>
+
+    <div class="hero-meta">Last updated June 2026 &nbsp;·&nbsp; Applies to: Basic, Shopify, Advanced, Plus &nbsp;·&nbsp; CheckPulse</div>
+
+    <div class="hero-summary">
+      <strong style="color:var(--text); display:block; margin-bottom:6px;">The core problem</strong>
+      Shopify operates four distinct discount mechanisms — discount codes, automatic discounts, gift cards, and app-generated discounts — and they don't all stack. On non-Plus stores, only <em>one discount code</em> is allowed per checkout. Automatic discounts hide the code field. Loyalty app codes count toward that one-code limit. Third-party app discounts (bundles, subscriptions, referrals) compete for the same slot. The result: customers can't combine a loyalty reward with an influencer code, a sale auto-discount silently blocks coupon entry, or an affiliate code prevents a gift card discount from applying — even when the intent was clearly that both should work.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Four Discount Systems ──────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Shopify's Four Discount Mechanisms at Checkout</h2>
+    <p>Each mechanism enters the checkout differently and has different stacking behavior.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">Type 1</div>
+        <h3>Discount Codes</h3>
+        <p>Customer-entered alphanumeric codes (SAVE20, WELCOME10). Created in Shopify admin → Discounts → Discount codes. Stored as Shopify price rules. Max one per checkout on non-Plus. Visible in checkout field. Applied before payment.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">Type 2</div>
+        <h3>Automatic Discounts</h3>
+        <p>Applied without a code when cart conditions match (minimum spend, specific collection, quantity thresholds). Created in Shopify admin → Discounts → Automatic discounts. Hides the discount code input field on non-Plus. Customers can't opt out unless the UI offers a "Remove" option.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">Type 3</div>
+        <h3>Gift Cards</h3>
+        <p>A payment method, not a discount. Customer enters a gift card code in the payment section (separate from the discount field). Reduces the outstanding balance after discounts are applied. Stacks with discount codes and automatic discounts on all plans. Does NOT count toward the one-discount limit.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">Type 4</div>
+        <h3>App-Generated Discounts</h3>
+        <p>Discount codes created via the Shopify Admin API by third-party apps — loyalty platforms, referral apps, subscription apps, bundle apps, upsell tools. These are standard Shopify discount codes. They count toward the one-code limit and compete with customer-entered codes.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>The fundamental stacking rule (non-Plus)</strong>
+      <p>One discount code slot. One automatic discount slot. Gift cards are separate. App-generated codes compete for the same one-code slot as customer-entered codes. Automatic discounts and manual codes cannot coexist unless the automatic discount has "Can be combined with discount codes" enabled (a Plus-only Combine setting introduced with Checkout Extensibility).</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Six Root Causes of Discount Stacking Failures</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">01</div>
+        <div class="cause-content">
+          <h3>Non-Plus one-code limit — the platform constraint</h3>
+          <p>Shopify enforces exactly one discount code per checkout on Basic, Shopify, and Advanced plans. This is a platform-level restriction, not a setting. When a customer enters a second code, the first is replaced silently or an error appears. There is no workaround on non-Plus short of issuing a single merged code that combines both discount values.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">02</div>
+        <div class="cause-content">
+          <h3>Automatic discount hides the code input field</h3>
+          <p>When an automatic discount applies to the cart (sale on a collection, free shipping above $50, BOGO on eligible items), Shopify removes the discount code input from checkout on non-Plus stores. Customers see no field to enter a code. They often think checkout is broken, not that a stacking conflict is causing the field to disappear. This is intentional: the automatic discount is already consuming the one-discount slot.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">03</div>
+        <div class="cause-content">
+          <h3>Loyalty app redemption codes count as "the one code"</h3>
+          <p>When a customer redeems loyalty points (Smile.io, LoyaltyLion, Yotpo, BON), the app generates a standard Shopify discount code and applies it at checkout via the Storefront API. This occupies the one-code slot. If the customer then tries to enter an influencer code, affiliate code, or promo code, the loyalty code is replaced. Neither stacks. The loyalty app appears to "conflict with" other discounts, when actually both are standard codes competing for the same slot.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">04</div>
+        <div class="cause-content">
+          <h3>Referral and affiliate codes block promotional codes</h3>
+          <p>Referral apps (ReferralCandy, Friendbuy, UpPromote) and affiliate platforms (Refersion, Ambassador) issue discount codes as a tracking + incentive mechanism. When a referred customer arrives at checkout with the referral code pre-applied (via URL or cookie), that code occupies the discount slot. Entering a sale code or seasonal promo removes the referral attribution, which can break the referrer's commission tracking and the referred customer's discount simultaneously.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">05</div>
+        <div class="cause-content">
+          <h3>Bundle and subscription app discounts collide</h3>
+          <p>Bundle apps (Bundler, Fast Bundle, Kite) and subscription apps (Recharge, Skio, Smartrr) create discount codes internally to represent bundle pricing or subscription discounts. These codes are applied automatically when the customer adds a bundle or subscription item. If the customer then tries to enter a coupon code, the app's internal code is replaced, which breaks the bundle pricing or subscription rate — causing the cart total to jump unexpectedly. Some apps handle this gracefully by re-applying their code after the customer code; others fail silently.</p>
+        </div>
+      </div>
+      <div class="cause-item">
+        <div class="cause-num">06</div>
+        <div class="cause-content">
+          <h3>Plus discount Combine settings not configured</h3>
+          <p>On Shopify Plus, discount stacking requires explicit opt-in for each discount. When creating a discount (code or automatic), there is a "Combinations" section with toggles: "Discount codes," "Automatic discounts," "Shipping discounts." By default, these are unchecked — each Plus discount is non-combinable out of the box. Merchants who upgrade to Plus expecting automatic stacking are surprised to find that the same conflicts persist until each discount's Combine settings are individually configured.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Discount Stacking Fails Without a Clear Error</h2>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>Code field missing — no explanation</h3>
+        <p>Automatic discount is active, so Shopify removes the input. Customer assumes checkout is broken. No error, no "code field not available because of active discount" message.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Loyalty code silently replaced</h3>
+        <p>Customer redeems points → loyalty code applied → customer enters promo code → loyalty code removed. Cart total looks correct (promo applied) but loyalty points are spent with no benefit. No alert that the swap happened.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Bundle price jumps when code entered</h3>
+        <p>Bundle app's internal discount removed when customer enters a coupon. Cart total increases unexpectedly. Error message says "applied" for the coupon but the bundle discount vanished — net result may be worse than no coupon.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Referral attribution lost</h3>
+        <p>Affiliate code replaced by customer coupon. Referrer doesn't earn commission. Customer doesn't know the referral link discount was replaced — may have expected both to apply.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Gift card mistaken for discount conflict</h3>
+        <p>Customer applies discount code, then applies gift card. Both work. But if the automatic discount is also active and code field was hidden, they never entered a code — and the "discount not applying" complaint is actually about the automatic discount, not the gift card.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Subscription renewal rate broken by coupon</h3>
+        <p>Subscription discount applied automatically on repeat orders. Customer enters a first-order welcome code at renewal. Subscription rate replaced by welcome code. Future renewals revert to full price unexpectedly.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Plus combine toggle ignored at discount creation</h3>
+        <p>Plus merchant enables stacking globally but a single legacy discount (from before the upgrade, or imported) still has Combine unchecked. That one discount blocks stacking for any order where it's active, with no obvious indication which discount is the blocker.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Diagnostic Steps ──────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnosis</div>
+    <h2>How to Diagnose a Discount Stacking Problem</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <p><strong>Identify which discount mechanisms are in play.</strong> Go to Shopify admin → Discounts and check for active automatic discounts. Look at any third-party apps (loyalty, referral, bundle, subscription) that might be generating codes. List every discount that could apply to the failing cart.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Reproduce in a clean session.</strong> Start a new browser session (incognito), add the same items, and observe: (1) Does the discount code field appear? (2) Which discounts are pre-applied? (3) What happens when you enter the failing code? A clean session rules out browser state and loyalty point auto-apply behavior.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check if the missing code field is caused by an automatic discount.</strong> Remove all items from the cart or switch to a product not covered by any automatic discount rule. If the code field reappears, an automatic discount on the original cart was hiding it. Identify which automatic discount via admin → Discounts → Automatic discounts → check minimum requirements and eligible collections.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check app-generated code conflicts.</strong> Disable third-party apps one at a time (via the app block or temporarily pausing the app) to identify which is generating a competing discount. Loyalty, referral, and bundle apps are the most common culprits. Note which app generates a code at cart or checkout stage.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>On Plus: check Combine settings for each discount.</strong> For every active discount involved in the stacking failure, go to admin → Discounts → [discount name] → scroll to Combinations section. Confirm "Can be combined with other discount codes" and "Can be combined with automatic discounts" are checked as appropriate. Even one uncombined discount in the chain breaks stacking.</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Verify gift card behavior separately.</strong> Test gift card + discount code on a fresh cart. Gift cards should always stack with discount codes. If they don't, check whether the "gift card" is actually a discount-code-style balance (some store credit systems generate regular discount codes rather than true Shopify gift cards — true gift cards have the separate payment input; fake gift cards occupy the code slot).</p>
+      </div>
+      <div class="diag-step">
+        <p><strong>Check order logs for the replaced discount.</strong> In Shopify admin → Orders → [order placed during the failure], look at the discount line on the order. The order object shows which discount code was applied at purchase. Cross-reference with what the customer entered to see what was replaced. Timeline events also show when discounts were added/removed during the checkout session.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Deep Dives ─────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Stacking Rules, Plus Configuration, and App Discount Behavior</h2>
+
+    <div class="deep-label">A — Discount Stacking Comparison by Plan</div>
+    <div class="info-box blue">
+      <strong>Non-Plus plans (Basic, Shopify, Advanced)</strong>
+      <p>One discount code per checkout. Automatic discounts block code entry field. No configuration to enable stacking. Workaround: create a single combined code (e.g., LOYALTY+PROMO combined into one code worth both values) — manual or via API. Gift cards stack freely. App codes compete for the one slot.</p>
+    </div>
+    <div class="info-box green" style="margin-top:0;">
+      <strong>Shopify Plus — Discount Combine (Checkout Extensibility required)</strong>
+      <p>Each discount has a Combinations section with three toggles: (1) <strong>Discount codes</strong> — this discount can combine with other discount codes; (2) <strong>Automatic discounts</strong> — this discount can combine with automatic discounts; (3) <strong>Shipping discounts</strong> — this discount can combine with free shipping discounts. All three are off by default. To enable stacking between a loyalty code and a promo code, BOTH discounts must have "Discount codes" toggled on. One-sided configuration doesn't work: if the promo code allows combining but the loyalty code doesn't, they still won't stack.</p>
+    </div>
+    <div class="info-box purple" style="margin-top:0;">
+      <strong>Shopify Plus — Discount Functions (custom stacking logic)</strong>
+      <p>Beyond the Combine toggles, Plus merchants can write a custom Discount Function (a Shopify Function in Rust or AssemblyScript) that implements arbitrary stacking logic. The Function receives the entire cart and can apply multiple discount lines, implement tiered stacking (e.g., loyalty + promo but not loyalty + subscription), or combine discounts in ways the Combine toggles can't express. Functions bypass the one-code limit entirely by returning multiple discount targets from a single calculation. This requires a deployed Partner app with <code>read_orders</code> scope and the Discount Function extension.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <div class="deep-label">B — Loyalty App Discount Architecture</div>
+    <h3>How major loyalty platforms generate and apply discount codes</h3>
+
+    <div class="info-box amber">
+      <strong>Smile.io</strong>
+      <p>Generates a unique Shopify discount code per customer redemption. Code is applied via the Storefront API when customer clicks "Redeem" in the Smile widget. The code is a standard Shopify price rule — it occupies the one-code slot. On Plus, Smile supports Checkout Extensibility integration that can apply loyalty discounts via a Discount Function, bypassing the one-code limit. Requires Smile's Plus plan and Checkout Extensibility enabled.</p>
+    </div>
+    <div class="info-box amber" style="margin-top:0;">
+      <strong>LoyaltyLion</strong>
+      <p>Same architecture — generates a discount code per redemption. Conflict behavior: if a customer has a LoyaltyLion code applied and enters another code, the second replaces it. LoyaltyLion recommends configuring redemption so customers choose between loyalty or promo, not both. Their Plus integration uses Checkout Extensibility to enable stacking through the Combine feature.</p>
+    </div>
+    <div class="info-box amber" style="margin-top:0;">
+      <strong>Yotpo Loyalty &amp; Referrals</strong>
+      <p>Offers two modes: discount-code-based redemption (standard, counts toward limit) and points-at-checkout via Checkout Extensibility (Plus only). In Plus mode with Checkout Extensibility, Yotpo can display and apply points reduction as a line in checkout without using a discount code slot, allowing stacking with coupon codes. Non-Plus stores must use the code-based path.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <div class="deep-label">C — Store Credit vs. Gift Cards vs. Discount Codes</div>
+    <h3>Three similar-looking systems with very different stacking behavior</h3>
+
+    <div class="info-box green">
+      <strong>True Shopify Gift Cards</strong>
+      <p>Created via Shopify admin → Products → Gift cards, or via the API with <code>POST /admin/api/gift_cards.json</code>. Appear in checkout as a separate payment method ("Gift card" field below credit card). Do not occupy the discount code slot. Stack freely with discount codes and automatic discounts. Balance tracked by Shopify natively. After checkout, remaining balance stays on the gift card for future use.</p>
+    </div>
+    <div class="info-box blue" style="margin-top:0;">
+      <strong>App-Based Store Credit (Rise.ai, Govalo, GiftKart)</strong>
+      <p>Some store credit apps issue credits as Shopify discount codes rather than true gift cards — this is common for store credit tied to refunds or loyalty cashback. These credits occupy the discount code slot and conflict with other codes. Rise.ai's "Store Credit" at checkout can function either as a true gift card (if issued via Shopify's gift card API) or as a discount code (if issued as a price rule). Check the code format: if it applies in the discount code field, it counts toward the one-code limit. If it applies in a separate "Store credit" or "Gift card" field, it doesn't.</p>
+    </div>
+    <div class="info-box red" style="margin-top:0;">
+      <strong>Discount codes disguised as "credit" (worst case)</strong>
+      <p>Some integrations create discount codes with values like "$15 OFF" or "CREDIT-4A8X2" for store credit. These look like gift cards to customers but behave as discount codes. If a customer applies this "credit" and then tries to use a promo code, one replaces the other. The customer reports that their "gift card" prevented their coupon from working. Identify by checking: if the credit code appears in the discount code field rather than the gift card/payment field, it's a discount code, not a gift card.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Reference Table ────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Discount Stacking Compatibility Reference</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Combination</th>
+            <th>Non-Plus</th>
+            <th>Plus (default)</th>
+            <th>Plus (Combine enabled)</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Discount code + gift card</td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Gift card is a payment method, not a discount</td>
+          </tr>
+          <tr>
+            <td>Discount code + automatic discount</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Requires both discounts to have Combine enabled on Plus</td>
+          </tr>
+          <tr>
+            <td>Two discount codes</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Both codes must have "Discount codes" combine setting on</td>
+          </tr>
+          <tr>
+            <td>Loyalty code + promo code</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Loyalty code is a standard Shopify code; needs Plus + Combine</td>
+          </tr>
+          <tr>
+            <td>Automatic discount + automatic discount</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Both must be compatible type (e.g., % off + free shipping)</td>
+          </tr>
+          <tr>
+            <td>Referral code + promo code</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Referral code occupies the one-code slot on non-Plus</td>
+          </tr>
+          <tr>
+            <td>Bundle discount + discount code</td>
+            <td><span class="badge badge-amber">Varies</span></td>
+            <td><span class="badge badge-amber">Varies</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Depends on whether bundle uses a code or a Discount Function</td>
+          </tr>
+          <tr>
+            <td>Subscription discount + welcome code</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-amber">Varies</span></td>
+            <td>Subscription apps vary; some re-apply their code after customer code</td>
+          </tr>
+          <tr>
+            <td>True gift card + true gift card</td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Multiple gift cards can be applied to a single order</td>
+          </tr>
+          <tr>
+            <td>Discount code + free shipping automatic</td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-red">Blocked</span></td>
+            <td><span class="badge badge-green">Stacks</span></td>
+            <td>Free shipping automatics count; need "Shipping discounts" combine</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>The gift card distinction is the most common misconception</strong>
+      <p>More than half of "discount stacking not working" reports involve gift cards — but gift cards stack fine. The confusion: (1) store credit issued as a discount code (not a true gift card) does conflict; (2) customers assume "gift card + coupon = blocked" because one of them is actually a code-style credit; (3) the checkout UI doesn't distinguish between gift card input and discount input for app-generated credits. Test by checking which field the "gift card" appears in at checkout.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: CTA ────────────────────────────────────────────── -->
+  <div class="section" style="border-bottom:none;">
+    <div class="cta-block">
+      <h3>Monitor Your Shopify Checkout 24/7</h3>
+      <p>Discount conflicts, payment errors, and checkout breaks — CheckPulse detects them before your customers do.</p>
+      <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check</a>
+    </div>
+  </div>
+
+  <!-- ── SECTION 8: Related ────────────────────────────────────────── -->
+  <div class="section" style="padding-top:0;">
+    <div class="section-label">Related Problems</div>
+    <div class="related-links">
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="./shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards Not Applying</a>
+      <a href="./shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Referral Code Not Working</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

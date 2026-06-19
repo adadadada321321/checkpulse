@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Wrong Tax Rate — Missing Tax, Tax-Exempt Customer Charged, Nexus and Product Tax Code Errors (2026)</title>
+  <meta name="description" content="Shopify checkout showing wrong tax: $0 when tax should apply, customer charged tax despite exemption, wrong state rate, digital product taxed at physical goods rate. Three independent tax layers — product taxability, nexus configuration, customer exemption — must all be correct. Five root causes and exact fix paths for merchants and customers." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-calculation-wrong" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-calculation-wrong" />
+  <meta property="og:title" content="Shopify Checkout Wrong Tax Rate — Missing Tax, Exempt Customer Charged, Nexus and Product Code Errors" />
+  <meta property="og:description" content="Shopify calculates tax through three independent layers: product taxability, nexus configuration, and customer exemption status. One misconfigured layer produces wrong tax at checkout — too much, too little, or $0 when tax is legally required. Five root causes, seven silent failures, and exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Wrong Tax Rate — Missing Tax, Tax-Exempt Customer Charged, Nexus and Product Tax Code Errors",
+    "description": "Shopify tax calculation runs through three independent layers: product taxability settings (is this product taxable, and under what category?), nexus configuration (which states and countries is the store registered to collect tax in?), and customer exemption status (is this customer or company tax-exempt?). When any layer is misconfigured, checkout shows the wrong tax — or no tax at all. The most dangerous silent failure is $0 tax in a state where the merchant has crossed the economic nexus threshold but never updated their Shopify tax settings. The merchant is legally required to collect but isn't, creating a growing liability that accumulates until a state audit. This guide covers the three-layer architecture, five root causes, seven silent failures, and exact fix paths for customers and merchants.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-tax-calculation-wrong",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify charging no tax at checkout when it should be?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify only charges sales tax in states or countries where you've explicitly declared nexus (a tax collection obligation) in Settings → Taxes and Duties. If a customer is in a state where you haven't added nexus, Shopify shows $0 tax — even if you legally have economic nexus there because you've crossed the state's sales threshold. Fix: in Shopify admin, go to Settings → Taxes and Duties → United States (or your country), and add every state where you have economic nexus (typically $100,000 in sales or 200 transactions per year in most US states). If you use Shopify Tax, the platform tracks nexus thresholds automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my tax-exempt customer being charged tax at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify requires the exact tag 'tax_exempt' (lowercase letters, underscore) on the customer account to recognize tax exemption. If the tag is formatted differently — 'Tax Exempt', 'tax-exempt', 'TaxExempt', or any other variation — Shopify ignores it silently and charges tax as normal. Fix: go to Admin → Customers → find the customer → Tags, and ensure the tag is exactly 'tax_exempt'. For B2B company accounts, exemption must be enabled at the company level in Admin → Customers → Companies, not just at the individual customer level. For broader tax-exempt management (certificate storage, multi-state exemptions), use a third-party app like Exemptify, Avalara, or TaxJar."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify taxing my digital product at the wrong rate?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "By default, Shopify treats all products as physical goods and applies the standard sales tax rate. Digital goods (SaaS, software, e-books, digital downloads) have different — often more favorable — tax treatment in many US states, but Shopify only applies those rules if you assign a product tax code. In Shopify admin, go to Products → select the product → Tax → Product Type, and select the appropriate digital goods or software category. Without this, Shopify charges your state's physical goods rate, which may be wrong in either direction: taxing a digital product that should be exempt, or applying the wrong rate for digital services in states that tax them differently."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between origin-based and destination-based tax on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "US states use two different methods to determine which tax rate applies. Destination-based states (the majority) charge tax at the rate where the customer is located — the shipping address. Origin-based states charge tax at the rate where the seller is located — the merchant's address. Origin-based states include Texas, Illinois, Arizona, Mississippi, and Missouri (for in-state sellers). In Shopify Settings → Taxes and Duties → United States, the platform defaults to destination-based for most states. If you're in an origin-based state and Shopify is configured for destination-based, you may collect the wrong rate for in-state customers. For most merchants, Shopify Tax or a third-party provider like Avalara handles this automatically."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify adding tax on top of a price that already includes tax?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is a tax-inclusive pricing conflict. In Shopify Settings → Taxes and Duties, there's an option to 'Include tax in product prices' (common for UK/EU stores where VAT must be displayed inclusive). If this setting is enabled globally but the customer is in a different tax jurisdiction, Shopify can apply destination-based tax on top of the already-inclusive price. Fix: in Settings → Taxes and Duties, use region-specific tax-inclusive settings rather than a global override. For EU stores, enable 'Include tax in product prices' only for EU countries, and configure separate pricing for non-EU markets. Shopify Markets lets you set different price lists per region to avoid this conflict."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .cause-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .cause-item h3 { font-size: 14px; margin-bottom: 6px; }
+    .cause-item p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 13px 15px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 5px; color: var(--text); }
+    .failure-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .diag-step {
+      display: flex;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-body h3 { font-size: 13px; margin-bottom: 4px; }
+    .step-body p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 22px 0; }
+    .deep-dive { margin-top: 8px; }
+    .deep-label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+    .deep-dive h3 { font-size: 16px; margin-bottom: 10px; }
+    .deep-dive p { font-size: 13px; }
+
+    .info-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .info-box.amber { border-left: 3px solid var(--amber); }
+    .info-box.blue { border-left: 3px solid var(--blue); }
+    .info-box.green { border-left: 3px solid var(--green); }
+    .info-box.red { border-left: 3px solid var(--red); }
+    .info-box strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .info-box p { margin: 0; font-size: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--amber);
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: var(--surface); }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .badge-gray { background: rgba(136,136,136,0.15); color: var(--text-dim); border: 1px solid rgba(136,136,136,0.3); }
+
+    .cta-block {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+      margin: 36px 0;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 10px; }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 13px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); margin-bottom: 6px; font-size: 14px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr 1fr; }
+      .failure-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="/checkpulse/">CheckPulse</a>
+      <span>›</span>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Troubleshooting</a>
+      <span>›</span>
+      <span>Wrong Tax at Checkout</span>
+    </div>
+    <h1>Shopify Checkout Wrong Tax Rate — Missing Tax, Exempt Customer Charged, Nexus and Product Tax Code Errors</h1>
+    <p style="color:var(--text-secondary);font-size:14px;margin-top:12px;">Tax shows $0 when it should apply, or customer is charged tax when exempt, or the rate is clearly wrong for their location. Shopify tax runs through three independent layers — all three must be correct or checkout calculates the wrong amount.</p>
+    <div class="hero-meta">Updated June 2026 &middot; Covers Shopify Basic, Shopify, Advanced, Plus &middot; US, EU, international</div>
+    <div class="hero-summary">
+      <strong style="color:var(--text);display:block;margin-bottom:6px;">The core issue:</strong>
+      Shopify calculates tax using three independent layers: <strong style="color:var(--text);">(1) product taxability</strong> — is this product taxable, and under what category; <strong style="color:var(--text);">(2) nexus configuration</strong> — which states and countries is the store registered to collect tax in; and <strong style="color:var(--text);">(3) customer exemption status</strong> — is this buyer tax-exempt. Any misconfigured layer produces wrong tax at checkout with no error message. The most dangerous silent failure: $0 tax in states where the merchant has crossed economic nexus thresholds but never updated Shopify — creating a growing sales tax liability that accumulates until a state audit.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Three-Layer Architecture ───────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>How Shopify Calculates Tax: Three Independent Layers</h2>
+    <p>Every Shopify tax calculation runs through these four stages in sequence. An error in any stage overrides everything that comes after it.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">Layer 1</div>
+        <h3>Product Taxability</h3>
+        <p>Each product is marked taxable (on) or exempt (off). An optional product tax code assigns the category — physical goods, digital, clothing, food — that determines which state exemptions apply.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">Layer 2</div>
+        <h3>Nexus Configuration</h3>
+        <p>Shopify only collects tax in regions where you've declared nexus — a legal obligation to collect. No nexus declared = $0 tax for that jurisdiction, regardless of product settings.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">Layer 3</div>
+        <h3>Customer Exemption</h3>
+        <p>Individual customers or B2B companies can be marked tax-exempt. Requires exact tag format (<code>tax_exempt</code>) or third-party app integration. Wrong format is silently ignored.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">Layer 4</div>
+        <h3>Rate Calculation</h3>
+        <p>The applicable rate is pulled from destination-based or origin-based rules. Tax-inclusive vs tax-exclusive pricing determines whether the rate is extracted from the price or added on top.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>Why $0 tax is the most dangerous outcome</strong>
+      <p>When a customer sees no tax at checkout, nothing looks broken — the order completes normally. But if the merchant has economic nexus in that state and Shopify isn't configured to collect, the merchant is legally liable for the uncollected tax. This accumulates silently across every sale to that state until a tax audit.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Five Root Causes ──────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Tax Is Wrong at Shopify Checkout</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 1</div>
+        <h3>Nexus not declared for customer's state — Shopify charges $0 tax</h3>
+        <p>Shopify uses your nexus list to decide where to collect tax. If the customer's state isn't on the list, Shopify charges $0 regardless of what your products are set to. After the South Dakota v. Wayfair ruling (2018), most US states require collection once you exceed economic nexus thresholds — typically $100,000 in sales or 200 transactions per year in that state. Merchants who crossed those thresholds but never added the states to Shopify are silently under-collecting. <strong style="color:var(--text);">Fix:</strong> Admin → Settings → Taxes and Duties → United States → Add state for each state where you have nexus. Enable Shopify Tax for automatic threshold monitoring.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 2</div>
+        <h3>No product tax code — digital goods and clothing taxed at wrong rate</h3>
+        <p>Without a product tax code, Shopify treats every product as a standard physical good and applies the general sales tax rate. This causes two types of errors: (a) digital products (SaaS, e-books, software licenses) may be taxable at a different rate than physical goods, or entirely exempt in some states — without a code, they're taxed at the wrong rate; (b) clothing is exempt from sales tax in 10+ US states (including NY, PA, NJ, MN) for items under certain thresholds — without a clothing tax code, Shopify taxes them. <strong style="color:var(--text);">Fix:</strong> Admin → Products → select product → Tax → Product Type → assign the correct category (Digital goods, Clothing, Food and food ingredients, etc.).</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 3</div>
+        <h3>Tax-exempt tag misconfigured — customer charged tax despite exemption</h3>
+        <p>Shopify recognizes only the exact tag <code>tax_exempt</code> on a customer account to grant exemption. Any variation — <code>Tax Exempt</code>, <code>tax-exempt</code>, <code>TaxExempt</code>, <code>taxexempt</code>, <code>Tax_Exempt</code> — is ignored silently. The customer logs in, goes to checkout, and is charged full tax with no indication that their exemption isn't active. For B2B company accounts, individual customer tags don't transfer — the exemption must be set at the Company level in Shopify admin. Third-party tax apps (Avalara, TaxJar, Exemptify) use their own systems and override the tag-based approach. <strong style="color:var(--text);">Fix:</strong> Admin → Customers → select customer → Tags → verify the tag is exactly <code>tax_exempt</code> (lowercase, underscore, no spaces).</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 4</div>
+        <h3>Origin vs destination-based tax mismatch — wrong state rate applied</h3>
+        <p>Most US states use destination-based tax: the rate is determined by where the customer is, not where the seller is. But five states (Texas, Illinois, Arizona, Mississippi, Missouri) use origin-based tax for in-state sellers, meaning the merchant's location determines the rate for intrastate sales. If a Texas merchant is configured for destination-based in Shopify but should be using origin-based, every Texas-to-Texas sale applies the wrong rate. Conversely, origin-based settings for merchants in destination-based states charge incorrect rates. <strong style="color:var(--text);">Fix:</strong> Verify your state's sourcing rules and match your Shopify tax settings. Shopify Tax handles this automatically; manual configuration requires checking Admin → Settings → Taxes and Duties → Tax rates.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 5</div>
+        <h3>Tax-inclusive pricing conflict — VAT added on top of already-inclusive price</h3>
+        <p>EU and UK merchants commonly use "prices include tax" so that product prices shown to customers already contain VAT. If this setting is enabled globally (or incorrectly) rather than per-region, Shopify can add VAT on top of a price that already includes VAT — customers are charged double tax. The reverse also occurs: a tax-exclusive store selling to EU customers may not add VAT at checkout, resulting in under-collection. Shopify Markets is designed to solve this by allowing separate price lists and tax configurations per region. <strong style="color:var(--text);">Fix:</strong> Admin → Settings → Taxes and Duties → enable "Include tax in product prices" only for the relevant regions, not globally. Use Shopify Markets for per-region pricing when selling cross-border.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Shopify Tax Goes Wrong Without Any Error</h2>
+    <p>These failures complete the checkout without any visible error. The customer either pays the wrong amount or the merchant collects incorrectly — neither is alerted.</p>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>$0 tax in state with economic nexus</h3>
+        <p>Merchant crossed $100k threshold in a new state, never added nexus. Every order to that state is tax-free. No error shown. Liability accumulates.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Tax-exempt tag silently ignored</h3>
+        <p>Customer has <code>Tax Exempt</code> tag (capital letters) instead of <code>tax_exempt</code>. Shopify ignores it. Customer pays full tax, never knows exemption failed.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Digital product taxed at physical rate</h3>
+        <p>SaaS or e-book sold to NY or TX customer. No product tax code set. Shopify uses standard physical goods rate — may be wrong rate or wrong exemption.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Clothing taxed in exempt state</h3>
+        <p>Apparel store sells to New York. No product tax category set. Shopify applies sales tax to clothing under $110, which should be exempt in NY.</p>
+      </div>
+      <div class="failure-card">
+        <h3>EU customer double-charged VAT</h3>
+        <p>"Include tax in prices" enabled globally. EU customer sees price inclusive of VAT. Shopify then adds VAT again at checkout. Customer pays 1.2× the correct amount.</p>
+      </div>
+      <div class="failure-card">
+        <h3>B2B wholesale customer charged tax</h3>
+        <p>Company account in Shopify not configured for tax exemption. Individual customer has no <code>tax_exempt</code> tag. B2B order goes through with full tax added.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Tax rate from wrong state</h3>
+        <p>Texas merchant (origin-based state) has destination-based configured. In-state Texas customers are charged the rate for their city, not the merchant's city. Incorrect for origin-based states.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Customer Diagnostic ───────────────────── -->
+  <div class="section">
+    <div class="section-label">Customer Fix</div>
+    <h2>5-Step Customer Diagnostic for Wrong Tax at Checkout</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Verify the tax amount is actually wrong for your location</h3>
+          <p>Check your state or country's current sales tax rate. Most US state rates are 5–10%, with additional county and city components. If you're in a state with no sales tax (OR, MT, NH, DE, AK) and tax is being charged, there may be a configuration issue on the merchant's end.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Check if your product type has special tax treatment</h3>
+          <p>Some product categories (clothing under $110 in NY/PA/NJ/MN, groceries in most states, prescription items) may be tax-exempt. If you're buying exempt goods and being charged tax, the merchant may have not assigned the correct product category in their Shopify settings.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>If you have a tax exemption, verify your account tag is active</h3>
+          <p>Log into your customer account on the store and ask the merchant to confirm your tax-exempt status is configured. If you have a reseller's permit or tax exemption certificate, you may need to provide it to the merchant directly — Shopify's native system requires them to tag your account, and the tag must be exactly <code>tax_exempt</code>.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>For B2B or nonprofit purchases, provide your tax certificate proactively</h3>
+          <p>Merchants using Shopify's B2B features or third-party apps (Exemptify, Avalara) may require you to upload a valid exemption certificate through a dedicated portal before your account is marked exempt. Contact the merchant's sales or customer service team before placing the order.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>If charged incorrect tax, request a refund adjustment from the merchant</h3>
+          <p>Merchants can issue partial refunds for incorrectly collected tax through Shopify admin. Provide your exemption documentation and ask for a tax-line refund. Most merchants will accommodate this; if they won't, you may be able to claim the tax back on your annual tax return depending on your jurisdiction.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Merchant Diagnostic ───────────────────── -->
+  <div class="section">
+    <div class="section-label">Merchant Fix</div>
+    <h2>6-Step Merchant Diagnostic for Tax Calculation Errors</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Audit your nexus declarations</h3>
+          <p>Admin → Settings → Taxes and Duties → United States (or your country). Compare your declared nexus states against your actual sales volume per state. If you've crossed $100,000 in annual sales or 200 transactions in a state not on your list, you likely have economic nexus and must add it. Use Shopify Tax's nexus monitoring or consult a sales tax professional (TaxJar, Avalara) for a nexus study.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Review product tax codes for every product type you sell</h3>
+          <p>Admin → Products → select a product → scroll to Tax section → check Product Type. Any product with no tax category assigned uses the generic physical goods rate. Assign specific tax categories for: digital goods, software, e-books, clothing and apparel, food and food ingredients, vitamins and supplements, medical devices. This ensures state-specific exemptions apply correctly.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Verify tax-exempt customer tags</h3>
+          <p>Admin → Customers → filter by tag → search for all variations of your tax-exempt tags. Correct format is <code>tax_exempt</code> exactly. Remove incorrect variants (<code>tax-exempt</code>, <code>Tax Exempt</code>, etc.) and replace with the correct tag. For B2B companies, also check Admin → Customers → Companies → select company → verify the tax exemption is enabled at the company level, not just the customer level.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Check tax-inclusive pricing settings per region</h3>
+          <p>Admin → Settings → Taxes and Duties → scroll to "Tax calculations" and "Charge tax on shipping rates" settings. If you have "Include tax in product prices" enabled globally, it may double-tax customers in regions where the tax is added separately. Scope this setting to specific countries/regions rather than applying it globally. Use Shopify Markets for separate price lists with correct tax treatment per region.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Test checkout for specific tax scenarios</h3>
+          <p>Place test orders using addresses in your key states. Use Shopify's test gateway to avoid charges. Verify: (a) tax applies in states where you have nexus; (b) no tax in states where you don't; (c) special categories (clothing, digital) show correct exemptions; (d) a test account tagged <code>tax_exempt</code> shows $0 tax; (e) a non-tagged account shows normal tax. Document any discrepancies.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>Consider Shopify Tax or a third-party tax provider for complex situations</h3>
+          <p>Shopify Tax (native, included with Shopify plans in the US) automatically monitors nexus thresholds, applies correct product-category exemptions, and generates tax reports. For international sales, high-volume multi-state sales, or complex exemption certificate management, Avalara AvaTax or TaxJar integrate directly with Shopify and handle edge cases that manual configuration misses.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Deep Dives ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Three Tax Systems That Cause the Most Problems</h2>
+
+    <!-- Deep Dive A -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive A</div>
+      <h3>US Sales Tax Nexus: What It Is, How to Track It, When Shopify Goes Silent</h3>
+      <p>Nexus is the legal connection between a business and a state that requires the business to collect and remit sales tax for sales into that state. Before 2018, nexus required a physical presence (office, warehouse, employees). After <em>South Dakota v. Wayfair</em> (2018), states gained the right to require collection based on economic activity alone.</p>
+
+      <div class="info-box amber">
+        <strong>Economic nexus thresholds (most common)</strong>
+        <p>Most states trigger at $100,000 in sales OR 200 transactions in the previous or current calendar year. Some states (CA, NY, TX) have higher thresholds or different lookback periods. A handful of states have no sales tax at all: Oregon, Montana, New Hampshire, Delaware, Alaska (state-level; some localities apply tax).</p>
+      </div>
+
+      <p><strong style="color:var(--text);">Physical nexus triggers</strong> still apply: a warehouse (including Amazon FBA fulfillment centers), employees, contractors, or offices in a state all create physical nexus regardless of revenue.</p>
+
+      <p><strong style="color:var(--text);">How Shopify handles nexus:</strong> In Settings → Taxes and Duties → United States, you manually add states where you collect tax. Shopify Tax (the native managed service available in the US) monitors your sales volume per state and alerts you when you approach nexus thresholds — but it doesn't add new states automatically; you must still confirm and enable collection.</p>
+
+      <p><strong style="color:var(--text);">When Shopify goes silent:</strong> If you cross an economic nexus threshold in a state not on your nexus list, Shopify shows $0 tax for every order from that state. No warning, no error, no alert in admin. The only signal is your state-by-state sales reports. If you're using Shopify Tax, check the nexus insights dashboard regularly; if you're managing manually, audit your sales by state quarterly.</p>
+
+      <div class="info-box blue">
+        <strong>Marketplace facilitator rules</strong>
+        <p>If you sell through Shopify's Shop app or other marketplaces, those platforms may be marketplace facilitators responsible for collecting and remitting tax. Check whether your marketplace is handling tax for your remote sales — if so, you don't need nexus in those states for marketplace sales (but you still may for direct Shopify store sales).</p>
+      </div>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <!-- Deep Dive B -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive B</div>
+      <h3>Product Tax Codes: Why Default Physical Goods Rate Gets It Wrong</h3>
+      <p>US sales tax isn't uniform across product types. States individually decide which categories are taxable, exempt, or taxed at reduced rates. Without product tax codes, Shopify applies a single rate — the state's general merchandise rate — to everything, which is correct for most physical goods but wrong for specialized categories.</p>
+
+      <p><strong style="color:var(--text);">Clothing exemptions:</strong> Multiple states exempt clothing from sales tax, typically below a per-item threshold. New York exempts clothing and footwear under $110 per item. Pennsylvania and New Jersey exempt most clothing entirely. Minnesota exempts clothing under $100. Without a clothing product tax code, Shopify collects tax on these exempt items — the merchant owes a refund and must remit incorrectly-collected tax to the state.</p>
+
+      <div class="info-box red">
+        <strong>States with clothing exemptions (partial list)</strong>
+        <p>NY (under $110/item), PA (most clothing), NJ (most clothing), MN (under $100/item), VT, MA, RI, CT (under $50/week during tax holidays), GA (tax holidays only). These are examples only — always verify current thresholds with each state's tax authority.</p>
+      </div>
+
+      <p><strong style="color:var(--text);">Digital goods and SaaS:</strong> Tax treatment of digital products varies dramatically by state. States like New York, Texas, and Washington tax SaaS and digital downloads. Other states (Florida, California for most software) have partial or no SaaS tax. Without a digital goods tax code, Shopify applies the physical goods rate, which may be the wrong rate or wrong exemption set entirely. Assign the correct digital product category (digital goods, prewritten software, cloud services) in each product's tax settings.</p>
+
+      <p><strong style="color:var(--text);">Food and supplements:</strong> Grocery food is exempt in most states; prepared food is taxed. Vitamins and dietary supplements have mixed treatment (taxable in NY, exempt in FL, taxable as food in some, as drugs in others). Assigning the correct food/supplement category lets Shopify apply state-specific rules rather than the blanket rate.</p>
+
+      <p><strong style="color:var(--text);">How to assign in Shopify:</strong> Products → select product → scroll to Tax section → click "Product type" → search for and select the appropriate category. For bulk updates, use a CSV export/import or the Shopify API. Shopify Tax provides more granular product tax categories than the legacy manual system.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <!-- Deep Dive C -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive C</div>
+      <h3>Tax-Exempt Customer Configuration: Native Tags, B2B Companies, and Third-Party Apps</h3>
+      <p>Shopify offers three mechanisms for tax-exempt customers, and they work independently — a breakdown in any one produces charged tax despite exemption status.</p>
+
+      <p><strong style="color:var(--text);">Native customer tag method:</strong> The simplest approach — go to Admin → Customers → select customer → Tags → add <code>tax_exempt</code> (exactly this string, case-sensitive, underscore required). Shopify then suppresses all tax for that customer at checkout. Limitations: it's all-or-nothing (fully exempt or not), it doesn't store exemption certificates, and it doesn't differentiate by state. If your tax-exempt customer base is small and you're in one jurisdiction, this works fine.</p>
+
+      <div class="info-box amber">
+        <strong>Common tag format errors that fail silently</strong>
+        <p>Tags that do NOT work: <code>Tax Exempt</code> · <code>tax-exempt</code> · <code>taxexempt</code> · <code>TAX_EXEMPT</code> · <code>Tax_Exempt</code> · <code>exempt</code> · <code>tax exempt</code> (with space). Only <code>tax_exempt</code> (all lowercase, underscore separator) is recognized by Shopify.</p>
+      </div>
+
+      <p><strong style="color:var(--text);">B2B Company accounts (Shopify Plus):</strong> Shopify Plus merchants using B2B features create Company accounts that represent a business entity, with multiple buyer contacts linked to it. Tax exemption for B2B must be enabled at the Company level (Admin → Customers → Companies → select company → Tax exemptions) rather than at the individual buyer contact level. Setting the tag only on a buyer contact without enabling company-level exemption doesn't carry through to checkout.</p>
+
+      <p><strong style="color:var(--text);">Third-party apps — Exemptify, Avalara, TaxJar:</strong> For multi-state exemption certificate management (the legal requirement to store and validate exemption certificates in each state where they're claimed), merchants use dedicated apps. These apps:
+      <br>— Present an exemption certificate upload form at checkout or on the account page
+      <br>— Validate the certificate format and state of issue
+      <br>— Store certificates with expiration tracking
+      <br>— Override Shopify tax to $0 when a valid certificate is on file for the customer's state
+      </p>
+
+      <p>If the third-party app credential expires, the app goes offline, or the certificate in the app has expired, the override stops working and Shopify's standard tax calculation resumes — charging the customer tax without warning. Monitor app health and certificate expiration dates.</p>
+
+      <div class="info-box green">
+        <strong>Certificate expiration: the hidden cause of random tax reappearance</strong>
+        <p>Exemption certificates issued by states are typically valid for one to three years. When a customer's certificate expires in Avalara or TaxJar, their orders automatically revert to taxed status. The customer may not notice until they spot an unexpected tax charge months after their last order. Set reminders for certificate renewal 30 days before expiration.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: Reference Table ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Tax Scenario Reference — Expected Behavior vs Common Misconfiguration</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Correct Outcome</th>
+            <th>Common Misconfiguration</th>
+            <th>Shopify Setting to Check</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Physical goods → US customer, nexus declared</td>
+            <td><span class="badge badge-green">Tax at destination rate</span></td>
+            <td>Correct — no action needed</td>
+            <td>Settings → Taxes → United States → verify nexus list</td>
+          </tr>
+          <tr>
+            <td>Physical goods → US customer, no nexus</td>
+            <td><span class="badge badge-green">$0 tax (correct per law)</span></td>
+            <td>Nexus listed incorrectly → over-collecting</td>
+            <td>Review nexus list for states below your thresholds</td>
+          </tr>
+          <tr>
+            <td>Clothing → NY customer, item &lt;$110</td>
+            <td><span class="badge badge-green">$0 tax (exempt in NY)</span></td>
+            <td><span class="badge badge-red">Tax charged</span> — no product tax code set</td>
+            <td>Product → Tax → Product Type → Clothing and apparel</td>
+          </tr>
+          <tr>
+            <td>Digital goods / SaaS → TX customer</td>
+            <td><span class="badge badge-amber">Taxable at TX rate</span></td>
+            <td>May apply wrong rate without digital code</td>
+            <td>Product → Tax → Product Type → Digital goods / Software</td>
+          </tr>
+          <tr>
+            <td>Customer tagged <code>tax_exempt</code></td>
+            <td><span class="badge badge-green">$0 tax at checkout</span></td>
+            <td>Tag format wrong → silently ignored → tax charged</td>
+            <td>Admin → Customers → Tags → verify exact format</td>
+          </tr>
+          <tr>
+            <td>B2B company account buyer</td>
+            <td><span class="badge badge-green">$0 tax (company-level exempt)</span></td>
+            <td>Exemption set on contact, not company → tax charged</td>
+            <td>Admin → Companies → select company → Tax exemptions</td>
+          </tr>
+          <tr>
+            <td>EU customer, VAT registered, no VAT number</td>
+            <td><span class="badge badge-amber">VAT charged at local rate</span></td>
+            <td>Tax-inclusive conflict → VAT added twice</td>
+            <td>Settings → Taxes → Include tax per region, not globally</td>
+          </tr>
+          <tr>
+            <td>EU B2B customer with valid VAT number</td>
+            <td><span class="badge badge-green">Reverse charge → $0 VAT</span></td>
+            <td>VAT number field missing → charged VAT</td>
+            <td>Shopify Markets → VAT number field at checkout</td>
+          </tr>
+          <tr>
+            <td>No-sales-tax state (OR, MT, NH, DE)</td>
+            <td><span class="badge badge-green">$0 tax</span></td>
+            <td>Global tax override charging all states</td>
+            <td>Verify no manual overrides applied to all US states</td>
+          </tr>
+          <tr>
+            <td>TX merchant (origin-based), TX customer</td>
+            <td><span class="badge badge-amber">Merchant's city+county rate</span></td>
+            <td>Destination-based → customer's city rate applied</td>
+            <td>Confirm TX origin-based sourcing rules in Shopify Tax</td>
+          </tr>
+          <tr>
+            <td>Exempt certificate expired in Avalara/TaxJar</td>
+            <td><span class="badge badge-amber">Tax resumes — renew cert</span></td>
+            <td><span class="badge badge-red">Customer charged tax unexpectedly</span></td>
+            <td>App dashboard → certificate expiration dates</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CTA ────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h3>Catch tax misconfiguration before it creates liability or overcharges customers</h3>
+    <p>CheckPulse runs automated checkout tests against your Shopify store — detecting when tax is missing where it should apply, when exempt customers are being charged, and when product tax codes are producing the wrong rate.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Related Problems</div>
+    <h2>Other Shopify Checkout Configuration Errors</h2>
+    <div class="related-links">
+      <a href="./shopify-checkout-vat-exemption">EU VAT Exemption Not Working</a>
+      <a href="./shopify-checkout-international">International Checkout Error</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms Not Available</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked by Sale</a>
+      <a href="./shopify-checkout-payment-error">Payment Error at Checkout</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

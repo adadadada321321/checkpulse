@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout SSL Error — Custom Domain, Cloudflare Conflict, Mixed Content, Certificate Invalid (2026)</title>
+  <meta name="description" content="Shopify checkout SSL errors come from three sources: Cloudflare proxy conflicts, a Plus custom checkout domain that isn't provisioned yet, or mixed-content warnings from HTTP assets injected by apps. Each has a different fix. Most SSL errors on standard plans are not the merchant's fault." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-ssl-error" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-ssl-error" />
+  <meta property="og:title" content="Shopify Checkout SSL Error — Custom Domain, Cloudflare, Mixed Content" />
+  <meta property="og:description" content="Shopify checkout SSL errors have three root causes: Cloudflare proxy conflicts with Shopify's checkout servers, an unprovisioned Plus custom checkout domain, or mixed content from HTTP app assets. Standard-plan merchants don't control checkout SSL — it's Shopify's domain. This guide explains the architecture and fixes for each error type." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout SSL Error — Custom Domain, Cloudflare Conflict, Mixed Content, Certificate Invalid",
+    "description": "On Shopify Basic, Shopify, and Advanced plans, checkout happens on Shopify's own domain (checkout.shopify.com), not the merchant's custom domain — so SSL at checkout is Shopify's responsibility. On Shopify Plus, merchants can configure a custom checkout domain (checkout.yourdomain.com) but it requires Shopify to provision the SSL certificate, and errors appear during the 24–48 hour provisioning window. The most common SSL errors merchants encounter are caused by Cloudflare proxy mode conflicts, mixed content warnings from third-party apps injecting HTTP assets into checkout, and CAA DNS records that block Shopify's certificate authority from issuing a cert for the custom subdomain.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-domain-ssl-error",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify checkout go to checkout.shopify.com instead of my domain?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On Shopify Basic, Shopify, and Advanced plans, the checkout process is hosted on Shopify's own infrastructure at checkout.shopify.com. When a customer clicks 'Checkout' from your cart, the browser redirects to a URL like checkout.shopify.com/shop/[your-shop-id]/checkouts/[token]. This is by design: Shopify centralizes checkout on their domain to manage PCI compliance, SSL certificates, and payment processing infrastructure. Merchants on standard plans cannot move checkout to their own domain. Only Shopify Plus merchants can configure a custom checkout subdomain (e.g., checkout.yourstore.com), and even then it requires Shopify to set it up — it is not a self-serve option."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will Cloudflare break my Shopify checkout SSL?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloudflare can break Shopify checkout SSL in two scenarios: (1) Flexible SSL mode — Cloudflare fetches your origin over HTTP, which is fine for the main store but creates a chain of trust problem when checkout redirects to Shopify's servers, since browsers may see an inconsistent SSL chain. Switch to 'Full' or 'Full (Strict)' SSL mode in Cloudflare. (2) Orange-cloud proxy on a custom checkout subdomain (Plus only) — Cloudflare proxying checkout.yourdomain.com means SSL termination happens at Cloudflare, but Shopify's certificate is issued for the bare subdomain. Use a grey-cloud (DNS-only) record for the checkout subdomain. For the main store domain, Cloudflare proxy is generally safe with Full (Strict) SSL mode and 'Always Use HTTPS' turned on."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What causes 'Your connection to this site is not fully secure' at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This warning — shown by browsers as a shield or lock with a slash — indicates mixed content: the checkout page itself is loaded over HTTPS, but one or more resources (images, scripts, stylesheets, iframes) are loading over plain HTTP. At Shopify checkout, mixed content almost always comes from third-party apps that inject non-HTTPS assets into checkout via Checkout Extensions, buy button embeds, or Checkout Scripts (Plus). To diagnose: open Chrome DevTools (F12) → Console tab → look for 'Mixed Content' warnings listing the specific HTTP URLs. Then trace which app or script is injecting that URL. The fix is to update the asset URL to HTTPS in the app's configuration, or contact the app developer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does SSL provisioning take for a Shopify Plus custom checkout domain?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "After you add the CNAME record pointing your checkout subdomain to Shopify's servers, SSL provisioning typically takes 24–48 hours. Shopify uses Let's Encrypt to issue certificates for custom checkout domains. The provisioning fails or delays when: (1) The CNAME record hasn't propagated yet — check with 'dig checkout.yourdomain.com CNAME' and verify it points to the correct Shopify target. (2) Your DNS has CAA records that restrict which certificate authorities can issue certs for your domain — Let's Encrypt must be allowed. Add a CAA record 'letsencrypt.org' if you have explicit CAA records. (3) Cloudflare is set to orange-cloud (proxy) on the checkout subdomain — Shopify's provisioning bot can't reach the actual server to complete the ACME challenge. Set the checkout subdomain record to grey-cloud (DNS-only) in Cloudflare during provisioning."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does enabling 'Force SSL' in Shopify admin fix checkout SSL errors?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. The 'Force SSL' or 'Redirect to HTTPS' setting in Shopify admin (Settings → Domains) only affects your store's main domain — it ensures visitors to http://yourstore.com are redirected to https://yourstore.com. It has no effect on the checkout domain (checkout.shopify.com on standard plans, or your custom checkout subdomain on Plus). Checkout is always served over HTTPS regardless of this setting. If you're seeing SSL errors specifically at checkout, the cause is elsewhere: Cloudflare configuration, an unprovisioned custom checkout domain, or mixed content from apps."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1117;
+      --ink-2: #374151;
+      --ink-3: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --surface-3: #f3f4f6;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-surface: #eff6ff;
+      --warn: #b45309;
+      --warn-surface: #fffbeb;
+      --ok: #065f46;
+      --ok-surface: #ecfdf5;
+      --danger: #991b1b;
+      --danger-surface: #fef2f2;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1rem; line-height: 1.65; color: var(--ink); background: var(--surface); }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 1.25rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { border-bottom: 1px solid var(--border); padding: 0.9rem 0; }
+    nav .container { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-brand { font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1rem; margin-left: auto; font-size: 0.875rem; }
+    .nav-links a { color: var(--ink-2); }
+    .nav-cta { background: var(--accent); color: #fff !important; padding: 0.4rem 0.9rem; border-radius: var(--radius-sm); font-weight: 600; }
+    .nav-cta:hover { background: var(--accent-dark); text-decoration: none !important; }
+
+    .hero { padding: 3rem 0 2.25rem; border-bottom: 1px solid var(--border); }
+    .breadcrumb { font-size: 0.8rem; color: var(--ink-3); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--ink-3); }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.15rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; letter-spacing: -0.02em; }
+    .hero-meta { font-size: 0.82rem; color: var(--ink-3); display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .hero-lead { margin-top: 1.1rem; font-size: 1.05rem; color: var(--ink-2); max-width: 72ch; line-height: 1.7; }
+
+    .toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 2rem 0; }
+    .toc-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .toc li { font-size: 0.9rem; }
+
+    section { padding: 2.5rem 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.45rem; font-weight: 800; margin-bottom: 1.1rem; letter-spacing: -0.015em; }
+    h3 { font-size: 1.1rem; font-weight: 700; margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 0.9rem; color: var(--ink-2); }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.35rem; color: var(--ink-2); display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+    li { line-height: 1.6; }
+    code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em; background: var(--surface-3); padding: 0.1em 0.35em; border-radius: 4px; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin: 1.25rem 0; }
+    .card { border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.25rem; background: var(--surface); }
+    .card-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-3); margin-bottom: 0.5rem; }
+    .card h3 { font-size: 0.97rem; font-weight: 700; margin: 0 0 0.45rem; color: var(--ink); }
+    .card p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+    .card.warn { border-color: #fcd34d; background: var(--warn-surface); }
+    .card.ok { border-color: #6ee7b7; background: var(--ok-surface); }
+    .card.danger { border-color: #fca5a5; background: var(--danger-surface); }
+    .card.info { border-color: #bfdbfe; background: var(--accent-surface); }
+
+    .callout { border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1.25rem 0; font-size: 0.9rem; line-height: 1.6; }
+    .callout.warn { background: var(--warn-surface); border-left: 4px solid #f59e0b; color: #78350f; }
+    .callout.ok { background: var(--ok-surface); border-left: 4px solid #10b981; color: #064e3b; }
+    .callout.danger { background: var(--danger-surface); border-left: 4px solid #ef4444; color: #7f1d1d; }
+    .callout.info { background: var(--accent-surface); border-left: 4px solid #3b82f6; color: #1e3a8a; }
+    .callout strong { font-weight: 700; }
+
+    .table-wrap { overflow-x: auto; margin: 1.25rem 0; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead th { background: var(--surface-2); font-weight: 700; padding: 0.7rem 0.9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--ink); }
+    tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: var(--surface-2); }
+    .badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 99px; }
+    .badge.red { background: #fee2e2; color: #991b1b; }
+    .badge.green { background: #d1fae5; color: #065f46; }
+    .badge.yellow { background: #fef3c7; color: #92400e; }
+    .badge.blue { background: #dbeafe; color: #1e40af; }
+    .badge.gray { background: #f3f4f6; color: #374151; }
+
+    .steps { display: flex; flex-direction: column; gap: 0.75rem; margin: 1.25rem 0; }
+    .step { display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 0.1rem; }
+    .step-body { flex: 1; }
+    .step-body strong { display: block; font-size: 0.93rem; color: var(--ink); margin-bottom: 0.2rem; }
+    .step-body p { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+
+    .faq { display: flex; flex-direction: column; gap: 1.5rem; margin: 1.25rem 0; }
+    .faq-q { font-weight: 700; font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem; }
+    .faq-a { font-size: 0.9rem; color: var(--ink-2); line-height: 1.65; }
+
+    .cta-box { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius: 14px; padding: 2.25rem 2rem; text-align: center; margin: 2.5rem 0; color: #fff; }
+    .cta-box h2 { color: #fff; font-size: 1.55rem; margin-bottom: 0.6rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); font-size: 1rem; margin-bottom: 1.4rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--accent-dark); font-weight: 700; padding: 0.75rem 2rem; border-radius: var(--radius-sm); font-size: 1rem; }
+    .cta-btn:hover { background: #eff6ff; text-decoration: none; }
+    .cta-sub { margin-top: 0.85rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin: 1rem 0; }
+    .related-grid a { font-size: 0.85rem; padding: 0.55rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--ink-2); display: block; transition: border-color 0.15s; }
+    .related-grid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 0 2.5rem; margin-top: 3rem; }
+    .footer-brand { font-weight: 800; font-size: 1rem; margin-bottom: 0.3rem; }
+    .footer-copy { font-size: 0.8rem; color: var(--ink-3); display: block; margin-bottom: 1rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .footer-links a { font-size: 0.8rem; color: var(--ink-3); }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      h2 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-brand" href="./">Check<span>Pulse</span></a>
+    <div class="nav-links">
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a class="nav-cta" href="./#pricing">Monitor My Checkout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="./">CheckPulse</a> › <a href="./shopify-checkout-not-working">Checkout Issues</a> › Custom Domain SSL Error
+    </div>
+    <h1>Shopify Checkout SSL Error — Custom Domain, Cloudflare Conflict, Mixed Content &amp; Certificate Invalid</h1>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>Shopify Basic · Shopify · Advanced · Plus</span>
+      <span>3 root causes · 8 diagnostic steps</span>
+    </div>
+    <p class="hero-lead">
+      On standard Shopify plans, checkout SSL is Shopify's responsibility — merchants don't control it. Most "SSL error at checkout" reports come from one of three sources: Cloudflare proxy mode conflicts with Shopify's checkout servers, a Shopify Plus custom checkout domain that isn't provisioned yet, or mixed-content warnings from third-party apps injecting HTTP assets into checkout pages.
+    </p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">On This Page</div>
+    <ol>
+      <li><a href="#architecture">How Shopify Checkout Domains Actually Work</a></li>
+      <li><a href="#error-types">Three SSL Error Types and Their Causes</a></li>
+      <li><a href="#cloudflare">Cloudflare SSL Conflicts with Shopify Checkout</a></li>
+      <li><a href="#custom-domain">Shopify Plus Custom Checkout Domain Setup</a></li>
+      <li><a href="#mixed-content">Mixed Content Errors at Checkout</a></li>
+      <li><a href="#force-ssl">What "Force SSL" in Shopify Admin Actually Does</a></li>
+      <li><a href="#diagnostic">8-Step SSL Diagnostic</a></li>
+      <li><a href="#reference">SSL Error Reference Table</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 1: ARCHITECTURE -->
+  <section id="architecture">
+    <h2>How Shopify Checkout Domains Actually Work</h2>
+    <p>
+      The most important thing to understand about Shopify checkout SSL: on every plan except Plus, the checkout is not served from your domain at all. When a customer clicks "Checkout" from your cart, the browser navigates to Shopify's infrastructure — not to your store's web server.
+    </p>
+
+    <div class="card-grid">
+      <div class="card info">
+        <div class="card-label">Basic · Shopify · Advanced</div>
+        <h3>checkout.shopify.com</h3>
+        <p>Checkout is hosted on Shopify's domain. The URL looks like <code>checkout.shopify.com/shop/[id]/checkouts/[token]</code>. SSL is Shopify's certificate — you cannot customize it. SSL errors here are Shopify's issue, not yours.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Shopify Plus — Optional</div>
+        <h3>checkout.yourdomain.com</h3>
+        <p>Plus merchants can request a custom checkout subdomain (e.g., <code>checkout.mystore.com</code>). Shopify provisions the SSL certificate. Requires CNAME DNS setup and 24–48 hour provisioning. Not self-serve.</p>
+      </div>
+      <div class="card ok">
+        <div class="card-label">All Plans — Store Pages</div>
+        <h3>yourdomain.com (store)</h3>
+        <p>Your store pages (product, cart, home) are served from your custom domain. SSL for this domain is managed by Shopify automatically — a Let's Encrypt certificate is provisioned when you add your domain in Shopify admin.</p>
+      </div>
+      <div class="card danger">
+        <div class="card-label">Common Misconception</div>
+        <h3>SSL at checkout ≠ your domain's SSL</h3>
+        <p>Your store domain can have a perfect SSL certificate and your checkout can still show an SSL error — because checkout runs on a different server and domain entirely. The two SSL systems are separate.</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>Why this matters:</strong> If your store is on a standard Shopify plan and a customer reports "the checkout page says Not Secure," the SSL certificate for checkout.shopify.com is not something you can renew, replace, or reconfigure. The fix is almost always on the Cloudflare side (if you use it) or in a third-party app injecting HTTP content — not in Shopify admin.
+    </div>
+  </section>
+
+  <!-- SECTION 2: ERROR TYPES -->
+  <section id="error-types">
+    <h2>Three SSL Error Types and Their Causes</h2>
+    <p>
+      Browser SSL errors at Shopify checkout fall into three categories. The error code narrows down which cause applies.
+    </p>
+
+    <h3>Type 1 — Certificate Mismatch (NET::ERR_CERT_COMMON_NAME_INVALID)</h3>
+    <p>
+      The browser sees a certificate that doesn't match the domain it's connecting to. At Shopify checkout this happens when: a Plus custom checkout domain is configured but the SSL certificate hasn't finished provisioning, the CNAME record points to the wrong target, or Cloudflare is proxying a checkout subdomain with its own certificate that doesn't match what Shopify's server presents.
+    </p>
+    <p>
+      On standard plans, this error almost never appears because the checkout domain is <code>checkout.shopify.com</code> — a Shopify-controlled domain with a valid wildcard certificate. If you see this error on a standard plan store, check if a browser extension or corporate network proxy is intercepting HTTPS traffic.
+    </p>
+
+    <h3>Type 2 — Mixed Content Warning (Shield Icon / "Not Fully Secure")</h3>
+    <p>
+      The page loads over HTTPS but resources inside it (images, scripts, stylesheets) load over plain HTTP. Browsers block or warn about this. Mixed content at checkout is almost always caused by third-party apps that inject assets with hardcoded HTTP URLs — trust badge widgets, loyalty point displays, upsell widgets, or checkout extension assets that use non-HTTPS image or script sources.
+    </p>
+    <p>
+      Mixed content is shown differently across browsers: Chrome shows a shield with a slash in the address bar and "Your connection to this site is not fully secure." Safari shows a grey lock instead of green. Firefox shows a broken lock. Opening DevTools → Console reveals the exact HTTP URLs being blocked.
+    </p>
+
+    <h3>Type 3 — Protocol / Connection Error (ERR_SSL_PROTOCOL_ERROR)</h3>
+    <p>
+      A lower-level failure where the SSL handshake itself fails — no certificate is even exchanged. At Shopify checkout, this is almost exclusively a Cloudflare configuration problem: Flexible SSL mode with misconfigured HTTPS redirect rules, a Cloudflare Page Rule that forces HTTPS but redirects to a non-HTTPS target, or a Cloudflare SSL/TLS setting that's incompatible with Shopify's server configuration.
+    </p>
+
+    <div class="callout warn">
+      <strong>Redirect loops and SSL errors often coexist.</strong> If Cloudflare is set to "Flexible" SSL and you've also enabled "Force HTTPS" in Shopify, you can get a redirect loop (HTTP → HTTPS → HTTP → …) that some browsers report as an SSL error rather than a redirect loop error. Check for both issues together.
+    </div>
+  </section>
+
+  <!-- SECTION 3: CLOUDFLARE -->
+  <section id="cloudflare">
+    <h2>Cloudflare SSL Conflicts with Shopify Checkout</h2>
+    <p>
+      Cloudflare is involved in more Shopify SSL errors than any other single cause. The combination of Cloudflare proxy + Shopify checkout creates several failure modes that are not obvious from either platform's documentation.
+    </p>
+
+    <h3>The Flexible SSL Trap</h3>
+    <p>
+      Cloudflare's "Flexible" SSL mode encrypts traffic between the visitor and Cloudflare, but fetches from Cloudflare to your origin (Shopify's servers) over plain HTTP. This mode is designed for origins without SSL certificates, which describes none of Shopify's servers — they all have valid certificates. Using Flexible SSL with Shopify creates a broken SSL chain that manifests as errors for some visitors, especially those on stricter browsers or corporate networks.
+    </p>
+    <p>
+      <strong>Fix:</strong> Cloudflare → SSL/TLS → Overview → change to "Full" or "Full (Strict)". Full (Strict) is recommended and requires the origin (Shopify) to have a valid publicly-trusted certificate, which it does.
+    </p>
+
+    <h3>Orange Cloud on the Checkout Subdomain (Plus)</h3>
+    <p>
+      If you're a Plus merchant with a custom checkout domain (e.g., <code>checkout.mystore.com</code>) and that DNS record is set to orange-cloud (proxied) in Cloudflare, two problems arise: (1) Shopify's ACME certificate provisioning challenge cannot reach the actual server to complete verification, so the SSL certificate is never issued. (2) If you have a Cloudflare origin certificate, Cloudflare presents that to visitors, but Shopify's checkout servers also try to present their certificate — the mismatch causes errors.
+    </p>
+    <p>
+      <strong>Fix:</strong> In Cloudflare DNS, set the checkout subdomain record to grey cloud (DNS-only). The checkout subdomain does not need Cloudflare's proxy features — Shopify handles the performance layer on its own infrastructure.
+    </p>
+
+    <h3>Always Use HTTPS + Redirect Misconfiguration</h3>
+    <p>
+      Cloudflare's "Always Use HTTPS" setting redirects any HTTP request to HTTPS. When combined with Shopify's own "Redirect to HTTPS" setting and Shopify's internal redirects (e.g., from your store to checkout.shopify.com), you can create redirect chains that exceed browser limits. Each redirect in the chain adds latency; if any redirect in the chain hits an HTTP URL before the final HTTPS destination, browsers may flag it.
+    </p>
+    <p>
+      <strong>Fix:</strong> Enable "Always Use HTTPS" in Cloudflare at the SSL/TLS → Edge Certificates level. Enable "Redirect to HTTPS" in Shopify (Settings → Domains). Disable any Cloudflare Page Rules that manually do HTTP→HTTPS redirects — let the platform settings handle it, not rules that can conflict.
+    </p>
+
+    <h3>Cloudflare SSL Settings Reference for Shopify</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cloudflare Setting</th>
+            <th>Recommended Value</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SSL/TLS mode</td>
+            <td><span class="badge green">Full (Strict)</span></td>
+            <td>Validates Shopify's origin certificate; prevents mixed chain issues</td>
+          </tr>
+          <tr>
+            <td>Always Use HTTPS</td>
+            <td><span class="badge green">Enabled</span></td>
+            <td>Ensures no HTTP store pages reach visitors</td>
+          </tr>
+          <tr>
+            <td>HTTP/2</td>
+            <td><span class="badge green">Enabled</span></td>
+            <td>Shopify supports HTTP/2; improves checkout load speed</td>
+          </tr>
+          <tr>
+            <td>Main domain proxy (orange cloud)</td>
+            <td><span class="badge green">OK</span></td>
+            <td>Proxying the store domain is fine with Full (Strict)</td>
+          </tr>
+          <tr>
+            <td>Checkout subdomain proxy (Plus)</td>
+            <td><span class="badge red">DNS-only (grey cloud)</span></td>
+            <td>Must not proxy the checkout subdomain — breaks cert provisioning</td>
+          </tr>
+          <tr>
+            <td>SSL mode: Flexible</td>
+            <td><span class="badge red">Do not use</span></td>
+            <td>Breaks SSL chain with Shopify's HTTPS-only servers</td>
+          </tr>
+          <tr>
+            <td>Minimum TLS Version</td>
+            <td><span class="badge blue">TLS 1.2</span></td>
+            <td>Shopify requires TLS 1.2+; TLS 1.3 preferred</td>
+          </tr>
+          <tr>
+            <td>Page Rules: HTTP→HTTPS redirect</td>
+            <td><span class="badge red">Remove</span></td>
+            <td>Conflicts with platform-level HTTPS enforcement; causes loops</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 4: CUSTOM DOMAIN -->
+  <section id="custom-domain">
+    <h2>Shopify Plus Custom Checkout Domain Setup</h2>
+    <p>
+      Shopify Plus merchants can have checkout served from their own subdomain (e.g., <code>checkout.yourbrand.com</code> instead of <code>checkout.shopify.com</code>). This is not a self-service feature — Shopify configures it on their end, and you add the corresponding DNS record.
+    </p>
+
+    <h3>Setup Process</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Request the custom checkout domain via Shopify Plus support</strong>
+          <p>Contact Shopify Plus support and specify the subdomain you want (e.g., <code>checkout.mystore.com</code>). Shopify will configure their servers to respond to that subdomain and initiate certificate provisioning.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Add the CNAME record in your DNS provider</strong>
+          <p>Shopify will provide the CNAME target (typically <code>shops.myshopify.com</code> or a similar Shopify endpoint). Add a CNAME record: <code>checkout</code> → [Shopify's target]. Set TTL to 300 seconds for fast propagation.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>If using Cloudflare: set to grey cloud (DNS-only)</strong>
+          <p>The checkout subdomain CNAME record must not be proxied. Set the Cloudflare proxy toggle to grey cloud (DNS-only) for this record. Shopify's provisioning bot needs direct access to the server to complete the ACME challenge.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Check your CAA DNS records</strong>
+          <p>If you have CAA records on your domain, verify that <code>letsencrypt.org</code> is allowed as a certificate authority. Run <code>dig CAA yourdomain.com</code>. If CAA records exist but don't include Let's Encrypt, Shopify's provisioning will fail silently.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Wait 24–48 hours for SSL provisioning</strong>
+          <p>After the CNAME propagates, Shopify's provisioning system issues a Let's Encrypt certificate. This typically completes within a few hours but can take up to 48 hours. During this window, customers will see a certificate error if they visit checkout. Do not launch publicly until provisioning is confirmed.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Verify the certificate</strong>
+          <p>Once provisioning completes, run <code>curl -vI https://checkout.yourdomain.com</code> and confirm the SSL certificate is issued to <code>checkout.yourdomain.com</code> with a Let's Encrypt issuer. Or use an SSL checker tool to confirm the certificate chain is valid.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout danger">
+      <strong>Do not announce your custom checkout domain before SSL provisioning is confirmed.</strong> Any customer who reaches the checkout URL before the certificate is issued will see a full-page certificate error. SSL warnings create permanent trust damage — a customer who saw "Not Secure" may not return even after the issue is fixed.
+    </div>
+
+    <h3>Why Provisioning Fails</h3>
+    <ul>
+      <li><strong>CNAME not propagated:</strong> DNS changes can take minutes to hours. Verify propagation with <code>dig checkout.yourdomain.com CNAME</code> before expecting the certificate.</li>
+      <li><strong>Cloudflare orange cloud:</strong> Blocks the ACME HTTP-01 challenge. Must use grey cloud (DNS-only) on the checkout subdomain.</li>
+      <li><strong>CAA records blocking Let's Encrypt:</strong> Restrictive CAA records on the parent domain prevent issuance. Add <code>0 issue "letsencrypt.org"</code> CAA record if needed.</li>
+      <li><strong>Wrong CNAME target:</strong> Shopify's required CNAME target may differ between stores. Confirm the exact target with Shopify Plus support for your specific setup.</li>
+      <li><strong>Rate limits:</strong> Let's Encrypt has rate limits per domain. If you've attempted provisioning repeatedly (after configuration errors), you may hit a rate limit. Wait before retrying.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 5: MIXED CONTENT -->
+  <section id="mixed-content">
+    <h2>Mixed Content Errors at Checkout</h2>
+    <p>
+      Mixed content is the most common SSL-adjacent issue on standard Shopify plans. It doesn't prevent checkout from loading, but it triggers browser security warnings that erode customer trust at the worst possible moment.
+    </p>
+
+    <h3>What Causes Mixed Content at Shopify Checkout</h3>
+    <p>
+      Shopify's checkout page itself loads over HTTPS — Shopify controls that. Mixed content comes from resources injected into the checkout by third parties:
+    </p>
+    <ul>
+      <li><strong>Checkout Extensions (UI Extensions):</strong> Apps using Checkout Extensibility can inject UI elements into checkout. If the extension loads remote images or scripts over HTTP, the browser flags them as mixed content.</li>
+      <li><strong>Checkout Scripts (Plus only — deprecated):</strong> Legacy checkout.liquid scripts that reference HTTP URLs for trust badges, rating widgets, or analytics pixels.</li>
+      <li><strong>Buy Button embeds:</strong> If your store uses Shopify's Buy Button on an external site that loads over HTTPS, any HTTP assets in the Buy Button widget cause mixed content on the embedding page.</li>
+      <li><strong>Order status page customizations:</strong> The order confirmation page (thank you page) is customizable. Scripts or images added via "Additional scripts" in Checkout settings may use HTTP URLs.</li>
+    </ul>
+
+    <h3>How to Find Mixed Content</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Open Chrome DevTools at checkout</strong>
+          <p>Navigate to your checkout page. Press F12 (Windows) or Cmd+Option+I (Mac) to open DevTools.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check the Console tab for "Mixed Content" errors</strong>
+          <p>Look for red error lines starting with "Mixed Content: The page at 'https://checkout.shopify.com/...' was loaded over HTTPS, but requested an insecure resource 'http://...'" — the URL in quotes is the HTTP resource causing the issue.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Check the Network tab → filter by non-secure</strong>
+          <p>In the Network tab, filter by "http://" in the filter box. Any remaining requests are loading over HTTP instead of HTTPS.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Trace the source to the responsible app</strong>
+          <p>The HTTP URL typically includes a CDN or app domain (e.g., <code>http://assets.trustbadgeapp.com/badge.png</code>). Contact that app's support to update their asset URLs to HTTPS, or disable the app and see if the warning clears.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>Order status page scripts:</strong> Shopify admin → Settings → Checkout → scroll to "Order status page" → "Additional scripts." Any HTTP URLs in custom scripts here appear as mixed content on the thank-you page (part of the checkout flow). Replace all <code>http://</code> with <code>https://</code> in these scripts.
+    </div>
+  </section>
+
+  <!-- SECTION 6: FORCE SSL -->
+  <section id="force-ssl">
+    <h2>What "Force SSL" in Shopify Admin Actually Does</h2>
+    <p>
+      There's significant confusion about the "Redirect all traffic to this domain" / "Force HTTPS" toggle in Shopify admin → Settings → Domains. Merchants often try this setting when they see checkout SSL warnings, expecting it to fix the problem. It doesn't — and understanding why clarifies the entire SSL architecture.
+    </p>
+
+    <h3>What It Does</h3>
+    <p>
+      Enabling Force HTTPS in Shopify causes Shopify's servers to respond to any HTTP request to your store domain with a 301 redirect to the HTTPS version. A request to <code>http://mystore.com/products/shirt</code> is redirected to <code>https://mystore.com/products/shirt</code>.
+    </p>
+    <p>
+      This only applies to your store's main domain (product pages, collections, blog, homepage, cart page). It has no effect on the checkout domain, which is already served exclusively over HTTPS by Shopify regardless of this setting.
+    </p>
+
+    <h3>What It Doesn't Do</h3>
+    <ul>
+      <li>Does not affect <code>checkout.shopify.com</code> — Shopify controls that domain's HTTPS enforcement independently</li>
+      <li>Does not fix certificate errors if your domain's SSL certificate is not yet provisioned</li>
+      <li>Does not affect mixed content warnings from third-party app assets</li>
+      <li>Does not interact with Cloudflare's SSL settings — both can be active simultaneously without conflict, but Cloudflare's redirect rules should be removed to avoid loops</li>
+    </ul>
+
+    <div class="callout ok">
+      <strong>Best practice:</strong> Enable "Force HTTPS" in Shopify admin for your store domain. Enable "Always Use HTTPS" in Cloudflare (if using Cloudflare). These two settings work in parallel — Shopify handles store pages, Cloudflare handles the edge. Neither affects checkout SSL.
+    </div>
+  </section>
+
+  <!-- SECTION 7: DIAGNOSTIC -->
+  <section id="diagnostic">
+    <h2>8-Step SSL Diagnostic for Shopify Checkout</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Identify which domain is showing the SSL error</strong>
+          <p>Look at the URL in the browser address bar when the error appears. Is it <code>checkout.shopify.com</code> (standard plan), <code>checkout.yourdomain.com</code> (Plus custom), or <code>yourdomain.com</code> (store pages)? The fix path depends on the domain.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check if you're using Cloudflare</strong>
+          <p>Log in to Cloudflare and verify the SSL/TLS mode (Overview tab). If it's "Flexible," change to "Full (Strict)." If the checkout subdomain (Plus) has orange cloud, change to grey cloud.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Check Shopify's SSL status for your store domain</strong>
+          <p>Shopify admin → Settings → Domains → click your domain → check the SSL certificate status. If it shows "Pending" or expired, contact Shopify support — your store domain's SSL is managed by Shopify automatically but can occasionally need manual re-provisioning.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>For Plus custom checkout domain: verify CNAME</strong>
+          <p>Run <code>dig checkout.yourdomain.com CNAME</code>. Verify the CNAME target matches what Shopify Plus support provided. If not propagated yet, wait — don't retry provisioning during propagation.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Check for CAA records (Plus custom domain)</strong>
+          <p>Run <code>dig CAA yourdomain.com</code>. If CAA records exist, confirm <code>letsencrypt.org</code> is in the list. If not, add <code>0 issue "letsencrypt.org"</code> and wait for provisioning to retry.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Open browser DevTools → check Console for mixed content</strong>
+          <p>Navigate through checkout to the payment step while DevTools is open. Mixed content warnings appear as red console errors listing HTTP URLs. Note which app or domain is injecting the HTTP resource.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Test from an incognito window on a mobile device</strong>
+          <p>Browser extensions can inject HTTP assets and cause mixed content warnings that don't exist for real customers. Testing in incognito with no extensions rules out extension interference.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <strong>Check Shopify's status page for platform-wide SSL issues</strong>
+          <p>If the error appeared suddenly without any configuration change, check Shopify's status page. Platform-wide certificate renewal issues (rare but they happen) affect all merchants simultaneously and require Shopify's engineering team to resolve.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 8: REFERENCE TABLE -->
+  <section id="reference">
+    <h2>SSL Error Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Error / Symptom</th>
+            <th>Plan</th>
+            <th>Most Likely Cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>NET::ERR_CERT_COMMON_NAME_INVALID</td>
+            <td><span class="badge blue">Plus</span></td>
+            <td>Custom checkout domain SSL not provisioned, or Cloudflare proxy on checkout subdomain</td>
+            <td>Grey-cloud Cloudflare record; wait for provisioning; check CAA records</td>
+          </tr>
+          <tr>
+            <td>ERR_SSL_PROTOCOL_ERROR</td>
+            <td><span class="badge gray">All</span></td>
+            <td>Cloudflare SSL mode "Flexible" or conflicting Page Rules</td>
+            <td>Switch Cloudflare to Full (Strict); remove HTTP→HTTPS Page Rules</td>
+          </tr>
+          <tr>
+            <td>"Not Fully Secure" / shield icon</td>
+            <td><span class="badge gray">All</span></td>
+            <td>Mixed content — app injecting HTTP asset into checkout</td>
+            <td>DevTools → Console → find HTTP URL → update app config or disable app</td>
+          </tr>
+          <tr>
+            <td>Redirect loop with SSL error</td>
+            <td><span class="badge gray">All</span></td>
+            <td>Cloudflare Flexible SSL + Shopify Force HTTPS both active</td>
+            <td>Set Cloudflare to Full (Strict); remove redundant Cloudflare redirect Page Rules</td>
+          </tr>
+          <tr>
+            <td>SSL error on store pages only (not checkout)</td>
+            <td><span class="badge gray">All</span></td>
+            <td>Store domain SSL not provisioned in Shopify</td>
+            <td>Shopify admin → Settings → Domains → check SSL status; contact support if pending</td>
+          </tr>
+          <tr>
+            <td>Certificate shows for wrong domain</td>
+            <td><span class="badge blue">Plus</span></td>
+            <td>CNAME still pointing to old target after checkout domain change</td>
+            <td>Update CNAME to Shopify's new target; allow propagation</td>
+          </tr>
+          <tr>
+            <td>SSL error only for some customers</td>
+            <td><span class="badge gray">All</span></td>
+            <td>Corporate network HTTPS inspection proxy, or browser extension</td>
+            <td>Test in incognito without extensions; out of scope for Shopify</td>
+          </tr>
+          <tr>
+            <td>SSL error after adding new custom domain</td>
+            <td><span class="badge gray">All</span></td>
+            <td>New domain SSL provisioning in progress (24–48 hours)</td>
+            <td>Wait for Shopify's automatic Let's Encrypt issuance; don't redirect traffic until confirmed</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 9: FAQ -->
+  <section id="faq">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Why does my Shopify checkout go to checkout.shopify.com instead of my domain?</div>
+        <div class="faq-a">On Shopify Basic, Shopify, and Advanced plans, checkout is hosted on Shopify's domain — this is by design for PCI compliance and payment infrastructure reasons. Only Shopify Plus merchants can configure a custom checkout subdomain, and even then it requires Shopify's team to set up on their servers. Changing the checkout URL on a standard plan is not possible through any setting, app, or DNS configuration.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Will Cloudflare break my Shopify checkout SSL?</div>
+        <div class="faq-a">Cloudflare won't break checkout SSL on standard plans if you use Full (Strict) SSL mode — checkout.shopify.com isn't routed through Cloudflare at all on standard plans (Cloudflare only proxies your store domain). On Shopify Plus with a custom checkout subdomain, Cloudflare must be set to grey cloud (DNS-only) on the checkout record. If the checkout subdomain is orange-cloud proxied, certificate provisioning fails and customers see SSL errors.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What causes "Your connection to this site is not fully secure" at Shopify checkout?</div>
+        <div class="faq-a">This indicates mixed content — one or more resources on the checkout page are loading over HTTP instead of HTTPS. The checkout page itself is always HTTPS; the mixed content comes from third-party apps or scripts injecting non-secure assets. To find the specific cause: open Chrome DevTools (F12), go to Console, and look for "Mixed Content" error lines that list the HTTP URL. The domain in that URL identifies which app or script is the source.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How long does SSL provisioning take for a new Shopify domain?</div>
+        <div class="faq-a">When you add a new custom domain to Shopify (Settings → Domains → Connect existing domain), Shopify provisions a Let's Encrypt SSL certificate automatically. This typically completes within a few hours, but can take up to 48 hours in some cases. During this window, your store shows an SSL error for visitors who navigate to the HTTPS URL. Shopify admin → Settings → Domains shows the provisioning status. Do not redirect traffic to the new domain until SSL is confirmed as active.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does enabling "Force SSL" in Shopify admin fix checkout SSL errors?</div>
+        <div class="faq-a">No. The Force SSL / Redirect to HTTPS setting in Shopify admin only affects your store domain's HTTP→HTTPS redirect for store pages. Checkout is already served exclusively over HTTPS regardless of this setting — it's on Shopify's infrastructure, not yours. If you're seeing SSL errors specifically at checkout (the checkout.shopify.com URL or your Plus custom checkout domain), the cause is elsewhere: Cloudflare configuration, an unprovisioned custom checkout domain, or mixed content from app assets.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h2>Monitor Your Shopify Checkout 24/7</h2>
+    <p>CheckPulse runs a real 4-step checkout every 5 minutes and alerts you within 60 seconds when something breaks — before your customers notice.</p>
+    <a class="cta-btn" href="./#pricing">Start Monitoring — Free Trial</a>
+    <div class="cta-sub">Or <a href="./free-check" style="color:rgba(255,255,255,0.8)">run a free checkout health check</a> right now. No account needed.</div>
+  </div>
+
+  <!-- RELATED -->
+  <section>
+    <h2>Related Shopify Checkout Issues</h2>
+    <div class="related-grid">
+      <a href="./shopify-checkout-redirect-loop">Checkout Redirect Loop</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-payment-error">Payment Error at Checkout</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-app-conflict">App Blocking Checkout</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Migration</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <a href="./shopify-checkout-not-working">All Checkout Issues</a>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Migration</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

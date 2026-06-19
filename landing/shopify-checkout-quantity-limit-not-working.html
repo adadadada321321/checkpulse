@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Quantity Limit Not Working — Min/Max Rules, Inventory Hold, Buy X Get Y Conflicts (2026)</title>
+  <meta name="description" content="Shopify has no native minimum or maximum quantity enforcement at checkout — only a hard ceiling at available stock. Min/max rules require third-party apps or Checkout Extensibility (Plus only). Client-side apps are API-bypassable. Inventory holds create ghost out-of-stock. Buy X Get Y breaks on manual quantity edits. Five root causes and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-quantity-limit-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-quantity-limit-not-working" />
+  <meta property="og:title" content="Shopify Checkout Quantity Limit Not Working — Min/Max Rules, Inventory Hold, BXGY Conflicts" />
+  <meta property="og:description" content="Shopify enforces only one quantity rule natively: you cannot buy more than available stock. Minimum order quantities, per-customer maximums, and BXGY enforcement require apps or Checkout Extensibility. Each fails differently — client-side rules are bypassable, inventory holds create phantom OOS, and BXGY discounts break on manual cart edits." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Quantity Limit Not Working — Min/Max Rules, Inventory Hold, Buy X Get Y Conflicts",
+    "description": "Shopify has one native quantity rule: you cannot purchase more units than available inventory. There is no built-in minimum order quantity, no per-customer maximum, and no native enforcement for bundle or BXGY quantity requirements. Merchants implement these rules through third-party apps (client-side JavaScript injection), the Cart Transform API (server-side), or Checkout Extensibility validation (Shopify Plus only). Each approach fails differently — client-side rules are bypassed by direct API calls, inventory holds create phantom out-of-stock that blocks legitimate buyers, and Buy X Get Y discounts recalculate incorrectly when customers manually adjust quantities at checkout. This guide covers the four-layer quantity enforcement architecture, five root causes, seven silent failures, and exact fix paths for each scenario.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-quantity-limit-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does Shopify have a built-in minimum order quantity feature?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify natively enforces only one quantity constraint: you cannot purchase more units than available inventory. There is no built-in minimum quantity per product, minimum order value, or maximum quantity per customer. These require third-party apps (MinMaxify, Order Limits, Infinite Options), the Cart Transform API function, or Checkout Extensibility validation (Shopify Plus only). Merchants who assume Shopify enforces a minimum automatically — because it's set in an app — often discover the rule is bypassed by direct API add-to-cart calls, cart permalink URLs, or the Shopify mobile app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can customers bypass my minimum quantity rule on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most Shopify minimum quantity apps inject JavaScript that disables or hides the 'Add to Cart' button when quantities don't meet the minimum. This works in the standard Shopify storefront but is bypassed in several ways: (1) direct POST to the Shopify AJAX Cart API (/cart/add.js) — any developer tools request skips the storefront JavaScript; (2) cart permalink URLs (/cart/[variant-id]:[qty]) pre-load items directly into cart without triggering the app's JavaScript check; (3) embedded Buy Buttons on external sites don't load your theme's JavaScript; (4) Shopify mobile app in some configurations. Only server-side enforcement via the Cart Transform API or Checkout Extensibility (Plus only) blocks these bypass paths."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show out of stock for a product that should be available?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer proceeds to the checkout step (not when they add to cart), Shopify creates a checkout session and places an inventory hold on the items in the cart. The default hold duration is approximately 10 minutes on Basic/Shopify plans and up to 30 minutes on Advanced/Plus. If multiple customers simultaneously open checkouts for the same low-stock product, each hold reduces the visible available inventory. A product with 5 units can appear as out of stock if five customers each opened a checkout with 1 unit, even if none of those customers complete their purchase. The holds release automatically when sessions expire or the customer abandons the checkout — but during that window, legitimate buyers are blocked."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Buy X Get Y discount behave incorrectly when the customer changes quantity at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify BXGY automatic discounts are evaluated against the cart at the time of checkout creation and recalculated when the cart changes. When a customer manually reduces quantity at checkout (for example, from 3 to 2 when the BXGY requires 3), the discount recalculation can lag or apply inconsistently — either leaving the free item as a paid line item in the cart, or keeping the discount applied when the threshold is no longer met. This is a known edge case in Shopify's cart recalculation. The most reliable workaround is to use a Cart Transform API function that enforces BXGY quantity logic server-side, or to display a clear message to customers about the minimum quantity requirement before they reach checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I block checkout by quantity in Shopify without Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Without Shopify Plus (which has access to Checkout Extensibility), you cannot block the checkout step itself based on quantity rules. Your options are: (1) Use a third-party app (MinMaxify, Order Limits) to block the Add to Cart button — this works in the storefront but can be bypassed by direct API calls; (2) Use the Cart Transform API via a Shopify app — this is a server-side function that modifies the cart before checkout and cannot be bypassed, but it modifies cart contents rather than blocking checkout outright; (3) Enable inventory tracking and set inventory to the minimum quantity multiples only (e.g., always sell in packs of 2 by setting inventory to 2, 4, 6 — but this is a workaround, not a true quantity enforcement mechanism). For hard checkout blocking, Shopify Plus with Checkout Extensibility Validation is the only native Shopify path."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; color: var(--amber); font-size: 15px; }
+    .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text-dim); }
+    .nav-links a { color: var(--text-dim); }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+    }
+    .breadcrumb {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a { color: var(--text-dim); }
+    .breadcrumb a:hover { color: var(--amber); text-decoration: none; }
+    .breadcrumb span { color: var(--border-mid); }
+    h1 { font-size: clamp(22px, 4vw, 32px); font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .hero-meta { font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+    .hero-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .section { padding: 36px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    h2 { font-size: 20px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.2px; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    p { margin-bottom: 12px; color: var(--text-secondary); }
+    p:last-child { margin-bottom: 0; }
+
+    .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 8px; }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .arch-card .layer-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    .arch-card h3 { font-size: 13px; margin-bottom: 6px; color: var(--text); }
+    .arch-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+    .arch-card.layer-1 { border-top: 2px solid var(--blue); }
+    .arch-card.layer-2 { border-top: 2px solid var(--amber); }
+    .arch-card.layer-3 { border-top: 2px solid var(--green); }
+    .arch-card.layer-4 { border-top: 2px solid var(--purple); }
+
+    .cause-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+    .cause-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .cause-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .cause-item h3 { font-size: 14px; margin-bottom: 6px; }
+    .cause-item p { font-size: 13px; margin: 0; }
+
+    .failure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 13px 15px;
+    }
+    .failure-card h3 { font-size: 13px; margin-bottom: 5px; color: var(--text); }
+    .failure-card p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .diag-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .diag-step {
+      display: flex;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      background: var(--amber);
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-body h3 { font-size: 13px; margin-bottom: 4px; }
+    .step-body p { font-size: 12px; color: var(--text-dim); margin: 0; }
+
+    .deep-divider { height: 1px; background: var(--border); margin: 22px 0; }
+    .deep-dive { margin-top: 8px; }
+    .deep-label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 8px;
+    }
+    .deep-dive h3 { font-size: 16px; margin-bottom: 10px; }
+    .deep-dive p { font-size: 13px; }
+
+    .info-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .info-box.amber { border-left: 3px solid var(--amber); }
+    .info-box.blue { border-left: 3px solid var(--blue); }
+    .info-box.green { border-left: 3px solid var(--green); }
+    .info-box.red { border-left: 3px solid var(--red); }
+    .info-box strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .info-box p { margin: 0; font-size: 12px; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--amber);
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+    td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: var(--surface); }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .badge-green { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .badge-gray { background: rgba(136,136,136,0.15); color: var(--text-dim); border: 1px solid rgba(136,136,136,0.3); }
+
+    .cta-block {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%);
+      border: 1px solid var(--amber-dim);
+      border-radius: 10px;
+      padding: 28px 24px;
+      text-align: center;
+      margin: 36px 0;
+    }
+    .cta-block h3 { font-size: 18px; margin-bottom: 10px; }
+    .cta-block p { font-size: 14px; margin-bottom: 18px; }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 11px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { background: #fbbf24; text-decoration: none; }
+
+    .related-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 13px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 0;
+    }
+    .footer-brand { font-weight: 700; color: var(--amber); margin-bottom: 6px; font-size: 14px; }
+    .footer-copy { font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 14px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--amber); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .arch-grid { grid-template-columns: 1fr 1fr; }
+      .failure-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="/checkpulse/">CheckPulse</a>
+      <span>›</span>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Troubleshooting</a>
+      <span>›</span>
+      <span>Quantity Limit Not Working</span>
+    </div>
+    <h1>Shopify Checkout Quantity Limit Not Working — Min/Max Rules, Inventory Hold, Buy X Get Y Conflicts</h1>
+    <p style="color:var(--text-secondary);font-size:14px;margin-top:12px;">Customers buying fewer units than the merchant requires, or more than should be allowed. Buy X Get Y discounts calculating incorrectly when cart quantity changes. Products appearing out of stock despite available inventory. Shopify has no native quantity enforcement beyond the available stock ceiling — everything else requires apps or Checkout Extensibility.</p>
+    <div class="hero-meta">Updated June 2026 &middot; Covers Shopify Basic, Shopify, Advanced, Plus &middot; Third-party apps, Cart Transform API, Checkout Extensibility</div>
+    <div class="hero-summary">
+      <strong style="color:var(--text);display:block;margin-bottom:6px;">The core issue:</strong>
+      Shopify natively enforces exactly one quantity constraint: <strong style="color:var(--text);">you cannot buy more units than available inventory.</strong> There is no built-in minimum order quantity, no per-customer maximum, and no native BXGY enforcement at the checkout level. Merchants implement these rules through <strong style="color:var(--text);">third-party apps</strong> (client-side JavaScript — bypassable via API), the <strong style="color:var(--text);">Cart Transform API</strong> (server-side cart modification), or <strong style="color:var(--text);">Checkout Extensibility validation</strong> (Shopify Plus only, blocks at checkout). A second unrelated issue — <strong style="color:var(--text);">inventory holds</strong> — causes products to appear out of stock while checkout sessions from other customers are active, even if those customers never complete their purchase.
+    </div>
+  </div>
+
+  <!-- ── SECTION 1: Architecture ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Four Layers of Shopify Quantity Enforcement</h2>
+    <p>Shopify quantity rules exist at four distinct levels. Understanding which level your current setup uses determines why it fails and how to fix it.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card layer-1">
+        <div class="layer-num">Layer 1</div>
+        <h3>Native Inventory Ceiling</h3>
+        <p>Shopify's only built-in quantity enforcement. If inventory tracking is on, customers cannot add more units than available stock. No minimum, no per-customer maximum — only an upper bound from stock count.</p>
+      </div>
+      <div class="arch-card layer-2">
+        <div class="layer-num">Layer 2</div>
+        <h3>Client-Side App Rules</h3>
+        <p>Third-party apps (MinMaxify, Order Limits, Infinite Options) inject JavaScript that blocks the Add to Cart button or shows quantity warnings. Works in the storefront, bypassed by direct API calls or cart permalink URLs.</p>
+      </div>
+      <div class="arch-card layer-3">
+        <div class="layer-num">Layer 3</div>
+        <h3>Cart Transform API</h3>
+        <p>Server-side Shopify Function that modifies cart contents before checkout is created. Cannot be bypassed by clients. Can enforce quantity multiples, bundle requirements, and BXGY logic at the cart level.</p>
+      </div>
+      <div class="arch-card layer-4">
+        <div class="layer-num">Layer 4</div>
+        <h3>Checkout Extensibility Validation</h3>
+        <p>Shopify Plus only. Validation Functions run server-side at the checkout step and return blocking errors that prevent payment. The only mechanism that stops checkout itself based on quantity rules.</p>
+      </div>
+    </div>
+
+    <div class="info-box amber" style="margin-top:16px;">
+      <strong>Why "my app enforces this" is not the same as "checkout enforces this"</strong>
+      <p>An app that blocks the Add to Cart button stops the storefront UI. It does not stop: a developer using <code>/cart/add.js</code> directly, a customer using a cart permalink URL, the Shopify mobile app (in some themes), or embedded Buy Buttons on third-party sites. Only Layer 3 and Layer 4 enforce at the server level — and Layer 4 requires Plus.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Quantity Rules Fail at Shopify Checkout</h2>
+
+    <div class="cause-list">
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 1</div>
+        <h3>No native Shopify minimum quantity — merchants misunderstand what the platform enforces</h3>
+        <p>Shopify's inventory system is a ceiling, not a floor. Setting inventory to 50 means customers cannot buy more than 50 units — it does not mean they must buy at least 2. Many merchants discover this only after bulk orders arrive with single-unit quantities that destroy their wholesale margins. The correct fix depends on your plan: on Basic/Shopify/Advanced, use a third-party app with the understanding that it's bypassable; on Plus, use Checkout Extensibility Validation for server-side blocking enforcement. <strong style="color:var(--text);">Fix:</strong> Install a dedicated quantity app (MinMaxify is common) for storefront protection, and use Cart Transform API or Checkout Extensibility for hard enforcement.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 2</div>
+        <h3>Client-side quantity rules bypassed via AJAX Cart API or cart permalink</h3>
+        <p>Apps like MinMaxify and Order Limits work by intercepting Add to Cart button clicks and validating quantity before allowing the request. A customer (or developer) who sends a direct POST to <code>/cart/add.js</code> with <code>{"id": [variant_id], "quantity": 1}</code> bypasses this entirely — the item appears in the cart with quantity 1, the app's JavaScript never ran. Similarly, a cart permalink URL such as <code>/cart/[variant-id]:1</code> opens the cart with 1 unit pre-loaded, bypassing add-to-cart validation. This is also how coupon code sharing sites sometimes generate "wholesale price" links that bypass minimum quantity requirements. <strong style="color:var(--text);">Fix:</strong> Implement a Cart Transform API function that enforces quantity minimums server-side, regardless of how items were added to the cart.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 3</div>
+        <h3>Checkout Extensibility validation configured as warning rather than blocking error</h3>
+        <p>Shopify's Validation API for Checkout Extensibility distinguishes between non-blocking warnings (shown to customers but checkout can proceed) and blocking errors (checkout cannot advance past the affected step). Merchants deploying quantity validation functions for the first time commonly configure the validation to display a message but return the wrong error type — the customer sees the warning, can dismiss it, and clicks "Continue to payment" regardless. The implementation requires the function to return an errors array with blocking behavior explicitly set. <strong style="color:var(--text);">Fix:</strong> Review your Checkout Extensibility app or function deployment. Verify the validation function returns <code>{"errors": [...]}</code> with blocking set to true, not just a render-only warning component. Test by adding a quantity below the minimum and attempting to proceed to payment.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 4</div>
+        <h3>Inventory hold at checkout creation creates phantom out-of-stock</h3>
+        <p>When a customer reaches the Shopify checkout page (not when they add to cart), Shopify creates a checkout session and places an inventory reservation on the items in the cart. This hold lasts approximately 10 minutes on Basic/Shopify plans and up to 30 minutes on Advanced/Plus. If 5 customers simultaneously open checkouts for a product with 5 units of stock, all 5 units are reserved. Any additional customer sees the product as out of stock — even though all 5 original customers may abandon without purchasing. The holds release when sessions expire, but during that window real buyers are turned away with no explanation beyond "this item is currently unavailable." <strong style="color:var(--text);">Fix:</strong> This is a Shopify platform behavior, not configurable in most plans. Strategies include increasing stock counts, using Shopify's "Continue selling when out of stock" setting, and monitoring abandoned checkout rates as a proxy for hold-driven OOS events.</p>
+      </div>
+
+      <div class="cause-item">
+        <div class="cause-num">Root Cause 5</div>
+        <h3>Buy X Get Y discount miscalculates when cart quantity changes at checkout</h3>
+        <p>Shopify's automatic BXGY discounts are evaluated when the cart is loaded at checkout. When a customer manually reduces their cart quantity at the checkout review step — from 3 units to 2, dropping below the BXGY threshold — the discount recalculation runs asynchronously. In some cases, the free item remains as a $0 line item in the cart after the qualifying quantity is reduced. In other cases, the discount disappears abruptly and the previously-free item becomes a paid item, confusing customers who see their total jump. This race condition between cart mutation and discount recalculation is a known edge case. <strong style="color:var(--text);">Fix:</strong> Add a cart note or product description warning that quantity changes at checkout may affect bundle discounts. For critical BXGY logic, implement a Cart Transform API function that evaluates the discount server-side with each cart update, and prevents customers from reducing below the threshold without removing the discount line item first.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways Quantity Rules Fail Without Any Error Message</h2>
+    <p>These failures let the checkout proceed (or block it unexpectedly) without surfacing the actual quantity rule as the cause.</p>
+
+    <div class="failure-grid">
+      <div class="failure-card">
+        <h3>Min quantity app not enforced at checkout</h3>
+        <p>App blocked Add to Cart in storefront. Customer used AJAX API or cart permalink. Order completes with 1 unit. No error, no alert — merchant sees a 1-unit order that violated wholesale minimum.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Inventory hold — product "out of stock" for real buyers</h3>
+        <p>Multiple checkout sessions holding stock. Real buyer sees OOS. Holds expire in 10–30 min. No indication to buyer that stock will return — they leave and buy elsewhere.</p>
+      </div>
+      <div class="failure-card">
+        <h3>BXGY discount persists after quantity reduction</h3>
+        <p>Customer has "buy 3 get 1 free." Reduces to 2. Free item remains in cart at $0. Order processes with discount that shouldn't apply. Merchant discovers the lost revenue in order report.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Validation warning shown — checkout proceeds anyway</h3>
+        <p>Checkout Extensibility validation displays "Minimum order is 2 units" but allows checkout to continue. Merchant believes rule is enforced. Customer ignores warning. Rule is advisory, not blocking.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Wholesale/B2B buyer blocked by retail minimum</h3>
+        <p>Minimum quantity app applies same rules to all customers. B2B company buyer who orders 100+ units monthly gets blocked when trying a new product at 1 unit to sample. App not B2B-account-aware.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Subscription renewal ignores updated minimum</h3>
+        <p>Merchant adds a minimum order of 2 units. Existing subscriptions were set up at 1 unit. Renewal runs at 1 unit, bypassing the new minimum. Subscription apps use stored quantities, not live cart rules.</p>
+      </div>
+      <div class="failure-card">
+        <h3>Buy Button on external blog bypasses quantity rule</h3>
+        <p>Buy Button embeds don't load theme JavaScript. MinMaxify quantity rule is in theme JS. Customer buys 1 unit via blog Buy Button, quantity rule never triggered, order lands with wrong quantity.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 4: Customer Diagnostic ───────────────────── -->
+  <div class="section">
+    <div class="section-label">Customer Diagnostic</div>
+    <h2>If You're a Shopper: What to Do When Quantity Is Blocked or Wrong</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Check the product page for quantity requirements</h3>
+          <p>Many stores display minimum quantity notices near the Add to Cart button ("Minimum order: 2 units" or "Sold in packs of 6"). If you see this, the quantity rule is intentional and set by the merchant.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>If checkout blocks you with an error — it's working as intended</h3>
+          <p>A red validation error at checkout ("Please add at least 2 items to continue") means the merchant has set a minimum quantity and it's enforcing correctly. Adjust your cart quantity to meet the requirement.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>If a warning shows but checkout still goes through — rule is misconfigured</h3>
+          <p>You can proceed, but be aware the order may be flagged or cancelled by the merchant if it violates their minimum. Contact the store before completing the order to confirm they'll fulfill it.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>If a product shows "out of stock" but was available minutes ago</h3>
+          <p>This is likely an inventory hold from another customer's checkout session. Wait 10–30 minutes and refresh the product page — stock typically releases when abandoned checkout sessions expire.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>If a Buy X Get Y discount disappeared when you changed quantity</h3>
+          <p>Reduce your quantity below the BXGY threshold and the discount should be removed. If the discount persists incorrectly or the free item becomes paid unexpectedly, refresh the cart page to force a recalculation, or contact store support.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Merchant Diagnostic ───────────────────── -->
+  <div class="section">
+    <div class="section-label">Merchant Diagnostic</div>
+    <h2>Six-Step Fix Path for Merchants</h2>
+
+    <div class="diag-steps">
+      <div class="diag-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Confirm you actually have a quantity enforcement mechanism</h3>
+          <p>Shopify has no native min/max quantity setting. If you haven't installed a third-party app or deployed a Checkout Extensibility function or Cart Transform API, there is no quantity rule enforcement regardless of what your product descriptions say.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Test your app rule with a direct API bypass</h3>
+          <p>Open your browser developer tools → Console. Run: <code>fetch('/cart/add.js', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: [your_variant_id], quantity: 1})}).then(r=>r.json()).then(console.log)</code>. If this adds 1 unit without error and your minimum is 2, your rule is client-side only and bypassable. Move to Cart Transform API or Checkout Extensibility for blocking enforcement.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Check Checkout Extensibility validation type — warning vs blocking</h3>
+          <p>If you're on Shopify Plus with a Checkout Extensibility Validation Function: add an item below the minimum quantity to your cart, proceed to checkout, and try to click "Continue to payment." If checkout advances despite the validation error message, your function is returning a non-blocking warning. Contact your app developer or review your function's return value — it must return an errors array that prevents checkout advancement.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>For phantom OOS — compare abandoned checkout rate to OOS reports</h3>
+          <p>In Shopify Admin → Analytics → Reports → Checkout funnel: look for customers who reached the checkout step but did not complete. High abandonment on specific products correlates with inventory hold periods. Cross-reference with any "sold out" events on those products. If OOS events cluster around periods of high traffic, inventory holds are the likely cause.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Test BXGY discount behavior across quantity changes</h3>
+          <p>Add the qualifying quantity to your cart (e.g., 3 units for "buy 2 get 1 free"). Verify the discount applies. At checkout, manually reduce quantity to 2. Observe: does the discount disappear? Does the free item become paid? Does the cart total update correctly? If behavior is inconsistent, implement a Cart Transform API function to handle BXGY recalculation server-side.</p>
+        </div>
+      </div>
+      <div class="diag-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>Check B2B customer exemptions and subscription quantity inheritance</h3>
+          <p>If your quantity app applies to all customers, configure it to exempt B2B Company accounts (if you have Shopify Plus B2B) or specific customer tags (e.g., "wholesale"). For subscriptions, check your subscription app settings — most store the original quantity at subscription creation and don't re-evaluate cart rules at renewal. Update active subscriptions manually or configure the app to apply minimum quantity checks at rebill time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 6: Deep Dives ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>Three Topics That Require Deeper Understanding</h2>
+
+    <!-- Deep Dive A -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive A</div>
+      <h3>How Shopify Inventory Holds Work — and Why They Create Phantom OOS</h3>
+      <p>Shopify inventory reservation happens at checkout session creation, not at add-to-cart. This is intentional — it prevents overselling when two customers simultaneously reach payment with the last unit. But the same mechanism creates phantom out-of-stock events when customers start a checkout and abandon it.</p>
+
+      <div class="info-box blue">
+        <strong>Inventory hold timing by plan</strong>
+        <p>Basic, Shopify: ~10 minutes · Advanced: ~15 minutes · Plus: up to 30 minutes (configurable via Shopify Scripts in some configurations). Holds release automatically on session expiry or explicit cart abandonment.</p>
+      </div>
+
+      <p><strong style="color:var(--text);">The hold lifecycle:</strong> Customer adds item → cart created (no hold yet) → customer clicks "Check out" or "Continue to checkout" → checkout session created → Shopify places an inventory reservation. The reservation holds that quantity at the location assigned to the customer's shipping address. During the hold window, those units are not available for other checkouts.</p>
+
+      <p><strong style="color:var(--text);">When this causes problems:</strong> Flash sales, limited-edition drops, and low-stock products are most affected. A product with 10 units can have 10 simultaneous checkout sessions opened by customers who each want 1 unit. All 10 units are reserved. The 11th customer sees 0 available — even if 8 of the original 10 never complete payment. The holds release as sessions expire, but a 10–30 minute window of phantom OOS is long enough to lose real buyers.</p>
+
+      <p><strong style="color:var(--text);">Mitigation strategies:</strong></p>
+      <p>— Enable "Continue selling when out of stock" on affected products if you can fulfill over-orders<br>
+      — Use Shopify's draft order system for truly limited-quantity drops (inventory held only on order, not on checkout creation)<br>
+      — Monitor abandoned checkout rate on low-stock products — a spike in checkout abandonment during a launch is often phantom OOS, not lost interest<br>
+      — For high-volume flash sales, Shopify Plus with a queue app (Wisepops, Queue-it) limits concurrent checkout sessions</p>
+
+      <div class="info-box amber">
+        <strong>Inventory holds are visible in the Shopify admin</strong>
+        <p>Admin → Products → select product → Inventory → View inventory history. You can see reservation events and their release times. This confirms whether holds are causing the OOS behavior you're observing.</p>
+      </div>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <!-- Deep Dive B -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive B</div>
+      <h3>Checkout Extensibility Validation — Blocking vs Warning, Plus-Only, Common Mistakes</h3>
+      <p>Checkout Extensibility Validation Functions are the only Shopify-native mechanism that enforces quantity rules at the checkout step itself — not at add-to-cart, not at cart creation, but at the point where the customer is about to provide payment. They're Shopify Plus-only, and they're the only tool in the stack that can't be bypassed by a client-side workaround.</p>
+
+      <p><strong style="color:var(--text);">How validation functions work:</strong> You deploy a Shopify Function (a sandboxed WebAssembly module, typically written in JavaScript or Rust) that receives the cart contents as input and returns either a success or an errors array. When errors are returned, Shopify displays them at checkout and prevents the customer from advancing. The function runs server-side on every relevant checkout event — quantity change, address entry, payment selection.</p>
+
+      <div class="info-box red">
+        <strong>Common implementation mistake: returning a UI warning instead of a blocking error</strong>
+        <p>Shopify's Checkout UI Extensions allow rendering custom UI components (banners, notices) inside checkout. These are display-only and don't block anything. A Validation Function that returns <code>{ "errors": [] }</code> (empty errors array) or that's misconfigured as a UI Extension instead of a Validation Function will show its message but allow checkout to proceed. Verify your deployment type: Shopify Partner Dashboard → Apps → Extensions → confirm it's registered as a Checkout Validation extension, not a Checkout UI extension.</p>
+      </div>
+
+      <p><strong style="color:var(--text);">What the Validation Function sees:</strong> The function receives the full cart — line items with quantities, variant IDs, product metadata, customer information, and discount applications. It has no network access (sandboxed), so all validation logic must operate on the data Shopify passes in. For simple quantity minimums ("each line item must have at least 2 units"), this is straightforward. For complex rules ("total order value must exceed $100 OR customer must be tagged wholesale"), you need to pass metafield data via input queries.</p>
+
+      <p><strong style="color:var(--text);">Cart Transform API vs Checkout Extensibility:</strong> Cart Transform modifies the cart (adds, removes, or changes line items) before checkout creation. It's better for enforcement logic that changes what's in the cart — bundling items, enforcing pack sizes, removing disqualifying combinations. Checkout Extensibility Validation blocks the checkout from proceeding — better for "show a blocking error and make the customer fix their cart manually." Both run server-side. Neither requires Plus for the Cart Transform API; Checkout Extensibility Validation does.</p>
+    </div>
+
+    <div class="deep-divider"></div>
+
+    <!-- Deep Dive C -->
+    <div class="deep-dive">
+      <div class="deep-label">Deep Dive C</div>
+      <h3>Third-Party Quantity Apps — MinMaxify, Order Limits, Infinite Options, and Bypass Risk</h3>
+      <p>Most Shopify stores without Plus handle quantity rules through third-party apps. Understanding which layer each app operates in determines your actual level of enforcement.</p>
+
+      <p><strong style="color:var(--text);">MinMaxify (by Intuit):</strong> One of the most widely-used quantity rule apps. Injects JavaScript into the storefront that intercepts Add to Cart button clicks and validates quantity against configured min/max rules before allowing the add-to-cart to proceed. Works well in standard Shopify storefronts. Does not work in: headless storefronts (Hydrogen), embedded Buy Buttons, direct API calls. Supports product-level and collection-level rules. Does not have a Cart Transform API integration — enforcement is client-side only.</p>
+
+      <p><strong style="color:var(--text);">Order Limits – Min & Max Quantity:</strong> Similar client-side approach with additional options for minimum order value (cart total) enforcement. Adds a cart validation step that re-checks rules when the cart page loads. Closer to cart-level enforcement than add-to-cart enforcement, but still JavaScript-based and bypassable. Better at catching cart permalink scenarios than pure add-to-cart blockers.</p>
+
+      <p><strong style="color:var(--text);">Infinite Options (by ShopPad):</strong> Primarily a product customization app, but used by merchants to enforce purchase constraints via custom cart attributes. Less relevant for pure quantity rules — better for "require selection before purchase" use cases.</p>
+
+      <div class="info-box green">
+        <strong>Server-side enforcement without Plus: Cart Transform API</strong>
+        <p>The Cart Transform API is available to all Shopify plans (not Plus-only). It lets a Shopify app modify the cart server-side before checkout is created. An app implementing Cart Transform can enforce minimum quantities by adding items to the cart (e.g., rounding up to the next pack size) or by flagging carts that don't meet requirements. It cannot block checkout like Checkout Extensibility Validation, but it can modify cart contents to force compliance — for example, automatically adjusting a quantity of 1 to the minimum of 2.</p>
+      </div>
+
+      <p><strong style="color:var(--text);">Choosing your enforcement layer:</strong></p>
+      <p>— Storefront UX only (acceptable bypass risk) → any client-side app (MinMaxify, Order Limits)<br>
+      — Server-side cart modification (no bypass via API, no Plus required) → Cart Transform API app<br>
+      — Hard checkout block (no bypass possible, requires Plus) → Checkout Extensibility Validation Function<br>
+      — BXGY enforcement at cart level → Cart Transform API (recalculates discount eligibility with each cart change)<br>
+      — B2B quantity exemptions → Shopify Plus B2B Company features + app that reads company tags</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 7: Reference Table ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Quantity Scenario Reference — Expected Behavior vs Common Failure</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Correct Outcome</th>
+            <th>Common Failure</th>
+            <th>Enforcement Layer Needed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No app installed — merchant wants minimum 2</td>
+            <td><span class="badge badge-red">No enforcement</span></td>
+            <td>Customer buys 1 unit, order processes normally</td>
+            <td>Install min quantity app or Cart Transform API</td>
+          </tr>
+          <tr>
+            <td>MinMaxify — minimum 2, customer uses API</td>
+            <td><span class="badge badge-amber">Should block</span></td>
+            <td>API call bypasses JavaScript — order with 1 unit</td>
+            <td>Cart Transform API for server-side enforcement</td>
+          </tr>
+          <tr>
+            <td>Checkout Extensibility Validation — min 2</td>
+            <td><span class="badge badge-green">Checkout blocked</span></td>
+            <td>Warning config → customer sees message, proceeds anyway</td>
+            <td>Fix validation to return blocking errors, not warnings</td>
+          </tr>
+          <tr>
+            <td>5 units in stock — 5 checkout sessions open</td>
+            <td><span class="badge badge-amber">OOS until holds release</span></td>
+            <td>Real buyer sees OOS — waits 10–30 min or leaves</td>
+            <td>Enable "continue selling" or use draft orders for limited drops</td>
+          </tr>
+          <tr>
+            <td>BXGY "buy 3 get 1 free" — customer reduces to 2</td>
+            <td><span class="badge badge-amber">Discount removed</span></td>
+            <td>Free item persists in cart or discount stays applied</td>
+            <td>Cart Transform API to handle BXGY recalculation</td>
+          </tr>
+          <tr>
+            <td>B2B company buyer — retail minimum qty 2</td>
+            <td><span class="badge badge-amber">Usually exempt</span></td>
+            <td>App applies same rule — blocks B2B sample order</td>
+            <td>App with B2B tag or company-level exemption support</td>
+          </tr>
+          <tr>
+            <td>Subscription renewal — new minimum added</td>
+            <td><span class="badge badge-amber">Minimum applies</span></td>
+            <td>Renewal uses saved qty (1) — bypasses new minimum</td>
+            <td>Subscription app setting for minimum quantity at rebill</td>
+          </tr>
+          <tr>
+            <td>Cart permalink <code>/cart/[variant-id]:1</code></td>
+            <td><span class="badge badge-amber">Quantity pre-filled</span></td>
+            <td>Add-to-cart rule skipped — 1 unit in cart, checkout proceeds</td>
+            <td>Cart Transform API or Order Limits cart-page check</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CTA ────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h3>Catch quantity enforcement failures before they cost you margin</h3>
+    <p>CheckPulse runs automated checkout tests against your Shopify store — detecting when quantity rules aren't enforced, when inventory holds are blocking legitimate buyers, and when BXGY discounts miscalculate on cart quantity changes.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Related Problems</div>
+    <h2>Other Shopify Checkout Rule and Discount Failures</h2>
+    <div class="related-links">
+      <a href="./shopify-checkout-bundle-kit">Bundle/Kit Checkout Not Working</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error at Checkout</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale Checkout Not Working</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked by Sale</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order Checkout Not Working</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Wrong Tax at Checkout</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

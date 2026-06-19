@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Discount Code Not Working — Automatic Discount Blocking Coupon Code, "You Can Only Use One Discount Per Order" (2026)</title>
+  <meta name="description" content="Shopify coupon code not working because automatic discount is active: discount code field disappears, 'you can only use one discount per order' error, influencer code fails during sale, birthday reward blocking checkout code. One-discount rule blocks the code field when any automatic discount applies. Five root causes and exact fix paths." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict" />
+  <meta property="og:title" content="Shopify Discount Code Not Working — Automatic Discount Blocking Coupon Code at Checkout" />
+  <meta property="og:description" content="Shopify enforces a one-discount-per-order rule. When an automatic discount is active and applies to the cart, the discount code entry field disappears or is disabled. Customers see 'you can only use one discount per order' or nothing at all. Five root causes and exact fix paths." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Discount Code Not Working — Automatic Discount Blocking Coupon Code at Checkout",
+    "description": "Shopify enforces a one-discount-per-order rule at the checkout level. When an automatic discount is active and qualifies for the customer's cart, Shopify hides or disables the discount code entry field entirely. Customers either see 'You can only use one discount per order' or, more confusingly, the code entry field simply disappears with no explanation. This is by design in Shopify's discount architecture — but merchants often don't realize their always-on automatic discounts will silently block every manual promo code, influencer code, and affiliate code they send out. This guide covers the two independent discount systems, five root causes, seven silent failure modes, and the exact fix paths including Shopify Plus Discount Combinations and third-party app conflicts.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-19",
+    "dateModified": "2026-06-19"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say 'you can only use one discount per order'?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify enforces a one-discount-per-order rule. When an automatic discount is already applied to the cart — because the cart meets the automatic discount's conditions — Shopify blocks manual discount code entry and shows 'You can only use one discount per order.' The automatic discount took the single available slot. To fix: either disable the automatic discount, convert it to a code-based discount instead, or upgrade to Shopify Plus and enable Discount Combinations to allow stacking an order discount with a product or shipping discount."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why has the discount code field disappeared at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The discount code entry field disappears from Shopify checkout when an automatic discount is actively applied to the cart. Shopify hides the field rather than showing it as disabled, so customers have no indication that a discount is already applied or that their code is blocked. Check your Shopify Admin → Discounts → Automatic to see if any automatic discounts are currently active and qualifying for your cart. If you see the 'You can only use one discount' message, or the field is simply gone, an automatic discount is the cause."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do influencer or affiliate promo codes not work during a Shopify sale?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common cause: the sale is running as an automatic discount ('20% off all orders, no code needed'), and when an influencer's audience tries to use the code 'INFLUENCER10', they get blocked because the automatic sale discount already consumed the one available discount slot. The influencer code fails with 'you can only use one discount per order.' Fix options: (1) run the sale as a code-based discount instead of automatic, so customers can choose which code to use; (2) upgrade to Shopify Plus and enable Discount Combinations; (3) end the automatic discount before the influencer campaign launches; (4) use a discount app that supports stacking for non-Plus stores."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Shopify stack discount codes?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On standard Shopify plans (Basic, Shopify, Advanced), only one discount can be applied per order — no stacking. On Shopify Plus, you can enable 'Discount Combinations' per discount, which allows stacking up to three types simultaneously: one order discount + one product discount + one shipping discount. However, you cannot stack two order-level discounts, and each individual discount must have Discount Combinations explicitly enabled. Third-party apps like Discount Ninja and Bold Discounts can replicate stacking on non-Plus plans but operate outside Shopify's native discount engine."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does a loyalty or birthday discount block my checkout promo code?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Loyalty apps like Smile.io, LoyaltyLion, and Rise.ai often create automatic discounts in Shopify when a customer earns a birthday reward or reaches a tier. These automatic discounts register with Shopify's discount engine and apply silently — the customer may not realize a loyalty discount is applied. When they then try to enter a checkout promo code, Shopify blocks it with the one-discount rule. Fix: check Shopify Admin → Discounts → Automatic for any discounts created by loyalty apps, and consult the app's settings to control whether rewards create automatic vs code-based discounts. Most loyalty apps have an option to issue rewards as unique codes instead."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: #222222;
+      --border-mid: #333333;
+      --text: #e8e8e8;
+      --text-dim: #888888;
+      --text-secondary: #aaaaaa;
+      --amber: #f59e0b;
+      --amber-dim: #92400e;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      margin-bottom: 0;
+    }
+    nav .container { display: flex; align-items: center; gap: 20px; }
+    .nav-brand { font-size: 14px; font-weight: 700; color: var(--amber); letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .nav-links a { font-size: 12px; color: var(--text-dim); }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .hero {
+      padding: 52px 0 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 620px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .hero-meta { font-size: 12px; color: var(--text-dim); }
+    .hero-meta span { margin-right: 16px; }
+
+    .alert-banner {
+      background: #1a1200;
+      border: 1px solid var(--amber-dim);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 28px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: var(--amber); }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: none; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-size: clamp(17px, 2.5vw, 22px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .section > p, .section-intro {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 22px;
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .arch-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .arch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .arch-card-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .arch-card.highlight { border-color: var(--amber); }
+    .arch-card.blocked { border-color: var(--red); }
+    .arch-card.info { border-color: var(--blue); }
+    .arch-card.green { border-color: var(--green); }
+    .arch-card.purple { border-color: var(--purple); }
+    .arch-card.teal { border-color: var(--teal); }
+    .arch-card.orange { border-color: var(--orange); }
+
+    .failure-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .failure-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .failure-table td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .failure-table tr:nth-child(even) td { background: var(--surface); }
+    .failure-table td:first-child { color: var(--text); font-weight: 500; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: #2d0a0a; color: var(--red); }
+    .badge-amber { background: #2d1a00; color: var(--amber); }
+    .badge-green { background: #0a2d1a; color: var(--green); }
+    .badge-blue { background: #0a1a2d; color: var(--blue); }
+    .badge-purple { background: #1a0a2d; color: var(--purple); }
+
+    .deepdive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+    .deepdive-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .deepdive h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .deepdive p, .deepdive li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .deepdive ul, .deepdive ol { padding-left: 18px; margin-top: 6px; }
+    .deepdive strong { color: var(--text); }
+
+    .diag-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+    }
+    .diag-list li {
+      display: flex;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .diag-list li:last-child { border-bottom: none; }
+    .checklist-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--surface2);
+      border: 1px solid var(--border-mid);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+      margin-top: 1px;
+    }
+    .diag-list div {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .diag-list div strong { color: var(--text); }
+
+    .cta-block {
+      background: var(--surface);
+      border: 1px solid var(--amber-dim);
+      border-radius: 8px;
+      padding: 28px;
+      margin: 32px 0;
+      text-align: center;
+    }
+    .cta-block h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .cta-block p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--amber);
+      color: #000;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; text-decoration: none; }
+
+    .related-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .related-links a {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 7px 13px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .related-links a:hover { border-color: var(--amber); color: var(--amber); text-decoration: none; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      margin-top: 40px;
+    }
+    footer .container { display: flex; flex-direction: column; gap: 14px; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: var(--amber); }
+    .footer-copy { font-size: 11px; color: var(--text-dim); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .footer-links a { font-size: 11px; color: var(--text-dim); }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 5px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    .code-block .kw { color: var(--amber); }
+    .code-block .cm { color: var(--text-dim); }
+    .code-block .str { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/checkpulse/" class="nav-brand">CheckPulse</a>
+    <div class="nav-links">
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Troubleshoot</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── HERO ──────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="hero-eyebrow">Shopify Checkout Error — Discounts</div>
+    <h1>Shopify Discount Code Not Working — Automatic Discount Blocking Coupon Code</h1>
+    <p class="hero-sub">Discount code field disappears at checkout, "you can only use one discount per order" error, influencer promo code fails during sale, birthday reward blocking all purchase codes. Shopify enforces a one-discount-per-order rule — when an automatic discount is active, the code entry field is hidden entirely.</p>
+    <div class="hero-meta">
+      <span>Updated June 2026</span>
+      <span>5 root causes</span>
+      <span>7 silent failure modes</span>
+    </div>
+  </div>
+
+  <!-- ── ALERT ─────────────────────────────────────────────── -->
+  <div class="alert-banner">
+    <strong>The core issue:</strong> Shopify's discount system allows only one discount per order by design. Automatic discounts (no-code required) take the single available slot the moment they apply to the cart — and Shopify responds by hiding or disabling the discount code entry field entirely, with no explanation shown to the customer. Merchants running "20% off, no code needed" sitewide sales often don't realize this blocks every influencer code, affiliate code, and promo code they've sent out.
+  </div>
+
+  <!-- ── SECTION 1: Two systems ─────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Architecture</div>
+    <h2>Two Independent Discount Systems — Only One Slot</h2>
+    <p class="section-intro">Shopify has two distinct discount systems. They don't stack — except on Shopify Plus with Discount Combinations explicitly enabled.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card green">
+        <div class="arch-card-label">System 1 — Manual Codes</div>
+        <div class="arch-card-title">Discount Codes</div>
+        <div class="arch-card-desc">Customer enters a code at checkout. Created in Admin → Discounts → Discount Codes. Code entry field is visible when no automatic discount is active. Examples: WELCOME10, INFLUENCER20, SUMMER30.</div>
+      </div>
+      <div class="arch-card blocked">
+        <div class="arch-card-label">System 2 — Automatic</div>
+        <div class="arch-card-title">Automatic Discounts</div>
+        <div class="arch-card-desc">No code needed. Applied automatically when the cart meets conditions. Created in Admin → Discounts → Automatic Discounts. When active, they consume the one discount slot — the code entry field is hidden.</div>
+      </div>
+      <div class="arch-card highlight">
+        <div class="arch-card-label">The Conflict Rule</div>
+        <div class="arch-card-title">One Discount Per Order</div>
+        <div class="arch-card-desc">Shopify enforces a single discount per order on Basic, Shopify, and Advanced plans. Automatic discount active + qualifying cart = code field hidden. Customer message: "You can only use one discount per order."</div>
+      </div>
+      <div class="arch-card purple">
+        <div class="arch-card-label">The Exception</div>
+        <div class="arch-card-title">Shopify Plus Stacking</div>
+        <div class="arch-card-desc">Shopify Plus "Discount Combinations" allows one order + one product + one shipping discount simultaneously. Must be explicitly enabled per-discount. Does NOT allow two order-level discounts to stack.</div>
+      </div>
+      <div class="arch-card teal">
+        <div class="arch-card-label">Not a Discount</div>
+        <div class="arch-card-title">Gift Cards Are Different</div>
+        <div class="arch-card-desc">Gift cards are a payment method, not a discount. They are always usable regardless of active discounts — applying a gift card never triggers the one-discount rule and never blocks a promo code.</div>
+      </div>
+      <div class="arch-card info">
+        <div class="arch-card-label">Third-Party Complexity</div>
+        <div class="arch-card-title">Apps Create Auto-Discounts</div>
+        <div class="arch-card-desc">Loyalty apps (Smile.io, LoyaltyLion), birthday reward apps, and bundle apps often create Automatic Discounts in Shopify's engine. These count against the one-discount slot even if the merchant didn't set them up intentionally.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION 2: Root Causes ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Root Causes</div>
+    <h2>Five Reasons Your Shopify Discount Code Stops Working</h2>
+    <p class="section-intro">The symptom is the same — code field gone or "one discount" error — but the cause and fix are completely different for each.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Cause</th>
+          <th>What the customer sees</th>
+          <th>Where to look</th>
+          <th>Fix path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sitewide automatic discount active</td>
+          <td>Code field hidden or "one discount" error</td>
+          <td>Admin → Discounts → Automatic</td>
+          <td>Disable auto-discount or convert to code-based; enable Plus Combinations</td>
+        </tr>
+        <tr>
+          <td>Influencer/affiliate code during sale</td>
+          <td>"You can only use one discount per order"</td>
+          <td>Admin → Discounts → Automatic — check date ranges</td>
+          <td>Run the sale as a code, not automatic; or schedule auto-discount to pause during campaign</td>
+        </tr>
+        <tr>
+          <td>Loyalty/birthday app creating auto-discount</td>
+          <td>Code field disappears for loyalty-enrolled customers</td>
+          <td>Admin → Discounts → Automatic — look for app-created discounts</td>
+          <td>Change app settings to issue rewards as unique codes instead of automatic discounts</td>
+        </tr>
+        <tr>
+          <td>Bundle or volume discount app conflict</td>
+          <td>Bundle price applied, promo code blocked</td>
+          <td>Admin → Apps → check apps with Discount write permissions</td>
+          <td>Disable app's automatic discount mode; use app's stacking feature if available</td>
+        </tr>
+        <tr>
+          <td>Cart already has a discount code applied</td>
+          <td>"You can only use one discount per order" when entering a second code</td>
+          <td>Cart drawer or checkout — look for already-applied discount badge</td>
+          <td>Remove the existing code first; Shopify only allows one code at a time on non-Plus</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 3: Silent Failures ───────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Silent Failures</div>
+    <h2>Seven Ways This Fails Without a Clear Error</h2>
+    <p class="section-intro">Most of these leave the customer with no explanation — they assume the code is wrong or the store is broken.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Failure mode</th>
+          <th>What customer sees</th>
+          <th>What's actually happening</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Code field invisible</td>
+          <td>No place to enter a discount code at all</td>
+          <td>Automatic discount is applied — Shopify hides the field entirely, no explanation shown</td>
+        </tr>
+        <tr>
+          <td>Sale + influencer code</td>
+          <td>"One discount per order" — influencer blames the store</td>
+          <td>Sitewide automatic sale discount consumed the slot before the customer typed their code</td>
+        </tr>
+        <tr>
+          <td>Birthday reward lock</td>
+          <td>Code field gone for enrolled loyalty customers on their birthday</td>
+          <td>Loyalty app registered a birthday automatic discount; customer can't use any other code</td>
+        </tr>
+        <tr>
+          <td>Flash sale + VIP code</td>
+          <td>VIP member's exclusive code rejected during the flash sale</td>
+          <td>Flash sale auto-discount applied first; VIP code gets blocked by the one-discount rule</td>
+        </tr>
+        <tr>
+          <td>Internal promo code testing always fails</td>
+          <td>Team members can never test codes during active promotions</td>
+          <td>Test accounts have the permanent automatic discount applied; codes are blocked in every test</td>
+        </tr>
+        <tr>
+          <td>Free shipping code blocked by percentage discount</td>
+          <td>Free shipping promo code enters but doesn't apply</td>
+          <td>Order-level automatic percentage discount is active; free shipping code treated as a second discount</td>
+        </tr>
+        <tr>
+          <td>Automatic discount ends but field stays hidden</td>
+          <td>Code field still missing after the sale period ended</td>
+          <td>Stale checkout session — customer started checkout during the sale; the session still reflects the old discount state. Refreshing checkout resolves it.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION 4: Deep Dives ────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Deep Dives</div>
+    <h2>How the Discount System Actually Works</h2>
+
+    <!-- Deep Dive A -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive A</div>
+      <h3>Automatic vs Manual Discount Mechanics — When the Code Field Gets Hidden</h3>
+      <p>Shopify evaluates discounts in two phases at checkout. <strong>Phase 1:</strong> Shopify checks all active automatic discounts and applies any that match the cart conditions (minimum order value, specific products, customer tags, or date range). <strong>Phase 2:</strong> If an automatic discount was applied in Phase 1, Shopify flags the checkout as "discount slot occupied" and removes the discount code entry field from the UI.</p>
+      <p>The hiding is a deliberate UI decision — Shopify treats "slot occupied" as the final state. Customers don't see a disabled field with a tooltip; the field simply doesn't exist. This is why customers report thinking "the discount code box disappeared" rather than "I got an error."</p>
+      <p>Important nuances:</p>
+      <ul>
+        <li><strong>Gift cards bypass this entirely.</strong> Gift cards are a payment method in Shopify's model, not a discount. A customer can use a gift card + a discount code simultaneously, regardless of plan.</li>
+        <li><strong>Automatic discount + code both entered?</strong> Not possible on standard plans — the field isn't there. On Plus with Combinations enabled, both can coexist in the allowed combinations matrix.</li>
+        <li><strong>Expired automatic discounts can linger in stale sessions.</strong> If a customer opened checkout during an active automatic discount and the discount then expires, their session may still have the discount applied until they refresh or create a new cart.</li>
+        <li><strong>Zero-dollar automatic discounts still block the field.</strong> An automatic discount that applies 0% off (perhaps misconfigured) still consumes the slot and hides the code field — the customer sees no visible discount applied but can't enter a code.</li>
+      </ul>
+      <p><strong>Quick check:</strong> Admin → Discounts → Automatic → filter by "Active." Any active automatic discount with conditions that match typical carts is a candidate for blocking customer codes.</p>
+    </div>
+
+    <!-- Deep Dive B -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive B</div>
+      <h3>Shopify Plus Discount Combinations — What Can Actually Stack</h3>
+      <p>Shopify Plus "Discount Combinations" allows controlled stacking. It is not "stack anything" — it defines a strict matrix of what can coexist.</p>
+      <p><strong>The three combination types:</strong></p>
+      <ul>
+        <li><strong>Order discounts</strong> — percentage or fixed amount off the entire order. Only one can apply at a time, even with Combinations enabled.</li>
+        <li><strong>Product discounts</strong> — percentage or fixed amount off specific products or collections. One can stack with one order discount when both have Combinations enabled.</li>
+        <li><strong>Shipping discounts</strong> — free shipping or reduced shipping. One can stack with one order discount and/or one product discount.</li>
+      </ul>
+      <p>Maximum stack: <strong>one order + one product + one shipping = three active simultaneously.</strong> You cannot stack two order-level discounts, even on Plus.</p>
+      <p><strong>How to enable Combinations per discount:</strong></p>
+      <ol>
+        <li>Admin → Discounts → select the discount</li>
+        <li>Scroll to "Combinations" section</li>
+        <li>Check which types this discount can combine with</li>
+        <li>Save — both discounts involved must have Combinations enabled</li>
+      </ol>
+      <p>If you're not on Shopify Plus, third-party apps like <strong>Discount Ninja</strong> and <strong>Bold Discounts</strong> can replicate multi-discount stacking outside Shopify's native engine. These apps use their own discount logic and don't directly interact with Shopify's one-discount rule.</p>
+    </div>
+
+    <!-- Deep Dive C -->
+    <div class="deepdive">
+      <div class="deepdive-label">Deep Dive C</div>
+      <h3>Third-Party Apps Creating Automatic Discounts — How to Find and Fix Them</h3>
+      <p>Many loyalty, bundle, and volume-pricing apps work by registering Automatic Discounts in your Shopify admin. The apps create these discounts programmatically — merchants often don't realize automatic discounts have been created on their behalf.</p>
+      <p><strong>Apps most likely to create automatic discounts:</strong></p>
+      <ul>
+        <li><strong>Smile.io</strong> — birthday rewards and tier-unlock rewards can create automatic discounts per customer</li>
+        <li><strong>LoyaltyLion</strong> — reward redemptions may register as automatic discounts</li>
+        <li><strong>Rise.ai</strong> — store credit top-ups sometimes create automatic discount entries</li>
+        <li><strong>Bold Discounts</strong> — sale pricing often uses automatic discounts on configured collections</li>
+        <li><strong>Wholesale Club / B2B Handsfree</strong> — customer-tag-based pricing creates automatic discounts per customer group</li>
+        <li><strong>Bundle Builder / Bundler</strong> — bundle pricing may register as an automatic order discount</li>
+      </ul>
+      <p><strong>4-step diagnosis for app-created automatic discounts:</strong></p>
+      <ol>
+        <li>Admin → Discounts → Automatic — look at the "Method" column or discount title. App-created discounts often show the app name in the title or have an unusual naming pattern (e.g., "SMILE_BIRTHDAY_customer123").</li>
+        <li>Check the discount's "created by" attribution — some Shopify versions show this in discount details.</li>
+        <li>In the app causing the issue, look for a setting like "Apply discount as: Automatic Discount / Unique Code" — changing to Unique Code makes the app issue codes instead, which don't block the code entry field.</li>
+        <li>If you can't find the setting, contact the app's support and ask how to switch from automatic-discount-based rewards to unique-code-based rewards.</li>
+      </ol>
+      <p><strong>Test in isolation:</strong> Create a test customer account that isn't enrolled in any loyalty program and has no birthday on file. Test checkout with that account. If the code field appears normally, the issue is loyalty-app automatic discounts for enrolled customers.</p>
+    </div>
+  </div>
+
+  <!-- ── SECTION 5: Customer Diagnostic ────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Diagnostic</div>
+    <h2>5-Step Customer Diagnostic</h2>
+    <p class="section-intro">If you can't enter a discount code or got the "one discount" error at Shopify checkout.</p>
+
+    <ul class="diag-list">
+      <li>
+        <div class="checklist-num">1</div>
+        <div><strong>Look for an already-applied discount.</strong> Scroll up in the checkout order summary — if you see a discount already applied (showing a savings amount or a green checkmark), the one-discount slot is taken. This could be a sitewide sale, a loyalty reward, or a bundle discount that applied automatically.</div>
+      </li>
+      <li>
+        <div class="checklist-num">2</div>
+        <div><strong>Check if the code field is missing or just hard to find.</strong> On mobile, the discount code section can be collapsed. Look for "Enter discount code" or a toggle under the order summary. If there's no such section at all, an automatic discount has hidden it — this confirms the automatic discount conflict.</div>
+      </li>
+      <li>
+        <div class="checklist-num">3</div>
+        <div><strong>Refresh the checkout page.</strong> If the store's automatic sale recently ended and your session is stale, refreshing can clear the applied automatic discount and restore the code entry field. If that doesn't work, abandon the checkout, clear your cart, and start a new checkout session.</div>
+      </li>
+      <li>
+        <div class="checklist-num">4</div>
+        <div><strong>Try the code in a new incognito/private window.</strong> This creates a fresh session without any loyalty account state or stale discount data. If the code works in private mode, your loyalty account or a saved session is causing the conflict.</div>
+      </li>
+      <li>
+        <div class="checklist-num">5</div>
+        <div><strong>Contact the store.</strong> If the automatic discount is store-wide and the merchant is running a sale, they need to either disable the automatic discount to allow your code, or confirm that the sale price already represents the best available price and the code cannot stack. Ask them directly: "Is there an automatic discount active that's blocking my code?"</div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── SECTION 6: Merchant Diagnostic ───────────────────────── -->
+  <div class="section">
+    <div class="section-label">Merchant Diagnostic</div>
+    <h2>5-Step Merchant Diagnostic</h2>
+    <p class="section-intro">If customers report they can't use discount codes or the code field is missing at checkout.</p>
+
+    <ul class="diag-list">
+      <li>
+        <div class="checklist-num">1</div>
+        <div><strong>Admin → Discounts → Automatic — list all active automatic discounts.</strong> Filter by "Active" status. Any automatic discount currently active with conditions matching typical carts is blocking code entry for those customers. Check date ranges — some discounts were set to run indefinitely and merchants forget they're still active.</div>
+      </li>
+      <li>
+        <div class="checklist-num">2</div>
+        <div><strong>Check which apps have Discount write permissions.</strong> Admin → Apps → select any suspicious app → App permissions. Apps with "Discounts: Write" scope can create automatic discounts. Cross-reference with Admin → Discounts → Automatic to find app-created entries.</div>
+      </li>
+      <li>
+        <div class="checklist-num">3</div>
+        <div><strong>Test checkout with a non-loyalty, non-tagged customer account.</strong> If the code field appears for that test account but not for real customers, the issue is customer-tag-based automatic discounts or loyalty-app discounts that only trigger for enrolled customers.</div>
+      </li>
+      <li>
+        <div class="checklist-num">4</div>
+        <div><strong>Decide: automatic discount or code discount for your promotions?</strong> Automatic discounts are frictionless (no code needed) but block all codes. Code-based discounts require entry but preserve the slot for stacking a second code type. If you frequently run influencer or affiliate campaigns alongside sales, running the sale as a code-based discount preserves flexibility.</div>
+      </li>
+      <li>
+        <div class="checklist-num">5</div>
+        <div><strong>If on Shopify Plus: enable Discount Combinations.</strong> For each discount that should allow stacking, open Admin → Discounts → select the discount → Combinations section → enable the combination types (order, product, shipping). Both the automatic discount and the manual code must have Combinations enabled for stacking to work.</div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── SECTION 7: Reference Table ────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <h2>Discount Type Compatibility at Shopify Checkout</h2>
+    <p class="section-intro">What can combine with what — standard plans vs Shopify Plus.</p>
+
+    <table class="failure-table">
+      <thead>
+        <tr>
+          <th>Combination</th>
+          <th>Standard Plans</th>
+          <th>Shopify Plus (Combinations on)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Automatic order + manual code</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Most common conflict scenario</td>
+        </tr>
+        <tr>
+          <td>Two manual discount codes</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td>Never allowed, even on Plus</td>
+        </tr>
+        <tr>
+          <td>Order discount + product discount</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Both discounts must have Combinations enabled</td>
+        </tr>
+        <tr>
+          <td>Order discount + shipping discount</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Both discounts must have Combinations enabled</td>
+        </tr>
+        <tr>
+          <td>Order + product + shipping discount</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Maximum stack on Plus — one of each type</td>
+        </tr>
+        <tr>
+          <td>Discount code + gift card</td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Gift cards are payment methods, not discounts</td>
+        </tr>
+        <tr>
+          <td>Automatic discount + gift card</td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td><span class="badge badge-green">Allowed</span></td>
+          <td>Gift cards always work regardless of discount state</td>
+        </tr>
+        <tr>
+          <td>Two automatic discounts</td>
+          <td><span class="badge badge-red">Blocked</span></td>
+          <td><span class="badge badge-amber">Partial</span></td>
+          <td>On Plus: one automatic order + one automatic product can combine with Combinations on</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── CTA ────────────────────────────────────────────────── -->
+  <div class="cta-block">
+    <h3>Catch discount conflicts before they block customers at checkout</h3>
+    <p>CheckPulse runs automated checkout tests against your store — detecting when automatic discounts are blocking code entry, discount combinations fail to apply, and customers hit the one-discount error during your campaigns.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check</a>
+  </div>
+
+  <!-- ── SECTION 8: Related ─────────────────────────────────── -->
+  <div class="section">
+    <div class="section-label">Related Problems</div>
+    <h2>Other Shopify Discount and Checkout Errors</h2>
+    <div class="related-links">
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking Conflict</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate / Referral Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle Checkout Error</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewal Discount Failure</a>
+      <a href="./shopify-checkout-fraud-prevention">Legitimate Orders Blocked</a>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">&copy; 2026 CheckPulse. Shopify checkout monitoring.</span>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="./guide">Guide</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./shopify-checkout-not-working">Troubleshoot</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Not Loading</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Error</a>
+      <a href="./shopify-checkout-email-not-working">Email Error</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Error</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Broken</a>
+      <a href="./shopify-checkout-customer-account-required">Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Error</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Code Blocked</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

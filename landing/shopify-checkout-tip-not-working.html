@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Tip Not Working — Tipping Option Not Showing, Tip Not Saved on Order (2026)</title>
+  <meta name="description" content="Shopify tipping is disabled by default and only appears in standard checkout — not with Shop Pay, Apple Pay, or Google Pay. If the tip field doesn't show, the tip disappears from orders, or tip amounts don't capture correctly, here is the full diagnostic." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-tip-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-tip-not-working" />
+  <meta property="og:title" content="Shopify Checkout Tip Not Working — Tipping Not Showing or Not Saving" />
+  <meta property="og:description" content="Shopify tipping must be manually enabled in Settings → Checkout. The tip option is skipped by all express checkout buttons (Shop Pay, Apple Pay, Google Pay). Third-party gateways may not capture tip amounts correctly. Full diagnostic for all failure modes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Tip Not Working — Tipping Option Not Showing or Not Saving",
+    "description": "Shopify's native tipping feature is disabled by default and must be explicitly enabled in Shopify Admin → Settings → Checkout → Tipping. When enabled, the tip widget appears on the payment step of standard checkout. Key failure modes include: tipping not enabled in settings (most common), express checkout buttons (Shop Pay, Apple Pay, Google Pay, Buy Now) bypassing the tip step entirely, third-party payment gateways failing to capture the tip amount correctly, checkout UI extensions conflicting with the tip widget, apps stripping tip from the order total during recalculation, and tip amounts not appearing on order confirmations or packing slips because those templates don't pull tip_payment_details.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-tip-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the tip option not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify tipping is disabled by default and does not appear at checkout until you manually enable it. Go to Shopify Admin → Settings → Checkout → scroll to the 'Tipping' section → toggle 'Show tipping at checkout' to ON. You can also configure preset tip percentages (e.g., 10%, 15%, 20%) and allow a custom amount. After saving, the tip widget appears on the payment step of the standard checkout flow. If you've already enabled it and it still doesn't show, the most likely reasons are: (1) the customer is using an express checkout button (Shop Pay, Apple Pay, Google Pay) which bypasses the tip step, (2) a checkout UI extension conflict is hiding the payment page components, or (3) your Shopify plan or region doesn't support native tipping."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify tipping work with Shop Pay, Apple Pay, or Google Pay?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No — Shopify's native tipping does not work with express checkout buttons. Shop Pay, Apple Pay, Google Pay, and the 'Buy Now' product-page button all skip the standard checkout payment step where the tip widget appears. These express flows go from cart directly to payment confirmation without displaying the delivery method or payment page components. Customers who want to leave a tip must use the standard 'Check out' button from the cart page to reach the full checkout flow. If a significant portion of your customers use express checkout, consider adding messaging on the cart page noting that tips can be added via standard checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "The tip shows at checkout but doesn't appear on the order — where did it go?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tip amounts are stored separately from line items on a Shopify order under tip_payment_details. If the tip isn't showing in Shopify Admin → Orders → [order], possible reasons are: (1) a third-party payment gateway didn't capture the additional tip amount — the gateway processed the original total and the tip was silently dropped (Shopify Payments reliably captures tips; some third-party gateways do not); (2) an order-editing app or discount recalculation app recalculated the order total after tip selection and reset it; (3) the order was placed via a sales channel (Facebook, Instagram Shop, Google) that doesn't surface the tip step; (4) a Shopify Flow automation or app processed the order and modified the total. Check the order timeline in Shopify Admin for any apps that touched the order between placement and fulfillment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "The tip isn't showing on the order confirmation email or packing slip — how do I add it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's default order confirmation email template and most packing slip templates do not include tip amounts by default. The tip is stored in the order object under tip_payment_details and must be explicitly added to email and print templates. To add it to the order confirmation email: go to Shopify Admin → Settings → Notifications → Order confirmation → click 'Edit code' → add a conditional block that outputs the tip amount when tip_payment_details is present. For third-party packing slip or receipt apps (e.g., Order Printer, Sufio), check whether the app supports the tip_payment_details variable — if not, you'll need to use a custom template or contact the app developer. The tip is always visible in Shopify Admin on the order details page regardless of template configuration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Shopify plans support the tipping feature?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's native checkout tipping is available on Shopify, Advanced, and Shopify Plus plans. It is not available on the Basic plan for stores on the legacy checkout. For stores that have migrated to the new checkout extensibility (Shopify's updated checkout introduced in 2023–2024), tipping availability may vary by plan — check Shopify Admin → Settings → Checkout to see if the Tipping section is present for your account. If the Tipping section doesn't appear in your checkout settings at all, your plan may not include it. Stores on Basic can use third-party tip apps from the Shopify App Store as an alternative, though these typically implement tipping as a product-line item rather than a native tip field, which has different behavior at the payment step."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the tip get removed when a discount code is applied?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify calculates discounts against the subtotal (product prices), not the order total. The tip is added after the discount calculation as a separate line. However, some third-party discount apps and checkout extensibility apps recalculate the entire order total when a discount code is entered, and if they don't account for the tip_payment_details field, they may reset it. If this happens: (1) check if the tip disappears specifically when a discount code is applied — if yes, a discount app is the cause; (2) check Shopify Admin → Apps → any app that modifies checkout pricing or discounts; (3) test without the discount app active to confirm; (4) contact the app developer to add tip_payment_details preservation. Native Shopify discount codes (without apps) do not remove the tip — this is specifically an app conflict issue."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "My checkout UI extensions seem to be hiding the tip — how do I fix it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's tip widget renders as a component within the checkout payment step. Checkout UI extensions that modify the payment page layout — particularly extensions that inject blocks before or after the payment section — can push the tip widget off-screen or conflict with its rendering. To diagnose: go to Shopify Admin → Settings → Checkout → Checkout customizations, and temporarily disable UI extensions one at a time while testing checkout in a fresh incognito window. When the tip reappears after disabling a specific extension, that extension is the conflict. Contact that app's support to request a fix that preserves the native tip widget placement. This primarily affects Shopify Plus stores using checkout extensibility with multiple third-party checkout apps installed."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    /* HERO */
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    /* CONTENT */
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+
+    /* CALLOUT BOXES */
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    /* STEP LIST */
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    /* CTA BLOCK */
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    /* RELATED */
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    /* FOOTER */
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Tip Not Working
+  </div>
+  <h1>Shopify Checkout <em>Tip Not Working</em> — Tipping Option Not Showing or Not Saving</h1>
+  <p class="hero-sub">Shopify tipping is off by default, only appears in standard checkout (not express), and requires Shopify Payments for reliable capture. Here is every failure mode — from the widget not appearing at all to tips silently disappearing from orders.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 7 min read</span>
+    <span>💡 Applies to: Shopify, Advanced, Plus (not Basic on legacy checkout)</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Most Common Cause</div>
+    Shopify tipping is <strong>disabled by default</strong>. Go to Shopify Admin → Settings → Checkout → scroll to "Tipping" → toggle ON. Without this step, no tip field appears at checkout regardless of plan or payment gateway.
+  </div>
+
+  <h2>How Shopify Tipping Works (and Where It Breaks)</h2>
+
+  <p>Shopify's native tipping feature adds an optional tip widget to the payment step of checkout. Customers see preset percentage buttons (you configure these) plus a "Custom amount" field. The tip is added to the order total before payment is processed and stored separately on the order as <code>tip_payment_details</code>.</p>
+
+  <p>The feature must be manually enabled per store and has several constraints that aren't obvious from the admin UI:</p>
+
+  <ul>
+    <li>Only appears in the <strong>standard checkout flow</strong> — express checkout buttons skip it entirely</li>
+    <li>Requires <strong>Shopify Payments</strong> for reliable tip capture (third-party gateways vary)</li>
+    <li>Available on Shopify plan and above — Basic plan stores on legacy checkout do not have it</li>
+    <li>Tip amounts are <strong>not included by default</strong> in order confirmation emails or packing slips</li>
+  </ul>
+
+  <h2>Failure Mode 1 — Tipping Not Enabled in Settings</h2>
+
+  <p>The most common cause by far: the merchant never turned tipping on. The toggle lives in checkout settings, not in payment settings or theme settings.</p>
+
+  <h3>How to enable Shopify tipping</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Checkout</strong></li>
+    <li>Scroll down to the <strong>"Tipping"</strong> section</li>
+    <li>Toggle <strong>"Show tipping at checkout"</strong> to ON</li>
+    <li>Configure preset tip percentages (default: 10%, 15%, 20% — customize as needed)</li>
+    <li>Optionally enable <strong>"Allow custom tip amounts"</strong> so customers can enter any value</li>
+    <li>Click <strong>Save</strong></li>
+    <li>Test in a fresh incognito window using the standard "Check out" button</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Tip</div>
+    The tip widget appears on the <strong>payment step</strong> of checkout — the page where customers enter their card details. It does not appear on the information step (name/address) or shipping step. If you don't reach the payment step in testing, you won't see it.
+  </div>
+
+  <h2>Failure Mode 2 — Express Checkout Buttons Bypass Tipping</h2>
+
+  <p>This is the most misunderstood behavior. <strong>All express checkout buttons skip the tip step.</strong> Shopify's tip widget lives on the checkout payment page — a step that express flows never show.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Method</th>
+          <th>Shows Tip Option</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Standard "Check out" button (cart)</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Full checkout — payment step includes tip widget</td>
+        </tr>
+        <tr>
+          <td>Shop Pay express</td>
+          <td><span class="tag red">No</span></td>
+          <td>Skips payment step, goes directly to confirmation</td>
+        </tr>
+        <tr>
+          <td>Apple Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Payment sheet has no tip entry field</td>
+        </tr>
+        <tr>
+          <td>Google Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Same as Apple Pay — no tip support in payment sheet</td>
+        </tr>
+        <tr>
+          <td>"Buy now" product-page button</td>
+          <td><span class="tag red">No</span></td>
+          <td>Routes to expedited checkout, skips payment page</td>
+        </tr>
+        <tr>
+          <td>PayPal express</td>
+          <td><span class="tag red">No</span></td>
+          <td>PayPal-hosted flow has no Shopify tip widget</td>
+        </tr>
+        <tr>
+          <td>Shop Pay installments (BNPL)</td>
+          <td><span class="tag red">No</span></td>
+          <td>Financing flow doesn't support additional tip amount</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What to do if most customers use express checkout</h3>
+  <ul>
+    <li><strong>Add messaging on the cart page</strong>: "Want to add a tip? Use 'Check out' — express pay buttons don't support tipping."</li>
+    <li><strong>Consider disabling dynamic checkout buttons</strong> on product pages if tipping is important to your business model (e.g., service businesses, coffee shops with Shopify). Shopify Admin → Settings → Checkout → Dynamic checkout buttons.</li>
+    <li>For Shopify Plus: a checkout UI extension can add a tip-reminder banner visible even during express checkout flows, though the tip amount itself still can't be captured via express.</li>
+  </ul>
+
+  <h2>Failure Mode 3 — Tip Not Captured by Payment Gateway</h2>
+
+  <p>Shopify Payments handles tip capture natively — when a customer adds a tip, the total (subtotal + shipping + tax + tip) is sent as one charge. Third-party gateways are more variable.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Gateway</th>
+          <th>Tip Capture</th>
+          <th>Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shopify Payments (card)</td>
+          <td><span class="tag green">Reliable</span></td>
+          <td>Tip added to total, single authorization</td>
+        </tr>
+        <tr>
+          <td>Shop Pay (accelerated)</td>
+          <td><span class="tag red">Skipped</span></td>
+          <td>Express flow — tip step not shown</td>
+        </tr>
+        <tr>
+          <td>PayPal (standard)</td>
+          <td><span class="tag yellow">Varies</span></td>
+          <td>Some PayPal integrations pass the full total including tip; others don't</td>
+        </tr>
+        <tr>
+          <td>Klarna / Afterpay / Affirm</td>
+          <td><span class="tag red">Not supported</span></td>
+          <td>BNPL providers calculate repayment schedule on order total at session start — tip modifies total after this point</td>
+        </tr>
+        <tr>
+          <td>Stripe (via third-party app)</td>
+          <td><span class="tag yellow">App-dependent</span></td>
+          <td>Depends on whether the Stripe app passes the modified total to Stripe</td>
+        </tr>
+        <tr>
+          <td>Manual / COD payments</td>
+          <td><span class="tag yellow">Order only</span></td>
+          <td>Tip shows on order but no automatic capture — merchant must collect manually</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">BNPL Tip Gap</div>
+    Klarna, Afterpay, and Affirm calculate repayment schedules at checkout session initialization. If a customer selects a BNPL option and then adds a tip, the tip modifies the order total after the BNPL authorization amount was set. Most BNPL providers reject the modified total or silently drop the tip to avoid recalculating installments. If you rely on tipping, BNPL payment methods create a structural conflict.
+  </div>
+
+  <h2>Failure Mode 4 — Tip Disappears from the Order</h2>
+
+  <p>The customer added a tip, payment went through, but the tip amount doesn't appear in the order details. This is almost always caused by an app or automation that modifies the order total after checkout.</p>
+
+  <h3>Common causes of tip stripping</h3>
+  <ul>
+    <li><strong>Order editing apps</strong>: Apps that allow post-purchase order modification (add items, change quantities) may recalculate the order total and not account for <code>tip_payment_details</code> when re-summing.</li>
+    <li><strong>Discount recalculation apps</strong>: Apps that apply or modify discounts after checkout (loyalty points redemption, post-purchase discount code application) can reset the order total calculation.</li>
+    <li><strong>Checkout extensibility apps that modify pricing</strong>: Apps using the Cart Transform API or Checkout UI extensions that manipulate line items or totals may interfere with tip persistence.</li>
+    <li><strong>Shopify Flow automations</strong>: If a Flow automation tags or edits the order immediately after creation, check whether the automation's actions touch the order financial data.</li>
+    <li><strong>Third-party fulfillment apps</strong>: Some fulfillment integrations pull order data via API, process it, and push back a modified order that drops non-standard fields.</li>
+  </ul>
+
+  <h3>How to diagnose tip stripping</h3>
+  <ol class="steps">
+    <li>Place a test order with a tip using Shopify's test payment method</li>
+    <li>Immediately check Shopify Admin → Orders → the test order — is the tip visible?</li>
+    <li>If yes initially: check again after 1–2 minutes to see if it disappears (indicating an async app ran)</li>
+    <li>Check the order timeline at the bottom of the order page — any app activity logs appear here</li>
+    <li>Disable recently installed apps one at a time and retest to isolate the culprit</li>
+  </ol>
+
+  <h2>Failure Mode 5 — Tip Not Showing in Order Confirmation or Packing Slip</h2>
+
+  <p>Even when the tip is captured correctly and visible in the Shopify admin, it may not appear in customer-facing communications because the default templates don't include it.</p>
+
+  <h3>Adding tip to the order confirmation email</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Notifications</strong></li>
+    <li>Click <strong>"Order confirmation"</strong></li>
+    <li>Click <strong>"Edit code"</strong> (top right)</li>
+    <li>Find the section that lists the order total breakdown (subtotal, shipping, taxes)</li>
+    <li>Add a conditional block to display the tip when present:</li>
+  </ol>
+
+  <p>The Liquid template variable is <code>tip_payment_details</code> on the order object. A common pattern:</p>
+
+  <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;overflow-x:auto;font-size:0.85rem;color:#c8b3ff;margin:1rem 0;"><code>{% if order.tip_payment_details %}
+  &lt;tr&gt;
+    &lt;td&gt;Tip&lt;/td&gt;
+    &lt;td&gt;{{ order.tip_payment_details.tip_amount | money }}&lt;/td&gt;
+  &lt;/tr&gt;
+{% endif %}</code></pre>
+
+  <div class="callout warning">
+    <div class="callout-title">Third-Party Receipt Apps</div>
+    Apps like Order Printer, Sufio, and Invoice Wizard use their own template systems. Not all of them expose <code>tip_payment_details</code> in their template variables. Check the app documentation or contact support to confirm. Some apps only surface the final <code>order.total_price</code>, which already includes the tip in the number even if it isn't labeled separately.
+  </div>
+
+  <h2>Failure Mode 6 — Tip Removed When Discount Code Applied</h2>
+
+  <p>Native Shopify discount codes do not interact with the tip — the discount applies to the subtotal and the tip is a separate addition. However, if you use a third-party discount or pricing app, that app may recalculate totals in a way that drops the tip.</p>
+
+  <h3>Diagnostic steps</h3>
+  <ol class="steps">
+    <li>Test checkout: add items → proceed to checkout → add a tip → apply a discount code → observe if the tip persists</li>
+    <li>If the tip disappears specifically when a discount code is applied: a discount app is recalculating and stripping it</li>
+    <li>Test without discount apps active (temporarily disable in Shopify Admin → Apps)</li>
+    <li>If tip persists without the app: contact the app developer to fix tip_payment_details preservation during discount recalculation</li>
+    <li>If using Script Editor (deprecated): Scripts ran synchronously at checkout and could have stripped tip-related totals — migrate to Shopify Functions which have explicit access control over tip fields</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Script Editor Deprecation Note</div>
+    Shopify deprecated Script Editor in 2024. If your store was using a checkout script to modify pricing or discounts, it should have been migrated to Shopify Functions. Old Scripts that modified order totals may have had undocumented interactions with tip fields — if tip issues started around the time of a Script migration, the new Function implementation may need an explicit update to preserve tips.
+  </div>
+
+  <h2>Failure Mode 7 — Checkout UI Extension Conflict</h2>
+
+  <p>Shopify Plus stores using checkout extensibility can install UI extensions that modify the payment page layout. The tip widget is rendered as a component in the payment section — extensions that inject content around the payment area can push the tip widget off-screen, hide it under overlapping elements, or trigger rendering errors that cause it to not render.</p>
+
+  <h3>How to isolate a UI extension conflict</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Checkout → Checkout customizations</strong></li>
+    <li>Note all active extensions</li>
+    <li>Test checkout in incognito — confirm tip widget is missing</li>
+    <li>Return to Checkout customizations and disable the first extension</li>
+    <li>Retest checkout in a fresh incognito window</li>
+    <li>Repeat until tip reappears — the last-disabled extension is the conflict</li>
+    <li>Contact that app's support with the finding; they need to update their extension to not conflict with the native tip placement</li>
+  </ol>
+
+  <h2>Plan and Region Availability</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Shopify Plan</th>
+          <th>Native Tipping</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Basic (legacy checkout)</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>No Tipping section in checkout settings; use a tip app</td>
+        </tr>
+        <tr>
+          <td>Shopify (standard plan)</td>
+          <td><span class="tag green">Available</span></td>
+          <td>Tipping section present in Settings → Checkout</td>
+        </tr>
+        <tr>
+          <td>Advanced</td>
+          <td><span class="tag green">Available</span></td>
+          <td>Full native tipping with all preset options</td>
+        </tr>
+        <tr>
+          <td>Shopify Plus</td>
+          <td><span class="tag green">Available</span></td>
+          <td>Plus also supports checkout extensibility customizations around tip</td>
+        </tr>
+        <tr>
+          <td>Basic (new checkout extensibility)</td>
+          <td><span class="tag yellow">Check settings</span></td>
+          <td>Availability may vary — check for Tipping section in your admin</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">Basic Plan Alternative</div>
+    Stores on the Basic plan that don't have native tipping can use third-party tip apps from the Shopify App Store. These typically implement tipping as a special product that's added to the cart (e.g., a "$5 tip" product). This approach works across all plans but has trade-offs: the tip shows as a line item, tip reporting is more complex, and customers can remove it from the cart. Search the Shopify App Store for "tip" or "gratuity" for current options.
+  </div>
+
+  <h2>Complete Diagnostic Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>Where to Verify</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tipping enabled in settings?</td>
+          <td>Settings → Checkout → Tipping section</td>
+          <td>Toggle "Show tipping at checkout" ON</td>
+        </tr>
+        <tr>
+          <td>Testing with standard checkout (not express)?</td>
+          <td>Use "Check out" button from cart, not Shop Pay / Apple Pay / Google Pay</td>
+          <td>Instruct customers to use standard checkout for tipping</td>
+        </tr>
+        <tr>
+          <td>Plan supports native tipping?</td>
+          <td>Check if Tipping section exists in Settings → Checkout</td>
+          <td>Upgrade plan or use third-party tip app</td>
+        </tr>
+        <tr>
+          <td>Payment gateway captures tip correctly?</td>
+          <td>Place test order → check order total vs. subtotal + tip in admin</td>
+          <td>Switch to Shopify Payments for reliable tip capture</td>
+        </tr>
+        <tr>
+          <td>App stripping tip from order?</td>
+          <td>Check order timeline after placement — any app edits?</td>
+          <td>Disable suspect app, retest, contact app support</td>
+        </tr>
+        <tr>
+          <td>Tip shows in admin but not in email?</td>
+          <td>Settings → Notifications → Order confirmation → Edit code</td>
+          <td>Add tip_payment_details Liquid block to email template</td>
+        </tr>
+        <tr>
+          <td>Checkout UI extension conflict?</td>
+          <td>Settings → Checkout → Checkout customizations (Plus)</td>
+          <td>Disable extensions one-by-one to isolate the conflict</td>
+        </tr>
+        <tr>
+          <td>Tip disappears when discount applied?</td>
+          <td>Test tip + discount code in same checkout</td>
+          <td>Identify and fix the discount app recalculation logic</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Where Tip Data Lives in Shopify</h2>
+
+  <p>Understanding where tip data is stored helps when troubleshooting reports, custom email templates, or API integrations:</p>
+
+  <ul>
+    <li><strong>Shopify Admin</strong>: Shopify Admin → Orders → [order] → order total breakdown shows "Tip" as a separate line when present</li>
+    <li><strong>Shopify API</strong>: <code>order.tip_payment_details</code> object — contains <code>tip_amount</code> and <code>processing_method</code></li>
+    <li><strong>Liquid (email templates)</strong>: <code>order.tip_payment_details.tip_amount</code> — wrap in <code>{% if order.tip_payment_details %}</code></li>
+    <li><strong>Shopify Reports</strong>: Tip amounts are included in the "Sales by channel" and "Financial summary" reports under order financials</li>
+    <li><strong>Exports</strong>: Shopify order exports (CSV) include a "Tips" column when tips are present on orders</li>
+  </ul>
+
+  <div class="callout success">
+    <div class="callout-title">Confirming a Tip Was Captured</div>
+    After a tip is captured successfully, Shopify Admin → Orders → [order] shows the financial breakdown: Subtotal, Shipping, Taxes, <strong>Tip</strong>, and Total. If you see the Tip line with the correct amount, capture succeeded. If the Tip line is absent but the customer selected one, the tip was dropped somewhere in the payment or order-processing chain.
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Losing Orders Right Now?</h2>
+    <p>CheckPulse monitors your Shopify checkout every 5 minutes and alerts you within seconds when something breaks — before customers give up and leave.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run a Free Checkout Check</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <p>Apple Pay, Google Pay, BNPL options missing at checkout.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <p>Express payment buttons missing — plan and browser requirements.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <p>Customers not getting order emails after successful checkout.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <p>Checkout UI extension conflicts and extensibility issues.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <p>Thank-you page upsell not showing or charge failing.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <p>Discount code conflicts with automatic discounts.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-store-password-protected">Password Protected</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="/checkpulse/shopify-headless-checkout-error">Headless Checkout</a>
+      <a href="/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="/checkpulse/shopify-checkout-error-codes">Error Codes</a>
+      <a href="/checkpulse/shopify-checkout-black-friday">Black Friday</a>
+      <a href="/checkpulse/shopify-checkout-speed-test">Speed Test</a>
+      <a href="/checkpulse/shopify-checkout-app-audit">App Audit</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout</a>
+      <a href="/checkpulse/shopify-checkout-agencies">Agency Testing</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+      <a href="/checkpulse/shopify-checkout-cro">Checkout CRO</a>
+      <a href="/checkpulse/shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="/checkpulse/shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products</a>
+      <a href="/checkpulse/shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="/checkpulse/shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate / Referral Code</a>
+      <a href="/checkpulse/shopify-checkout-warranty-protection-plan">Warranty / Protection Plan</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Memberships</a>
+      <a href="/checkpulse/shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="/checkpulse/shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+      <a href="/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Invalid</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Wrong Tax Calculation</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="/checkpulse/shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Checkout</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Checkout Tip Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

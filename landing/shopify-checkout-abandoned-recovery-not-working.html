@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Abandoned Checkout Recovery Not Working — Emails Not Sending, Klaviyo Not Firing (2026)</title>
+  <meta name="description" content="Shopify abandoned checkout recovery emails not sending? The most common reasons: 1-hour mandatory delay, customer never entered email, GDPR consent not given, Klaviyo JS not loading, or headless storefront bypassing native recovery. Full diagnostic here." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned-recovery-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned-recovery-not-working" />
+  <meta property="og:title" content="Shopify Abandoned Checkout Recovery Not Working — Emails Not Sending" />
+  <meta property="og:description" content="Shopify's abandoned checkout recovery has a mandatory 1-hour delay, requires the customer to enter their email during checkout, and won't send to EU customers who didn't give marketing consent. Plus Klaviyo integration pitfalls and headless storefront gaps." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Abandoned Checkout Recovery Not Working — Emails Not Sending, Klaviyo Not Firing",
+    "description": "Shopify abandoned checkout recovery emails fail for several non-obvious reasons: a mandatory 1-hour send delay that cannot be shortened on non-Plus plans, customers who abandon before entering an email address, GDPR marketing consent not given, Klaviyo's JavaScript not loading due to cookie consent tools or ad blockers, duplicate configuration between Shopify's native system and a third-party ESP, or a headless storefront that never creates a recoverable checkout record in the first place.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-abandoned-recovery-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify abandoned checkout email not sending?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons Shopify abandoned checkout emails don't send: (1) The 1-hour mandatory delay — Shopify waits exactly 1 hour after the customer abandons before sending. On Basic, Shopify, and Advanced plans this delay cannot be changed. If you tested right after abandoning, the email simply hasn't fired yet. (2) Customer never entered their email — if the customer left the checkout page before entering their email address or phone number in the Contact step, Shopify has no contact info and cannot send any recovery email. (3) Customer completed the order within the hour — if the customer returned and purchased within the 1-hour window, Shopify cancels the recovery sequence silently. (4) GDPR marketing consent not given — for EU-region stores, Shopify requires the customer to have opted in to marketing during checkout. If they didn't check the marketing consent box, no recovery email is sent."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Klaviyo abandoned checkout flow not triggering?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Klaviyo abandoned checkout relies on the 'Started Checkout' metric, which requires Klaviyo's JavaScript snippet to fire on your storefront and capture the customer's email. If the JS doesn't fire — due to a cookie consent manager blocking it before opt-in, an ad blocker, a Content Security Policy header, or the script loading after the customer has already passed the email field — the Started Checkout event is never sent to Klaviyo and no flow triggers. Additional causes: (1) the customer's email is not in Klaviyo's system (never subscribed, never made a purchase tracked by Klaviyo) — without a profile, Klaviyo cannot send; (2) both Shopify native emails and Klaviyo are configured simultaneously, creating a conflict or sending duplicate emails; (3) the Klaviyo integration's checkout/created webhook subscription was auto-disabled by Shopify after repeated delivery failures."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify send abandoned checkout emails for guest checkouts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Shopify's native abandoned checkout recovery works for guest checkouts — as long as the customer entered their email address in the Contact step before abandoning. The email address is captured as soon as the customer types it and moves to the next field; Shopify does not require the customer to reach the payment step. However, if the customer abandons before entering any contact information, there is no address to send to and no recovery email is possible, regardless of whether they checked out as a guest or logged in."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I change the 1-hour delay on Shopify abandoned checkout emails?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On Basic, Shopify, and Advanced plans, the 1-hour delay is fixed and cannot be changed through Shopify's admin. Shopify Plus merchants can customize timing using Shopify Flow or by disabling native emails and configuring a third-party ESP like Klaviyo, which allows custom timing (common sequences: 1 hour, 24 hours, 72 hours). On non-Plus plans, if you need faster or more flexible timing, you need a third-party email marketing app (Klaviyo, Omnisend, Drip, Privy) that uses the checkout/created webhook to trigger its own sequence with custom timing, independent of Shopify's native recovery system."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are Shopify abandoned checkout emails going to spam?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify sends abandoned checkout recovery emails from a Shopify-managed sending domain by default. If your store's sender email is not authenticated with SPF and DKIM records for your custom domain, email clients like Gmail may route the emails to spam. To fix this: go to Shopify Admin → Settings → Notifications → Sender email, set your custom domain address, then verify it by adding the SPF and DKIM DNS records Shopify provides. Once verified, emails send from your domain and are significantly less likely to land in spam. Also check whether the customer's email provider has marked a previous email from your store as spam — that suppresses all future delivery."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does abandoned checkout recovery work on headless Shopify or Hydrogen storefronts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify's native abandoned checkout recovery only applies to the standard Shopify storefront checkout. Headless storefronts using the Storefront API or Hydrogen framework do not automatically create an abandoned checkout record that triggers Shopify's recovery emails. For headless stores, you must implement your own abandoned checkout tracking: subscribe to the checkouts/create and checkouts/update webhooks from your custom checkout implementation, send customer contact info and cart details to your ESP (Klaviyo, Omnisend, etc.) via API on cart creation, and configure abandoned cart flows in your ESP to send recovery emails. The Hydrogen starter template does not include abandoned checkout tracking by default."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Shopify checkouts/create webhook and why does it fail?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The checkouts/create webhook fires when a customer begins checkout and enters their contact information. ESP integrations like Klaviyo use this webhook to receive the abandoned checkout payload (contact info, cart contents, checkout URL) and trigger their own recovery flows. The webhook fails or gets auto-disabled for several reasons: (1) Shopify auto-disables webhook subscriptions after repeated delivery failures — if your ESP endpoint was down, returned non-2xx responses, or exceeded the 5-second timeout repeatedly, Shopify may have marked the webhook as disabled; (2) the webhook endpoint URL changed (app reinstall, domain change) and the old subscription still points to a dead URL; (3) the webhook is firing but your ESP is filtering it out (suppression list, unsubscribed profiles). Check your webhook subscription status in Shopify Admin → Settings → Notifications → Webhooks, or via the Admin API webhooks endpoint."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify not send abandoned checkout emails to EU customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For stores serving EU/EEA customers, Shopify includes a marketing consent checkbox at checkout. Abandoned checkout recovery emails are classified as marketing communications under GDPR. If the customer did not check the marketing consent box during checkout, Shopify will not send the recovery email to comply with GDPR opt-in requirements. This is intentional behavior, not a bug. Options: (1) make the marketing consent checkbox more prominent and clearly explain the benefit (recovery emails help customers finish what they started), but you cannot pre-check it or make it mandatory under GDPR; (2) consider a 'transactional' framing — some platforms argue recovery emails are transactional, not marketing, but this is legally contested in the EU; (3) use post-purchase consent collection and retarget opted-in customers for future recovery."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Abandoned Recovery Not Working
+  </div>
+  <h1>Shopify <em>Abandoned Checkout Recovery</em> Not Working — Emails Not Sending, Klaviyo Not Firing</h1>
+  <p class="hero-sub">Shopify's abandoned checkout recovery has a mandatory 1-hour delay, only fires if the customer entered their email first, and silently skips EU customers who didn't give marketing consent. Here is the complete diagnostic for every failure mode.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 10 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">The Most Misdiagnosed Issue in Shopify</div>
+    Merchants frequently conclude that abandoned checkout recovery "isn't working" immediately after a test abandonment. It's almost always the mandatory 1-hour delay — not a broken system. Read Failure Mode 1 first before investigating further.
+  </div>
+
+  <h2>How Shopify's Abandoned Checkout Recovery Works</h2>
+
+  <p>Shopify's native abandoned checkout recovery is a single automated email sent <strong>exactly 1 hour</strong> after a customer abandons their checkout. It is available on all paid Shopify plans and is enabled by default.</p>
+
+  <p>The system has several requirements that must all be true for a recovery email to fire:</p>
+
+  <ul>
+    <li>The customer must have <strong>entered an email address</strong> (or phone number) in the Contact step of checkout</li>
+    <li>The checkout must still be <strong>in an abandoned state</strong> after 1 hour — if the customer returns and purchases within the window, the sequence is cancelled</li>
+    <li>For EU stores: the customer must have <strong>given marketing consent</strong> at checkout</li>
+    <li>The store's <strong>abandoned checkout email must be enabled</strong> in Shopify Admin → Settings → Notifications</li>
+  </ul>
+
+  <p>If any one of these conditions fails, no email is sent — and Shopify provides no error or log entry to explain why.</p>
+
+  <h2>Failure Mode 1 — The 1-Hour Delay Is Mandatory (Most Common Cause)</h2>
+
+  <p>On Basic, Shopify, and Advanced plans, the recovery email fires <strong>exactly 1 hour</strong> after the checkout is abandoned. This delay cannot be changed. There is no option in Shopify Admin to adjust the timing.</p>
+
+  <p>This is the most common reason merchants think recovery is broken: they abandon a test checkout, check their email 5 minutes later, see nothing, and assume the system is down. The system is working — the email just hasn't fired yet.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Test Correctly</div>
+    To verify the system is working: abandon a checkout with a real email address, wait the full 60 minutes, then check your inbox. Also check <strong>Shopify Admin → Marketing → Automations</strong> or <strong>Orders → Abandoned checkouts</strong> to see the recovery email status per checkout record.
+  </div>
+
+  <h3>Where to check abandoned checkout records</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Orders → Abandoned checkouts</strong></li>
+    <li>Find the checkout record for your test — each abandoned checkout shows its status</li>
+    <li>Click into the record to see whether a recovery email was sent, is scheduled, or was not sent (with a reason)</li>
+    <li>If the status shows "Recovery email scheduled", the 1-hour timer is still running</li>
+    <li>If status shows "Recovery email sent", the email fired — check your inbox and spam folder</li>
+  </ol>
+
+  <h3>Customizing timing (Shopify Plus only)</h3>
+
+  <p>Shopify Plus merchants can disable native abandoned checkout emails entirely and replace them with a custom Shopify Flow automation or a third-party ESP sequence (Klaviyo, Omnisend, Drip), which allows configuring custom timing. The standard approach is a 3-email sequence: 1 hour, 24 hours, 72 hours. Non-Plus merchants who need custom timing must use a third-party marketing app.</p>
+
+  <h2>Failure Mode 2 — Customer Abandoned Before Entering Email</h2>
+
+  <p>Shopify captures the customer's email address as soon as they type it in the Contact step and move forward — it does not wait for them to reach the payment step. But if the customer leaves the checkout page before entering any email address, Shopify has no contact information and cannot send a recovery email.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Customer Abandonment Point</th>
+          <th>Recovery Email</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cart page (before clicking "Check out")</td>
+          <td><span class="tag red">Not possible</span></td>
+          <td>No checkout record created; no contact info captured</td>
+        </tr>
+        <tr>
+          <td>Contact step — email entered, then left</td>
+          <td><span class="tag green">Sent</span></td>
+          <td>Email captured as soon as field is filled; checkout record exists</td>
+        </tr>
+        <tr>
+          <td>Contact step — closed tab before entering email</td>
+          <td><span class="tag red">Not possible</span></td>
+          <td>No email address to send to</td>
+        </tr>
+        <tr>
+          <td>Shipping step — abandoned</td>
+          <td><span class="tag green">Sent</span></td>
+          <td>Email was captured at Contact step</td>
+        </tr>
+        <tr>
+          <td>Payment step — abandoned</td>
+          <td><span class="tag green">Sent</span></td>
+          <td>Email was captured at Contact step</td>
+        </tr>
+        <tr>
+          <td>Completed order within 1 hour</td>
+          <td><span class="tag yellow">Cancelled</span></td>
+          <td>Customer converted; Shopify cancels the recovery sequence</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>A large share of "abandoned" carts never actually start checkout — customers browse, add items, and leave from the cart page without clicking "Check out." These cart abandonments are <strong>not recoverable</strong> through Shopify's built-in system. To reach these customers, you need a separate "browse abandonment" or "cart abandonment" email strategy via a marketing app that sets a cookie and captures the email earlier (e.g., via a newsletter popup before checkout).</p>
+
+  <h2>Failure Mode 3 — GDPR Marketing Consent Not Given (EU Stores)</h2>
+
+  <p>For stores selling to EU/EEA customers, Shopify's abandoned checkout recovery emails are treated as <strong>marketing communications</strong> under GDPR. Shopify displays a marketing consent checkbox at checkout for these customers.</p>
+
+  <p>If the customer did not check the marketing consent box, Shopify will not send the abandoned checkout recovery email. This is intentional compliance behavior. The Admin → Abandoned checkouts record will show the checkout as abandoned but no recovery email scheduled.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">GDPR Cannot Be Worked Around</div>
+    You cannot pre-check the marketing consent checkbox or make it mandatory — this would violate GDPR's requirement for freely given, explicit consent. You also cannot send recovery emails to opted-out EU customers and frame them as "transactional" — this is legally contested and regulators have taken a clear position that abandonment recovery emails are marketing.
+  </div>
+
+  <h3>Legitimate ways to improve EU recovery rates</h3>
+
+  <ul>
+    <li>Make the marketing consent checkbox more prominent with a clear benefit statement ("Check this to receive help finishing your order")</li>
+    <li>Collect marketing consent earlier via a newsletter popup, before the customer starts checkout — this creates a profile that ESP tools can use to trigger recovery flows</li>
+    <li>Use retargeting ads (Facebook/Google) which have a different legal basis (legitimate interest in some jurisdictions) to reach abandoning EU customers</li>
+    <li>For logged-in customers who previously consented to marketing, Shopify may still send the recovery email — their existing consent record applies</li>
+  </ul>
+
+  <h2>Failure Mode 4 — Shopify Native Emails Disabled</h2>
+
+  <p>Merchants who switch to a third-party ESP (Klaviyo, Omnisend, etc.) sometimes disable Shopify's native emails without configuring the ESP flow, or configure both systems simultaneously — resulting in either duplicate emails or none at all.</p>
+
+  <h3>How to verify native email status</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Notifications</strong></li>
+    <li>Scroll to the <strong>Email marketing</strong> section</li>
+    <li>Find "Abandoned checkout" — verify it shows as <strong>Active</strong></li>
+    <li>If it shows as disabled, click to re-enable — or confirm your ESP flow is correctly configured before disabling</li>
+    <li>If using Klaviyo or another ESP, you should disable the Shopify native email to avoid duplicates; leave only the ESP flow active</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Duplicate Email Problem</div>
+    Running both Shopify native abandoned checkout emails AND a Klaviyo/Omnisend flow simultaneously means customers receive two recovery emails for the same abandoned checkout. This creates a confusing experience and can increase unsubscribes. Disable the Shopify native email when using a third-party ESP flow.
+  </div>
+
+  <h2>Failure Mode 5 — Klaviyo "Started Checkout" Not Firing</h2>
+
+  <p>Klaviyo's abandoned checkout recovery depends on the <strong>Started Checkout</strong> event, which is tracked by Klaviyo's JavaScript snippet on your storefront. This is separate from Shopify's native system. It has its own set of failure modes.</p>
+
+  <h3>Why the Started Checkout event doesn't fire</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Cause</th>
+          <th>Result</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cookie consent manager blocking Klaviyo JS before opt-in</td>
+          <td>No event fired; JS not loaded</td>
+          <td>Configure CMP to allow Klaviyo as "functional" or load after consent on an opt-in basis; or use server-side tracking</td>
+        </tr>
+        <tr>
+          <td>Ad blocker (uBlock, Brave) blocking Klaviyo JS</td>
+          <td>No event for ~25–35% of desktop traffic</td>
+          <td>Use server-side Klaviyo tracking; consider first-party data capture</td>
+        </tr>
+        <tr>
+          <td>Content Security Policy blocking klaviyo.com</td>
+          <td>JS errors in console; no events</td>
+          <td>Add <code>static.klaviyo.com</code> and <code>a.klaviyo.com</code> to CSP allowlist</td>
+        </tr>
+        <tr>
+          <td>Customer email not in Klaviyo profile system</td>
+          <td>Event fires but no profile to send to</td>
+          <td>Klaviyo creates a profile on first event if email is identified; ensure email is passed during checkout</td>
+        </tr>
+        <tr>
+          <td>Customer is on Klaviyo suppression list</td>
+          <td>Flow skips the profile silently</td>
+          <td>Check Klaviyo → Profiles → Suppression list; manually unsuppress if customer requested re-activation</td>
+        </tr>
+        <tr>
+          <td>Klaviyo flow filter "Placed order zero times since starting" not met</td>
+          <td>Flow filtered out</td>
+          <td>Review flow filters; ensure the time window logic matches your intended targeting</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to verify Klaviyo is receiving Started Checkout events</h3>
+  <ol class="steps">
+    <li>Go to <strong>Klaviyo → Analytics → Metrics</strong></li>
+    <li>Find the <strong>Started Checkout</strong> metric and click into it</li>
+    <li>Look for recent activity — if no events appear in the last 24 hours despite known checkout activity, the tracking is broken</li>
+    <li>Open your store in a browser with no ad blockers, add an item to cart, begin checkout, enter your email address</li>
+    <li>Check Klaviyo → Profiles → [your test email] — the Started Checkout event should appear within seconds</li>
+    <li>If not, open the browser console on your store's checkout page and look for Klaviyo JS errors</li>
+  </ol>
+
+  <h2>Failure Mode 6 — Shopify Webhook Auto-Disabled</h2>
+
+  <p>Third-party marketing apps and ESP integrations receive abandoned checkout data via Shopify's <code>checkouts/create</code> and <code>checkouts/update</code> webhooks. Shopify auto-disables webhook subscriptions when the receiving endpoint fails repeatedly.</p>
+
+  <p>A webhook subscription is auto-disabled after <strong>19 consecutive delivery failures</strong> (non-2xx response from the endpoint, or no response within the 5-second timeout). When this happens, all new checkout events are silently dropped — no errors are shown in Shopify Admin, and no recovery emails fire from the ESP.</p>
+
+  <h3>How to check webhook status</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Notifications → Webhooks</strong></li>
+    <li>Look for <code>checkouts/create</code> and <code>checkouts/update</code> webhook subscriptions</li>
+    <li>Check the "Last failed" column — if there are recent failures and the subscription is marked as paused or failed, this is the cause</li>
+    <li>Alternatively, query the Admin API: <code>GET /admin/api/2024-01/webhooks.json</code> — look for <code>"failures": n</code> on the checkout webhooks</li>
+    <li>Delete and re-create the webhook subscription from within your ESP's Shopify integration settings (Klaviyo → Integrations → Shopify → Reconnect or Sync settings)</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">The 5-Second Webhook Timeout</div>
+    Shopify requires your ESP's webhook endpoint to respond within 5 seconds. If your ESP was having performance issues (high latency, deploy, incident), Shopify marks those deliveries as failures. After enough failures, the subscription is auto-disabled. Reconnecting the ESP integration typically recreates the webhook subscriptions fresh.
+  </div>
+
+  <h2>Failure Mode 7 — Recovery Emails Going to Spam</h2>
+
+  <p>The recovery email is sending, but customers aren't seeing it because it's landing in spam. This is more common than merchants realize — they check admin, see "sent", and assume the customer ignored it. The email may be in spam.</p>
+
+  <h3>Diagnosing email deliverability</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Notifications → Sender email</strong></li>
+    <li>Check whether your sender email is a custom domain address (e.g., <code>hello@yourstore.com</code>) or a generic address</li>
+    <li>If it's custom, verify <strong>SPF and DKIM records</strong> are correctly configured by clicking "Verify email" — Shopify shows whether authentication is passing</li>
+    <li>Send a test recovery email to a Gmail account and check if it lands in Primary, Promotions, or Spam</li>
+    <li>If landing in Spam: SPF/DKIM authentication failure or your domain has low sender reputation — consider warming up a dedicated sending domain</li>
+    <li>Check whether any customer has previously marked your emails as spam — this creates a reputation signal that affects deliverability for all recipients</li>
+  </ol>
+
+  <h2>Failure Mode 8 — Headless Storefront / Hydrogen (No Native Recovery)</h2>
+
+  <p>Shopify's abandoned checkout recovery system only applies to the native Shopify checkout. Headless storefronts using the Storefront API or Hydrogen do not automatically produce the abandoned checkout records that trigger Shopify's recovery emails.</p>
+
+  <p>When a Hydrogen or headless storefront creates a cart via <code>cartCreate</code> and then begins checkout, the native Shopify abandoned checkout recovery system does not track this flow in the same way as the standard storefront checkout.</p>
+
+  <h3>Implementing abandoned cart recovery in headless/Hydrogen</h3>
+  <ol class="steps">
+    <li>Capture the customer's email early — when they subscribe to a newsletter popup, log in, or enter their email in a cart field before checkout</li>
+    <li>When the cart is created or updated, send the cart contents and customer email to your ESP via API (e.g., Klaviyo's Track API with a custom <code>Started Checkout</code> event, including cart URL)</li>
+    <li>Subscribe to Shopify's <code>checkouts/create</code> webhook at the server level and forward the payload to your ESP</li>
+    <li>Configure an abandoned checkout flow in your ESP triggered by the custom event, with your own timing and email content</li>
+    <li>Generate a cart recovery URL that restores cart state — either a Shopify cart permalink or a custom URL that calls <code>cartCreate</code> with the saved line items</li>
+    <li>The Hydrogen starter template does not include this functionality — it must be built as a custom integration</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Cart Permalink Limitation in Headless</div>
+    The standard Shopify cart permalink (<code>/cart/[variantId]:[quantity]</code>) restores to the native Shopify checkout, not to your headless storefront. For headless recovery, you need a custom recovery URL that initializes your storefront with the saved cart items via the Storefront API.
+  </div>
+
+  <h2>Quick Diagnostic Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>Where to Verify</th>
+          <th>Expected State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1-hour delay — did you wait?</td>
+          <td>Wait 60 min after test abandonment</td>
+          <td>Check inbox at 65+ min</td>
+        </tr>
+        <tr>
+          <td>Customer entered email at checkout</td>
+          <td>Admin → Abandoned checkouts → record</td>
+          <td>Email address visible in record</td>
+        </tr>
+        <tr>
+          <td>Native email is enabled</td>
+          <td>Admin → Settings → Notifications → Abandoned checkout</td>
+          <td>Active / Enabled</td>
+        </tr>
+        <tr>
+          <td>EU consent given (if EU store)</td>
+          <td>Admin → Abandoned checkouts → record → Marketing accepted</td>
+          <td>Marketing accepted: Yes</td>
+        </tr>
+        <tr>
+          <td>Webhook subscriptions healthy</td>
+          <td>Admin → Settings → Notifications → Webhooks</td>
+          <td>No failure count on <code>checkouts/create</code></td>
+        </tr>
+        <tr>
+          <td>Klaviyo Started Checkout firing</td>
+          <td>Klaviyo → Analytics → Metrics → Started Checkout</td>
+          <td>Recent events within 24h</td>
+        </tr>
+        <tr>
+          <td>Not sending duplicates</td>
+          <td>Check both Shopify native and ESP flow are not both active</td>
+          <td>Only one system enabled</td>
+        </tr>
+        <tr>
+          <td>Email deliverability / spam</td>
+          <td>Shopify → Settings → Notifications → Sender email → SPF/DKIM</td>
+          <td>Authentication: Verified</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>When Recovery Emails Are Sending But Not Converting</h2>
+
+  <p>If the diagnostic above confirms emails are sending correctly but recovery rates are poor, the issue is content and timing rather than a technical failure. Common content problems:</p>
+
+  <ul>
+    <li><strong>Generic subject line</strong> — "You left something behind" is easy to ignore; personalized subject lines with the product name convert 2–3× better</li>
+    <li><strong>No product image</strong> — the recovery email template should show the product the customer was looking at; Shopify's default template includes this if configured correctly</li>
+    <li><strong>No urgency or social proof</strong> — a single email with no scarcity signal or review quote gives customers no reason to act now vs later</li>
+    <li><strong>Single email only</strong> — Shopify's native system sends one email; a 3-email sequence (1h, 24h, 72h) via Klaviyo or Omnisend typically recovers 2–4× more revenue</li>
+    <li><strong>No discount incentive</strong> — some merchants offer a small discount in the third email of the sequence to convert fence-sitters; this increases recovery rates but reduces margin</li>
+  </ul>
+
+  <div class="cta-block">
+    <h2>Monitor Your Checkout Before It Costs You Sales</h2>
+    <p>Abandoned checkout recovery only matters if your checkout is working in the first place. CheckPulse runs automated 4-step Shopify checkout tests every 5 minutes and alerts you the moment something breaks — before customers start abandoning for technical reasons.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <p>checkouts/create auto-disabled after failures — diagnosis and fix</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-email-not-working">Checkout Email Not Working</a>
+      <p>Order confirmation and notification email failure modes</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <p>Why order confirmation emails don't reach customers</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-abandoned">Checkout Abandonment Causes</a>
+      <p>Technical reasons customers abandon — payment errors, slow load, session expiry</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <p>Cart items disappearing between sessions</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Account Required Blocking</a>
+      <p>Guest checkout blocked, new customer accounts breaking flows</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Automated Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-checkout-monitoring-comparison">Comparison</a>
+      <a href="/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout Issues</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products</a>
+      <a href="/checkpulse/shopify-checkout-returns-refunds">Returns and Refunds</a>
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Checkout</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Memberships</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment</a>
+      <a href="/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Account Required Blocking</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Wrong Tax Calculation</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Issues</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="/checkpulse/shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns and Exchange</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Checkout Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

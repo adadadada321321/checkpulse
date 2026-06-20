@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Local Pickup Not Working — In-Store Pickup Not Showing, Click &amp; Collect Missing at Checkout (2026)</title>
+  <meta name="description" content="Shopify local pickup requires the pickup location to be explicitly enabled in Shipping and Delivery settings, and the product must have stock at that location. If the option doesn't appear, there's no shipping rate fallback, or the pickup email never fires — here is the full diagnostic." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-pickup-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-local-pickup-not-working" />
+  <meta property="og:title" content="Shopify Local Pickup Not Working — In-Store Pickup Not Showing, BOPIS Missing at Checkout" />
+  <meta property="og:description" content="Local pickup not appearing at Shopify checkout usually means the location isn't enabled for pickup, or the product has no stock at that location. Express checkout buttons (Shop Pay, Apple Pay) bypass the pickup option entirely. Full diagnostic for all failure modes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Local Pickup Not Working — In-Store Pickup Not Showing at Checkout",
+    "description": "Shopify local pickup is a separate shipping method that requires explicit activation per location. The two most common failure modes are: (1) the location is not enabled for local pickup in Shopify Admin Settings → Shipping and delivery → Local pickup, and (2) the product has zero stock at the pickup location, so Shopify correctly hides the option. Additional failure modes include express checkout buttons (Shop Pay, Apple Pay, Google Pay) that bypass the pickup selection screen entirely, local delivery being confused with local pickup (different setup paths), the pickup-ready notification email not firing due to fulfillment flow configuration, and third-party fulfillment app conflicts that reassign orders away from the pickup location.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-local-pickup-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify local pickup not showing at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons local pickup does not appear as a shipping option at checkout: (1) The pickup location has not been enabled for local pickup — go to Shopify Admin → Settings → Shipping and delivery → scroll to Local pickup → click Manage and toggle 'Local pickup' on for the specific location. This toggle is per-location and must be enabled for every location you want to offer pickup at. (2) The product (or one of its variants) has zero stock at the pickup location — Shopify only offers local pickup if the ordered items are actually in stock at the pickup location. If inventory is 0 or untracked incorrectly, the option hides. (3) You have multiple locations but the product is assigned to a different fulfillment location — in Shopify Admin → Products → select the product → Inventory → scroll to 'Inventory at each location' and verify stock is assigned to the pickup location. (4) The cart contains only a digital product — digital products have no shipping and no pickup option. (5) Checkout settings: if you have a checkout extensibility customization that alters shipping method display, it can inadvertently hide pickup."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Local pickup is enabled but the option still doesn't appear — what's wrong?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Beyond the basic toggle, local pickup can still fail to show for these reasons: (1) Stock at the location is zero — even with pickup enabled, Shopify requires stock > 0 at that location (unless you have 'Continue selling when out of stock' enabled AND you've manually set Shopify to still offer pickup for OOS items, which is not default). Check Shopify Admin → Products → [Product] → Inventory → confirm the pickup location has the correct stock count. (2) The product has 'Track quantity' enabled but the quantity is set to 0 at the pickup location — adjust inventory. (3) You're testing with a product that has multiple variants and only some variants have stock at the location — the customer won't see pickup if the specific variant they selected has no stock there. (4) Customer is outside Shopify's expected session — clear cache and cookies, start a fresh checkout. (5) A checkout UI extension conflict is hiding the delivery method selector — check your Shopify Admin → Settings → Checkout → Checkout customizations and temporarily disable non-essential extensions to isolate the issue."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shop Pay or Apple Pay support Shopify local pickup?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay, Apple Pay, and Google Pay express checkout buttons skip the standard checkout shipping selection screen and proceed directly to a streamlined one-page flow. In most cases, express checkout buttons do NOT show the local pickup option — they default to shipping and require the customer to enter a shipping address. This is a known limitation of the express payment flows. Customers who want local pickup must use the standard 'Check out' button (not the 'Buy now', Shop Pay, Apple Pay, or Google Pay buttons) so they reach the full checkout with the delivery method selection step. If a large share of your customers use express checkout, you should consider disabling express payment buttons on the cart page or adding a clear message that local pickup requires standard checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between Shopify local pickup and local delivery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify has two completely separate features that are often confused: Local pickup and Local delivery. Local pickup means the customer comes to your store or warehouse to collect their order themselves — no delivery takes place. You set it up in Shopify Admin → Settings → Shipping and delivery → Local pickup. There are no radius or distance settings; any customer can choose pickup regardless of their location. Local delivery means you deliver orders within a defined radius — the customer enters their address and Shopify checks if it falls within your delivery zone. You set it up in Shopify Admin → Settings → Shipping and delivery → Local delivery. Local delivery requires a minimum order threshold and a delivery radius or postal codes, and you set a delivery fee or make it free. If a customer's address doesn't fall within your delivery zone, the local delivery option does not show. If you're trying to offer distance-based restrictions on who can choose pickup, Shopify's native local pickup doesn't support that — you'd need a third-party app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "The pickup ready email is not being sent after an order is placed — how do I fix it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The 'Ready for pickup' email in Shopify is NOT sent automatically when a local pickup order is placed. It is sent when you mark the order as ready for pickup in Shopify Admin. Here is the correct workflow: (1) Customer places a local pickup order → you receive a notification. (2) You prepare the order in your store. (3) In Shopify Admin → Orders → open the order → click 'Mark as ready for pickup'. This triggers the 'Ready for pickup' notification to the customer. If you click 'Fulfill' instead of 'Mark as ready for pickup', Shopify treats it as a regular fulfillment and sends a shipping notification, not a pickup notification. The pickup flow has its own button. If the email is not going out even after clicking 'Mark as ready for pickup', check: Shopify Admin → Settings → Notifications → scroll to 'Ready for pickup' and verify the notification is enabled and the email template hasn't been deleted. Also check if the customer opted out of marketing emails — transactional pickup notifications should still send regardless, but verify the email address is correct on the order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Shopify local pickup stopped showing after I added a new app — how do I fix this?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Some Shopify apps — particularly fulfillment apps, multi-location inventory managers, and shipping rate apps — can interfere with local pickup in two ways: (1) The app overrides Shopify's shipping rate calculation and doesn't pass through the local pickup option. Carrier-calculated shipping rate apps may replace Shopify's native rate engine, which handles pickup, with their own. The fix is to configure the app to pass through or preserve native Shopify pickup rates, or exclude local pickup orders from the app's rate logic. (2) The app changes the fulfillment location assignment — if an app automatically routes orders to a different location (like a 3PL warehouse), the product at the customer-facing pickup location may appear as out of stock from Shopify's perspective, hiding the pickup option. Apps like ShipBob, Flexport, or custom 3PL integrations that manage inventory often do this. To diagnose: go to Shopify Admin → Settings → Shipping and delivery → Manage rates → check if carrier-calculated rates are active. Temporarily disable the suspected app and retest checkout to confirm the pickup option reappears."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "My store has multiple pickup locations — can customers choose which one?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — if you have local pickup enabled for multiple locations, Shopify shows all eligible locations at checkout and the customer selects which location they want to pick up from. Each location appears as a separate pickup option with its name and address. For a location to appear, it must: (1) have local pickup toggled on in Settings → Shipping and delivery → Local pickup → Manage; (2) have stock available at that location for the specific product and variant being ordered. If only one of your three locations has stock for a particular product, only that location will appear as a pickup option. You can also set an 'Expected pickup time' per location (e.g., 'Usually ready in 2 hours') which displays to the customer. This is configured per location in the same Local pickup settings panel."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Customer selected local pickup but received a shipping label — what happened?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If a customer chose local pickup but the order was shipped instead, the most likely causes are: (1) The order was fulfilled using the standard fulfillment flow instead of the pickup flow — in Shopify Admin, local pickup orders have a distinct 'Mark as ready for pickup' button. If staff clicked 'Create shipping label' or 'Mark as fulfilled' instead, the order gets processed as a shipped order. Train staff to use the correct flow for pickup orders. (2) A fulfillment automation is set up — if you use Shopify Flow or a third-party fulfillment app with auto-fulfillment, it may automatically create a shipping label for all new orders regardless of delivery method. Add a condition to your automation to exclude orders where delivery method is 'local pickup'. (3) In Shopify Admin → Orders → filter by 'Local pickup' orders to review which orders were incorrectly shipped. You can refund shipping costs and contact the customer to coordinate the original pickup or offer to redirect the shipment."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    /* HERO */
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    /* CONTENT */
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+
+    /* CALLOUT BOXES */
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    /* STEP LIST */
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    /* CTA BLOCK */
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    /* RELATED */
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    /* FOOTER */
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Local Pickup Not Working
+  </div>
+  <h1>Shopify Local Pickup <em>Not Working</em> — In-Store Pickup Not Showing at Checkout</h1>
+  <p class="hero-sub">Local pickup disappears from checkout when the location isn't enabled for pickup, the product has no stock there, or express checkout buttons bypass the selection entirely. Here is every failure mode and fix.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 8 min read</span>
+    <span>🏪 Applies to: Shopify Basic, Shopify, Advanced, Plus</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Most Common Cause</div>
+    Local pickup requires two things to be true simultaneously: (1) the pickup location must have the "Local pickup" toggle enabled in Shopify Admin → Settings → Shipping and delivery → Local pickup → Manage, and (2) the product must have stock assigned to that specific location. If either is false, Shopify silently hides the pickup option at checkout.
+  </div>
+
+  <h2>How Shopify Local Pickup Works (and Where It Breaks)</h2>
+
+  <p>Shopify local pickup is a first-party feature that lets customers choose to collect their order from your store instead of having it shipped. It appears as a delivery method option at checkout, separate from shipping rates.</p>
+
+  <p>The feature has a specific activation path: <strong>Shopify Admin → Settings → Shipping and delivery → scroll to "Local pickup" → click "Manage" → toggle "Local pickup" ON for each location</strong>. This toggle is per-location — enabling it at your main store does not automatically enable it for a second warehouse or pop-up location.</p>
+
+  <p>Once enabled, Shopify checks two things in real time during checkout to decide whether to show the pickup option:</p>
+
+  <ol>
+    <li>Is the pickup toggle on for at least one active location?</li>
+    <li>Does that location have stock available for every item in the cart?</li>
+  </ol>
+
+  <p>If either check fails for all eligible locations, the pickup option simply does not appear — no error message, no explanation. The customer sees only shipping options.</p>
+
+  <h2>Failure Mode 1 — Local Pickup Toggle Not Enabled</h2>
+
+  <p>The most common cause: the pickup option was never activated, or it was accidentally turned off. The setup path is non-obvious — "Local pickup" is buried inside the Shipping and delivery settings, not in the Location settings.</p>
+
+  <h3>How to enable local pickup</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Shipping and delivery</strong></li>
+    <li>Scroll down past your shipping zones to the <strong>"Local pickup"</strong> section</li>
+    <li>Click <strong>"Manage"</strong> next to the location you want to enable</li>
+    <li>Toggle <strong>"Local pickup"</strong> to ON</li>
+    <li>Optionally set an expected pickup time (e.g., "Usually ready in 2 hours") — this shows in checkout</li>
+    <li>Click <strong>Save</strong></li>
+    <li>Repeat for each additional pickup location</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Tip</div>
+    After enabling, test by adding a product to cart and going through checkout in a fresh incognito window. If you're logged in as admin, some checkout behaviors differ. Test as a guest customer.
+  </div>
+
+  <h2>Failure Mode 2 — Product Has No Stock at the Pickup Location</h2>
+
+  <p>Even with the toggle on, local pickup only shows if the product being ordered has available stock at the pickup location. If inventory is zero at that location — or if inventory tracking is on and the stock count is 0 — Shopify hides the pickup option.</p>
+
+  <h3>How to check and fix inventory at a location</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Products → [select the product]</strong></li>
+    <li>Scroll down to the <strong>"Inventory"</strong> section</li>
+    <li>Look at <strong>"Inventory at each location"</strong> — find the pickup location row</li>
+    <li>Check if the quantity is 0 or if the location is not listed</li>
+    <li>If quantity is 0: update the stock count or disable inventory tracking for that product if stock tracking isn't needed</li>
+    <li>If the location isn't listed: go to <strong>Shopify Admin → Settings → Locations</strong> → confirm the location is active, then return to the product and assign stock</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Variant-Specific Issue</div>
+    For products with multiple variants (size, color), each variant's inventory is tracked separately. If a customer selects a variant that has 0 stock at the pickup location, the pickup option won't show — even if other variants are in stock there. Check inventory for the specific variant being tested.
+  </div>
+
+  <h2>Failure Mode 3 — Express Checkout Buttons Bypass Local Pickup</h2>
+
+  <p>This catches many merchants off guard. <strong>Shop Pay, Apple Pay, Google Pay, and other express checkout buttons do not show the local pickup option.</strong> These buttons launch a streamlined one-step checkout flow that skips the delivery method selection screen and defaults to shipping.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Method</th>
+          <th>Shows Local Pickup</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Standard "Check out" button</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Full checkout flow — pickup option shows if eligible</td>
+        </tr>
+        <tr>
+          <td>Shop Pay express</td>
+          <td><span class="tag red">No</span></td>
+          <td>Skips delivery method screen, defaults to shipping</td>
+        </tr>
+        <tr>
+          <td>Apple Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Payment sheet doesn't include pickup selection</td>
+        </tr>
+        <tr>
+          <td>Google Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Same as Apple Pay — shipping only</td>
+        </tr>
+        <tr>
+          <td>"Buy now" product page button</td>
+          <td><span class="tag red">No</span></td>
+          <td>Routes to expedited checkout without delivery choice</td>
+        </tr>
+        <tr>
+          <td>PayPal express</td>
+          <td><span class="tag red">No</span></td>
+          <td>PayPal-hosted flow, no pickup support</td>
+        </tr>
+        <tr>
+          <td>Shop Pay installments</td>
+          <td><span class="tag red">No</span></td>
+          <td>BNPL flow doesn't support pickup</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Workarounds for express checkout bypass</h3>
+  <ul>
+    <li><strong>Add messaging on cart/product pages</strong>: "Want to pick up in store? Use the 'Check out' button — express pay buttons don't support pickup."</li>
+    <li><strong>Disable dynamic checkout buttons on product pages</strong>: In Shopify Admin → Settings → Checkout → Dynamic checkout → disable "Show dynamic checkout buttons on product pages" if pickup is a primary delivery method for your store.</li>
+    <li><strong>Checkout UI extension</strong>: For Shopify Plus, a custom checkout UI extension can add messaging at checkout reminding customers that express methods skip pickup.</li>
+  </ul>
+
+  <h2>Failure Mode 4 — Local Pickup vs Local Delivery Confusion</h2>
+
+  <p>Shopify has two distinct features that sound similar but are configured completely differently:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>What It Does</th>
+          <th>Location in Admin</th>
+          <th>Distance Filtering</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Local pickup</strong></td>
+          <td>Customer collects order from your location</td>
+          <td>Settings → Shipping and delivery → Local pickup</td>
+          <td><span class="tag red">None</span> — any customer can select it</td>
+        </tr>
+        <tr>
+          <td><strong>Local delivery</strong></td>
+          <td>You deliver to customer within a defined zone</td>
+          <td>Settings → Shipping and delivery → Local delivery</td>
+          <td><span class="tag green">Yes</span> — radius or postal codes</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>If you want customers nearby to get a "local pickup" option but not customers far away, Shopify's native local pickup doesn't support distance filtering. Any customer anywhere in the world can technically select local pickup if it's enabled (though ordering pickup from another country is obviously impractical).</p>
+
+  <p>To restrict who can choose pickup by location, you need a third-party app like <strong>Zapiet - Pickup + Delivery</strong> or <strong>Store Pickup + Delivery (BOPIS)</strong> from the Shopify App Store.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Common Mistake</div>
+    Merchants trying to set up local pickup sometimes go to Settings → Locations instead of Settings → Shipping and delivery. The Locations page manages where your inventory is tracked — it does NOT have a "local pickup" toggle. The pickup activation is only in the Shipping and delivery section.
+  </div>
+
+  <h2>Failure Mode 5 — Pickup Order Gets Shipped Instead of Picked Up</h2>
+
+  <p>The customer chose local pickup, the order came in correctly, but your team (or an automation) processed it as a shipment instead.</p>
+
+  <h3>The correct pickup fulfillment flow</h3>
+  <ol class="steps">
+    <li>Order arrives — it shows <strong>"Local pickup"</strong> as the delivery method in the order details</li>
+    <li>Prepare the order in your store/warehouse</li>
+    <li>In Shopify Admin → Orders → open the order</li>
+    <li>Click <strong>"Mark as ready for pickup"</strong> (not "Fulfill" or "Create shipping label")</li>
+    <li>Shopify sends the customer a <strong>"Ready for pickup"</strong> email with your store address and hours</li>
+    <li>When customer collects the order, click <strong>"Mark as picked up"</strong> to close the order</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Automation Risk</div>
+    If you use Shopify Flow, a fulfillment app, or auto-fulfillment settings that automatically create shipping labels for all new orders, these may incorrectly process pickup orders as shipped. Add a condition to your automation: <code>order.delivery_method = "local"</code> → skip auto-fulfillment.
+  </div>
+
+  <h2>Failure Mode 6 — Pickup-Ready Email Not Sent</h2>
+
+  <p>The "Ready for pickup" email is not automatic — it fires only when you click "Mark as ready for pickup" in the order. If the email isn't reaching customers:</p>
+
+  <ul>
+    <li><strong>Verify the notification is enabled</strong>: Shopify Admin → Settings → Notifications → find "Ready for pickup" and confirm it's active and the template exists.</li>
+    <li><strong>Check the customer's email address</strong> on the order — typos during checkout are common.</li>
+    <li><strong>Spam/junk folder</strong>: Shopify sends from a shared sending infrastructure; some corporate email servers aggressive-filter. Ask the customer to check spam.</li>
+    <li><strong>Third-party email override</strong>: If you use Klaviyo, Omnisend, or another ESP to manage all Shopify transactional emails, check whether your integration is correctly routing the "Ready for pickup" trigger. Some setups only route order confirmation and shipping emails, missing the pickup-ready trigger.</li>
+    <li><strong>You clicked "Fulfill" instead of "Mark as ready for pickup"</strong>: This sends a shipping confirmation email with a tracking number, not a pickup-ready email. Refund the shipping if added and manually contact the customer.</li>
+  </ul>
+
+  <h2>Failure Mode 7 — App Conflict Hiding Local Pickup</h2>
+
+  <p>Carrier-calculated shipping rate apps and multi-location fulfillment apps can override Shopify's native shipping rate calculation, which is also responsible for returning the local pickup option.</p>
+
+  <h3>How to diagnose an app conflict</h3>
+  <ol class="steps">
+    <li>Go to Shopify Admin → Apps → find recently installed or updated apps that relate to shipping, fulfillment, or inventory</li>
+    <li>Temporarily disable the most recently changed app</li>
+    <li>Test checkout in incognito — does pickup appear now?</li>
+    <li>If yes, the disabled app is the cause — review that app's shipping settings to add a "pass through Shopify native rates" or "preserve local pickup" option</li>
+    <li>Common offenders: ShipStation, EasyShip, Shipify, multi-location inventory apps that remap fulfillment locations</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Shopify Plus — Checkout Extensibility</div>
+    If you've built checkout UI extensions or added checkout customizations on Shopify Plus, a poorly configured extension can hide the delivery method selector or filter out pickup options. Check Shopify Admin → Settings → Checkout → Checkout customizations and disable each extension one at a time to isolate the conflict.
+  </div>
+
+  <h2>Failure Mode 8 — Multiple Locations, Wrong Location Fulfills</h2>
+
+  <p>If you have multiple locations, Shopify uses fulfillment priority to decide which location ships an order. For pickup orders, the customer selects a specific location — but a fulfillment app may route the order to a different location for packing, causing inventory discrepancies and operational confusion.</p>
+
+  <h3>Controlling fulfillment location for pickup orders</h3>
+  <ul>
+    <li>Shopify automatically assigns pickup orders to the location the customer selected — this is preserved in the order data as the "fulfillment location."</li>
+    <li>Manual fulfillment (your staff handling it): this is fine, just make sure staff fulfill from the correct location.</li>
+    <li>Automated fulfillment via an app: configure the app to honor the order's pre-assigned fulfillment location rather than re-routing based on its own priority rules.</li>
+    <li>For Shopify Plus: use Shopify Flow to add a condition — if <code>fulfillment_type == local</code>, skip the app's auto-routing and assign directly to the location already set on the order.</li>
+  </ul>
+
+  <h2>Complete Diagnostic Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>Where to Verify</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Local pickup toggle enabled?</td>
+          <td>Settings → Shipping and delivery → Local pickup → Manage</td>
+          <td>Toggle ON for each location</td>
+        </tr>
+        <tr>
+          <td>Product has stock at pickup location?</td>
+          <td>Products → [product] → Inventory → per-location stock</td>
+          <td>Assign inventory to the pickup location</td>
+        </tr>
+        <tr>
+          <td>Correct variant selected during test?</td>
+          <td>Test each variant separately</td>
+          <td>Add stock for that specific variant at the location</td>
+        </tr>
+        <tr>
+          <td>Using express checkout button?</td>
+          <td>Observe which checkout button customer uses</td>
+          <td>Instruct customers to use standard "Check out" button</td>
+        </tr>
+        <tr>
+          <td>App overriding shipping rates?</td>
+          <td>Settings → Shipping and delivery → Manage rates</td>
+          <td>Disable conflicting app, configure to preserve native rates</td>
+        </tr>
+        <tr>
+          <td>Pickup-ready email enabled?</td>
+          <td>Settings → Notifications → Ready for pickup</td>
+          <td>Re-enable and restore template if deleted</td>
+        </tr>
+        <tr>
+          <td>Staff using correct fulfillment flow?</td>
+          <td>Orders → verify "Mark as ready for pickup" button exists</td>
+          <td>Train staff; add Shopify Flow automation guard</td>
+        </tr>
+        <tr>
+          <td>Checkout customization conflict?</td>
+          <td>Settings → Checkout → Checkout customizations (Plus)</td>
+          <td>Disable extensions one-by-one to isolate</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Losing Orders Right Now?</h2>
+    <p>CheckPulse monitors your Shopify checkout every 5 minutes and alerts you within seconds when something breaks — before customers give up and leave.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run a Free Checkout Check</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Local Pickup Configuration: Quick-Reference Summary</h2>
+
+  <p><strong>Where to enable:</strong> Shopify Admin → Settings → Shipping and delivery → Local pickup → Manage (per location)</p>
+  <p><strong>Requirement:</strong> Product must have inventory > 0 at the pickup location (or inventory tracking disabled)</p>
+  <p><strong>Multiple locations:</strong> Enable per location; customer selects which location at checkout</p>
+  <p><strong>Expected pickup time:</strong> Set per location (e.g., "Usually ready in 2 hours") — shows at checkout</p>
+  <p><strong>Pickup-ready email:</strong> Triggered manually when staff click "Mark as ready for pickup" in order</p>
+  <p><strong>Distance restriction:</strong> Not natively supported — use a third-party app (Zapiet, BOPIS) for radius filtering</p>
+  <p><strong>Express checkout:</strong> Shop Pay, Apple Pay, Google Pay do NOT support pickup — standard checkout only</p>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options at Checkout</a>
+      <p>When all delivery options disappear, including shipping rates.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <p>Carrier-calculated rates disappearing mid-checkout.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-inventory-error">Inventory Errors at Checkout</a>
+      <p>Out-of-stock errors, inventory reservation issues.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing with Online</a>
+      <p>In-store POS and online checkout inventory conflicts.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <p>Express payment buttons missing at checkout.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <p>Customers not getting pickup-ready or order emails.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-store-password-protected">Password Protected</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="/checkpulse/shopify-headless-checkout-error">Headless Checkout</a>
+      <a href="/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="/checkpulse/shopify-checkout-error-codes">Error Codes</a>
+      <a href="/checkpulse/shopify-checkout-black-friday">Black Friday</a>
+      <a href="/checkpulse/shopify-checkout-speed-test">Speed Test</a>
+      <a href="/checkpulse/shopify-checkout-app-audit">App Audit</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout</a>
+      <a href="/checkpulse/shopify-checkout-agencies">Agency Testing</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+      <a href="/checkpulse/shopify-checkout-cro">Checkout CRO</a>
+      <a href="/checkpulse/shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="/checkpulse/shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products</a>
+      <a href="/checkpulse/shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="/checkpulse/shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate / Referral Code</a>
+      <a href="/checkpulse/shopify-checkout-warranty-protection-plan">Warranty / Protection Plan</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Memberships</a>
+      <a href="/checkpulse/shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="/checkpulse/shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment / BNPL</a>
+      <a href="/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Invalid</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Mismatch</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Wrong Tax Calculation</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="/checkpulse/shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Checkout</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

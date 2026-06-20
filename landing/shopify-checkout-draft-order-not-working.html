@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Draft Order Not Working — Payment Link Broken, Discount Not Applying, Tax Wrong (2026)</title>
+  <meta name="description" content="Shopify draft order payment links stop working when the draft is archived or already paid. Customers can't apply discount codes. Tax must be manually recalculated. Full diagnostic for all draft order checkout failures." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-draft-order-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-draft-order-not-working" />
+  <meta property="og:title" content="Shopify Draft Order Not Working — Payment Link Broken, Discount Missing, Tax Wrong" />
+  <meta property="og:description" content="Draft order checkout links break when the draft is archived, deleted, or already paid. Customers cannot apply discount codes. Tax requires manual recalculation. Shipping must be added as a flat rate — carrier rates don't auto-populate. Complete diagnostic for all Shopify draft order failures." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Draft Order Not Working — Payment Link Broken, Discount Not Applying, Tax Wrong",
+    "description": "Shopify draft orders are fundamentally different from regular checkout. The payment link works only while the draft is in 'Open' status — archiving or deleting the draft immediately invalidates the link. Customers cannot enter discount codes at draft order checkout; discounts must be set by the merchant during draft creation. Tax is not live-calculated — the merchant must click 'Recalculate' before sending the invoice or the amount shown to the customer may be wrong. Carrier-calculated shipping rates do not auto-populate in draft orders; the merchant must manually add a shipping line at a flat rate. Draft orders also do not trigger standard abandoned checkout recovery emails.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-draft-order-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify draft order payment link not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify draft order payment link stops working for four main reasons: (1) the draft order has been archived — archiving removes the open status and invalidates the invoice link immediately; (2) the draft order has been deleted — deleted drafts are gone and the link 404s; (3) the draft has already been marked as paid — once paid (either through the checkout link or manually in admin), the checkout link no longer accepts new payments; (4) the customer is logged in with a different email address than the one the draft was created for. To fix: check the draft order status in Shopify Admin → Orders → Drafts. If it shows 'Open', the link should still work. If archived, unarchive it. If deleted, you'll need to create a new draft order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can customers apply discount codes at Shopify draft order checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify's draft order checkout does not show a discount code field. Customers cannot enter or apply any discount codes when paying via a draft order invoice link. Discounts must be added by the merchant when creating or editing the draft order — you can apply a percentage discount, a fixed amount discount, or set custom pricing on individual line items. Automatic discounts set up in Shopify Discounts do not apply to draft order checkout either. If a customer needs a discount, the merchant must edit the draft order in admin, apply the discount there, and resend the invoice."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the tax amount wrong on my Shopify draft order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does not automatically recalculate tax on draft orders when you update line items, change the shipping address, or when tax rates change. Tax is calculated at a point in time and frozen until you manually refresh it. To fix wrong tax: open the draft order in Shopify Admin → Orders → Drafts → click the draft → scroll to the Taxes section → click 'Recalculate'. If the customer's address has changed since the draft was created, update the shipping address first, then recalculate. Always recalculate before sending the invoice link to ensure the customer is charged the correct tax amount."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why doesn't Shopify draft order checkout show shipping rates?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify draft orders do not auto-calculate carrier rates or show a shipping method selection to the customer. Unlike regular checkout where the customer picks a shipping method, draft order checkout uses a fixed shipping amount set by the merchant at draft creation time. To add shipping: when creating or editing the draft order, click 'Add shipping' and enter a flat rate or select a shipping service manually. If no shipping line is on the draft, the customer will be charged $0 for shipping regardless of their address. This also means real-time carrier rates (UPS, FedEx, USPS live rates) are not available on draft order checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify draft order checkout send abandoned checkout recovery emails?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify's abandoned checkout recovery system does not apply to draft order checkouts. If a customer clicks the invoice link but does not complete payment, Shopify does not send an automatic recovery email. The draft order remains 'Open' in admin. You can manually follow up by resending the invoice email from the draft order page in Shopify Admin. Some third-party apps (like Klaviyo, Omnisend, or dedicated draft order apps) can be configured to send follow-up emails for unpaid draft orders, but this requires custom setup."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What payment methods are available at Shopify draft order checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Draft order checkout supports standard Shopify payment methods (Shopify Payments, credit/debit cards) but with some notable differences from regular checkout: (1) manual payment methods are available — the merchant can mark the draft as paid via cash, money order, bank transfer, or other manual methods directly in admin without the customer going through checkout; (2) some express payment methods like Shop Pay Installments and BNPL (Klarna, Afterpay, Affirm) may not be available depending on the merchant's plan and the draft order configuration; (3) Shop Pay (the wallet) is generally available but depends on the customer having a Shop account linked to the email on the draft. The safest assumption is that credit/debit cards via Shopify Payments are always available; express payment availability varies."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify draft order reserve inventory?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify draft orders do not reserve inventory. When you create a draft order for a product, the inventory count is not decremented and no hold is placed. Between the time the merchant creates the draft and the customer pays, that inventory can be purchased by other customers through the regular storefront. If a customer pays via the draft order link for an item that is now out of stock, Shopify will still accept the payment and the order will be placed — potentially creating an oversell situation. To handle this: either adjust inventory manually before creating the draft, use a draft order app that reserves inventory, or create the draft and process payment immediately rather than sending an invoice link."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is draft order checkout URL different from the regular Shopify checkout URL?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Regular Shopify checkout URLs follow the pattern /checkouts/{token} and are created when a customer reaches the checkout from the cart. Draft order checkout URLs are generated when the merchant sends an invoice from a draft order — they follow a different pattern and are tied to the draft order ID. You can find the draft order checkout URL in Shopify Admin → Orders → Drafts → [draft order] → the URL shown in the invoice preview, or retrieve it via the Admin API at /admin/api/draft_orders/{id}.json in the invoice_url field. Unlike regular checkout URLs which expire after the checkout session times out, draft order invoice URLs remain active as long as the draft order is in Open status."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Draft Order Not Working
+  </div>
+  <h1>Shopify <em>Draft Order Not Working</em> — Payment Link Broken, Discount Missing, Tax Wrong</h1>
+  <p class="hero-sub">Shopify draft orders are a completely separate checkout path from the regular storefront flow. The payment link breaks the moment a draft is archived or already paid. Customers cannot enter discount codes. Tax doesn't auto-recalculate. Carrier shipping rates don't populate. Here is the complete diagnostic for every draft order failure mode.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 9 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Critical Architecture Fact</div>
+    Draft order checkout is <strong>not the regular Shopify checkout</strong>. It has different behavior for discounts, shipping, tax, inventory, and abandoned checkout. Understanding these differences prevents the majority of support tickets around draft orders.
+  </div>
+
+  <h2>How Shopify Draft Orders Work (and Where They Break)</h2>
+
+  <p>A Shopify draft order is a manually created order — built by the merchant in Shopify Admin or via the Admin API rather than by a customer browsing the storefront. The merchant adds products, applies any discounts, sets shipping and tax, assigns a customer, and then sends an invoice email. The customer receives a link to pay.</p>
+
+  <p>What most merchants don't realize about draft orders:</p>
+
+  <ul>
+    <li>The invoice link only works while the draft is in <strong>"Open" status</strong> — archiving or deleting it immediately breaks the link</li>
+    <li>Customers <strong>cannot apply discount codes</strong> at draft order checkout — discounts must be set by the merchant at draft creation</li>
+    <li>Tax is <strong>not live-calculated</strong> — it must be manually recalculated before sending the invoice</li>
+    <li>Carrier shipping rates <strong>do not auto-populate</strong> — the merchant must enter a flat shipping amount manually</li>
+    <li>Draft orders <strong>do not reserve inventory</strong> — stock can sell out between draft creation and customer payment</li>
+    <li>Abandoned draft order checkouts do <strong>not trigger</strong> Shopify's standard recovery emails</li>
+  </ul>
+
+  <h2>Failure Mode 1 — Payment Link Not Working or Broken</h2>
+
+  <p>The draft order invoice link stops working in four scenarios. Each has a different resolution path.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Draft Status</th>
+          <th>Invoice Link Status</th>
+          <th>Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag green">Open</span></td>
+          <td><span class="tag green">Working</span></td>
+          <td>Customer can pay via the link</td>
+        </tr>
+        <tr>
+          <td><span class="tag blue">Completed / Paid</span></td>
+          <td><span class="tag red">Broken — already paid</span></td>
+          <td>Check the order in admin — it was paid. No action needed unless there's an error.</td>
+        </tr>
+        <tr>
+          <td><span class="tag yellow">Archived</span></td>
+          <td><span class="tag red">Broken — archived</span></td>
+          <td>Go to Orders → Drafts → find the archived draft → click "Unarchive"</td>
+        </tr>
+        <tr>
+          <td>Deleted</td>
+          <td><span class="tag red">404 — permanently gone</span></td>
+          <td>Create a new draft order and send a new invoice</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to find a draft order's current status</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Orders → Drafts</strong></li>
+    <li>Look for the draft in the "Open" tab — if it's not there, check the "Archived" tab</li>
+    <li>If the draft shows "Completed" it was already paid — find the resulting order in <strong>Orders → All orders</strong></li>
+    <li>If you can't find it anywhere, it was deleted — you'll need to create a new one</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Resending the Invoice</div>
+    You can resend the draft order invoice at any time from the draft order page. The resent email contains the same checkout link (as long as the draft is still Open). To resend: open the draft → click "Send invoice" → confirm. The customer receives a fresh email with the same payment link.
+  </div>
+
+  <h3>Customer can't pay — wrong account logged in</h3>
+  <p>If a draft order is assigned to a specific customer email address, the payment link may behave differently depending on whether the customer is logged into Shopify with a matching account. The customer does not need to be logged in to pay — the link works for anyone who has it. However, if the customer is experiencing an error message about account access, have them try the link in a private/incognito browser window without being logged in to any Shopify/Shop account.</p>
+
+  <h2>Failure Mode 2 — Customer Can't Apply a Discount Code</h2>
+
+  <p>This is the most common confusion around draft order checkout. There is <strong>no discount code field</strong> in the draft order checkout flow. A customer who receives a draft order invoice link and tries to enter a promo code will find no place to do so.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">By Design — No Customer-Side Discounts</div>
+    Shopify intentionally does not allow customers to apply discount codes at draft order checkout. Automatic discounts configured in Shopify Admin → Discounts also do not apply to draft orders. The only discounts that work are those the merchant explicitly adds to the draft before sending the invoice.
+  </div>
+
+  <h3>How to add a discount to a draft order</h3>
+  <ol class="steps">
+    <li>Open the draft order in <strong>Shopify Admin → Orders → Drafts</strong></li>
+    <li>To discount the whole order: click <strong>"Add discount"</strong> below the line items → choose percentage or fixed amount</li>
+    <li>To discount a specific line item: click the line item → edit the price directly or click the discount icon next to the item</li>
+    <li>After adding the discount, recalculate tax (see Failure Mode 3 below)</li>
+    <li>Click <strong>"Save"</strong> — then resend the invoice so the customer gets the updated amount</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Resend the Invoice After Editing</div>
+    If you add a discount to an existing draft order, the original invoice link the customer received still shows the old amount in the email body. The link itself will load the updated (discounted) total — but to avoid confusion, always resend the invoice after making changes so the customer sees the correct amount in the email.
+  </div>
+
+  <h2>Failure Mode 3 — Tax Amount Is Wrong</h2>
+
+  <p>Shopify calculates tax on a draft order at the time the draft is created or last saved. It does <strong>not</strong> automatically recalculate when you change line items, update the customer's shipping address, or when tax rates change on the Shopify platform.</p>
+
+  <h3>When does tax go wrong on a draft order</h3>
+  <ul>
+    <li>You added or removed products after the initial draft creation</li>
+    <li>The customer's shipping address was updated or corrected</li>
+    <li>The draft was created for a customer in one tax jurisdiction but will ship to another</li>
+    <li>Tax rates changed (e.g., a US state rate update, a new EU VAT rate)</li>
+    <li>You applied a discount but didn't recalculate tax afterward</li>
+    <li>The draft was created before a nexus was added for a new state/country</li>
+  </ul>
+
+  <h3>How to recalculate tax on a draft order</h3>
+  <ol class="steps">
+    <li>Open the draft order in <strong>Shopify Admin → Orders → Drafts</strong></li>
+    <li>Confirm the shipping address is correct — tax is calculated based on this address</li>
+    <li>Scroll to the <strong>Taxes</strong> section</li>
+    <li>Click <strong>"Recalculate"</strong> — Shopify will recalculate based on current rates and the shipping address</li>
+    <li>If you don't see a Recalculate button, make any small edit (like adding/removing a note) and the option should appear</li>
+    <li>Click <strong>"Save"</strong> and resend the invoice</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Tax-Exempt Customers and Draft Orders</div>
+    If a customer is marked as tax-exempt in Shopify Admin → Customers → [customer] → Tax exemptions, that exemption will apply when you create a draft order assigned to that customer. However, if you reassign the draft or the exemption is added after draft creation, you may need to manually toggle the "Charge taxes" option on the draft and recalculate.
+  </div>
+
+  <h2>Failure Mode 4 — Shipping Rate Not Showing or Wrong</h2>
+
+  <p>Draft order checkout does not pull carrier-calculated shipping rates. The shipping amount is set by the merchant when creating the draft and is presented to the customer as a fixed line item — the customer cannot choose between shipping options at draft order checkout.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Type</th>
+          <th>Shipping Selection</th>
+          <th>Carrier Rates</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Regular storefront checkout</td>
+          <td><span class="tag green">Customer selects</span></td>
+          <td><span class="tag green">Auto-calculated</span> (if carrier rates enabled)</td>
+        </tr>
+        <tr>
+          <td>Draft order checkout</td>
+          <td><span class="tag red">Merchant sets</span></td>
+          <td><span class="tag red">Not available</span> — flat rate only</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to add shipping to a draft order</h3>
+  <ol class="steps">
+    <li>In the draft order, click <strong>"Add shipping"</strong> below the line items and tax section</li>
+    <li>Enter a flat shipping rate manually (e.g., $9.99 for Standard Shipping)</li>
+    <li>You can label it with the carrier and service name for clarity (e.g., "UPS Ground")</li>
+    <li>Click <strong>"Apply"</strong> — the shipping amount appears as a line item in the draft</li>
+    <li>Recalculate tax if your store charges tax on shipping, then save and resend the invoice</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">No Shipping = $0 Shipping Charged</div>
+    If you forget to add a shipping line to a draft order, the customer will be charged $0 for shipping when they pay. Shopify does not warn you about this. Always check that the shipping line is present before sending the invoice.
+  </div>
+
+  <h2>Failure Mode 5 — Inventory Not Reserved</h2>
+
+  <p>Creating a draft order does not decrement inventory or place a hold on stock. Between the time you create the draft and the time the customer pays, those products are freely available for other customers to purchase via the regular storefront.</p>
+
+  <p>Scenarios where this causes problems:</p>
+
+  <ul>
+    <li>You create a custom draft for a B2B client with limited inventory — another customer buys out the stock before the client pays</li>
+    <li>Flash sale situation: a customer agrees to a price via email, you create a draft, but the item sells out before they click the link</li>
+    <li>Draft sits unpaid for several days — stock situation changes</li>
+  </ul>
+
+  <h3>Options for managing inventory with draft orders</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>How</th>
+          <th>Trade-off</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Manual inventory adjustment</td>
+          <td>Reduce available inventory in admin for the draft quantity before creating the draft</td>
+          <td>Simple but requires remembering to restore if draft is cancelled</td>
+        </tr>
+        <tr>
+          <td>Process payment immediately</td>
+          <td>For phone/in-person orders, mark draft as paid manually in admin right away</td>
+          <td>Eliminates the window of exposure but requires synchronous payment</td>
+        </tr>
+        <tr>
+          <td>Draft order app with inventory hold</td>
+          <td>Third-party apps can place temporary holds (varies by app)</td>
+          <td>Adds app complexity and cost</td>
+        </tr>
+        <tr>
+          <td>Continue selling &amp; oversell</td>
+          <td>Accept that occasional oversells may happen; handle manually</td>
+          <td>Acceptable for low-volume custom orders with reliable customers</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 6 — No Abandoned Checkout Recovery for Draft Orders</h2>
+
+  <p>Shopify's built-in abandoned checkout recovery system — which automatically emails customers who reach checkout but don't complete payment — does not apply to draft order checkouts. If a customer clicks the invoice link, enters their details, but closes the browser before paying, Shopify does not send an automatic follow-up email.</p>
+
+  <h3>Options for following up on unpaid draft orders</h3>
+  <ol class="steps">
+    <li>Monitor open draft orders in <strong>Shopify Admin → Orders → Drafts</strong> and follow up manually</li>
+    <li>Resend the invoice email from the draft — customers receive a fresh notification with the payment link</li>
+    <li>Use a Shopify Flow automation to notify your team when a draft order has been open for X days without payment</li>
+    <li>Configure Klaviyo, Omnisend, or similar tools to send follow-up sequences for unpaid draft orders via the Admin API webhook on <code>draft_orders/create</code> and checking payment status</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Draft Order Invoice Link Does Not Expire</div>
+    Unlike some order management systems, Shopify draft order invoice links do not expire after a fixed time period. The link remains active indefinitely as long as the draft order stays in "Open" status. You can send a customer an invoice link today, and if they haven't paid in 30 days, you can resend it and the same link will still work (as long as you haven't archived the draft). The only way the link stops working is if you archive, complete, or delete the draft.
+  </div>
+
+  <h2>Failure Mode 7 — Draft Order Payment Methods Missing or Incomplete</h2>
+
+  <p>Draft order checkout shows a subset of the payment methods available on the regular storefront. Key differences:</p>
+
+  <ul>
+    <li><strong>Shop Pay Installments / BNPL:</strong> Not reliably available at draft order checkout. Klarna, Afterpay, and Affirm integrations may not appear for draft order customers depending on the gateway configuration.</li>
+    <li><strong>Manual payment methods:</strong> The merchant can mark a draft order as paid by cash, money order, bank transfer, or other manual methods directly in admin without the customer going through the checkout link at all. This is useful for phone orders and in-person sales.</li>
+    <li><strong>Shop Pay wallet:</strong> Available when the customer's email matches a Shop account, but behavior can vary.</li>
+    <li><strong>Standard card payments:</strong> Consistently available via Shopify Payments or whichever payment gateway is configured.</li>
+  </ul>
+
+  <h3>How to mark a draft order as paid manually (without customer checkout)</h3>
+  <ol class="steps">
+    <li>Open the draft order in <strong>Shopify Admin → Orders → Drafts</strong></li>
+    <li>Click <strong>"Mark as paid"</strong> at the top of the page</li>
+    <li>Select the payment method (cash, money order, credit card manually entered, etc.)</li>
+    <li>Enter the transaction amount and any reference number</li>
+    <li>Click <strong>"Collect payment"</strong> — the draft converts to a completed order immediately</li>
+  </ol>
+
+  <div class="callout success">
+    <div class="callout-title">Best Practice: Draft Order vs Regular Checkout</div>
+    Use draft orders for: custom quotes, wholesale orders, phone orders, orders requiring manual discounts or custom pricing, or situations where you want to collect payment outside the normal storefront flow. Use the regular checkout for all standard storefront purchases — it has better payment method coverage, real-time carrier rates, abandoned checkout recovery, and inventory holds.
+  </div>
+
+  <h2>Draft Order vs Regular Checkout — Full Comparison</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Regular Checkout</th>
+          <th>Draft Order Checkout</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Initiated by</td>
+          <td>Customer (via cart)</td>
+          <td>Merchant (in admin or API)</td>
+        </tr>
+        <tr>
+          <td>Customer discount codes</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag red">No</span> — merchant must apply during draft creation</td>
+        </tr>
+        <tr>
+          <td>Automatic discounts</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag red">No</span> — not applied to draft orders</td>
+        </tr>
+        <tr>
+          <td>Tax calculation</td>
+          <td><span class="tag green">Live / automatic</span></td>
+          <td><span class="tag yellow">Manual recalculation required</span></td>
+        </tr>
+        <tr>
+          <td>Shipping rate selection</td>
+          <td><span class="tag green">Customer selects from configured rates</span></td>
+          <td><span class="tag red">Fixed rate set by merchant</span></td>
+        </tr>
+        <tr>
+          <td>Carrier-calculated rates</td>
+          <td><span class="tag green">Yes (if enabled)</span></td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>Inventory reservation</td>
+          <td><span class="tag green">Reserved at checkout</span></td>
+          <td><span class="tag red">Not reserved</span></td>
+        </tr>
+        <tr>
+          <td>Abandoned checkout recovery</td>
+          <td><span class="tag green">Automatic emails</span></td>
+          <td><span class="tag red">Manual follow-up only</span></td>
+        </tr>
+        <tr>
+          <td>Shop Pay Installments / BNPL</td>
+          <td><span class="tag green">Yes (if enabled)</span></td>
+          <td><span class="tag yellow">Varies — often unavailable</span></td>
+        </tr>
+        <tr>
+          <td>Link expiry</td>
+          <td>Session-based</td>
+          <td>No expiry — works while draft is Open</td>
+        </tr>
+        <tr>
+          <td>Mark as paid manually</td>
+          <td><span class="tag red">No</span></td>
+          <td><span class="tag green">Yes — from admin</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Quick Diagnostic: Which Draft Order Failure Am I Seeing?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Customer gets an error clicking the invoice link</td>
+          <td>Draft is archived or already paid</td>
+          <td>Unarchive the draft or confirm order was completed</td>
+        </tr>
+        <tr>
+          <td>Page says "This checkout is no longer available"</td>
+          <td>Draft was deleted or completed</td>
+          <td>Check admin — create a new draft if needed</td>
+        </tr>
+        <tr>
+          <td>Customer can't find a discount code field</td>
+          <td>By design — draft orders don't have discount code input</td>
+          <td>Edit the draft in admin, add the discount, resend invoice</td>
+        </tr>
+        <tr>
+          <td>Tax amount looks wrong</td>
+          <td>Tax not recalculated after changes</td>
+          <td>Click "Recalculate" in the Taxes section, save, resend</td>
+        </tr>
+        <tr>
+          <td>No shipping options shown / $0 shipping</td>
+          <td>No shipping line added to the draft</td>
+          <td>Add shipping in admin, save, resend invoice</td>
+        </tr>
+        <tr>
+          <td>Item sold out before customer paid</td>
+          <td>Draft orders don't reserve inventory</td>
+          <td>Adjust inventory manually before creating draft</td>
+        </tr>
+        <tr>
+          <td>Customer abandoned link, no recovery email sent</td>
+          <td>Shopify recovery doesn't apply to draft orders</td>
+          <td>Resend the invoice manually or set up a Flow reminder</td>
+        </tr>
+        <tr>
+          <td>BNPL / Klarna not showing at draft checkout</td>
+          <td>Some BNPL not supported in draft order flow</td>
+          <td>Process payment manually in admin or ask customer to use card</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Shopify Checkout Working Right Now?</h2>
+    <p>Draft order issues are merchant-side problems — but silent failures in your regular storefront checkout are invisible to you until a customer complains. CheckPulse runs a full 4-step checkout simulation every 30 minutes and alerts you the moment something breaks.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/" class="btn btn-secondary">See How It Works</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <p>Cart permalink broken, Buy Button not loading, discount URL not applying</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <p>Only one discount applies, discount code field disappeared, automatic discount blocking coupon</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <p>Wrong tax rate, not charging sales tax, tax exempt customer charged</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <p>Edit button missing, order edit discount recalculation, subscription order can't edit</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <p>Custom field data lost at checkout, line item properties missing from order</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <p>Cart note field missing, special instructions lost, note not in email</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-abandoned">Cart Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment &amp; BNPL</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Checkout Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Returns &amp; Exchange Checkout Not Working — Store Credit, Refund, Loop Returns (2026)</title>
+  <meta name="description" content="Shopify has no native exchange flow — exchanges go through refund + new order, store credit redemption, or draft order checkout (Plus). Each path fails differently. Here are the five root causes and how to fix them." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-returns-exchange-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-returns-exchange-not-working" />
+  <meta property="og:title" content="Shopify Returns &amp; Exchange Checkout Not Working — Store Credit, Refund, Loop Returns" />
+  <meta property="og:description" content="Shopify doesn't have a native exchange checkout — it uses refund + new order, store credit (gift card or app), or Plus draft orders. When exchange checkout fails, it's usually a discount stacking conflict, store credit not applying, or a draft order expiry. Here's the full diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Returns &amp; Exchange Checkout Not Working — Store Credit, Refund, Loop Returns",
+    "description": "Shopify has no native exchange workflow for standard (non-Plus) stores. Returns go through refund to original payment method or store credit (Shopify gift card or third-party app). Exchanges are a separate new-order checkout. Each path has distinct failure modes: store credit not applying at checkout, discount stacking blocking the exchange, draft order URLs expiring on Plus, return app checkout sessions crashing, or refund appearing on the wrong payment method. This guide explains every failure path with root causes and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-returns-exchange-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does Shopify have a native exchange checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Standard Shopify (non-Plus) has no native exchange checkout. When a customer wants to exchange a product, the typical flow is: (1) merchant issues a refund to original payment method or as store credit (a Shopify gift card), then (2) the customer places a new order normally. Shopify Plus merchants can use the 'Create exchange' button in the admin, which creates a draft order with the return deducted as a line item — this generates a checkout URL the customer uses to pay any balance. Third-party return apps like Loop Returns, Aftership Returns, and Happy Returns build their own exchange checkout portals on top of Shopify's order and draft order APIs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is store credit not applying at checkout during an exchange?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a return results in a Shopify gift card (the most common store-credit mechanism), the customer receives a gift card code by email. At the new checkout, they enter this code in the gift card or discount code field. The most common reasons it doesn't apply: (1) the gift card was issued to a different email than the one the customer is checking out with — Shopify gift cards are not tied to accounts, just codes, but some apps validate the email, (2) the gift card balance is zero or the code expired (Shopify gift cards don't expire by default, but some third-party apps do set expiry), (3) the gift card code was mistyped or has a character encoding issue (dashes vs. no dashes, uppercase vs. lowercase), (4) the customer is also trying to apply a discount code and the automatic discount blocking rule conflicts, or (5) the return app issued a 'store credit' using its own internal ledger (Rise.ai, Gorgias credits) rather than a Shopify gift card — these internal credits are only redeemable through that app's portal, not natively at Shopify checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Loop Returns exchange checkout not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Loop Returns builds a custom exchange portal that creates a new Shopify cart with a discount code applied to offset the return credit. Common failure modes: (1) the discount code Loop creates has a single-use limit and has been invalidated by a failed or duplicate submission, (2) the customer has an automatic discount (e.g., a sale discount) active on the store and the Loop code cannot stack — this triggers 'you can only use one discount per order', (3) the Loop checkout session URL has expired (Loop sessions typically expire after 24 hours), (4) the exchange item the customer wants is now out of stock after Loop pre-reserved it, or (5) the Loop portal is a third-party domain and Shopify's CORS/cookie settings block the checkout session token. If Loop's exchange portal shows a blank page or 'checkout unavailable', the cart token has likely expired — the customer needs to start a fresh return request."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why hasn't my Shopify refund appeared on my customer's card?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Payments refunds are processed immediately on Shopify's side, but the time to appear on the customer's card depends on the card network and issuing bank — typically 5–10 business days for credit cards and 2–5 business days for debit cards. The refund will never appear faster than the original payment network allows; there is nothing Shopify or the merchant can do to speed this up. If the customer's card has been closed or reported lost/stolen since the original purchase, the refund may be automatically redirected back to the store. In this case, the merchant must issue a replacement (check, bank transfer, or new gift card) outside Shopify's payment flow. For PayPal payments, refunds go back to the customer's PayPal balance and appear immediately in PayPal, though any withdrawal to a bank account follows PayPal's own timeline."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the Shopify Plus exchange draft order checkout URL not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Plus merchants can create an exchange using the 'Create exchange' button in the order admin. This creates a draft order with a negative line item for the returned product and a new line item for the exchange product. Shopify generates a checkout URL for the customer to pay the balance difference. Common failure modes: (1) draft order checkout URLs expire after approximately 30 days of inactivity — if the customer hasn't completed checkout, you need to resend the invoice from the draft order, (2) the draft order was auto-closed because the store has a 'complete within 60 days' setting, (3) the negative line item (return credit) made the total negative — Shopify cannot process a negative-total checkout and the customer cannot proceed, (4) a shipping rate is required but the draft order didn't set one — the checkout shows 'no shipping options available', or (5) the customer's email changed since the original order and the draft order invoice went to the wrong address."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a customer use both store credit and a discount code at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — a Shopify gift card code and a discount code can be used together at checkout. These are separate input fields and Shopify allows stacking one discount code with one or more gift card codes (up to five gift cards per checkout). The conflict that prevents this is when the store has an active automatic discount (not a code, but an automatic rule). Non-Plus stores can only run one automatic discount at a time; if an automatic discount is active and the customer tries to enter a discount code, Shopify shows 'you can only use one discount per order' and rejects the code. Gift cards are not affected by this limit — only coupon codes. So if a customer has a return-credit gift card code plus a coupon, the gift card always applies; the coupon is blocked only if there's a competing automatic discount."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1117;
+      --ink-2: #374151;
+      --ink-3: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --surface-3: #f3f4f6;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-surface: #eff6ff;
+      --warn: #b45309;
+      --warn-surface: #fffbeb;
+      --ok: #065f46;
+      --ok-surface: #ecfdf5;
+      --danger: #991b1b;
+      --danger-surface: #fef2f2;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--ink); background: var(--surface); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--ink); }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--ink-2); }
+    .nav-cta { margin-left: auto; background: var(--accent); color: #fff; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; }
+    .nav-cta:hover { background: var(--accent-dark); text-decoration: none; }
+
+    .page-wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .hero { padding: 52px 0 40px; border-bottom: 1px solid var(--border); }
+    .hero-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.25rem); font-weight: 800; line-height: 1.2; color: var(--ink); margin-bottom: 16px; }
+    .hero-sub { font-size: 1.05rem; color: var(--ink-2); max-width: 680px; }
+
+    .quick-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .quick-nav a { font-size: 0.8rem; background: var(--surface-3); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; color: var(--ink-2); }
+    .quick-nav a:hover { background: var(--accent-surface); border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 16px; color: var(--ink); }
+    h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; color: var(--ink); }
+    p { color: var(--ink-2); margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card.warn { background: var(--warn-surface); border-color: #fcd34d; }
+    .card.danger { background: var(--danger-surface); border-color: #fca5a5; }
+    .card.ok { background: var(--ok-surface); border-color: #6ee7b7; }
+    .card.info { background: var(--accent-surface); border-color: #bfdbfe; }
+    .card-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 8px; }
+    .card.warn .card-label { color: var(--warn); }
+    .card.danger .card-label { color: var(--danger); }
+    .card.ok .card-label { color: var(--ok); }
+    .card.info .card-label { color: var(--accent); }
+    .card h3 { font-size: 0.95rem; margin-bottom: 6px; }
+    .card p { font-size: 0.875rem; color: var(--ink-2); margin-bottom: 0; }
+
+    .steps { counter-reset: step; display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
+    .step { display: flex; gap: 16px; }
+    .step-num { counter-increment: step; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; }
+    .step-num::after { content: counter(step); }
+    .step-body h3 { font-size: 0.95rem; margin-bottom: 4px; }
+    .step-body p { font-size: 0.875rem; margin-bottom: 0; }
+
+    .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: var(--radius); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.6; overflow-x: auto; margin: 14px 0; }
+    .code-block .cm { color: #6c7086; }
+    .code-block .kw { color: #89b4fa; }
+    .code-block .str { color: #a6e3a1; }
+    .code-block .key { color: #cba6f7; }
+    .code-block .val { color: #fab387; }
+
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { background: var(--surface-3); font-weight: 700; text-align: left; padding: 10px 14px; border: 1px solid var(--border); color: var(--ink); }
+    td { padding: 10px 14px; border: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+    tr:nth-child(even) td { background: var(--surface-2); }
+
+    .alert { border-left: 4px solid; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 14px 18px; margin: 16px 0; font-size: 0.9rem; }
+    .alert.warn { border-color: #f59e0b; background: var(--warn-surface); color: var(--warn); }
+    .alert.info { border-color: var(--accent); background: var(--accent-surface); color: var(--accent-dark); }
+    .alert.danger { border-color: #ef4444; background: var(--danger-surface); color: var(--danger); }
+    .alert strong { font-weight: 700; }
+
+    ul, ol { padding-left: 20px; color: var(--ink-2); }
+    li { margin-bottom: 8px; font-size: 0.9rem; }
+    li:last-child { margin-bottom: 0; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    .cta-box { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius: var(--radius); padding: 36px 32px; color: #fff; text-align: center; margin-top: 40px; }
+    .cta-box h2 { color: #fff; font-size: 1.4rem; margin-bottom: 10px; }
+    .cta-box p { color: rgba(255,255,255,0.85); max-width: 520px; margin: 0 auto 24px; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--accent-dark); font-weight: 700; padding: 12px 28px; border-radius: var(--radius-sm); font-size: 0.95rem; }
+    .cta-btn:hover { background: #e0e7ff; text-decoration: none; }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 24px; margin-top: 60px; }
+    footer .container { max-width: 860px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
+    .footer-copy { font-size: 0.8rem; color: var(--ink-3); display: block; margin-bottom: 16px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+    .footer-links a { font-size: 0.8rem; color: var(--ink-3); }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .hero { padding: 36px 0 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="./" class="nav-brand">CheckPulse</a>
+  <div class="nav-links">
+    <a href="./free-check">Free Check</a>
+    <a href="./guide">Guide</a>
+    <a href="./shopify-checkout-not-working">Troubleshoot</a>
+  </div>
+  <a href="./#pricing" class="nav-cta">Monitor My Checkout</a>
+</nav>
+
+<div class="page-wrap">
+
+  <section class="hero">
+    <div class="hero-label">Shopify Checkout Troubleshooting</div>
+    <h1>Shopify Returns &amp; Exchange Checkout Not Working — Store Credit, Loop Returns, Refund Portal</h1>
+    <p class="hero-sub">Shopify has no native exchange checkout. Exchanges run through three separate paths — refund + new order, store credit redemption, or Plus draft order — and each one fails differently. Here's how to diagnose and fix every scenario.</p>
+  </section>
+
+  <div class="quick-nav">
+    <a href="#architecture">How It Works</a>
+    <a href="#three-paths">Three Exchange Paths</a>
+    <a href="#failure-modes">Five Failure Modes</a>
+    <a href="#return-apps">Return App Errors</a>
+    <a href="#store-credit">Store Credit Issues</a>
+    <a href="#plus-draft">Plus Draft Orders</a>
+    <a href="#refund-timing">Refund Timing</a>
+    <a href="#diagnostic">Diagnostic Checklist</a>
+    <a href="#reference-table">Reference Table</a>
+  </div>
+
+  <!-- Architecture -->
+  <section class="section" id="architecture">
+    <h2>How Shopify Handles Returns and Exchanges</h2>
+    <p>Shopify's return flow lives in two separate systems: <strong>refunds</strong> (money flowing back) and <strong>new orders</strong> (the exchange). There is no single "exchange checkout" built into standard Shopify. What most merchants call an exchange checkout is actually one of three separate mechanisms stitched together by the merchant or a third-party return app.</p>
+    <div class="alert info">
+      <strong>Key insight:</strong> When an exchange checkout fails, the failure is almost never in Shopify's core checkout — it's in how the return credit was issued (gift card vs. app credit vs. draft order) and how that credit is being redeemed. Each path has distinct failure modes.
+    </div>
+    <div class="card-grid">
+      <div class="card info">
+        <div class="card-label">Refunds</div>
+        <h3>Money-back mechanism</h3>
+        <p>Shopify Payments, PayPal, or third-party gateway reversal. Processed by Shopify admin; timeline controlled by the payment network (5–10 business days for cards).</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Store Credit</div>
+        <h3>Gift card or app credit</h3>
+        <p>Shopify issues a gift card code (redeemable at any checkout) or routes through a store credit app like Rise.ai (redeemable only through that app's portal).</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Exchange Order</div>
+        <h3>New checkout or draft order</h3>
+        <p>Standard: customer places a new order normally. Plus: admin creates a draft order with a negative return line item. Apps: return portal creates a new cart automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Three Paths -->
+  <section class="section" id="three-paths">
+    <h2>Three Exchange Paths — and Where Each Breaks</h2>
+    <p>Every exchange on Shopify uses one of these three mechanisms. Identifying which one your store uses is the first step in any diagnosis.</p>
+
+    <h3>Path 1: Refund + New Order (Standard Shopify)</h3>
+    <p>The merchant issues a refund (to card or as a Shopify gift card). The customer places a completely separate new order and applies the gift card code at checkout. This is the simplest path with the fewest failure modes — but customers find it confusing because the two steps are disconnected.</p>
+    <div class="alert warn">
+      <strong>Most common failure:</strong> Customer receives the gift card email but the code doesn't work at checkout. Usually the code was already used, the customer is trying to stack it with a coupon that conflicts with an automatic discount, or the card was issued to a different email.
+    </div>
+
+    <h3>Path 2: Return App Exchange Portal (Loop, Aftership, Happy Returns)</h3>
+    <p>A return app presents a branded portal where the customer selects their exchange item. The app creates a new Shopify cart and applies a discount code or gift card equivalent to the return credit. The customer checks out through a Shopify checkout session that the app controls.</p>
+    <div class="alert warn">
+      <strong>Most common failure:</strong> The app-generated discount code conflicts with an active automatic discount on the store, blocking the customer from checking out with their exchange credit applied.
+    </div>
+
+    <h3>Path 3: Shopify Plus Draft Order Exchange</h3>
+    <p>In the Shopify admin order view, Plus merchants see a "Create exchange" button. This creates a draft order with: (a) a positive line item for the exchange product, and (b) a negative line item for the returned product. Shopify generates a checkout URL for the customer to pay any balance difference. If the exchange value exceeds the original, the customer pays the difference. If it's less, the merchant issues a partial refund after the exchange is completed.</p>
+    <div class="alert warn">
+      <strong>Most common failure:</strong> The draft order checkout URL expires (~30 days), or the negative line item makes the order total zero and Shopify won't process a $0 checkout through the draft order path — the merchant must manually create a free order instead.
+    </div>
+  </section>
+
+  <!-- Five Failure Modes -->
+  <section class="section" id="failure-modes">
+    <h2>Five Root Causes of Exchange Checkout Failure</h2>
+    <div class="card-grid">
+      <div class="card danger">
+        <div class="card-label">Cause 1 — Most Common</div>
+        <h3>Discount stacking conflict</h3>
+        <p>Return app applies a discount code for the credit. If an automatic discount is active on the store, Shopify blocks the code: "you can only use one discount per order." Non-Plus only.</p>
+      </div>
+      <div class="card danger">
+        <div class="card-label">Cause 2</div>
+        <h3>App store credit not native</h3>
+        <p>Rise.ai, Gorgias Credits, and similar apps use internal ledgers, not Shopify gift cards. Their "store credit" only works in their portal — not at a regular Shopify checkout.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 3</div>
+        <h3>Draft order URL expired (Plus)</h3>
+        <p>Shopify Plus exchange draft orders expire if the customer hasn't completed checkout in ~30 days. The URL returns a "checkout unavailable" error. Resend the invoice from the draft order.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 4</div>
+        <h3>Exchange item now out of stock</h3>
+        <p>Return apps pre-reserve inventory when the customer selects an exchange item in the portal. If that reservation expires before checkout completes, the item is OOS and checkout fails.</p>
+      </div>
+      <div class="card">
+        <div class="card-label">Cause 5</div>
+        <h3>Gift card code already used or expired</h3>
+        <p>If the original return generated a Shopify gift card and the customer already used part of it, the remaining balance may be less than expected. Some third-party apps also set expiry dates on gift card codes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Return Apps -->
+  <section class="section" id="return-apps">
+    <h2>Return App Exchange Checkout Errors</h2>
+    <p>Loop Returns, Aftership Returns Center, Happy Returns, Returnly (now Loop), and similar apps all build on top of Shopify's cart and checkout APIs. Their exchange portals create new checkout sessions that can fail for app-specific reasons distinct from normal Shopify checkout errors.</p>
+
+    <h3>Loop Returns</h3>
+    <p>Loop creates a new cart with a generated discount code equal to the return credit. This discount code is single-use and tied to the specific exchange session.</p>
+    <ul>
+      <li><strong>Session expired:</strong> Loop exchange sessions are time-limited (~24 hours). If the customer doesn't complete checkout, the session and discount code both expire. Customer must start a new return request.</li>
+      <li><strong>Automatic discount conflict:</strong> If your store has an active automatic discount (sitewide sale, seasonal promo), Loop's discount code is rejected at checkout. You must temporarily pause the automatic discount, or the customer must check out without the automatic discount (non-Plus can't stack codes).</li>
+      <li><strong>Variant out of stock mid-session:</strong> Loop pre-reserves the exchange variant for a limited window. If another customer purchases that last unit before this checkout completes, Loop's cart becomes OOS. The customer must pick a different variant.</li>
+      <li><strong>Loop portal blank page:</strong> Usually a cookie or third-party script blocking issue. Loop's portal runs on a Loop-owned domain; if the customer's browser blocks third-party cookies, the session token can't be passed to Shopify's checkout. Try incognito mode or a different browser.</li>
+    </ul>
+
+    <h3>Aftership Returns Center</h3>
+    <p>Aftership issues a Shopify gift card (not a discount code) for the return credit. This is more robust than Loop's discount code approach because gift cards stack with discount codes and aren't blocked by automatic discounts — but it has its own failure modes:</p>
+    <ul>
+      <li><strong>Gift card issued to wrong email:</strong> Aftership sends the gift card to the email on the original order. If the customer changed their email after ordering, the gift card goes to the old address.</li>
+      <li><strong>Gift card amount doesn't match return value:</strong> If a return has multiple items with different return reasons (one exchange, one refund), the gift card may reflect only the exchange portion. Check the Aftership return details vs. the gift card balance in Shopify admin → Gift cards.</li>
+      <li><strong>Aftership exchange checkout link broken:</strong> Aftership generates a pre-filled cart URL for the exchange item. These cart URLs expire after the cart token expires (10 days by default in Shopify). If the customer clicks the link after 10 days, the cart is empty and the gift card still works — but they have to add the item manually.</li>
+    </ul>
+
+    <h3>Happy Returns</h3>
+    <p>Happy Returns routes returns through physical drop-off locations and then issues refunds or exchanges back through the merchant's system. Exchange checkout issues here are typically Shopify integration sync delays — Happy Returns marks the exchange complete, but the new Shopify order takes up to 30 minutes to appear due to webhook processing queues.</p>
+
+    <div class="alert info">
+      <strong>General rule:</strong> If the return app's portal shows a success screen but the exchange order doesn't appear in Shopify, check the return app's dashboard for "failed order creation" errors. These are usually caused by out-of-stock items, a product that was deleted since the original purchase, or a variant ID that changed after a Shopify product re-import.
+    </div>
+  </section>
+
+  <!-- Store Credit -->
+  <section class="section" id="store-credit">
+    <h2>Store Credit Not Applying at Checkout</h2>
+    <p>There are two fundamentally different types of "store credit" in Shopify's ecosystem, and they work completely differently at checkout. Mixing them up is the most common source of confusion.</p>
+
+    <div class="two-col">
+      <div class="card ok">
+        <div class="card-label">Type A — Shopify Gift Card</div>
+        <h3>Native. Works at any checkout.</h3>
+        <p>Shopify issues a gift card code (e.g., ABCD-1234-EFGH-5678). Customer enters it in the gift card field at checkout. Works on any Shopify store checkout, stacks with discount codes, no account required.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Type B — App Store Credit</div>
+        <h3>App-locked. Only works in that app's portal.</h3>
+        <p>Rise.ai, Gorgias Credits, Smile.io store credit — these are balance entries in the app's own database. They are NOT Shopify gift cards. They can only be redeemed through that specific app's checkout extension or portal. A customer cannot enter a Rise.ai credit at a normal Shopify checkout — it won't show up in the gift card field.</p>
+      </div>
+    </div>
+
+    <h3>Why Gift Card Codes Fail at Checkout</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check the gift card balance in Shopify admin</h3>
+          <p>Go to Shopify admin → Gift cards → search by last 4 digits or customer email. Verify the balance matches what the customer expects. If it's $0, it's already been used.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Verify the exact code format</h3>
+          <p>Shopify gift card codes are typically 16 characters in 4 groups of 4 (XXXX-XXXX-XXXX-XXXX). Some apps generate shorter or longer codes. The code is case-insensitive but must match exactly. Look for common transcription errors: 0 vs O, 1 vs I, 1 vs l.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check if the gift card is disabled</h3>
+          <p>In Shopify admin → Gift cards → click the specific card. It may show as "disabled" if a merchant or app disabled it after issuance. Re-enable it from the gift card detail page.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check for automatic discount conflict</h3>
+          <p>A gift card code is NOT a discount code — it doesn't conflict with automatic discounts. If the customer is also entering a discount/coupon code AND there's an active automatic discount, the coupon will be blocked, but the gift card will still apply.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plus Draft Orders -->
+  <section class="section" id="plus-draft">
+    <h2>Shopify Plus Draft Order Exchange Issues</h2>
+    <p>The "Create exchange" feature in Shopify Plus admin generates a draft order. Understanding the draft order structure is essential for diagnosing checkout failures.</p>
+
+    <div class="alert info">
+      <strong>How it works:</strong> The draft order contains two line items: (1) the new exchange product at its current price, and (2) a negative line item for the returned product equal to its original paid price. The customer receives a checkout URL to pay any positive balance. If the exchange is equal in value, the checkout total is $0 — and Shopify cannot process a $0 draft order checkout (it requires at least one real payment).
+    </div>
+
+    <h3>Common Draft Order Exchange Failures</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Failure</th>
+            <th>Root Cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Checkout URL shows "unavailable"</td>
+            <td>Draft order checkout URLs expire in ~30 days if the customer hasn't completed checkout</td>
+            <td>Go to draft order → Send invoice → customer gets a fresh checkout link</td>
+          </tr>
+          <tr>
+            <td>$0 total — checkout won't proceed</td>
+            <td>Exchange and return values are equal; Shopify won't process a $0 draft order checkout</td>
+            <td>Mark the draft order complete manually (admin), then issue any refund outside the draft order flow</td>
+          </tr>
+          <tr>
+            <td>Negative total — can't proceed</td>
+            <td>Exchange item is lower value than return; draft order total is negative</td>
+            <td>Mark draft order complete → issue partial refund to original payment method for the difference</td>
+          </tr>
+          <tr>
+            <td>"No shipping options available"</td>
+            <td>Draft order was created without a shipping line; Shopify requires a shipping rate at checkout even for exchanges</td>
+            <td>Edit the draft order → add a shipping line (can be $0 free shipping rate)</td>
+          </tr>
+          <tr>
+            <td>Checkout URL sent to wrong email</td>
+            <td>Draft order invoice defaulted to the original order email; customer changed email since purchase</td>
+            <td>Edit the draft order customer → update email → resend invoice</td>
+          </tr>
+          <tr>
+            <td>Exchange variant is OOS</td>
+            <td>Draft order holds a line item referencing an inventory ID; if inventory reaches 0 before checkout completes, checkout fails</td>
+            <td>Manually adjust inventory in Shopify admin for that variant, allow negative inventory temporarily, then complete the draft order</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Refund Timing -->
+  <section class="section" id="refund-timing">
+    <h2>Refund Not Appearing — Timeline by Payment Method</h2>
+    <p>When a customer says "I haven't received my refund," the issue is rarely Shopify — it's the payment network timeline. Merchants issue the refund instantly in Shopify admin; the bank or payment processor controls when it appears on the customer's statement.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Payment Method</th>
+            <th>Refund Processing Time</th>
+            <th>Where Refund Appears</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shopify Payments — credit card</td>
+            <td>5–10 business days</td>
+            <td>Customer's card statement (may show as a pending credit first)</td>
+          </tr>
+          <tr>
+            <td>Shopify Payments — debit card</td>
+            <td>2–5 business days</td>
+            <td>Customer's bank account / debit card statement</td>
+          </tr>
+          <tr>
+            <td>PayPal</td>
+            <td>Instant to PayPal balance; 3–5 days to linked bank</td>
+            <td>Customer's PayPal account → they may need to transfer to bank</td>
+          </tr>
+          <tr>
+            <td>Shop Pay Installments</td>
+            <td>3–5 business days for current installments; future installments cancelled</td>
+            <td>Affirm/provider account; remaining installment schedule is cancelled</td>
+          </tr>
+          <tr>
+            <td>Shopify gift card (issued instead of cash refund)</td>
+            <td>Immediate</td>
+            <td>Gift card code sent to customer email</td>
+          </tr>
+          <tr>
+            <td>Manual payment (bank transfer, check)</td>
+            <td>Merchant-controlled; no Shopify automation</td>
+            <td>Depends on merchant's process</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert warn">
+      <strong>Closed or expired card:</strong> If the customer's original payment card was closed, reported stolen, or expired since the purchase, the card network typically redirects the refund back to the store. Shopify admin will show the refund as "completed" — but the customer never receives it. In this case, you must issue a replacement refund outside Shopify (bank transfer, check, or Shopify gift card). There is no way to redirect a card refund to a different payment method through Shopify.
+    </div>
+
+    <div class="alert info">
+      <strong>Refund limit:</strong> Shopify Payments can only refund up to the original amount charged on that specific order. You cannot refund more than the customer paid, even if the return value exceeds it (e.g., product price increased since purchase). For overage amounts, issue a Shopify gift card for the difference.
+    </div>
+  </section>
+
+  <!-- Diagnostic -->
+  <section class="section" id="diagnostic">
+    <h2>Diagnostic Checklist — Exchange Checkout Not Working</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Identify which exchange path is being used</h3>
+          <p>Is the customer: (A) trying to apply a gift card code at a regular checkout, (B) clicking a link from a return app's portal, or (C) using a Shopify Plus draft order checkout URL? Each path has a completely different set of causes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>For gift card codes — check admin</h3>
+          <p>Shopify admin → Gift cards → search the code. Verify balance is correct, card is active (not disabled), and code hasn't already been fully redeemed. If balance is $0, the code was already used.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check for automatic discount conflict</h3>
+          <p>Shopify admin → Discounts → filter by "Active" and look for automatic discounts. If any automatic discount is active AND the return app is applying a discount code, non-Plus stores will see "you can only use one discount per order." Pause the automatic discount to test.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>For app store credit — check if it's a native gift card</h3>
+          <p>Is the "store credit" a 16-character Shopify gift card code (works anywhere) or an internal app balance (Rise.ai dashboard, Gorgias credit wallet)? App balances cannot be redeemed at a regular Shopify checkout — only through the app's own checkout UI extension.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>For Plus draft orders — check URL validity</h3>
+          <p>Open the draft order in Shopify admin and look at its status. If it shows "Draft" (not "Completed"), resend the invoice to generate a fresh checkout URL. Check that a shipping line is included and that the total is positive (not $0 or negative).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>For return app failures — check the app's error log</h3>
+          <p>Loop, Aftership, and similar apps have their own admin dashboards with return status and error details. Look for "order creation failed," "discount code invalid," or "variant unavailable" errors. These are app-side failures and require action in the return app's settings, not in Shopify admin.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>For refund timing — communicate timeline proactively</h3>
+          <p>Verify the refund was issued in Shopify admin (Orders → select order → Refund section shows "refunded" status). If yes, share the payment-method-specific timeline from the table above. If the customer's card was closed, you'll need to issue a replacement by alternative means.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reference Table -->
+  <section class="section" id="reference-table">
+    <h2>Reference Table — Exchange Path vs. Failure Mode vs. Fix</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Exchange Path</th>
+            <th>Failure Symptom</th>
+            <th>Root Cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gift card at checkout</td>
+            <td>Code shows "invalid" or "not recognized"</td>
+            <td>Code already used, balance $0, or mistyped</td>
+            <td>Check Shopify admin → Gift cards; issue new code if needed</td>
+          </tr>
+          <tr>
+            <td>Gift card at checkout</td>
+            <td>Code valid but balance less than expected</td>
+            <td>Partial use earlier, or return app issued partial value</td>
+            <td>Issue a supplemental gift card for the remaining amount</td>
+          </tr>
+          <tr>
+            <td>Return app (Loop/Aftership)</td>
+            <td>"You can only use one discount per order"</td>
+            <td>App discount code + active automatic discount conflict</td>
+            <td>Pause automatic discount; or upgrade to Plus for discount stacking</td>
+          </tr>
+          <tr>
+            <td>Return app (Loop)</td>
+            <td>Exchange portal blank or "session expired"</td>
+            <td>Loop session timeout (~24h); cart token expired</td>
+            <td>Customer must initiate a new return request in Loop portal</td>
+          </tr>
+          <tr>
+            <td>Return app (general)</td>
+            <td>Exchange order not created in Shopify</td>
+            <td>OOS variant, deleted product, or webhook failure</td>
+            <td>Check app dashboard for "order creation failed"; fix inventory or recreate manually</td>
+          </tr>
+          <tr>
+            <td>App store credit (Rise.ai etc.)</td>
+            <td>Credit doesn't appear at regular checkout</td>
+            <td>Not a Shopify gift card — app-internal balance only</td>
+            <td>Direct customer to return app's exchange portal; or convert credit to Shopify gift card manually</td>
+          </tr>
+          <tr>
+            <td>Plus draft order</td>
+            <td>Checkout URL "unavailable"</td>
+            <td>Draft order URL expired (~30 days)</td>
+            <td>Draft order → Send invoice → fresh URL generated</td>
+          </tr>
+          <tr>
+            <td>Plus draft order</td>
+            <td>$0 total — checkout won't process</td>
+            <td>Return and exchange values equal; Shopify requires positive total</td>
+            <td>Mark draft order complete manually; no checkout needed for equal-value exchange</td>
+          </tr>
+          <tr>
+            <td>Plus draft order</td>
+            <td>"No shipping options"</td>
+            <td>Draft order missing shipping line</td>
+            <td>Edit draft order → add $0 free shipping rate → resend invoice</td>
+          </tr>
+          <tr>
+            <td>Refund to card</td>
+            <td>Customer says they haven't received refund</td>
+            <td>Card network processing delay (5–10 business days)</td>
+            <td>Confirm refund issued in Shopify; share timeline; check if card was closed</td>
+          </tr>
+          <tr>
+            <td>Refund to card</td>
+            <td>Refund "completed" in Shopify but never received</td>
+            <td>Customer's original card closed/expired; refund bounced back to store</td>
+            <td>Issue replacement via bank transfer or Shopify gift card</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h2>Monitor Your Checkout Before Returns Become Revenue Loss</h2>
+    <p>Exchange failures often cascade from checkout downtime: customer tries to repurchase during an outage, gives up, and requests a full refund instead. CheckPulse monitors your Shopify checkout 24/7 and alerts you before a broken checkout turns an exchange into a lost customer.</p>
+    <a href="./#pricing" class="cta-btn">Start Monitoring Free</a>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">Shopify checkout monitoring &amp; troubleshooting</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-monitoring-comparison">vs UptimeRobot</a>
+      <a href="./shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="./shopify-payments-suspended">Payments Suspended</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency QA</a>
+      <a href="./shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Checkout</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

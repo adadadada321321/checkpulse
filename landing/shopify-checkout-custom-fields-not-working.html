@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Custom Fields Not Working — Line Item Properties, Checkout Extensibility, Note Attributes (2026)</title>
+  <meta name="description" content="Shopify checkout custom fields not working? checkout.liquid was deprecated June 2025, line item properties are set on the product page not at checkout, Buy Now buttons bypass all fields, and note_attributes ≠ order.note. Full diagnostic here." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-fields-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-fields-not-working" />
+  <meta property="og:title" content="Shopify Checkout Custom Fields Not Working — Line Item Properties, Note Attributes" />
+  <meta property="og:description" content="checkout.liquid deprecated June 2025, line item properties set on product page not checkout, Buy Now bypasses all fields, and note_attributes is not order.note. Complete failure mode guide." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Custom Fields Not Working — Line Item Properties, Checkout Extensibility, Note Attributes",
+    "description": "Custom fields at Shopify checkout stop working for several reasons: checkout.liquid was deprecated on June 30 2025 making all Liquid-injected fields inert, line item properties must be set on the product page not inside checkout, express checkout buttons (Buy Now, Shop Pay, Apple Pay) bypass product and cart pages losing all property data, and many merchants confuse note_attributes (cart.attributes) with order.note and look in the wrong place in Shopify Admin. Plus plans using Checkout UI Extensions must call applyAttributeChange() explicitly or TextField values are never persisted.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-custom-fields-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify checkout custom fields not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons Shopify checkout custom fields stop working: (1) checkout.liquid was deprecated on June 30, 2025 — any custom fields injected via checkout.liquid code are now silently ignored; (2) line item properties must be added on the product page via Liquid form inputs, not inside checkout itself — merchants frequently look in the wrong place; (3) Buy Now, Shop Pay, Apple Pay, and Google Pay buttons bypass the cart and product pages entirely, so any properties set there are never captured; (4) note_attributes (from cart.attributes) and order.note are two different fields — merchants who check 'Notes' in Shopify Admin miss data that was correctly saved to 'Additional details'."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happened to checkout.liquid custom fields in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify deprecated checkout.liquid on June 30, 2025. All custom code injected via checkout.liquid — including custom input fields, JavaScript-injected fields, and additional_scripts — stopped rendering or executing after that date. Merchants who had custom checkout fields built through checkout.liquid (directly or via apps that used it) will find those fields completely gone. The replacement is Checkout UI Extensions, available on Shopify Plus only. For non-Plus merchants who need custom checkout fields, the workaround is adding fields on the product page (line item properties) or cart page (cart attributes), neither of which requires Plus or checkout.liquid."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do line item properties work at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Line item properties are added on the product page, not inside Shopify checkout. You add hidden or visible input fields to the product form in your Liquid theme with the name format properties[Field Name]. When the product is added to cart, those property values travel with the line item through checkout and appear on the order. At checkout, customers cannot enter line item properties — they were captured earlier on the product page. Common mistake: expecting a text box to appear inside checkout for customers to fill in. If you need a field inside checkout itself, the only native option on Plus is a Checkout UI Extension with a TextField component saving via applyAttributeChange. On non-Plus plans, the cart page (cart attributes / order note) is the closest alternative."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between note_attributes and order.note in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "These are two separate fields on a Shopify order. cart.note becomes order.note — it appears in the Notes section of the order detail page in Shopify Admin. cart.attributes become order note_attributes (also called Additional details) — they appear under a separate 'Additional details' section, not under Notes. A common mistake: a merchant adds a cart attribute (for example, a gift message field via cart.attributes['Gift message']), then looks in the Notes section and sees nothing, concluding the field was lost. The data was saved correctly — just in the wrong place to look. In the Shopify Admin order view, scroll past Notes to find the Additional details section, or use the Admin API orders endpoint to inspect note_attributes directly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do custom fields get lost when customers use the Buy Now button?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Buy Now button (native Shopify), Shop Pay express button, Apple Pay, and Google Pay all initiate checkout directly — they skip the cart page and frequently skip the product page form submission flow entirely. Any line item properties that would normally be captured through the product form's Add to Cart flow are never set when Buy Now is used. Similarly, any cart attributes or notes collected on the cart page template are bypassed. There is no built-in workaround for this at non-Plus plan levels. On Plus, a Checkout UI Extension can surface an input field inside checkout itself. For non-Plus stores using product customization apps (Infinite Options, SC Product Options), the app's JavaScript injection does not run in the express checkout path, so all custom data is silently lost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do Checkout UI Extensions handle custom fields on Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On Shopify Plus with checkout extensibility enabled, you can add a TextField component to a checkout UI extension. The field renders inside the checkout flow, but the value is NOT automatically saved to the order. You must explicitly call applyAttributeChange({ key: 'field_name', type: 'updateAttribute', value: fieldValue }) in your extension's change handler. The value is saved to the order's note_attributes (Additional details). Common failure points: (1) applyAttributeChange is not called (field renders but value is never persisted), (2) extension is deployed but not assigned to a checkout customization in the Shopify Admin (extension exists but never loads), (3) extension is in development mode only and not deployed to production, (4) the checkout customization targets a step that loads after the customer has already passed it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do custom fields from Infinite Options or SC Product Options not show in my Shopify orders?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apps like Infinite Options, SC Product Options, Bold Product Options, and similar tools inject custom field inputs on the product page using JavaScript. They capture the values and inject them as line item properties when the product is added to cart. Several things can break this: (1) the customer used a Buy Now button or express checkout, bypassing the product page form entirely; (2) the app's JavaScript was blocked by a cookie consent manager, ad blocker, or Content Security Policy header; (3) the app is installed but the product template does not have the required app embed or script tag; (4) the line item properties are being saved correctly but the order notification email template does not include the properties display block — the data exists on the order but is invisible in email. To confirm: go to the order in Shopify Admin, view the line item, and look for the properties listed under the product name."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I add custom fields at checkout without Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Without Shopify Plus, you cannot add fields inside checkout itself — that requires Checkout UI Extensions (Plus only). Your options: (1) Product page line item properties — add input fields to your product form template with name='properties[Label]'; these travel with the line item through checkout to the order. Works for per-product customization (engraving, personalization, size notes). Does not work with Buy Now or express checkout. (2) Cart page order note — add a textarea with name='note' to your cart template; this saves to order.note and is visible in Notes in Shopify Admin. Works for order-level instructions. Does not work with express checkout. (3) Cart attributes — add inputs with name='attributes[Label]' to your cart template; saves to note_attributes under Additional details. (4) Post-checkout contact — collect additional info in a post-purchase page or follow-up email. Not ideal but avoids the checkout limitation entirely."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Custom Fields Not Working
+  </div>
+  <h1>Shopify <em>Checkout Custom Fields</em> Not Working — Line Item Properties, Note Attributes, Checkout Extensibility</h1>
+  <p class="hero-sub">checkout.liquid was deprecated June 2025, line item properties live on the product page not inside checkout, Buy Now bypasses all of it, and note_attributes is not order.note. Here is the complete failure mode guide.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 10 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">checkout.liquid Is Gone — All Custom Checkout Fields Built on It Are Broken</div>
+    Shopify deprecated <code>checkout.liquid</code> on June 30, 2025. Every custom field injected via <code>checkout.liquid</code> code — built by you, your developer, or an app — stopped rendering after that date. If your custom checkout fields disappeared around mid-2025, this is why. Migration path: Checkout UI Extensions (Shopify Plus only).
+  </div>
+
+  <h2>How Custom Fields Actually Work in Shopify Checkout</h2>
+
+  <p>Custom checkout fields in Shopify are more fragmented than they appear. There is no single "custom field inside checkout" feature available on all plans. Instead, there are four distinct mechanisms, each with different plan requirements, different placement, and different where-the-data-lives behavior:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mechanism</th>
+          <th>Where it lives</th>
+          <th>Data saved to</th>
+          <th>Plan required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Line item properties</strong></td>
+          <td>Product page form</td>
+          <td><code>line_items[].properties</code></td>
+          <td><span class="tag green">All plans</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cart attributes</strong></td>
+          <td>Cart page template</td>
+          <td><code>order.note_attributes</code></td>
+          <td><span class="tag green">All plans</span></td>
+        </tr>
+        <tr>
+          <td><strong>Order note</strong></td>
+          <td>Cart page template</td>
+          <td><code>order.note</code></td>
+          <td><span class="tag green">All plans</span></td>
+        </tr>
+        <tr>
+          <td><strong>Checkout UI Extension — TextField</strong></td>
+          <td>Inside checkout flow</td>
+          <td><code>order.note_attributes</code></td>
+          <td><span class="tag blue">Shopify Plus only</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The key consequence: <strong>no non-Plus Shopify plan supports custom input fields rendered inside the checkout flow itself.</strong> All non-Plus custom field collection must happen before the customer clicks "Check out."</p>
+
+  <h2>Failure Mode 1 — checkout.liquid Deprecated (June 2025)</h2>
+
+  <p>Prior to June 30, 2025, Shopify allowed Plus merchants to customize the checkout UI by editing <code>checkout.liquid</code> directly. Many merchants, developers, and checkout-customization apps used this to inject custom input fields into the checkout flow.</p>
+
+  <p>On June 30, 2025, Shopify removed support for <code>checkout.liquid</code> across all plans as part of the Checkout Extensibility migration. Custom code in <code>checkout.liquid</code> — including custom fields, JavaScript injections, and <code>additional_scripts</code> modifications — no longer runs.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Signs You Were Affected</div>
+    Custom checkout field disappeared around mid-2025 with no other changes made. App that "added custom fields to checkout" stopped working. Developer-built checkout customization no longer renders. All of these point to checkout.liquid deprecation.
+  </div>
+
+  <h3>Migration path</h3>
+
+  <p>The replacement for <code>checkout.liquid</code> customization is <strong>Checkout UI Extensions</strong>, available on <strong>Shopify Plus only</strong>. A Checkout UI Extension is a React-based app extension that renders inside the checkout flow using Shopify's controlled component library.</p>
+
+  <p>For non-Plus merchants whose app or customization relied on <code>checkout.liquid</code>:</p>
+  <ul>
+    <li>Contact your app provider — most checkout-customization apps have migrated to Checkout UI Extensions (which requires the merchant to upgrade to Plus)</li>
+    <li>If upgrading to Plus is not viable, move field collection to the product page (line item properties) or cart page (cart attributes)</li>
+    <li>Consider collecting additional info post-purchase via a thank-you page or follow-up email</li>
+  </ul>
+
+  <h2>Failure Mode 2 — Line Item Properties Not Showing at Checkout (They're Not Supposed To)</h2>
+
+  <p>Line item properties are one of the most misunderstood features in Shopify. They work correctly and do reach the order — merchants just look for them in the wrong place.</p>
+
+  <p>Line item properties are set on the <strong>product page</strong> via hidden or visible inputs in the product form:</p>
+
+  <pre>&lt;input type="text" name="properties[Engraving]" /&gt;
+&lt;input type="hidden" name="properties[Gift message]" value="{{ some_value }}" /&gt;</pre>
+
+  <p>When a customer adds the product to cart with these inputs present, the property values are captured and attached to that line item. They travel through checkout invisibly — there is no input field inside the checkout step itself — and they arrive on the order record.</p>
+
+  <h3>Where line item properties appear after checkout</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Orders</strong> and open the order</li>
+    <li>Find the line item (product) in the order</li>
+    <li>Properties appear directly <strong>below the product name</strong>, listed as key–value pairs</li>
+    <li>They do NOT appear under Notes or Additional details — those are for order-level fields</li>
+    <li>In order notification emails, properties display only if your email template includes <code>{% for p in line_item.properties %}</code></li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Confirming Line Item Properties Are Saving Correctly</div>
+    In Shopify Admin, go to <strong>Store → Preview</strong>, add the product to cart with your custom fields filled in, complete a test checkout, then inspect the resulting order. Look under the line item — if the properties appear there, the mechanism is working. If you don't see them, the product form input names are likely missing the <code>properties[</code> prefix.
+  </div>
+
+  <h2>Failure Mode 3 — Buy Now / Express Checkout Bypasses All Custom Fields</h2>
+
+  <p>This is the silent killer for product customization. Every express checkout path bypasses the product form entirely:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Path</th>
+          <th>Line Item Properties Captured?</th>
+          <th>Cart Attributes Captured?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Standard "Add to Cart" → cart → Check out</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag green">Yes</span></td>
+        </tr>
+        <tr>
+          <td>Shopify native "Buy Now" button</td>
+          <td><span class="tag red">No — bypasses product form</span></td>
+          <td><span class="tag red">No — bypasses cart page</span></td>
+        </tr>
+        <tr>
+          <td>Shop Pay express button</td>
+          <td><span class="tag red">No</span></td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>Apple Pay / Google Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>Cart permalink (<code>/cart/add?id=...&properties[x]=y</code>)</td>
+          <td><span class="tag green">Yes — if encoded in URL</span></td>
+          <td><span class="tag yellow">Partial — attributes not in URL</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What to do about express checkout bypassing custom fields</h3>
+
+  <ul>
+    <li><strong>Hide or disable Buy Now / express buttons</strong> on products that require customization — add a notice explaining why ("Please use Add to Cart to add personalization")</li>
+    <li><strong>Shopify Plus only:</strong> use a Checkout UI Extension TextField to re-collect the field inside checkout — this works regardless of checkout entry path</li>
+    <li><strong>Encode properties in cart permalink URL</strong> for programmatic cart links: <code>/cart/add?id=VARIANT_ID&properties[Engraving]=text&quantity=1</code></li>
+    <li><strong>Post-purchase follow-up:</strong> collect customization details in an automated email after purchase for orders missing the property</li>
+  </ul>
+
+  <h2>Failure Mode 4 — note_attributes ≠ order.note (Wrong Place to Look)</h2>
+
+  <p>Two separate storage locations in Shopify look similar but are completely different fields, and merchants routinely look in the wrong one.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Liquid source</th>
+          <th>Shopify Admin label</th>
+          <th>Admin API field</th>
+          <th>Where to look in Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>cart.note</code> → <code>textarea name="note"</code></td>
+          <td>Notes</td>
+          <td><code>order.note</code></td>
+          <td>Order detail → Notes section (right sidebar)</td>
+        </tr>
+        <tr>
+          <td><code>cart.attributes</code> → <code>input name="attributes[Label]"</code></td>
+          <td>Additional details</td>
+          <td><code>order.note_attributes[]</code></td>
+          <td>Order detail → Additional details (scroll past Notes)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>If you added a field to your cart template using <code>name="attributes[Gift message]"</code> and are checking the Notes section, you will always see nothing — not because the field is broken but because it saves to Additional details instead.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Quickest Verification Method</div>
+    Use the Shopify Admin API: <code>GET /admin/api/2024-01/orders/{id}.json?fields=note,note_attributes</code>. The raw JSON shows both fields at once, with no UI confusion about which section you're in.
+  </div>
+
+  <h2>Failure Mode 5 — Checkout UI Extension TextField Not Saving (Plus Only)</h2>
+
+  <p>On Shopify Plus with checkout extensibility, a <code>TextField</code> component inside a Checkout UI Extension renders a visible input field inside the checkout flow. However, the value is never automatically persisted — you must explicitly call <code>applyAttributeChange()</code> in your extension code:</p>
+
+  <pre>import { useApplyAttributeChange } from '@shopify/ui-extensions-react/checkout';
+
+const applyAttributeChange = useApplyAttributeChange();
+
+// Called when the field value changes
+async function handleChange(value) {
+  await applyAttributeChange({
+    key: 'Gift message',
+    type: 'updateAttribute',
+    value: value,
+  });
+}</pre>
+
+  <p>Without this call, the <code>TextField</code> renders and accepts input, but the value is discarded when the customer moves to the next checkout step. The value saved via <code>applyAttributeChange</code> appears in <code>order.note_attributes</code> — visible under "Additional details" in the order, not under "Notes."</p>
+
+  <h3>Extension deployment checklist</h3>
+
+  <ol class="steps">
+    <li>Extension must be <strong>deployed</strong> to production — development mode only loads in a local preview</li>
+    <li>Extension must be <strong>assigned to a checkout customization</strong> in Shopify Admin → Settings → Checkout → Customize → Add apps</li>
+    <li>Verify the target placement — if targeting <code>purchase.checkout.contact.render-after</code>, the extension only loads after the contact section; wrong placement = never renders</li>
+    <li>Test in a real checkout session (not the theme editor preview) with a real order to verify the attribute appears on the resulting order</li>
+    <li>Check for console errors — a runtime error in the extension silently prevents it from rendering</li>
+  </ol>
+
+  <h2>Failure Mode 6 — App-Injected Fields Lost When Cart Update Overwrites Attributes</h2>
+
+  <p>Cart-modifying apps — upsell apps, cart drawer replacements, discount apps, subscription billing apps — frequently call the Cart API to update cart contents. If the API call updates the cart without preserving the existing <code>attributes</code> payload, all previously captured custom field values are silently erased.</p>
+
+  <p>This is a known bug pattern with apps that use <code>POST /cart/update.js</code> without reading and re-sending the existing attributes in the same request body.</p>
+
+  <h3>How to diagnose</h3>
+
+  <ol class="steps">
+    <li>Complete a test purchase with all custom fields filled in correctly (confirm they're in the cart with <code>GET /cart.js</code>)</li>
+    <li>Trigger the cart-modifying app's functionality (trigger the upsell, apply a discount, change quantity via the cart drawer)</li>
+    <li>Immediately fetch <code>/cart.js</code> again — if <code>attributes</code> is now empty, the app's cart update call is overwriting it</li>
+    <li>Contact the app vendor — this is a bug in their Cart API integration. The fix: read current <code>attributes</code>, merge the new data, send the merged payload</li>
+  </ol>
+
+  <h2>Failure Mode 7 — Custom Field App JavaScript Blocked (Infinite Options, SC Product Options)</h2>
+
+  <p>Apps like Infinite Options, SC Product Options, Hulk Product Options, and Bold Product Options inject custom field inputs into the product page using JavaScript. If their JavaScript doesn't load, no custom fields appear and no properties are captured.</p>
+
+  <p>Common blockers:</p>
+
+  <ul>
+    <li><strong>Cookie consent manager:</strong> many CMP tools (Cookiebot, OneTrust, Axeptio) block all third-party scripts until consent is given. If the app's script is categorized as "marketing", it won't load for visitors who haven't consented — no fields, no property capture.</li>
+    <li><strong>Ad blockers:</strong> browser ad blockers may block the app's CDN URL if it matches known tracking patterns</li>
+    <li><strong>Content Security Policy:</strong> a CSP header on the store that doesn't include the app's script domain will block loading</li>
+    <li><strong>App not properly installed:</strong> the app's theme app embed must be enabled in the theme customizer for each theme. If the live theme is different from the theme where the app was configured, the embed may not be active</li>
+  </ul>
+
+  <h3>Quick check</h3>
+
+  <p>Open your product page in a private browser window (no extensions, no logged-in state), open browser DevTools → Console, and look for JavaScript errors. If you see the app's domain in a blocked resource error, you have a CSP or CMP blocking issue.</p>
+
+  <h2>Failure Mode 8 — Headless / Storefront API Must Use cartAttributesUpdate</h2>
+
+  <p>Headless Shopify storefronts using the Storefront API do not automatically capture cart attributes or line item properties from HTML form inputs — there are no Liquid form helpers. All custom field data must be passed explicitly via API mutations.</p>
+
+  <p>For cart-level custom fields (note_attributes equivalent), use the <code>cartAttributesUpdate</code> mutation:</p>
+
+  <pre>mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+  cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+    cart {
+      attributes {
+        key
+        value
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}</pre>
+
+  <p>For line item properties, pass the <code>customAttributes</code> array when adding items via <code>cartLinesAdd</code>:</p>
+
+  <pre>mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+  cartLinesAdd(cartId: $cartId, lines: $lines) {
+    cart {
+      lines(first: 10) {
+        edges {
+          node {
+            attributes { key value }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Variables:
+# lines: [{ merchandiseId: "gid://shopify/ProductVariant/...",
+#            quantity: 1,
+#            attributes: [{ key: "Engraving", value: "Hello World" }] }]</pre>
+
+  <div class="callout warning">
+    <div class="callout-title">Common Headless Mistake</div>
+    Many headless storefronts collect custom field inputs in React state but never call <code>cartAttributesUpdate</code> or pass <code>customAttributes</code> in <code>cartLinesAdd</code>. The field data exists in the browser but never reaches the Shopify cart — the resulting order has no custom field data at all.
+  </div>
+
+  <h2>Quick Diagnostic Reference</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Custom field disappeared ~mid-2025</td>
+          <td>checkout.liquid deprecated</td>
+          <td>Migrate to Checkout UI Extension (Plus) or move to product/cart page</td>
+        </tr>
+        <tr>
+          <td>Field present in cart, missing on order</td>
+          <td>App cart update overwrote attributes</td>
+          <td>Identify which app; report bug; disable app temporarily to confirm</td>
+        </tr>
+        <tr>
+          <td>Field saved but can't find it in Admin</td>
+          <td>note_attributes vs order.note confusion</td>
+          <td>Check "Additional details" section, not "Notes"</td>
+        </tr>
+        <tr>
+          <td>Works on most orders, missing on some</td>
+          <td>Express checkout bypass (Buy Now, Apple Pay)</td>
+          <td>Hide express buttons on affected products; add messaging</td>
+        </tr>
+        <tr>
+          <td>TextField in checkout renders but value not on order</td>
+          <td>applyAttributeChange() not called</td>
+          <td>Add explicit applyAttributeChange call in TextField onChange handler</td>
+        </tr>
+        <tr>
+          <td>Custom field app shows no inputs on product page</td>
+          <td>App JS blocked by CMP or ad blocker</td>
+          <td>Check DevTools Console; whitelist app domain in CMP; check theme embed</td>
+        </tr>
+        <tr>
+          <td>Headless storefront: no custom data on orders</td>
+          <td>cartAttributesUpdate mutation not called</td>
+          <td>Add cartAttributesUpdate or customAttributes in cartLinesAdd</td>
+        </tr>
+        <tr>
+          <td>Line item properties not showing in order email</td>
+          <td>Email template missing properties loop</td>
+          <td>Add <code>{% for p in line_item.properties %}</code> block to notification template</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Displaying Custom Fields in Order Notification Emails</h2>
+
+  <p>Even when custom field data is correctly saved to an order, it may not appear in confirmation emails. Order notification email templates do not automatically include line item properties or note_attributes — you must add the display code explicitly.</p>
+
+  <h3>Adding line item properties to confirmation email</h3>
+
+  <p>In Shopify Admin → Settings → Notifications → Order confirmation, find the line items section and add:</p>
+
+  <pre>{% for property in line_item.properties %}
+  {% unless property.last == blank %}
+    {{ property.first }}: {{ property.last }}
+  {% endunless %}
+{% endfor %}</pre>
+
+  <h3>Adding note_attributes to confirmation email</h3>
+
+  <pre>{% if attributes %}
+  {% for attribute in attributes %}
+    {{ attribute.first }}: {{ attribute.last }}
+  {% endfor %}
+{% endif %}</pre>
+
+  <div class="cta-block">
+    <h2>Is Something Else Breaking Your Shopify Checkout?</h2>
+    <p>Custom field issues are just one layer. CheckPulse runs a 4-step live checkout simulation — payment flow, inventory, shipping rates, error logging — and alerts you the moment something breaks.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">View Monitoring Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <p>cart.note vs cart.attributes, express checkout bypass, app stripping on cart update</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving at Checkout</a>
+      <p>line item properties vs metafields, type mismatch, order metafield gaps</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Not Working</a>
+      <p>Infinite Options, personalization lost via Buy Now, engraving not showing</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout App Conflicts</a>
+      <p>checkout.liquid migration broke apps, extensibility upsell gaps</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-headless-checkout-error">Headless Checkout Errors</a>
+      <p>Storefront API checkout gaps, Hydrogen limitations, custom cart implementation</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <p>orders/create missing field data, HMAC verification, 5-second timeout</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Built for Shopify merchants.</div>
+  </div>
+</footer>
+
+</body>
+</html>

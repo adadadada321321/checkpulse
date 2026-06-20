@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Apple Pay / Google Pay Not Showing — Express Checkout Buttons Missing (2026)</title>
+  <meta name="description" content="Apple Pay and Google Pay not showing at Shopify checkout has six root causes: Shopify Payments not active, wrong browser or device, country not supported, test mode setup missing, wallet empty, or express section hidden. Each fails differently." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing" />
+  <meta property="og:title" content="Shopify Apple Pay / Google Pay Not Showing — Express Checkout Buttons Missing" />
+  <meta property="og:description" content="Shopify's express checkout buttons (Apple Pay, Google Pay, Shop Pay) use the browser's Payment Request API. When the API reports 'can make payment = false', the button simply doesn't render — no error, just invisible. Here's what triggers that silent failure." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Apple Pay / Google Pay Not Showing — Express Checkout Buttons Missing",
+    "description": "Shopify renders Apple Pay, Google Pay, and Shop Pay buttons in an 'express checkout' section above the contact form. These buttons use the browser's Payment Request API. The API checks eligibility silently: if the browser returns 'can make payment = false' — because the device has no saved card, the browser doesn't support it, the store isn't on Shopify Payments, or the country isn't covered — the button simply doesn't render. Merchants see nothing, customers see nothing, and there's no error message anywhere. This guide explains each failure mode and how to diagnose it.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Apple Pay not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay only shows at Shopify checkout when four conditions are all true simultaneously: (1) your store uses Shopify Payments as the payment provider (not PayPal, Stripe direct, or Authorize.net), (2) the customer is using Safari on an Apple device (iPhone, iPad, or Mac) — Apple Pay does not appear in Chrome, Firefox, or any non-Safari browser, (3) your store's country is in Apple Pay's supported list (not all Shopify Payments countries support Apple Pay), and (4) the customer has at least one card saved in Apple Wallet on that device. If any of these four conditions fails, Apple Pay is silently absent — no error is shown."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Google Pay not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Google Pay at Shopify checkout requires: (1) Shopify Payments active on your store, (2) the customer using Chrome (desktop or Android) or another Google Pay-compatible browser — it does not appear in Safari, (3) the store's country supported by Google Pay via Shopify Payments, and (4) the customer having a card saved in Google Pay. On Android, Google Pay also requires Google Play Services to be active. Google Pay typically shows in Chrome on desktop Windows and macOS, and in Chrome on Android. It does not show on iOS regardless of browser, because iOS restricts Payment Request API to Safari."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify Apple Pay work without Shopify Payments?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Apple Pay, Google Pay, and Shop Pay express buttons at Shopify checkout are exclusively tied to Shopify Payments. If you use a third-party payment gateway as your primary provider (PayPal, Stripe via direct integration, Authorize.net, etc.), none of these express checkout buttons appear. You can still offer PayPal's own express checkout via the PayPal app or Braintree, but those appear in a different section and are controlled by PayPal's SDK, not Shopify's express checkout section. The only way to get Apple Pay at a Shopify checkout is to activate Shopify Payments in an eligible country."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why doesn't Apple Pay show in Shopify test mode?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Payments test mode uses simulated payment processing, but Apple Pay in test mode still requires a real Apple Pay setup on the device — Touch ID, Face ID, or Apple Watch must be configured and at least one card must be in Apple Wallet. There are no Apple Pay 'test cards' that work in the Apple Pay sheet itself (you enter test card numbers at the payment step when Apple Pay is not being used). To test Apple Pay end-to-end in Shopify, you need a real device with real Apple Wallet cards. Shopify's simulated test environment accepts Apple Pay tokens when the device is genuinely Apple Pay-eligible — the order just uses Shopify's test payment processor and no real charge occurs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do Apple Pay and Google Pay buttons disappear after working before?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If express checkout buttons previously worked and then disappeared, the most common triggers are: (1) Shopify Payments was temporarily suspended or put under review — during suspension, all Shopify Payments features including express buttons are disabled, (2) a checkout UI extension or checkout customization was published that hides or conflicts with the express payment section, (3) the merchant switched payment providers or made gateway configuration changes, (4) the domain's SSL certificate expired and the Payment Request API stopped accepting the insecure origin, or (5) Apple or Google changed their availability list for a country or bank. Check Settings → Payments in your Shopify admin to verify Shopify Payments is active and not suspended."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can I test if Apple Pay is working on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To test Apple Pay on Shopify: use Safari on an iPhone, iPad, or Mac (not Chrome). Add a product to cart and proceed to checkout. If the express checkout section (Apple Pay button area) doesn't appear at all, Shopify Payments is either not active, your country isn't supported, or the browser isn't Safari. If the section appears but no Apple Pay button shows, your Apple Wallet has no cards. If the button shows but tapping it fails, there may be a payment processing issue. To test on desktop Mac in Safari: go to Safari Preferences → Privacy and make sure website data is not blocked; check that Touch ID is configured under System Settings → Touch ID & Password. For staging: use a real device — emulators and browser dev tools cannot simulate Apple Pay."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #0f1117;
+      --ink-2: #374151;
+      --ink-3: #6b7280;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --surface-3: #f3f4f6;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --accent-surface: #eff6ff;
+      --warn: #b45309;
+      --warn-surface: #fffbeb;
+      --ok: #065f46;
+      --ok-surface: #ecfdf5;
+      --danger: #991b1b;
+      --danger-surface: #fef2f2;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--ink); background: var(--surface); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 56px; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--ink); }
+    .nav-links { display: flex; gap: 20px; font-size: 0.875rem; }
+    .nav-links a { color: var(--ink-2); }
+    .nav-cta { margin-left: auto; background: var(--accent); color: #fff; padding: 6px 16px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; }
+    .nav-cta:hover { background: var(--accent-dark); text-decoration: none; }
+
+    .page-wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .hero { padding: 52px 0 40px; border-bottom: 1px solid var(--border); }
+    .hero-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.25rem); font-weight: 800; line-height: 1.2; color: var(--ink); margin-bottom: 16px; }
+    .hero-sub { font-size: 1.05rem; color: var(--ink-2); max-width: 680px; }
+
+    .quick-nav { display: flex; flex-wrap: wrap; gap: 8px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .quick-nav a { font-size: 0.8rem; background: var(--surface-3); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; color: var(--ink-2); }
+    .quick-nav a:hover { background: var(--accent-surface); border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    .section { padding: 40px 0; border-bottom: 1px solid var(--border); }
+    .section:last-of-type { border-bottom: none; }
+    h2 { font-size: 1.35rem; font-weight: 700; margin-bottom: 16px; color: var(--ink); }
+    h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; color: var(--ink); }
+    p { color: var(--ink-2); margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 20px; }
+    .card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card.warn { background: var(--warn-surface); border-color: #fcd34d; }
+    .card.danger { background: var(--danger-surface); border-color: #fca5a5; }
+    .card.ok { background: var(--ok-surface); border-color: #6ee7b7; }
+    .card.info { background: var(--accent-surface); border-color: #bfdbfe; }
+    .card-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 8px; }
+    .card.warn .card-label { color: var(--warn); }
+    .card.danger .card-label { color: var(--danger); }
+    .card.ok .card-label { color: var(--ok); }
+    .card.info .card-label { color: var(--accent); }
+    .card h3 { font-size: 0.95rem; margin-bottom: 6px; }
+    .card p { font-size: 0.875rem; color: var(--ink-2); margin-bottom: 0; }
+
+    .steps { counter-reset: step; display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
+    .step { display: flex; gap: 16px; }
+    .step-num { counter-increment: step; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; }
+    .step-num::after { content: counter(step); }
+    .step-body h3 { font-size: 0.95rem; margin-bottom: 4px; }
+    .step-body p { font-size: 0.875rem; margin-bottom: 0; }
+
+    .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: var(--radius); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.6; overflow-x: auto; margin: 14px 0; }
+    .code-block .cm { color: #6c7086; }
+    .code-block .kw { color: #89b4fa; }
+    .code-block .str { color: #a6e3a1; }
+    .code-block .key { color: #cba6f7; }
+    .code-block .val { color: #fab387; }
+
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { background: var(--surface-3); font-weight: 700; text-align: left; padding: 10px 14px; border: 1px solid var(--border); color: var(--ink); }
+    td { padding: 10px 14px; border: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+    tr:nth-child(even) td { background: var(--surface-2); }
+
+    .alert { border-left: 4px solid; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 14px 18px; margin: 16px 0; font-size: 0.9rem; }
+    .alert.warn { border-color: #f59e0b; background: var(--warn-surface); color: var(--warn); }
+    .alert.info { border-color: var(--accent); background: var(--accent-surface); color: var(--accent-dark); }
+    .alert.danger { border-color: #ef4444; background: var(--danger-surface); color: var(--danger); }
+    .alert strong { font-weight: 700; }
+
+    ul, ol { padding-left: 20px; color: var(--ink-2); }
+    li { margin-bottom: 8px; font-size: 0.9rem; }
+    li:last-child { margin-bottom: 0; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    .cta-box { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border-radius: var(--radius); padding: 36px 32px; color: #fff; text-align: center; margin-top: 40px; }
+    .cta-box h2 { color: #fff; font-size: 1.4rem; margin-bottom: 10px; }
+    .cta-box p { color: rgba(255,255,255,0.85); max-width: 520px; margin: 0 auto 24px; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--accent-dark); font-weight: 700; padding: 12px 28px; border-radius: var(--radius-sm); font-size: 0.95rem; }
+    .cta-btn:hover { background: #e0e7ff; text-decoration: none; }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 24px; margin-top: 60px; }
+    footer .container { max-width: 860px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
+    .footer-copy { font-size: 0.8rem; color: var(--ink-3); display: block; margin-bottom: 16px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+    .footer-links a { font-size: 0.8rem; color: var(--ink-3); }
+    .footer-links a:hover { color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .hero { padding: 36px 0 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="./" class="nav-brand">CheckPulse</a>
+  <div class="nav-links">
+    <a href="./free-check">Free Check</a>
+    <a href="./guide">Guide</a>
+    <a href="./shopify-checkout-not-working">Troubleshoot</a>
+  </div>
+  <a href="./#pricing" class="nav-cta">Monitor My Checkout</a>
+</nav>
+
+<div class="page-wrap">
+
+  <section class="hero">
+    <div class="hero-label">Shopify Checkout Troubleshooting</div>
+    <h1>Shopify Apple Pay / Google Pay Not Showing — Express Checkout Buttons Missing</h1>
+    <p class="hero-sub">Shopify's wallet buttons use the browser's Payment Request API. When eligibility fails — wrong provider, wrong browser, unsupported country, or empty wallet — the button simply disappears. No error. No message. Here's what's actually happening.</p>
+  </section>
+
+  <div class="quick-nav">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#root-causes">Root Causes</a>
+    <a href="#apple-pay">Apple Pay Specifically</a>
+    <a href="#google-pay">Google Pay Specifically</a>
+    <a href="#browser-matrix">Browser Matrix</a>
+    <a href="#diagnostic">Diagnostic Checklist</a>
+    <a href="#reference-table">Reference Table</a>
+  </div>
+
+  <!-- Architecture -->
+  <section class="section" id="how-it-works">
+    <h2>How Shopify's Express Checkout Buttons Work</h2>
+    <p>Apple Pay, Google Pay, and Shop Pay buttons appear in a dedicated "Express checkout" section above the contact field at Shopify checkout. They're not rendered by your theme — they're injected by Shopify's checkout JavaScript using the browser's <strong>Payment Request API</strong> (W3C standard) and, for Apple Pay, the <strong>Apple Pay JS API</strong>.</p>
+    <p>Before rendering any button, Shopify calls the API's <code>canMakePayment()</code> method. If the browser returns <code>false</code> — because the device has no saved card, the browser doesn't support the method, or the payment provider can't process this origin — the button is silently omitted. There is no error in the console, no fallback message, and no admin notification. The express section simply doesn't render.</p>
+    <div class="alert info">
+      <strong>Key insight:</strong> The express checkout section is entirely controlled by Shopify and the browser — not your theme, not your apps. If it's missing, the problem is almost always one of six eligibility failures explained below.
+    </div>
+    <div class="card-grid">
+      <div class="card info">
+        <div class="card-label">Step 1</div>
+        <h3>Browser calls canMakePayment()</h3>
+        <p>Shopify JS asks the browser if it can complete a payment for this merchant. Returns true/false silently.</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Step 2</div>
+        <h3>Shopify checks provider eligibility</h3>
+        <p>Shopify Payments must be active. Third-party gateways cannot trigger express buttons regardless of browser support.</p>
+      </div>
+      <div class="card info">
+        <div class="card-label">Step 3</div>
+        <h3>Button renders (or doesn't)</h3>
+        <p>If both checks pass, the button appears. If either fails, the express section is hidden — no error shown.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Root causes -->
+  <section class="section" id="root-causes">
+    <h2>Six Root Causes</h2>
+    <div class="card-grid">
+      <div class="card danger">
+        <div class="card-label">Cause 1 — Most Common</div>
+        <h3>Shopify Payments not active</h3>
+        <p>Apple Pay and Google Pay are exclusive to Shopify Payments. Third-party gateways don't qualify. No exceptions.</p>
+      </div>
+      <div class="card danger">
+        <div class="card-label">Cause 2</div>
+        <h3>Wrong browser or device</h3>
+        <p>Apple Pay: Safari only (Apple devices). Google Pay: Chrome only (Android + desktop). iOS blocks all non-Safari Payment Request API calls.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 3</div>
+        <h3>Country not supported</h3>
+        <p>Shopify Payments is available in more countries than Apple Pay or Google Pay. Your store's country may have Shopify Payments but lack wallet payment support.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 4</div>
+        <h3>Customer wallet is empty</h3>
+        <p>The button appears only if the customer has a card in Apple Wallet / Google Pay. No card = no button. This is customer-side, not merchant-side.</p>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Cause 5</div>
+        <h3>Shopify Payments suspended</h3>
+        <p>During a payout hold or account review, Shopify Payments is paused. All express buttons disappear silently until the suspension is resolved.</p>
+      </div>
+      <div class="card">
+        <div class="card-label">Cause 6</div>
+        <h3>Checkout customization conflict</h3>
+        <p>A checkout UI extension or checkout.liquid edit (Plus stores) has hidden or broken the express payment section.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Apple Pay specifics -->
+  <section class="section" id="apple-pay">
+    <h2>Apple Pay Not Showing — Specific Requirements</h2>
+    <p>Apple Pay at Shopify checkout requires <strong>all five</strong> of these conditions simultaneously:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Shopify Payments is active as the primary gateway</h3>
+          <p>Go to <strong>Settings → Payments</strong> in your Shopify admin. Shopify Payments must show as "Active" — not "Pending", "Suspended", or replaced by a third-party provider. If you see a third-party gateway listed as the primary provider, Apple Pay will never appear.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Customer is using Safari on an Apple device</h3>
+          <p>Apple Pay uses Apple's proprietary API which is only exposed in Safari (iOS, iPadOS, macOS). Chrome, Firefox, Edge, and Brave on macOS do not expose Apple Pay, even on Apple hardware. There is no workaround — this is an Apple platform constraint, not a Shopify limitation.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Store is in an Apple Pay-supported country</h3>
+          <p>Apple Pay via Shopify Payments is supported in: United States, Canada, United Kingdom, Australia, Ireland, New Zealand, Singapore, Hong Kong, and a growing list of others. Verify your store's country is on Apple's merchant payment list — Shopify Payments availability alone is not sufficient.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Customer has at least one card in Apple Wallet</h3>
+          <p>On iOS: Settings → Wallet &amp; Apple Pay must show at least one payment card. On macOS: Safari Preferences → Privacy → Apple Pay must be enabled and a card must be present. On Mac with Touch ID, the card can be on a paired iPhone. On a Mac without Touch ID, Apple Pay requires a paired iPhone or Apple Watch. No card = no button.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>The checkout is served over HTTPS</h3>
+          <p>The Payment Request API and Apple Pay JS refuse to initialize on HTTP origins. Shopify's standard checkout URL (<code>checkout.shopify.com</code>) is always HTTPS. Custom Plus domains require a valid SSL certificate. If your custom domain has an SSL error or mixed-content warning, Apple Pay will not appear.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert warn">
+      <strong>Common testing mistake:</strong> Merchants test on a desktop Mac in Chrome and wonder why Apple Pay doesn't appear. Chrome on Mac does not support Apple Pay. Always test in Safari, on a real Apple device with cards in Wallet.
+    </div>
+
+    <h3 style="margin-top: 24px;">Apple Pay domain verification</h3>
+    <p>Shopify automatically handles Apple Pay domain verification for <code>checkout.shopify.com</code> and Plus custom checkout domains when you activate Shopify Payments. You do not need to manually serve a <code>.well-known/apple-developer-merchantid-domain-association</code> file — Shopify does this. If you've migrated to a new custom domain on Plus and Apple Pay stopped working, it may take 24–48 hours for Shopify to complete domain re-verification.</p>
+  </section>
+
+  <!-- Google Pay specifics -->
+  <section class="section" id="google-pay">
+    <h2>Google Pay Not Showing — Specific Requirements</h2>
+    <p>Google Pay at Shopify checkout uses the Payment Request API with Google's payment method. Requirements differ from Apple Pay:</p>
+
+    <div class="two-col">
+      <div>
+        <h3>Supported browsers</h3>
+        <ul>
+          <li>Chrome on Android (primary)</li>
+          <li>Chrome on Windows desktop</li>
+          <li>Chrome on macOS desktop</li>
+          <li>Microsoft Edge (Chromium) on some configurations</li>
+          <li>Samsung Internet on Android</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Not supported</h3>
+        <ul>
+          <li>Safari on iOS (Apple restricts Payment Request API to Apple Pay only)</li>
+          <li>Safari on macOS (same restriction)</li>
+          <li>Firefox on any platform</li>
+          <li>Chrome on iOS (iOS forces all browsers to use WebKit, which blocks non-Apple Pay Payment Request)</li>
+          <li>Any browser on iOS, regardless of name</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert info" style="margin-top: 20px;">
+      <strong>iOS note:</strong> On iPhones and iPads, Apple does not allow browsers other than Safari to use the Payment Request API. So even if a customer on iPhone uses Chrome, they cannot see Google Pay — only Safari can show Apple Pay. This is an Apple platform policy, not a Google or Shopify decision.
+    </div>
+
+    <h3 style="margin-top: 24px;">Google Pay eligibility check</h3>
+    <p>For Google Pay to show on desktop Chrome, the customer must be signed into a Google account in Chrome and have at least one card saved in Google Pay (pay.google.com). On Android, Google Pay requires Google Play Services. In some markets, Google Pay has bank participation requirements — not all banks support the tap-to-pay tokens that Google Pay uses, so even customers with Google accounts may not have eligible cards.</p>
+
+    <div class="alert warn">
+      <strong>Important:</strong> Google Pay disappearing after previously working is often caused by the customer signing out of their Google account in Chrome, or removing their saved card from Google Pay. It's a customer wallet issue — not a Shopify configuration regression.
+    </div>
+  </section>
+
+  <!-- Browser Matrix -->
+  <section class="section" id="browser-matrix">
+    <h2>Express Checkout Browser &amp; Device Matrix</h2>
+    <p>Use this table to diagnose which buttons should appear for a given device and browser combination.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Device / Browser</th>
+            <th>Apple Pay</th>
+            <th>Google Pay</th>
+            <th>Shop Pay</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>iPhone — Safari</td>
+            <td>✅ Yes (card required in Wallet)</td>
+            <td>❌ No (iOS restriction)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>iPhone — Chrome</td>
+            <td>❌ No (Chrome on iOS uses WebKit, no Payment Request)</td>
+            <td>❌ No</td>
+            <td>✅ Yes (Shop Pay uses separate flow)</td>
+          </tr>
+          <tr>
+            <td>iPhone — Firefox / Edge</td>
+            <td>❌ No</td>
+            <td>❌ No</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>iPad — Safari</td>
+            <td>✅ Yes (card required in Wallet)</td>
+            <td>❌ No</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Android — Chrome</td>
+            <td>❌ No</td>
+            <td>✅ Yes (Google Pay card required)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Android — Samsung Internet</td>
+            <td>❌ No</td>
+            <td>✅ Yes (Samsung Pay + Google Pay)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Android — Firefox</td>
+            <td>❌ No</td>
+            <td>❌ No (Firefox uses own impl)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Mac — Safari</td>
+            <td>✅ Yes (Touch ID or paired iPhone/Watch)</td>
+            <td>❌ No</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Mac — Chrome</td>
+            <td>❌ No (Chrome on Mac cannot use Apple Pay)</td>
+            <td>✅ Yes (Google account + card required)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Windows — Chrome</td>
+            <td>❌ No</td>
+            <td>✅ Yes (Google account + card required)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Windows — Edge</td>
+            <td>❌ No</td>
+            <td>✅ Yes (some configurations)</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Any — Firefox desktop</td>
+            <td>❌ No</td>
+            <td>❌ No</td>
+            <td>✅ Yes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top: 12px; font-size: 0.85rem; color: var(--ink-3);">All rows assume Shopify Payments is active and the store country is supported. Shop Pay appears as long as Shopify Payments is active — it doesn't require a wallet on the customer's device.</p>
+  </section>
+
+  <!-- Diagnostic -->
+  <section class="section" id="diagnostic">
+    <h2>Diagnostic Checklist</h2>
+    <p>Work through this in order. Each step eliminates a class of failure:</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Verify Shopify Payments is active</h3>
+          <p>Shopify Admin → Settings → Payments. Shopify Payments must show as "Active". If it shows "Suspended", "Pending review", or is absent entirely, no express buttons will appear. This is the fix 60%+ of the time.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Test in the correct browser/device combination</h3>
+          <p>For Apple Pay: use Safari on iPhone, iPad, or Mac. For Google Pay: use Chrome on Android or Chrome desktop. Using the wrong browser is the most common reason merchants think the feature is broken when it's actually working correctly for eligible customers.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Confirm your country is supported</h3>
+          <p>Check Shopify's help docs for current Apple Pay and Google Pay country lists (these update periodically). If your store's billing country is not on the list, you cannot enable these payment methods regardless of other settings.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check the customer's wallet</h3>
+          <p>On iPhone: Settings → Wallet &amp; Apple Pay → confirm at least one card is present. On Android: open the Google Pay app or visit pay.google.com → confirm at least one payment method is saved. If no card exists, the button won't appear for that customer.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check for checkout customization conflicts</h3>
+          <p>Shopify Admin → Settings → Checkout → Customize (for Online Store 2.0) or via Checkout Extensibility. Look for any hidden sections or UI extensions that may be suppressing the express checkout section. Temporarily disable customizations to test if buttons reappear.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Check SSL on custom domains (Plus)</h3>
+          <p>If you have a custom checkout domain on Shopify Plus, verify the SSL certificate is valid. Go to your custom domain in a browser and look for any certificate warnings. An expired or invalid cert will prevent Apple Pay domain verification from completing.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <div class="step-body">
+          <h3>Run CheckPulse free checkout health check</h3>
+          <p>CheckPulse's free check tests your live checkout flow and flags express payment configuration issues, Shopify Payments status problems, and SSL errors automatically — without requiring a test purchase or a specific device.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert danger" style="margin-top: 20px;">
+      <strong>If buttons disappeared after working fine:</strong> The most likely culprit is Shopify Payments being temporarily suspended or placed under review. Check your Shopify admin email for any payment account alerts, and verify your Shopify Payments status in Settings → Payments immediately.
+    </div>
+  </section>
+
+  <!-- Reference table -->
+  <section class="section" id="reference-table">
+    <h2>Express Checkout Failure Reference Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>What you see</th>
+            <th>Root cause</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No express section at all (no Apple Pay, Google Pay, OR Shop Pay)</td>
+            <td>Shopify Payments is not active or is suspended</td>
+            <td>Activate Shopify Payments in Settings → Payments, or resolve suspension</td>
+          </tr>
+          <tr>
+            <td>Shop Pay shows but Apple Pay / Google Pay do not</td>
+            <td>Browser eligibility failure or customer wallet is empty</td>
+            <td>Test in Safari (Apple Pay) or Chrome (Google Pay); confirm cards exist in wallet</td>
+          </tr>
+          <tr>
+            <td>Express section doesn't appear in Chrome on Mac</td>
+            <td>Testing Apple Pay in wrong browser — expected behavior</td>
+            <td>Switch to Safari for Apple Pay; Chrome will show Google Pay if configured</td>
+          </tr>
+          <tr>
+            <td>Express section doesn't appear on iPhone in Chrome</td>
+            <td>iOS blocks Payment Request API in non-Safari browsers</td>
+            <td>Use Safari on iPhone — Apple platform constraint, not fixable by Shopify</td>
+          </tr>
+          <tr>
+            <td>Apple Pay button shows but tapping fails</td>
+            <td>Payment processing error, card declined, or Shopify Payments restriction</td>
+            <td>Check Shopify Payments for payout holds; try a different card in wallet</td>
+          </tr>
+          <tr>
+            <td>Buttons worked before, now gone for all customers</td>
+            <td>Shopify Payments suspended, or checkout customization published</td>
+            <td>Check Settings → Payments for suspension alerts; review checkout customizations</td>
+          </tr>
+          <tr>
+            <td>Apple Pay missing in specific countries</td>
+            <td>Apple Pay not available for that store country or customer card's bank</td>
+            <td>Verify country support — not all Shopify Payments countries support Apple Pay</td>
+          </tr>
+          <tr>
+            <td>Google Pay not showing on Android Chrome</td>
+            <td>No Google account signed into Chrome, or no card saved in Google Pay</td>
+            <td>Customer must sign into Chrome with Google account and add a card to Google Pay</td>
+          </tr>
+          <tr>
+            <td>Express buttons visible to merchant but not to customers</td>
+            <td>Test device vs real customer has different wallet setup</td>
+            <td>Normal — buttons are customer-specific based on their wallet contents</td>
+          </tr>
+          <tr>
+            <td>Apple Pay not showing after moving to new Plus custom checkout domain</td>
+            <td>Domain re-verification pending (24–48h)</td>
+            <td>Wait for Shopify to complete Apple Pay domain verification on the new URL</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Monitoring CTA -->
+  <div class="cta-box">
+    <h2>Express payment buttons failing silently costs real revenue</h2>
+    <p>CheckPulse monitors your checkout continuously and alerts you the moment Shopify Payments goes down, express buttons stop rendering, or your checkout stops responding — before customers notice and leave.</p>
+    <a href="./#pricing" class="cta-btn">Start Monitoring Free</a>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-brand">CheckPulse</div>
+    <span class="footer-copy">Shopify checkout monitoring &amp; troubleshooting</span>
+    <div class="footer-links">
+      <a href="./">Home</a>
+      <a href="./free-check">Free Check</a>
+      <a href="./guide">Guide</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-monitoring-comparison">vs UptimeRobot</a>
+      <a href="./shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="./shopify-payments-suspended">Payments Suspended</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency QA</a>
+      <a href="./shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

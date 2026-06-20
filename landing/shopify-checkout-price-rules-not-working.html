@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Price Rules Not Working — Automatic Discount Not Applying, BOGO Not Triggering, Volume Pricing Broken, Scripts Deprecated (2026)</title>
+  <meta name="description" content="Shopify automatic discounts silently fail when conditions aren't met, BOGO quantity thresholds are missed, or discount code + automatic discount conflict. Shopify Scripts deprecated on Plus. Full 8-failure-mode guide." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-price-rules-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-price-rules-not-working" />
+  <meta property="og:title" content="Shopify Checkout Price Rules Not Working — Automatic Discount Not Applying, BOGO, Volume Pricing" />
+  <meta property="og:description" content="Shopify automatic discounts have silent condition failures, BOGO requires exact variant matching, volume pricing needs third-party apps (or Plus Functions), and discount codes are blocked when any automatic discount is active. Full guide." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Price Rules Not Working — Automatic Discount Not Applying, BOGO Not Triggering, Volume Pricing Broken, Shopify Scripts Deprecated",
+    "description": "Shopify's price rules and automatic discounts have eight distinct failure modes. The most underdiagnosed: automatic discounts silently skip the cart when any one condition is unmet (minimum purchase, eligible products, customer segment), with no error shown to the customer. Discount codes disappear entirely when any automatic discount is active — merchants who run a sitewide sale and expect customers to also apply influencer codes discover this combination is impossible on non-Plus plans. BOGO (Buy X Get Y) requires exact variant-level matching and hits a silent cap when the 'Y' item is manually removed. Shopify Scripts — the Plus-only tool for complex tiered pricing — are being replaced by Shopify Functions, breaking custom discount logic for merchants who haven't migrated.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-price-rules-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify automatic discount not applying at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify automatic discounts have multiple conditions that must ALL be true for the discount to apply. The most common reasons for silent failure: (1) the cart doesn't meet the minimum purchase amount threshold — Shopify calculates this against the cart subtotal before any other discounts, so another discount reducing the subtotal can push it below the minimum; (2) the eligible products or collections condition is not met — if your automatic discount only applies to specific products, the customer must have at least one eligible item in their cart; (3) the customer eligibility setting is 'Specific customer segments' and the logged-in customer doesn't qualify — guests checking out without an account are treated as 'all customers' unless the segment is configured otherwise; (4) the discount is active but hasn't started yet or has already expired — Shopify uses UTC time for discount schedules, which may not match your local timezone. None of these failures show an error message to the customer — the discount simply doesn't appear at checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify discount code field disappear at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When any active automatic discount applies to the cart, Shopify hides the discount code input field on non-Plus plans. This is by design: Shopify's checkout only supports one discount per order on standard plans, and the active automatic discount occupies that slot. Customers can't enter a code even if they have one. This affects merchants who run a sitewide automatic discount (e.g., '10% off all orders') and also distribute influencer or affiliate codes — the combination is impossible on non-Plus. On Shopify Plus, you can stack discounts using Shopify Functions to build custom discount logic. On non-Plus, the only workaround is to end the automatic discount and replace it with a widely-shared discount code, or use a cart permalink with the code pre-applied so customers arrive with both the code in their URL and the product in cart."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify Buy X Get Y (BOGO) not triggering?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's Buy X Get Y discount has three common failure modes. First, variant matching: Shopify BXGY evaluates eligibility at the variant level, not the product level. If your discount requires 'Buy Product A' but the customer adds a specific size or color variant that was excluded, the trigger condition isn't met. Check Admin → Discounts → your BOGO → Eligible products to confirm the correct variants are included. Second, quantity threshold: the 'Buy X' quantity must be met by eligible items only — items in the cart from non-eligible products don't count toward X. Third, the 'Get Y' item behavior when the customer removes it: if your BOGO adds a free item to the cart automatically, and the customer removes it, Shopify doesn't re-add it unless the customer re-triggers the add (by removing and re-adding the X item, or refreshing). The discount still technically applies but the free item is missing from the order."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify have native volume pricing or tiered pricing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify has no native volume pricing or quantity-based tiered discount feature on any plan except through Shopify Scripts (Plus only, being deprecated) and Shopify Functions (Plus only, the replacement). Non-Plus merchants must use a third-party app such as Wholesale Club, Quantity Breaks & Volume Discount, Bold Quantity Breaks, or Dealeasy to implement tiered pricing. These apps use one of three mechanisms: (1) price rules / discount codes applied at checkout, (2) draft orders with custom line item prices, or (3) JavaScript that modifies the displayed price on the storefront. If the third-party app uses Shopify Scripts and your store's Scripts subscription has lapsed or been removed, tiered pricing silently disappears at checkout. If the app uses JavaScript price modification, the displayed discount may not carry through to checkout if the cart page bypasses the app's script."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify discount code stop working after many uses?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify discount codes can have usage limits: a total usage limit (e.g., 'this code can be used 100 times') and a per-customer usage limit (e.g., 'once per customer'). When either limit is exhausted, the code silently fails with a 'This discount code is invalid' error. To check: go to Admin → Discounts → click on the discount code → look at 'Times used' vs 'Usage limit'. If 'Times used' equals 'Usage limit', the code is exhausted. Increase the limit, remove it entirely for unlimited use, or create a new code. For subscription or loyalty codes that are meant to be used indefinitely, always set the per-customer limit to 1 and remove the total usage limit — this prevents one customer from using it multiple times while allowing all customers to use it once."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Price Rules Not Working
+  </div>
+  <h1>Shopify <em>Price Rules Not Working</em> — Automatic Discount Not Applying, BOGO Not Triggering, Volume Pricing Broken, Scripts Deprecated</h1>
+  <p class="hero-sub">Shopify automatic discounts silently skip the cart when any one condition is unmet, BOGO requires exact variant-level matching, discount codes disappear when any automatic discount is active, and Shopify Scripts — the Plus tool for complex tiered pricing — are being deprecated. Here are all 8 failure modes.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 10 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Automatic Discounts Fail Silently — No Error Is Shown to the Customer</div>
+    When a Shopify automatic discount condition is not met — wrong minimum purchase, ineligible products, wrong customer segment — the discount simply doesn't appear at checkout. There is no error message. The customer doesn't know a discount was supposed to apply. This is the most common reason merchants receive support tickets asking "why didn't my sale apply?"
+  </div>
+
+  <h2>How Shopify Price Rules and Discounts Work (And Where They Break)</h2>
+
+  <p>Shopify has three distinct discount mechanisms, each with different behavior, conditions, and failure modes:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mechanism</th>
+          <th>How Applied</th>
+          <th>Plans</th>
+          <th>Stackable?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Discount codes</td>
+          <td>Customer enters code at checkout</td>
+          <td><span class="tag green">All plans</span></td>
+          <td>One code per order (non-Plus)</td>
+        </tr>
+        <tr>
+          <td>Automatic discounts</td>
+          <td>Applied automatically when conditions are met</td>
+          <td><span class="tag green">All plans</span></td>
+          <td>One automatic discount per order (non-Plus)</td>
+        </tr>
+        <tr>
+          <td>Shopify Scripts</td>
+          <td>Ruby scripts run server-side in checkout</td>
+          <td><span class="tag yellow">Plus only — being deprecated</span></td>
+          <td>Fully customizable — can stack</td>
+        </tr>
+        <tr>
+          <td>Shopify Functions</td>
+          <td>WebAssembly functions replace Scripts</td>
+          <td><span class="tag yellow">Plus only — replacement for Scripts</span></td>
+          <td>Multiple Functions can run</td>
+        </tr>
+        <tr>
+          <td>Draft order price overrides</td>
+          <td>Merchant sets line item prices manually</td>
+          <td><span class="tag green">All plans</span></td>
+          <td>N/A — manual pricing</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The critical non-Plus constraint: Shopify allows only one discount per checkout — either one discount code or one automatic discount, not both. When any automatic discount is active, the discount code input field is hidden. When a code is applied, automatic discounts that would otherwise apply do not stack on top.</p>
+
+  <h2>Failure Mode 1 — Automatic Discount Conditions Silently Not Met</h2>
+
+  <p>Shopify automatic discounts evaluate against several condition sets simultaneously. Every condition must be true for the discount to apply. Common silent failures:</p>
+
+  <h3>Minimum purchase amount not reached</h3>
+
+  <p>Shopify calculates the minimum purchase against the cart subtotal before any discounts. But there's a catch: if another discount has already been applied (e.g., a cart-level discount from a third-party app), that discount may reduce the subtotal below the threshold, causing the automatic discount to silently not apply even though the customer's original total met the requirement.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Subtotal Calculation Order Matters</div>
+    Shopify evaluates the minimum purchase amount against the pre-discount subtotal for most scenarios, but the interaction with line-item discounts from apps (using the Admin API <code>applied_discount</code> on draft orders) can reduce the effective subtotal. If you have apps modifying line-item prices, test your automatic discount thresholds with those apps active.
+  </div>
+
+  <h3>Eligible products or collections condition</h3>
+
+  <p>If your automatic discount is configured to apply only to specific products or collections, the customer's cart must contain at least one item from the eligible set. Common mistakes:</p>
+
+  <ul>
+    <li>Product is in an eligible collection but is also tagged for exclusion in a third-party discount app — the app may be overriding Shopify's native check</li>
+    <li>Product was recently added to a collection but the collection update hasn't propagated to the discount evaluation cache (rare, but can cause a few minutes of incorrect behavior)</li>
+    <li>Discount configured to "Specific products" but specific product variants were not selected — Shopify's "specific products" picker selects variants, not just the parent product title</li>
+  </ul>
+
+  <h3>Customer eligibility mismatch</h3>
+
+  <p>When the discount is set to "Specific customer segments," Shopify evaluates the logged-in customer's segment membership at the time of checkout. Guest customers (not logged in) are evaluated against the "All customers" condition. If your discount is restricted to a segment like "Customers who have placed at least 1 order" and the customer is checking out as a guest, the discount won't apply even if they have a purchase history.</p>
+
+  <ol class="steps">
+    <li>Go to Admin → Discounts → your automatic discount → check "Customer eligibility"</li>
+    <li>If set to "Specific customer segments," verify the customer is logged in (guests cannot match segments)</li>
+    <li>Check Admin → Customers → find the customer → verify they appear in the expected segment</li>
+    <li>If the segment was recently updated, wait a few minutes for Shopify to sync segment membership</li>
+  </ol>
+
+  <h2>Failure Mode 2 — Discount Code Field Disappears When Automatic Discount Is Active</h2>
+
+  <p>This is one of the most confusing behaviors in Shopify's checkout for non-Plus merchants. When any automatic discount applies to the cart, Shopify removes the discount code input field entirely from the checkout page. Customers who arrive with a coupon code have no way to enter it.</p>
+
+  <p>This affects every common sale + code combination:</p>
+
+  <ul>
+    <li>Sitewide automatic sale (e.g., "15% off everything") + influencer code (e.g., "SARAH15") — impossible on non-Plus</li>
+    <li>Free shipping automatic discount + first-order coupon code — impossible on non-Plus</li>
+    <li>Automatic BOGO offer + loyalty redemption code — impossible on non-Plus</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Customers Won't Report This — They'll Just Abandon</div>
+    Customers who arrive from an influencer's link with a promise of a discount code simply see no code field. Most won't contact support — they'll quietly abandon and assume the code was fake or expired. High abandonment on influencer traffic during sale periods is often caused by this conflict.
+  </div>
+
+  <h3>Workarounds for non-Plus stores</h3>
+
+  <ul>
+    <li><strong>Use a cart permalink instead of an automatic discount:</strong> Create a discount code for the influencer and share a URL like <code>yourstore.com/discount/SARAH15?redirect=/collections/all</code> — this pre-applies the code to the cart without requiring an automatic discount</li>
+    <li><strong>Replace the automatic discount with a widely-shared code:</strong> Instead of an automatic sitewide sale, create a public discount code (e.g., "SALE15") and share it visibly on the site — this keeps the code field visible</li>
+    <li><strong>Upgrade to Plus:</strong> Shopify Plus with Shopify Functions allows custom discount logic that can stack multiple discounts</li>
+  </ul>
+
+  <h2>Failure Mode 3 — BOGO (Buy X Get Y) Not Triggering</h2>
+
+  <p>Shopify's Buy X Get Y discount type has specific evaluation logic that surprises merchants who expect it to work like a simple "buy one product, get another" offer.</p>
+
+  <h3>Variant-level matching, not product-level</h3>
+
+  <p>When you configure a BOGO with "Specific products," Shopify evaluates at the variant level. If you add "Blue T-Shirt" as the trigger product and the customer adds "Blue T-Shirt — Size L," Shopify checks whether the variant "Blue T-Shirt — Size L" is in the eligible set. If you added the parent product without selecting all variants, some variants may be excluded.</p>
+
+  <p>To verify: Admin → Discounts → your BOGO → click the "Customer buys" product → confirm all intended variants are shown as selected.</p>
+
+  <h3>Minimum quantity threshold not met by eligible items only</h3>
+
+  <p>The "Customer buys at least X" quantity count is fulfilled only by eligible items. If a customer has 3 items in their cart but only 1 is the eligible trigger product, and your BOGO requires "buys at least 2," the trigger condition is not met. Non-eligible items don't count toward the quantity threshold.</p>
+
+  <h3>The "Y" item is removed and not re-added</h3>
+
+  <p>When Shopify BOGO is configured to "add a product for free" (rather than "discount a product"), Shopify can automatically add the Y item to the cart when conditions are met. If the customer removes this automatically-added item, Shopify does not continuously re-add it. The discount condition is still met, but the free product is absent from the cart. The customer may complete checkout without the free item and contact support afterward.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">BOGO With "Percentage Off" Is More Reliable Than "Free Product"</div>
+    Instead of configuring BOGO to add a free product, configure it as "Customer gets Y products at X% off" where X is 100%. The customer must have the Y product already in their cart, but there's no silent removal behavior. This is more predictable for both the merchant and the customer.
+  </div>
+
+  <h3>Maximum uses per order cap reached</h3>
+
+  <p>BOGO discounts can be configured with a maximum number of uses per order (e.g., "applies up to 3 times per checkout"). If a customer buys 6 of the trigger item expecting 3 free Y items, but the cap is set to 1, only 1 free item is granted. The cap setting is at Admin → Discounts → your BOGO → "Maximum discount uses" → "Limit to X uses per order."</p>
+
+  <h2>Failure Mode 4 — Volume Pricing / Tiered Pricing Not Working</h2>
+
+  <p>Shopify has no native volume or tiered pricing on any plan. There is no "buy 1-4 at $10, buy 5-9 at $9, buy 10+ at $8" feature built into Shopify's Admin. Every implementation requires a third-party app or, on Plus, Shopify Scripts (deprecated) / Shopify Functions.</p>
+
+  <h3>Third-party volume pricing apps — failure modes</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>App Mechanism</th>
+          <th>How It Works</th>
+          <th>Common Failure Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Price rules + discount code</td>
+          <td>App creates a Shopify discount code applied automatically at checkout</td>
+          <td>Conflicts with merchant's manual discount codes (one per order limit)</td>
+        </tr>
+        <tr>
+          <td>Draft order pricing</td>
+          <td>App intercepts checkout, creates a draft order with custom line item prices</td>
+          <td>Breaks express checkout (Shop Pay, Apple Pay, Google Pay bypass draft order flow)</td>
+        </tr>
+        <tr>
+          <td>Storefront JavaScript price display</td>
+          <td>JS modifies displayed price on product page and cart</td>
+          <td>Visual only — checkout price uses Shopify's actual price, not the displayed override</td>
+        </tr>
+        <tr>
+          <td>Shopify Scripts (Plus)</td>
+          <td>Ruby script runs in checkout, modifies line item prices server-side</td>
+          <td>Being deprecated — Scripts must be migrated to Shopify Functions before deprecation deadline</td>
+        </tr>
+        <tr>
+          <td>Shopify Functions (Plus)</td>
+          <td>WebAssembly functions apply discount logic in checkout</td>
+          <td>Requires Plus; complex setup; Function must be deployed via Shopify CLI</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The most dangerous failure is "storefront JavaScript price display" — the customer sees a lower price on the product page and in the cart, but Shopify's actual checkout uses the product's base price. The customer pays full price at payment, often not noticing until they check their email receipt.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">JavaScript Price Modification Is Not Actual Pricing</div>
+    Several volume pricing apps modify the visual display of prices using JavaScript without actually changing the Shopify price. When the customer proceeds to checkout, Shopify calculates the order total using the product's actual Shopify price, not the JS-modified display price. If a volume pricing app isn't explicitly using discount codes, draft orders, or Shopify Scripts/Functions, it may be display-only. Test by completing a test checkout and verifying the actual charged amount.
+  </div>
+
+  <h2>Failure Mode 5 — Usage Limit Exhausted</h2>
+
+  <p>Shopify discount codes can be configured with two types of usage limits:</p>
+
+  <ul>
+    <li><strong>Total usage limit:</strong> The code can be used a maximum of N times across all customers. Once exhausted, new uses return "This discount code is invalid."</li>
+    <li><strong>Per-customer usage limit:</strong> A single customer can use the code at most N times. Set to 1 for "one-time use per customer" behavior.</li>
+  </ul>
+
+  <p>A common scenario: a merchant creates an influencer code with a total usage limit of 100 for a campaign. The influencer's audience exceeds 100 purchases. The 101st customer gets an "invalid" error and assumes the code was fake, escalating to the influencer who escalates to the merchant.</p>
+
+  <ol class="steps">
+    <li>Go to Admin → Discounts → find the discount code</li>
+    <li>Check "Times used" vs "Usage limit" at the top of the discount detail page</li>
+    <li>If exhausted, click "Edit discount" → increase the usage limit or remove it (unlimited)</li>
+    <li>If per-customer limit is the issue, the customer can use a different email to work around it — consider whether this is the intended behavior</li>
+  </ol>
+
+  <h2>Failure Mode 6 — Date and Time Range Issues</h2>
+
+  <p>Shopify discount date ranges use UTC internally, but the Admin interface displays them in the merchant's local timezone. Timezone mismatches cause discounts to go live earlier or later than intended, or expire before a campaign officially ends.</p>
+
+  <h3>Common timing failures</h3>
+
+  <ul>
+    <li><strong>Discount not live yet:</strong> Merchant sets start time to "midnight tonight" in Eastern time, but Shopify launches it at midnight UTC (5 hours earlier in winter) — the discount fires before the intended launch across the store</li>
+    <li><strong>Discount already expired:</strong> A flash sale ends "at midnight" but the merchant's intended midnight is Pacific time while Shopify's timezone for the store is UTC — the sale ends 7-8 hours before planned</li>
+    <li><strong>Scheduled sale doesn't start on time:</strong> Merchant is in UTC+8 and sets the start to 9am — Shopify interprets this as 9am UTC+8, which is 1am UTC, so the sale is already active by the time the merchant's workday begins</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Always Verify Your Store's Timezone Setting</div>
+    Go to Admin → Settings → General → Store timezone. This is the timezone Shopify uses for discount schedule display. If this doesn't match your expected timezone, the displayed start/end times will be misleading. Always confirm what UTC time the discount is actually scheduled for.
+  </div>
+
+  <h2>Failure Mode 7 — Customer Segment Eligibility Not Synced</h2>
+
+  <p>Shopify's customer segments (used for targeted discounts) are computed periodically, not in real time. When a customer becomes eligible for a segment (e.g., they just made their second purchase, qualifying for a "returning customers" segment), there may be a delay before that eligibility is reflected in discount evaluation.</p>
+
+  <p>Practical consequences:</p>
+
+  <ul>
+    <li>A "loyalty reward" automatic discount for customers who have placed 3+ orders may not fire on a customer's 3rd order if the segment hasn't updated since their 3rd order was placed</li>
+    <li>A segment-based welcome discount for customers in a specific geographic region may not fire if the customer's location was added to their profile too recently</li>
+    <li>Customers recently imported via a bulk CSV upload may not be reflected in segment counts for several hours</li>
+  </ul>
+
+  <p>Workaround: for time-sensitive segment-based discounts, use discount codes distributed manually (via email) rather than automatic discounts dependent on segment sync timing.</p>
+
+  <h2>Failure Mode 8 — Shopify Scripts Deprecated, Complex Discount Logic Breaking</h2>
+
+  <p>Shopify Scripts is a Plus-only feature that allows merchants to run Ruby code inside Shopify's checkout to customize pricing, shipping, and payment logic. Scripts are the mechanism behind complex tiered pricing, custom BOGO logic, bundle discounts, and percentage-off-after-threshold rules on Shopify Plus.</p>
+
+  <p>Shopify is deprecating Scripts in favor of Shopify Functions — a WebAssembly-based system with higher performance limits. The deprecation timeline means any Plus store still relying on Scripts for checkout discounting needs to migrate.</p>
+
+  <h3>Signs your Scripts are breaking</h3>
+
+  <ul>
+    <li>Tiered pricing that worked for years suddenly applies the wrong rate or doesn't apply at all</li>
+    <li>Complex BOGO logic with custom eligibility rules stops triggering correctly</li>
+    <li>Bundle discount that required custom logic no longer fires at checkout</li>
+    <li>Checkout times out intermittently, with errors in the Shopify Scripts execution log</li>
+  </ul>
+
+  <h3>What you need to do</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Checkout → Scripts (Plus only) — review which scripts are active and what logic they contain</li>
+    <li>Audit each script's function: is it a line item discount, shipping rate filter, or payment method filter?</li>
+    <li>Contact your Shopify Plus merchant success manager or a Shopify Functions developer to scope the migration</li>
+    <li>Shopify Functions are deployed via the Shopify CLI as app extensions — they require a Partner account and an app to host the Function</li>
+    <li>Test the migrated Function in a development store before deploying to production</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Shopify Functions Require Plus — Third-Party Discount Apps Are Not Equivalent</div>
+    Shopify Scripts replacement via Shopify Functions is a Plus-only capability. If you're a non-Plus merchant trying to replicate Scripts-level discount logic, third-party apps are the only path. Be aware that app-based discount logic has the limitations described in Failure Mode 4 — particularly around express checkout bypass and the one-discount-per-order limit.
+  </div>
+
+  <h2>Quick Diagnostic: Which Failure Mode Is Affecting You?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Where to Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Automatic discount doesn't appear at checkout</td>
+          <td>Condition not met (minimum, products, segment)</td>
+          <td>Admin → Discounts → review all conditions</td>
+        </tr>
+        <tr>
+          <td>Discount code field is missing from checkout</td>
+          <td>Active automatic discount is blocking it</td>
+          <td>Admin → Discounts → filter by "Automatic" and check active ones</td>
+        </tr>
+        <tr>
+          <td>BOGO free item not in cart</td>
+          <td>Item was removed or variant not eligible</td>
+          <td>Admin → Discounts → BOGO → check variant selection and Y item config</td>
+        </tr>
+        <tr>
+          <td>Volume price shown in cart but wrong at checkout</td>
+          <td>App uses display-only JS, not actual discount</td>
+          <td>Complete test order; check actual charge vs displayed price</td>
+        </tr>
+        <tr>
+          <td>Discount code is invalid</td>
+          <td>Usage limit exhausted or code expired</td>
+          <td>Admin → Discounts → check "Times used" and end date</td>
+        </tr>
+        <tr>
+          <td>Discount fired too early or too late</td>
+          <td>UTC vs local timezone mismatch on schedule</td>
+          <td>Admin → Settings → General → Store timezone; check discount UTC times</td>
+        </tr>
+        <tr>
+          <td>Segment discount not applying to qualifying customers</td>
+          <td>Segment sync delay</td>
+          <td>Admin → Customers → verify customer is in the segment</td>
+        </tr>
+        <tr>
+          <td>Complex Plus discount logic stopped working</td>
+          <td>Shopify Scripts deprecated or timing out</td>
+          <td>Admin → Settings → Checkout → Scripts → check execution log</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is a Broken Discount Costing You Sales?</h2>
+    <p>CheckPulse monitors your Shopify checkout end-to-end — catching failed discounts, broken payment flows, and checkout errors before your customers hit them.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <p>Code invalid, expired, or conflicting with automatic discounts</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <p>Discount code field disappears, influencer code blocked during sale</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <p>Gift card + discount code, loyalty points + coupon conflicts</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <p>Multiple discount types conflicting at checkout</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle & Kit Checkout Not Working</a>
+      <p>Bundle discount not applying, kit builder checkout errors</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate & Referral Code Not Working</a>
+      <p>Referral discount not applying, ambassador code blocked</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Inventory Not Updating After Checkout</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Built for Shopify merchants.</div>
+  </div>
+</footer>
+
+</body>
+</html>

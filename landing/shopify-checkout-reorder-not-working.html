@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Reorder Not Working — Button Missing, Wrong Variants, Discounts Not Applied (2026)</title>
+  <meta name="description" content="Shopify's reorder button silently skips out-of-stock items, ignores discontinued variants, and never re-applies discount codes. Complete diagnostic for every reorder failure mode including guest orders and subscription products." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-reorder-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-reorder-not-working" />
+  <meta property="og:title" content="Shopify Reorder Not Working — Button Missing, Wrong Variants, No Discount" />
+  <meta property="og:description" content="Shopify reorder silently drops out-of-stock items, adds wrong variants when originals are discontinued, and never restores discount codes. Guest orders have no reorder button at all. Full diagnostic for all reorder failure modes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Reorder Not Working — Button Missing, Wrong Variants, Discounts Not Applied",
+    "description": "Shopify's reorder feature is a convenience that carries several silent failure modes. Out-of-stock items are skipped without notice. Discontinued or deleted variants add nothing to cart. Discount codes from the original order are never re-applied. Guest orders have no reorder button at all. Subscription products fail or create duplicate subscriptions when reordered. New customer accounts changed the reorder flow in 2023, breaking third-party reorder apps built for legacy accounts.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-reorder-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Shopify reorder button missing from my account page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Shopify reorder button only appears in the customer account order history page, and only for orders placed while logged in. Several things can make it disappear: (1) Guest checkout orders — orders placed without an account have no reorder button because they are not linked to a customer profile. (2) New customer accounts — Shopify replaced legacy customer accounts with a new account system in late 2023. If your store switched to new customer accounts, the account URL changes from /account to a different path and the layout differs. Third-party apps that injected a reorder button into the old /account/orders template will no longer work. (3) Theme customization removed it — some themes allow disabling the reorder button in the theme editor. Check Shopify Admin → Online Store → Themes → Customize → Account section. (4) The order is in a status that doesn't support reorder (archived, pending payment, returned) — only fully paid fulfilled orders reliably show the reorder button."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify reorder add the wrong items or nothing at all?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify reorder works by adding the exact variant IDs from the original order back to the cart. If any of those variants have been changed or deleted, the reorder silently fails for those line items. Specific causes: (1) Discontinued variant — if you deleted the variant (e.g., removed 'Size S' from a product), the reorder call for that variant ID returns nothing and the item is skipped without error. (2) Product deleted — if the entire product was deleted from the store, the reorder fails for that line item entirely. (3) Variant ID changed — some product editing workflows (especially bulk imports) can create new variant IDs while appearing to update existing ones. The original order's variant ID no longer matches. (4) Product moved to a different channel — if the product is available but not published to the Online Store channel, reorder may silently skip it. Fix: restore or re-publish the discontinued variant, or create a replacement product and update the customer manually."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify reorder re-apply discount codes from the original order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify reorder never re-applies discount codes, sale prices, or promotions from the original order. When a customer clicks 'Reorder', the items are added to a new cart at current full prices. Any discount codes, staff-applied discounts, or automatic discount configurations from the original order are not carried over. This is by design — Shopify treats the reorder as a new cart session with standard pricing. If you want customers to reorder at a specific discount, you need to either: (1) send them a discount code manually, (2) use a Shopify Flow or third-party loyalty app that detects repeat purchases and applies a discount, or (3) use a Shopify Function (available on Shopify and higher plans) to apply automatic repeat-purchase discounts. Some third-party 'reorder' apps (like Reorder Master) add discount code pre-fill capability."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify reorder not add all items — some are missing from cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Out-of-stock items are silently skipped when a customer uses Shopify reorder. If an item from the original order is currently out of stock or set to 'Continue selling when out of stock' is disabled, Shopify does not add it to the reorder cart and shows no error or warning to the customer. The customer lands on the cart page with fewer items than expected and no explanation. To diagnose: compare the items in the reorder cart against the original order — the missing items are likely out of stock or have inventory set to 0. To fix the experience: either restock the items before the customer reorders, enable 'Continue selling when out of stock' for those variants, or use a third-party reorder app that explicitly warns customers which items couldn't be added."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can guest checkout customers use the Shopify reorder button?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Guest checkout orders are not linked to a customer account. Since there is no account, there is no order history page, and therefore no reorder button for guest orders. The customer would need to manually find and add the products again. If you want to encourage repeat purchases from guest customers, options include: (1) sending a follow-up email with product links or a pre-filled cart URL, (2) using post-purchase upsell apps that show 'Buy Again' options on the thank-you page, (3) prompting guest customers to create an account after their first purchase — once they have an account and that order is linked, reorder becomes available. Shopify's order status page (the thank-you page) does not natively show a reorder button for guest orders."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify reorder work with subscription products?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No, and using it can cause problems. Subscription products (from Recharge, Bold Subscriptions, Skio, etc.) are not standard Shopify line items — they have special selling plans and subscription metadata attached. When a customer tries to reorder a subscription product using the standard Shopify reorder button, one of two things happens: (1) the item is added to cart without its subscription plan, so it appears as a one-time purchase rather than a subscription — the customer does not realize they are not reordering a subscription; or (2) the subscription app blocks the add-to-cart and the item is silently skipped. Correct behavior for subscription reorders: the customer should log in to the subscription portal (Recharge customer portal, etc.) and manage their subscription from there — skip, pause, or re-activate. Shopify's native account reorder is not the right tool for subscription products."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does Shopify's new customer accounts affect reorder?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify replaced legacy customer accounts with 'new customer accounts' starting in late 2023. Legacy accounts used the Liquid-templated /account page where merchants and apps could inject custom HTML, including reorder buttons. New customer accounts are hosted by Shopify on a different URL path and cannot be customized with Liquid — they use a fixed Shopify-designed UI. If your store switched to new customer accounts: (1) theme-based reorder button customizations no longer work, (2) apps that injected reorder functionality into the old account template are broken, (3) the native new customer account interface does include a basic reorder button built in by Shopify. Check Shopify Admin → Settings → Customer accounts to see which version your store uses. If you need to revert to legacy accounts for app compatibility, Shopify still allows switching back."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I implement reorder in a headless Shopify or Hydrogen storefront?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "In a headless Shopify or Hydrogen storefront, the native account reorder button does not exist — you must implement it yourself. The correct approach: (1) use the Storefront API Customer query to fetch the customer's order history and the line items from each order (including variantId for each line); (2) when the customer clicks 'Reorder', collect the variantIds and quantities from that order; (3) call the Storefront API cartLinesAdd mutation to add those variants to an existing or new cart; (4) redirect to the checkout URL from the cart. Key edge cases to handle in code: check variant availability before adding (query Product.availableForSale or ProductVariant.availableForSale), handle missing/deleted variants gracefully with a user-visible error, and do not carry over discount codes from the original order (prompt the customer to add one if needed). The Hydrogen starter template has an orders page example but does not ship a reorder implementation by default."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Reorder Not Working
+  </div>
+  <h1>Shopify <em>Reorder Not Working</em> — Button Missing, Wrong Items, No Discount Restored</h1>
+  <p class="hero-sub">Shopify's "Reorder" button silently skips out-of-stock items, ignores deleted or discontinued variants, and never re-applies discount codes from the original order. Guest orders have no reorder button at all. Here is the complete diagnostic for every reorder failure mode.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 9 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Silent Failure Warning</div>
+    Shopify's reorder feature has no error state visible to customers. When items can't be added — because they're out of stock, discontinued, or deleted — the button completes silently and the customer lands on a cart with fewer items than expected and no explanation.
+  </div>
+
+  <h2>How Shopify Reorder Works (and Where It Breaks)</h2>
+
+  <p>When a customer clicks the "Reorder" button on their account order history page, Shopify reads the variant IDs and quantities from the original order and calls <code>cartAdd</code> for each line item. That's it — no discount restoration, no stock check with a warning, no variant validation before the call.</p>
+
+  <p>What most merchants don't know about Shopify reorder:</p>
+
+  <ul>
+    <li>Reorder only exists on the <strong>customer account order history page</strong> — guest orders have no reorder button</li>
+    <li>Out-of-stock items are <strong>silently dropped</strong> — no error, no list of skipped items</li>
+    <li>Deleted or discontinued variants <strong>add nothing</strong> — the reorder silently fails for those line items</li>
+    <li>Discount codes from the original order are <strong>never re-applied</strong> — items are added at current full prices</li>
+    <li>Subscription products <strong>reorder incorrectly</strong> — they add as one-time purchases without the subscription plan</li>
+    <li>Switching to <strong>new customer accounts</strong> breaks any third-party reorder app built for legacy accounts</li>
+  </ul>
+
+  <h2>Failure Mode 1 — Reorder Button Missing from Account</h2>
+
+  <p>The reorder button doesn't appear for every customer or every order. Multiple conditions can hide it.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Situation</th>
+          <th>Reorder Button</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logged-in customer, paid fulfilled order</td>
+          <td><span class="tag green">Shown</span></td>
+          <td>Standard case — works as expected</td>
+        </tr>
+        <tr>
+          <td>Guest checkout order</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Guest orders have no customer account link; no order history page</td>
+        </tr>
+        <tr>
+          <td>Order pending payment</td>
+          <td><span class="tag red">Not shown</span></td>
+          <td>Unfulfilled/pending orders don't trigger the reorder UI</td>
+        </tr>
+        <tr>
+          <td>New customer accounts (2023+)</td>
+          <td><span class="tag yellow">Changed behavior</span></td>
+          <td>New account UI is Shopify-hosted; third-party reorder injections no longer work</td>
+        </tr>
+        <tr>
+          <td>Theme setting disabled</td>
+          <td><span class="tag red">Hidden</span></td>
+          <td>Some themes allow toggling the reorder button off in the theme editor</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to restore the reorder button</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Online Store → Themes → Customize</strong></li>
+    <li>Navigate to the <strong>Account</strong> or <strong>Order history</strong> section in the theme editor</li>
+    <li>Look for a "Show reorder button" or similar toggle — enable it if present</li>
+    <li>If you use new customer accounts, check <strong>Settings → Customer accounts</strong> — reorder is built into the Shopify-hosted UI and cannot be further customized via Liquid</li>
+    <li>If using a third-party reorder app, verify it is compatible with your current account type (legacy vs new)</li>
+  </ol>
+
+  <h2>Failure Mode 2 — Reorder Silently Skips Out-of-Stock Items</h2>
+
+  <p>This is the most common support complaint: "I clicked reorder and some items are missing from my cart." There is no visible error. No list of skipped items. The customer simply lands on a cart that is incomplete.</p>
+
+  <p>When <code>cartAdd</code> is called for a variant that has zero inventory and "Continue selling when out of stock" is disabled, Shopify does not add that item and does not surface any failure to the customer interface. The reorder call succeeds from Shopify's perspective — it just added zero items for that line.</p>
+
+  <h3>Diagnosing which items were skipped</h3>
+  <ol class="steps">
+    <li>Open the original order in <strong>Shopify Admin → Orders</strong> and note all line items</li>
+    <li>Compare against what appeared in the cart after reorder — the missing items are the skipped ones</li>
+    <li>For each missing item, go to <strong>Products → [product] → [variant]</strong> and check inventory at the fulfillment location</li>
+    <li>If inventory is 0 and "Continue selling when out of stock" is unchecked, this is the cause</li>
+    <li>Either restock the item, enable "Continue selling when out of stock" on that variant, or notify the customer via email that the item is unavailable</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Customer Experience Impact</div>
+    A customer who places a reorder, goes through checkout, and pays — then later realizes items are missing — will submit a support ticket and likely request a partial refund. The silent skip is the root cause. Consider adding a post-reorder message or using a third-party app that surfaces which items weren't added.
+  </div>
+
+  <h2>Failure Mode 3 — Reorder Adds Wrong Items (Discontinued Variants)</h2>
+
+  <p>If a variant from the original order has been deleted or its ID has changed, the reorder call for that variant either fails silently or adds a different, incorrect item.</p>
+
+  <p>Common scenarios that create this problem:</p>
+
+  <ul>
+    <li><strong>Variant deleted</strong> — you removed "Size XS" from a product because you no longer carry it; customers who ordered XS get nothing added when they reorder</li>
+    <li><strong>Product replaced</strong> — you deleted an old product and created a new one with new variant IDs; the original variant IDs no longer exist</li>
+    <li><strong>Bulk import overwrote variant IDs</strong> — some CSV import tools create new variant IDs while appearing to update existing products, silently invalidating old reorder data</li>
+    <li><strong>Product duplicated incorrectly</strong> — duplicating a product creates new IDs; if customers were sent links to the old product and you later archived it, those variant IDs are gone</li>
+  </ul>
+
+  <h3>Fix: never delete variants that appear in completed orders</h3>
+
+  <p>Instead of deleting discontinued variants, set their inventory to 0 and mark them unavailable. This preserves the variant ID so historical reorder calls can still reference the item — you then handle the out-of-stock scenario rather than the silent-404 scenario, which at least gives you a place to redirect the customer.</p>
+
+  <h2>Failure Mode 4 — Reorder Does Not Re-Apply Discounts</h2>
+
+  <p>Shopify reorder is not "repeat this order exactly." It is "add these variant IDs to a new cart." The new cart has no knowledge of:</p>
+
+  <ul>
+    <li>Any discount code used in the original order</li>
+    <li>Staff-applied discounts set in admin on the original order</li>
+    <li>Automatic discounts that were active at the time of the original order but may have expired</li>
+    <li>Loyalty points or store credit that were redeemed at original checkout</li>
+    <li>Any promotional pricing that was in effect (e.g., a flash sale price)</li>
+  </ul>
+
+  <p>Items are added to the new cart at <strong>current full price</strong>. If prices have changed since the original order, the reorder reflects the current price — higher or lower.</p>
+
+  <h3>Options for discount continuity on reorder</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>How</th>
+          <th>Plan Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Manual discount code email</td>
+          <td>Use Shopify Flow to detect a completed order and send a follow-up email with a discount code for next purchase</td>
+          <td>Shopify plan+</td>
+        </tr>
+        <tr>
+          <td>Automatic repeat-purchase discount</td>
+          <td>Use a Shopify Function to apply a discount automatically when the same customer reorders the same product</td>
+          <td>Shopify and higher</td>
+        </tr>
+        <tr>
+          <td>Loyalty app</td>
+          <td>Apps like Smile.io, LoyaltyLion, or Yotpo Loyalty track repeat purchases and auto-apply points/discounts at checkout</td>
+          <td>Any plan (app cost)</td>
+        </tr>
+        <tr>
+          <td>Third-party reorder app</td>
+          <td>Apps like Reorder Master can pre-fill discount codes as part of the reorder flow</td>
+          <td>Any plan (app cost)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 5 — Guest Order Reorder Not Available</h2>
+
+  <p>A guest checkout order is not attached to any customer account. Without an account, there is no order history page, and without an order history page, there is no reorder button. This is a structural limitation — Shopify cannot provide reorder for orders that don't belong to an account.</p>
+
+  <p>Workarounds for repeat purchase from guest customers:</p>
+
+  <ul>
+    <li><strong>Post-purchase upsell on the thank-you page</strong> — apps like ReConvert, Zipify, or Shopify's native post-purchase extensibility can show a "Buy again" option immediately after checkout while the customer is still authenticated</li>
+    <li><strong>Cart permalink in follow-up email</strong> — create a cart URL that pre-fills the items: <code>your-store.myshopify.com/cart/[variant_id]:[qty]</code> and include it in your post-purchase email sequence</li>
+    <li><strong>Prompt to create an account</strong> — include an account creation CTA in the order confirmation email; once the guest creates an account and links their order history, reorder becomes available for future orders</li>
+    <li><strong>Winback email with product links</strong> — 30/60/90 day winback flows in Klaviyo or Omnisend can deep-link directly to the product page</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Cart Permalink Format</div>
+    To pre-fill a cart with a specific product: <code>https://your-store.myshopify.com/cart/[VARIANT_ID]:[QUANTITY]</code>. For multiple items: <code>/cart/VARIANT_ID1:QTY1,VARIANT_ID2:QTY2</code>. Find variant IDs in Shopify Admin → Products → [product] → click a variant → the ID is in the URL.
+  </div>
+
+  <h2>Failure Mode 6 — Subscription Products Reorder Incorrectly</h2>
+
+  <p>Subscription products — managed by Recharge, Bold Subscriptions, Skio, Ordergroove, or similar apps — are not standard Shopify line items. They carry a "selling plan" ID and subscription metadata. Shopify's native reorder button does not know about this metadata.</p>
+
+  <p>When a customer tries to reorder a subscription product using the standard Shopify reorder button:</p>
+
+  <ul>
+    <li>The item may be added to cart <strong>without its subscription plan</strong> — appearing as a one-time purchase. The customer doesn't realize they are buying one unit instead of subscribing again.</li>
+    <li>The subscription app may <strong>block the add-to-cart</strong> call and silently skip the item.</li>
+    <li>If the selling plan ID is included in the cart call and the plan has expired or been archived, the add will fail silently.</li>
+  </ul>
+
+  <h3>Correct approach for subscription reorders</h3>
+  <ol class="steps">
+    <li>Direct customers to the <strong>subscription management portal</strong> (Recharge customer portal, Skio portal, etc.) rather than using the standard order history reorder button</li>
+    <li>In the subscription portal, customers can skip, pause, or re-activate subscriptions properly</li>
+    <li>Consider adding a note to the order confirmation email for subscription orders: "To reorder or manage your subscription, visit [portal link]"</li>
+    <li>If you need a "Buy again" one-time purchase option for subscription products, implement it separately with explicit messaging that it is a one-time purchase, not a subscription</li>
+  </ol>
+
+  <h2>Failure Mode 7 — New Customer Accounts Broke Third-Party Reorder Apps</h2>
+
+  <p>Shopify launched "new customer accounts" in late 2023 as a replacement for the legacy Liquid-templated <code>/account</code> page. The new account UI is hosted and rendered by Shopify — it is not customizable via Liquid or theme files.</p>
+
+  <p>This broke any third-party reorder app that worked by injecting JavaScript or Liquid code into the legacy account template. Apps in this category include:</p>
+
+  <ul>
+    <li>Apps that added a "Reorder All" button to the order history list</li>
+    <li>Apps that added a "Reorder Selected Items" interface</li>
+    <li>Apps that pre-filled discount codes as part of a custom reorder flow</li>
+    <li>Theme customizations that added reorder functionality to the legacy <code>customers/order.liquid</code> template</li>
+  </ul>
+
+  <h3>What to do if you switched to new customer accounts</h3>
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Customer accounts</strong> and confirm which version is active</li>
+    <li>If on new customer accounts, check the native reorder button — Shopify's built-in UI does include a basic reorder function</li>
+    <li>For advanced reorder functionality, look for apps that explicitly support "new customer accounts" in their compatibility notes</li>
+    <li>If your reorder app was business-critical and doesn't yet support new accounts, Shopify still allows reverting to legacy accounts in Settings → Customer accounts → switch to "Classic customer accounts"</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Revert Window</div>
+    Shopify has indicated that legacy customer accounts will eventually be sunset, but as of mid-2026 the revert option is still available. If you need legacy account reorder apps to keep working, revert now and monitor the Shopify changelog for the sunset date.
+  </div>
+
+  <h2>Failure Mode 8 — Reorder in Headless / Hydrogen Not Implemented</h2>
+
+  <p>Headless Shopify storefronts (Hydrogen, custom frontends using the Storefront API) do not have a native reorder button. Shopify's admin UI features like the account order history reorder button are not part of the Storefront API — you must build the reorder flow yourself.</p>
+
+  <h3>Building reorder in a headless Shopify storefront</h3>
+
+  <ol class="steps">
+    <li>Query the customer's orders via the Storefront API <code>customer</code> query — include <code>lineItems</code> with <code>variant { id availableForSale }</code> on each order</li>
+    <li>When the customer clicks "Reorder", collect the <code>variantId</code> and <code>quantity</code> for each line item in that order</li>
+    <li>Filter out variants where <code>availableForSale</code> is false — surface these to the customer with a message rather than silently skipping them</li>
+    <li>Call the Storefront API <code>cartLinesAdd</code> mutation with the available variant IDs and quantities</li>
+    <li>Redirect the customer to the checkout URL from the cart response</li>
+  </ol>
+
+  <p>Key differences from the native reorder button: you control the stock-check UX, you can prompt the customer about unavailable items, and you can optionally pre-fill a discount code field. Do not automatically re-apply the original discount — verify the discount is still valid first.</p>
+
+  <h2>Reorder Failure Diagnostic Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Where to Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Reorder button not visible</td>
+          <td>Guest order / theme toggle / new customer accounts</td>
+          <td>Admin → Settings → Customer accounts; Theme editor</td>
+        </tr>
+        <tr>
+          <td>Cart has fewer items than the original order</td>
+          <td>Out-of-stock items silently skipped</td>
+          <td>Products → [variant] → Inventory at location</td>
+        </tr>
+        <tr>
+          <td>Reorder added a different product</td>
+          <td>Variant ID changed or product replaced</td>
+          <td>Compare variant IDs in original order vs current catalog</td>
+        </tr>
+        <tr>
+          <td>Reorder cart shows full price, no discount</td>
+          <td>By design — discounts are never restored</td>
+          <td>Set up a follow-up email with discount code via Flow</td>
+        </tr>
+        <tr>
+          <td>Subscription product reordered as one-time purchase</td>
+          <td>Native reorder strips selling plan metadata</td>
+          <td>Direct customers to subscription management portal</td>
+        </tr>
+        <tr>
+          <td>Third-party reorder app stopped working</td>
+          <td>Store switched to new customer accounts</td>
+          <td>Admin → Settings → Customer accounts → check version</td>
+        </tr>
+        <tr>
+          <td>Reorder button exists but cart stays empty</td>
+          <td>All variants in the order are deleted</td>
+          <td>Try adding one item manually by variant ID to test</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Shopify Checkout Losing Orders Right Now?</h2>
+    <p>CheckPulse monitors your Shopify checkout every 3 minutes and alerts you the moment something breaks — before your customers notice.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Pricing</a>
+  </div>
+
+  <h2>Preventing Repeat-Purchase Failures</h2>
+
+  <p>The reorder button is a convenience feature, not a reliable sales channel on its own. Merchants who depend on repeat purchases should layer additional tools on top:</p>
+
+  <ul>
+    <li><strong>Post-purchase email sequences</strong> — trigger a "buy again" email 30-60 days after the original order (Klaviyo, Omnisend, Shopify Email) with direct product links</li>
+    <li><strong>Back-in-stock alerts</strong> — if reorder commonly fails due to stockouts, enable back-in-stock notifications so customers are alerted when the item is available again</li>
+    <li><strong>Subscription upsell at checkout</strong> — for products customers frequently reorder, offer a subscription option at checkout. This removes the reorder friction entirely.</li>
+    <li><strong>Wishlist / save for later apps</strong> — customers who save items can return and purchase without relying on order history</li>
+    <li><strong>CheckPulse monitoring</strong> — if your checkout itself has errors, reorders fail before reaching the cart issue level. Monitor checkout health independently.</li>
+  </ul>
+
+  <h2>Related Shopify Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <p>Cart items disappear between sessions or after login</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <p>Thank you page upsell not showing or charge failing</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals Not Working</a>
+      <p>Recharge rebill failing, dunning management, card update</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <p>Invoice link broken, discount missing, tax not recalculated</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working at Checkout</a>
+      <p>Code field missing, automatic discount conflict, expired code</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <p>Stock selling out mid-checkout, ghost inventory holds</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout Issues</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products</a>
+      <a href="/checkpulse/shopify-checkout-returns-refunds">Returns and Refunds</a>
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Checkout</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Memberships</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment</a>
+      <a href="/checkpulse/shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Account Required Blocking</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Wrong Tax Calculation</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Issues</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="/checkpulse/shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns and Exchange</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Checkout Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

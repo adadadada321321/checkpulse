@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Thank You Page Not Working — Order Status Page Blank, Post-Purchase Extensions Missing, Custom Content Gone, additional_scripts Deprecated (2026)</title>
+  <meta name="description" content="Shopify's 'thank you page' can't be edited in the theme editor on non-Plus plans, checkout.liquid and additional_scripts are deprecated, post-purchase extensions don't fire after Shop Pay, and guest order status links expire. Full 8-failure-mode guide." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-thank-you-page-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-thank-you-page-not-working" />
+  <meta property="og:title" content="Shopify Thank You Page Not Working — Order Status Page, Post-Purchase Extensions, additional_scripts Deprecated" />
+  <meta property="og:description" content="Shopify's thank you page (order status page) cannot be customized via the theme editor on non-Plus plans. checkout.liquid and additional_scripts are deprecated. Post-purchase extensions skip after Shop Pay. Guest order links expire. Full guide." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Thank You Page Not Working — Order Status Page Blank, Post-Purchase Extensions Missing, Custom Content Gone, additional_scripts Deprecated",
+    "description": "Shopify's post-checkout 'thank you page' (now called the order status page) has eight distinct failure modes. The most widespread: non-Plus merchants discover the page cannot be edited via the theme editor at all — only logo, colors, and a few settings via Admin → Settings → Checkout. The second most disruptive: all custom HTML and JavaScript injected via checkout.liquid or the additional_scripts field silently stopped executing after June 30, 2025, when Shopify deprecated both mechanisms. Post-purchase UI extensions (ReConvert, CartHook, Zipify OCU) fail silently after Shop Pay because Shop Pay's flow doesn't hand off to the post-purchase extension slot. Guest customer order status links embedded in confirmation emails expire after a set period, locking customers out with no self-service path.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-thank-you-page-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-20",
+    "dateModified": "2026-06-20"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I edit the Shopify thank you page in the theme editor?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No, not on standard (non-Plus) Shopify plans. The order status page (thank you page) at /thank_you is controlled entirely by Shopify and cannot be edited through the online store theme editor. Non-Plus merchants can only customize: the store logo (Admin → Settings → Checkout), the background color and accent colors (Admin → Settings → Checkout → Checkout style), a custom message in the order confirmation section, and the contact information shown. To add custom content like cross-sell offers, embedded videos, social proof, or custom HTML, non-Plus merchants need a third-party post-purchase app or must inject content via a Checkout UI Extension (Plus only). The page HTML and layout are hardcoded by Shopify."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my thank you page customizations stop working after June 2025?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify deprecated two mechanisms that merchants used to inject custom code into the checkout and order status page: checkout.liquid (a Liquid template file that allowed custom HTML in the checkout) and the 'Additional scripts' field under Admin → Settings → Checkout → Order processing. Both stopped executing on June 30, 2025. Any conversion tracking pixels (Google Analytics, Meta Pixel), survey widgets, cross-sell scripts, custom CSS overrides, or third-party app code that was injected via either of these mechanisms now silently does nothing. The thank you page still loads and shows the order details, but none of the custom injected code runs. To restore functionality, conversion tracking must be migrated to the Web Pixels API (using the official Google & YouTube app and Meta Pixel app from the Shopify App Store). Other custom content requires Checkout UI Extensions (Plus only) or a post-purchase app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my ReConvert / Zipify / CartHook post-purchase offer not showing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Post-purchase UI extensions (apps like ReConvert, CartHook, Zipify One Click Upsell) show an offer page between the payment confirmation and the order status page. The most common reasons they fail silently: (1) The extension is deployed but not activated — go to Admin → Settings → Checkout → Customize checkout → Post-purchase page section and verify the app's extension is toggled on. (2) The customer used Shop Pay, Apple Pay, Google Pay, or another accelerated checkout — these express checkout flows have their own post-payment confirmation UI and either skip the Shopify post-purchase extension slot entirely or redirect to Shop Pay's native thank-you page. (3) An ad blocker on the customer's browser blocked the extension's script. (4) The offer app's eligibility rules excluded the order (minimum value, product exclusions, customer tags). (5) The extension returned an error loading the offer and Shopify silently skipped it and went straight to the order status page."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't guest customers access their Shopify order status page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Guest customers (who check out without creating an account) receive a unique, authenticated order status URL in their confirmation email, formatted as yourstore.myshopify.com/orders/{order-id}/authenticate?key={unique-key}. This link provides one-time access to the order status page without requiring a login. However, the link is time-limited and expires. After expiry, clicking the link shows 'This page is no longer available' or redirects to the store homepage. The guest customer has no other self-service way to view their order — they must either create an account (if they placed the order with the same email), contact merchant support, or use the 'Check your order status' form if the merchant has enabled it. Merchants using 'New customer accounts' can allow guests to verify their email address and gain access to order history without setting a password."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify's thank you page load after Shop Pay checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, but with a key difference: when customers check out via Shop Pay, they go through Shop Pay's checkout flow and see Shop Pay's own post-payment confirmation screen before being redirected to your store's order status page. This intermediate screen is controlled by Shop Pay, not by you or by Shopify's post-purchase extension slot. This means: (1) Post-purchase one-click upsell apps that use the Shopify post-purchase extension may not trigger after Shop Pay, (2) Custom conversion events that fire on the order status page URL load may not capture Shop Pay orders if the redirect is delayed, (3) If the order status redirect fails for any reason (network drop, browser back button), the customer is left on Shop Pay's confirmation screen with no link back to your order details. The order IS created in Shopify — only the redirect to the order status page is affected."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Thank You Page Not Working
+  </div>
+  <h1>Shopify <em>Thank You Page Not Working</em> — Order Status Page Blank, Post-Purchase Extensions Missing, additional_scripts Deprecated, Guest Links Expired</h1>
+  <p class="hero-sub">Shopify's "thank you page" (the order status page at <code>/thank_you</code>) cannot be customized via the theme editor on non-Plus plans, all content injected via <code>checkout.liquid</code> and <code>additional_scripts</code> stopped executing after June 2025, post-purchase upsell extensions silently skip after Shop Pay, and guest customer order links expire. Here are all 8 failure modes.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 10 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">The Thank You Page Cannot Be Edited in the Theme Editor (Non-Plus)</div>
+    The most common misconception: merchants look for a "thank_you" or "order-status" template in their theme editor to customize the post-checkout page. This template does not exist in the online store theme editor on non-Plus plans. The order status page is a Shopify-hosted page controlled entirely by Shopify. Only logo, colors, and a few settings in Admin → Settings → Checkout can be changed.
+  </div>
+
+  <h2>Shopify's Post-Checkout Flow — What Actually Happens</h2>
+
+  <p>Understanding the sequence helps diagnose which component is failing:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Page / System</th>
+          <th>Who Controls It</th>
+          <th>Customizable?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1. Payment submitted</td>
+          <td>Shopify checkout (hosted)</td>
+          <td>Shopify</td>
+          <td><span class="tag yellow">Plus only via Checkout UI Extensions</span></td>
+        </tr>
+        <tr>
+          <td>2. Post-purchase offer</td>
+          <td>Post-purchase extension slot</td>
+          <td>Shopify (app fills it)</td>
+          <td><span class="tag green">Yes — via post-purchase extension apps</span></td>
+        </tr>
+        <tr>
+          <td>3. Order status page</td>
+          <td><code>/thank_you</code> (order status)</td>
+          <td>Shopify</td>
+          <td><span class="tag red">Non-Plus: logo/colors only</span></td>
+        </tr>
+        <tr>
+          <td>4. Confirmation email</td>
+          <td>Shopify email system</td>
+          <td>Shopify (merchant templates)</td>
+          <td><span class="tag green">Yes — via Admin → Settings → Notifications</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The "thank you page" experience is actually three distinct systems: the post-purchase extension slot (step 2), the order status page (step 3), and the confirmation email (step 4). Problems in any of these three often get reported as "thank you page not working."</p>
+
+  <h2>Failure Mode 1 — The Page Cannot Be Edited Without Plus (The #1 Misconception)</h2>
+
+  <p>On standard Shopify plans, the order status page at <code>/thank_you</code> is a fully Shopify-controlled page. There is no Liquid template, no theme editor section, and no drag-and-drop block for it. Merchants who see customized thank you pages on other stores are either on Shopify Plus (with Checkout UI Extensions) or using a post-purchase app that inserts an offer page before the order status page.</p>
+
+  <h3>What non-Plus merchants CAN change</h3>
+
+  <ul>
+    <li><strong>Logo:</strong> Admin → Settings → Checkout → Logo (also applies to checkout pages)</li>
+    <li><strong>Background and accent colors:</strong> Admin → Settings → Checkout → Customize</li>
+    <li><strong>Custom message at top of order status page:</strong> Admin → Settings → Checkout → Order processing → "Additional content" text field (plain text, no HTML)</li>
+    <li><strong>Contact information:</strong> Shown automatically from Admin → Settings → General</li>
+  </ul>
+
+  <h3>What requires Plus</h3>
+
+  <ul>
+    <li>Custom HTML or rich content blocks on the order status page → Checkout UI Extension</li>
+    <li>Custom layout changes → Checkout UI Extension</li>
+    <li>Native post-purchase offer in the Shopify UI slot → Checkout Extensibility</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Non-Plus Alternative: Post-Purchase App</div>
+    Apps like ReConvert, CartHook, and Zipify One Click Upsell inject a branded offer page between payment confirmation and the order status page, using Shopify's post-purchase extension API. These apps work on non-Plus plans and can display custom content, cross-sells, upsells, and loyalty prompts. The customer sees the offer before reaching the standard order status page.
+  </div>
+
+  <h2>Failure Mode 2 — checkout.liquid and additional_scripts Deprecated June 30, 2025</h2>
+
+  <p>Shopify deprecated two mechanisms that merchants used to inject custom code into the checkout and order status page:</p>
+
+  <ul>
+    <li><strong><code>checkout.liquid</code></strong> — A Liquid template file (previously available to some merchants) that allowed custom HTML to be rendered in the checkout flow. Deprecated and no longer executed.</li>
+    <li><strong>Additional scripts (Admin → Settings → Checkout → Order processing)</strong> — A text field where merchants could paste custom JavaScript or HTML snippets to run on the checkout confirmation page. Deprecated and no longer executed after June 30, 2025.</li>
+  </ul>
+
+  <p>Both mechanisms silently stopped working. The order status page still loads and shows the customer's order details, but the injected code does not run. There is no error message shown to the merchant or customer.</p>
+
+  <h3>What was commonly injected via these paths (and is now broken)</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>What Was Injected</th>
+          <th>Impact of Deprecation</th>
+          <th>Replacement Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Google Analytics 4 purchase event (<code>gtag.js</code>)</td>
+          <td>GA4 conversion tracking stopped recording purchases</td>
+          <td>Google &amp; YouTube app → Web Pixel extension</td>
+        </tr>
+        <tr>
+          <td>Meta Pixel Purchase event (<code>fbq('track', 'Purchase')</code>)</td>
+          <td>Meta purchase events missing, ROAS measurement broken</td>
+          <td>Meta Pixel app → Web Pixel extension</td>
+        </tr>
+        <tr>
+          <td>Survey widgets (Gorgias, Typeform)</td>
+          <td>Post-purchase survey not displaying</td>
+          <td>Checkout UI Extension (Plus) or survey app using post-purchase extension slot</td>
+        </tr>
+        <tr>
+          <td>Cross-sell or upsell scripts</td>
+          <td>Custom offer content no longer shown</td>
+          <td>Post-purchase extension app (ReConvert, CartHook, Zipify)</td>
+        </tr>
+        <tr>
+          <td>Custom CSS overrides for checkout page</td>
+          <td>Visual customizations removed</td>
+          <td>Checkout Branding API (Plus) or Admin → Checkout → Customize</td>
+        </tr>
+        <tr>
+          <td>Affiliate tracking pixels</td>
+          <td>Affiliate commissions not tracked</td>
+          <td>Web Pixels API or server-side tracking via Order webhooks</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-title">Revenue Attribution Data Has Been Lost Since June 2025</div>
+    Merchants who haven't migrated their tracking will have had zero purchase-event data in Google Analytics and Meta since June 30, 2025. This means all paid ad campaign ROAS calculations since that date are based on zero conversion data. If your Meta or Google Ads campaigns started spending more without clear results around mid-2025, broken conversion tracking from this deprecation is a probable cause.
+  </div>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Checkout → Order processing — if you see any code in "Additional scripts," it is no longer executing. Note what it was doing.</li>
+    <li>For Google Analytics: install the "Google &amp; YouTube" app from the Shopify App Store → connect your GA4 property → the app creates a Web Pixel extension that fires purchase events</li>
+    <li>For Meta Pixel: install the "Facebook &amp; Instagram" (Meta) app → connect your Meta Pixel → the app creates a Web Pixel extension</li>
+    <li>For other tracking (TikTok, Pinterest, etc.): install the official app from each platform or configure a Customer Data Platform (Elevar, Triple Whale) that uses Web Pixels API</li>
+    <li>Verify the migration is working: Admin → Settings → Customer events → check that active web pixel extensions are listed and healthy</li>
+  </ol>
+
+  <h2>Failure Mode 3 — Post-Purchase Extension Not Showing (ReConvert, Zipify, CartHook)</h2>
+
+  <p>Post-purchase UI extension apps inject an offer page between checkout completion and the order status page. Merchants who've installed these apps and configured their offers frequently report the offer not showing for some or all customers.</p>
+
+  <h3>Extension is deployed but not activated in checkout customizations</h3>
+
+  <p>The most common cause: the app is installed and offers are configured, but the extension has not been activated in Shopify's checkout customization settings.</p>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Checkout → Customize checkout</li>
+    <li>In the checkout editor, look for "Post-purchase page" in the left sidebar or top navigation</li>
+    <li>Verify the app's extension is shown and toggled on — it must be explicitly enabled per checkout profile</li>
+    <li>Save and test with a real or test transaction (not a simulated checkout — the post-purchase slot only fires after actual payment submission)</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Post-Purchase Slot Does Not Fire on Simulated / Draft Order Checkouts</div>
+    Testing by placing a free ($0) test order or simulating a checkout without real payment submission will not trigger the post-purchase extension slot. You must complete an actual paid transaction (use a test card in a development store, or Shopify's Bogus Gateway) to verify the extension renders.
+  </div>
+
+  <h3>Offer eligibility rules excluding the order</h3>
+
+  <p>Most post-purchase apps have configurable eligibility rules: minimum order value, specific products or collections, customer tags, first-time-buyer-only, etc. If the test order doesn't meet these conditions, no offer will show. Check the app's offer configuration for active exclusion rules.</p>
+
+  <h3>Extension returned an error</h3>
+
+  <p>If the post-purchase extension app's server is slow or returns an error when Shopify calls it to determine whether to show an offer, Shopify silently skips the extension and sends the customer directly to the order status page. This manifests as the extension working sometimes but not others. Check the app's dashboard for error logs or failed webhook deliveries.</p>
+
+  <h2>Failure Mode 4 — Post-Purchase Extension Skipped After Shop Pay / Express Checkout</h2>
+
+  <p>When customers check out via Shop Pay, Apple Pay, Google Pay, or another accelerated checkout flow, the post-purchase extension slot may not trigger or may behave differently from standard checkout.</p>
+
+  <h3>Shop Pay's post-payment flow</h3>
+
+  <p>After a Shop Pay purchase is completed, the customer sees Shop Pay's own confirmation screen ("Your order is confirmed"). Shop Pay then redirects to your store's order status page. The redirect happens after Shop Pay's confirmation is shown, meaning:</p>
+
+  <ul>
+    <li>The Shopify post-purchase extension slot may render between the Shop Pay confirmation and the order status page, but the timing depends on the specific Shop Pay flow version</li>
+    <li>Some merchants report their post-purchase app offers showing after Shop Pay on desktop but not mobile, or vice versa</li>
+    <li>Shop Pay Installments has a different post-payment confirmation flow that may bypass the extension slot entirely</li>
+  </ul>
+
+  <h3>Apple Pay and Google Pay</h3>
+
+  <p>Express checkout via Apple Pay or Google Pay (when initiated from product pages or cart via the payment request API) may handle the post-payment redirect differently. The key test: complete a purchase using each express payment method specifically, not just standard checkout. Many merchants test with a credit card and assume all payment methods behave identically.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Test Post-Purchase Apps With Every Active Payment Method</div>
+    Create separate test transactions using: (1) standard credit card entry, (2) Shop Pay, (3) Apple Pay (on Safari/iOS), (4) Google Pay (on Chrome). Verify the post-purchase offer appears for each. If it appears for standard card but not Shop Pay, the issue is the express checkout flow, and you should contact the post-purchase app's support with this specific finding.
+  </div>
+
+  <h2>Failure Mode 5 — Guest Customer Order Status Link Expired</h2>
+
+  <p>Guest customers who check out without creating an account cannot log in to view their order. Instead, Shopify embeds a unique, time-limited authenticated URL in their confirmation email:</p>
+
+  <pre>yourstore.myshopify.com/orders/{order-id}/authenticate?key={unique-key}</pre>
+
+  <p>This link provides one-time access to the order status page without a login. The link is time-limited and expires after a set period. After expiry:</p>
+
+  <ul>
+    <li>Clicking the link shows "This page is no longer available" or redirects to the store homepage</li>
+    <li>The guest has no other self-service way to view their order status, tracking, or return eligibility</li>
+    <li>The guest cannot access their order history through the customer account portal because they never created an account</li>
+  </ul>
+
+  <h3>Merchant impact</h3>
+
+  <p>Customers who received the order status link in their confirmation email, bookmarked it, and return weeks later to check on a return or warranty claim find the link broken. This generates support tickets and frustration that could have been prevented.</p>
+
+  <h3>Solutions for non-Plus stores</h3>
+
+  <ol class="steps">
+    <li>Enable "New customer accounts" (Admin → Settings → Customer accounts → New customer accounts) — this allows guests to verify their email and access order history without setting a password</li>
+    <li>Update the order confirmation email template (Admin → Settings → Notifications → Order confirmed) to include a prominent "Create an account" CTA so guests convert to accounts before the link expires</li>
+    <li>Configure your customer support workflow to look up orders by email address for guests who contact you after the link expires</li>
+    <li>For guests who have multiple orders, note that each order has a separate unique link — there is no single guest "order history" URL</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">New Customer Accounts Changed How Guest Order Access Works</div>
+    With Shopify's "New customer accounts" (the default for stores created after 2024), guests can enter their email on the login page and receive a 6-digit code to access their order history. This is more durable than the expiring link. If your store still uses "Classic customer accounts," the expiring link is the only self-service option for guests.
+  </div>
+
+  <h2>Failure Mode 6 — Order Confirmation Email Not Sent vs. Thank You Page Not Loading</h2>
+
+  <p>Merchants frequently conflate two separate issues:</p>
+
+  <ul>
+    <li><strong>The thank you page didn't load</strong> — The customer is stuck at the payment step or sees an error; no order status page is shown</li>
+    <li><strong>The order confirmation email didn't arrive</strong> — The thank you page showed correctly, but the email never arrived in the customer's inbox</li>
+  </ul>
+
+  <p>The thank you page is served by Shopify as soon as payment is authorized. The confirmation email is queued separately by Shopify's email system and sent after the order is created. If the thank you page shows but no email arrives, the issue is in email delivery, not the page itself.</p>
+
+  <h3>Common email non-delivery reasons</h3>
+
+  <ul>
+    <li>Email in spam / junk folder (especially common for Gmail, Apple Mail with aggressive filtering)</li>
+    <li>Customer's email provider soft-blocked Shopify's sending domain — check if the customer's domain has strict DMARC policies</li>
+    <li>Customer entered their email incorrectly at checkout (common with autocomplete filling the wrong address)</li>
+    <li>Shopify's notification for "Order confirmed" is disabled — Admin → Settings → Notifications → Order confirmed → verify it's enabled and the email template is not blank</li>
+    <li>Store has a custom sender domain configured that's missing SPF/DKIM records — email delivered to spam or rejected</li>
+  </ul>
+
+  <ol class="steps">
+    <li>Find the order in Admin → Orders → check that the order exists (if the thank you page showed, the order is there)</li>
+    <li>In the order detail, check the Timeline section for "Order confirmation email sent" — if it shows "Sent" but the customer didn't receive it, the issue is inbox delivery, not Shopify's sending</li>
+    <li>Use "Resend order confirmation" from the order detail page to retry the email</li>
+    <li>Ask the customer to check spam and search for "shopify" in their email client</li>
+    <li>If this is happening for many customers, check Admin → Settings → Notifications → your sending domain → verify SPF and DKIM are correctly configured</li>
+  </ol>
+
+  <h2>Failure Mode 7 — Custom Redirect From Thank You Page Blocked</h2>
+
+  <p>Some merchants attempt to redirect customers from the order status page to a custom landing page, loyalty sign-up, or review collection page using JavaScript. These redirects are blocked or overridden by Shopify.</p>
+
+  <h3>Why redirects don't work</h3>
+
+  <p>Shopify's order status page is hosted on Shopify's checkout domain (<code>checkout.shopify.com</code> or your custom checkout domain), not on your store's primary domain. The page uses a strict Content Security Policy that prevents unauthorized external script execution. Additionally, Shopify's checkout scripts monitor for navigation attempts and can override them to prevent customers from being redirected away from order confirmation before they've seen it.</p>
+
+  <h3>Legitimate alternatives to redirects</h3>
+
+  <ul>
+    <li><strong>Custom message in order confirmation email:</strong> Add a CTA button in the order confirmation email template that links to your loyalty page, review request form, or upsell collection</li>
+    <li><strong>Post-purchase extension (for upsells):</strong> Use a post-purchase app to show your offer between payment and the order status page — no redirect needed</li>
+    <li><strong>Thank you page Checkout UI Extension (Plus only):</strong> Add custom content blocks to the order status page itself using Checkout UI Extensions</li>
+    <li><strong>Shopify Flow + email automation:</strong> Trigger an automated email 30-60 minutes after order placement asking for a review or redirecting to loyalty enrollment</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">The Confirmation Email Is More Effective Than a Thank You Page Redirect</div>
+    A thank you page redirect competes with customers who immediately close the tab. The confirmation email arrives in the customer's inbox when they're ready to engage — often 1-2 hours later when they're back on their phone. Review requests and loyalty program CTAs in the order confirmation email consistently outperform thank you page redirects.
+  </div>
+
+  <h2>Failure Mode 8 — Headless Storefronts Need a Custom Order Confirmation Page</h2>
+
+  <p>Merchants building headless storefronts (using Shopify's Storefront API with a custom React, Next.js, or Hydrogen frontend) must decide how to handle post-checkout flow:</p>
+
+  <h3>Scenario A: Redirect to Shopify's hosted checkout</h3>
+
+  <p>The most common headless approach: the storefront builds a cart using the Storefront API, then redirects the customer to Shopify's hosted checkout (<code>checkout.shopify.com</code>). After payment, Shopify redirects the customer to Shopify's standard order status page at <code>yourstore.myshopify.com/thank_you</code>. This works automatically and the customer gets the standard order status page. Post-purchase apps using the extension slot will fire normally in this flow.</p>
+
+  <h3>Scenario B: Fully custom checkout</h3>
+
+  <p>Merchants implementing a fully custom checkout (collecting payment details in their own frontend using the Storefront API's <code>cartPaymentUpdate</code> mutation or a custom payment gateway) do not automatically receive a Shopify-generated order status page. They must:</p>
+
+  <ul>
+    <li>Build their own order confirmation page (e.g., <code>/order-confirmation?orderId={id}</code>)</li>
+    <li>After payment completes, use the Storefront API to fetch order details for the confirmation page</li>
+    <li>Manually trigger conversion tracking events from their custom page using their tracking setup</li>
+    <li>Generate and display the order details, tracking information, and next steps themselves</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Shopify's Checkout Extensibility Is Not Available for Fully Custom Checkouts</div>
+    Checkout UI Extensions, post-purchase extensions, and Web Pixel extensions only work within Shopify's hosted checkout. If your storefront bypasses Shopify's checkout entirely, none of these extension mechanisms are available. You must implement equivalent functionality in your custom frontend code.
+  </div>
+
+  <h3>Hydrogen-specific considerations</h3>
+
+  <p>Shopify's Hydrogen framework (built for headless storefronts) provides built-in utilities for redirecting to Shopify's hosted checkout. Hydrogen storefronts that use the default checkout redirect will get the standard order status page automatically. Custom Hydrogen implementations that attempt to build a checkout within the Hydrogen app must handle all of the above manually.</p>
+
+  <h2>Quick Diagnostic: Which Failure Mode Is Affecting You?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Where to Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Can't find thank you page in theme editor</td>
+          <td>Non-Plus — page is Shopify-controlled, not in theme editor</td>
+          <td>Admin → Settings → Checkout for limited customization options</td>
+        </tr>
+        <tr>
+          <td>Custom code / tracking pixels stopped working mid-2025</td>
+          <td>checkout.liquid / additional_scripts deprecated June 30, 2025</td>
+          <td>Admin → Settings → Checkout → Order processing — migrate to Web Pixels</td>
+        </tr>
+        <tr>
+          <td>Post-purchase offer not showing at all</td>
+          <td>Extension not activated in checkout customizations</td>
+          <td>Admin → Settings → Checkout → Customize checkout → Post-purchase section</td>
+        </tr>
+        <tr>
+          <td>Offer shows for card but not Shop Pay</td>
+          <td>Express checkout bypasses post-purchase extension slot</td>
+          <td>Test each payment method separately; contact post-purchase app support</td>
+        </tr>
+        <tr>
+          <td>Guest customer can't access order status</td>
+          <td>Authenticated order link expired</td>
+          <td>Enable New customer accounts; add account creation CTA to confirmation email</td>
+        </tr>
+        <tr>
+          <td>Thank you page loaded but no email received</td>
+          <td>Email delivery issue (spam, wrong address, SPF/DKIM)</td>
+          <td>Admin → Orders → Timeline → check "Order confirmation email sent"</td>
+        </tr>
+        <tr>
+          <td>Custom redirect from thank you page not working</td>
+          <td>Shopify CSP blocks unauthorized redirects on checkout domain</td>
+          <td>Use post-purchase app, confirmation email CTA, or Plus Checkout UI Extension instead</td>
+        </tr>
+        <tr>
+          <td>No order confirmation page in headless storefront</td>
+          <td>Custom checkout bypasses Shopify's hosted order status page</td>
+          <td>Build custom confirmation page using Storefront API order data</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Post-Checkout Experience Costing You Revenue?</h2>
+    <p>CheckPulse monitors your Shopify checkout end-to-end — catching failed post-purchase extensions, broken order confirmations, and checkout errors before your customers hit them.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Not Received</a>
+      <p>Confirmation email missing, order status page errors, guest order access</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <p>GA4 purchase event missing, Meta Pixel not firing, Web Pixels API migration</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <p>ReConvert, Zipify OCU, CartHook not showing after checkout</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions Guide</a>
+      <p>What can and can't be customized, Plus vs non-Plus limits</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <p>checkout.liquid deprecated, apps broken after checkout migration</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <p>Recovery emails not sending, Klaviyo not firing, GDPR blocks</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance</a>
+      <a href="./shopify-checkout-error-codes">Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order Checkout</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale Checkout</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit Checkout</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment / BNPL</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

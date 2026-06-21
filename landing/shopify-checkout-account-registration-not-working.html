@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Account Registration Not Working — Email Already in Use, OTP Not Received, NCA Welcome Email (2026)</title>
+  <meta name="description" content="Shopify account registration not working at checkout? Email already in use? OTP magic link not arriving? No welcome email after NCA signup? 8 root causes for Shopify customer account creation failures — with fixes for merchants and developers." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-account-registration-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-account-registration-not-working" />
+  <meta property="og:title" content="Shopify Checkout Account Registration Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify runs two completely different account systems: Classic Accounts (password-based) and New Customer Accounts (NCA, OTP-based). Account registration fails differently in each. 'Email already in use' has no self-serve recovery in NCA. OTP expires in 10 minutes. Welcome email goes to spam. 8 account registration failure modes explained." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Account Registration Not Working — Email Already in Use, OTP, NCA, Password Reset, Headless",
+    "description": "Shopify operates two separate customer account systems: Classic Accounts (email + password, customer self-registration) and New Customer Accounts (NCA, OTP magic link only, no password). Most account registration problems happen because merchants or customers don't know which system is active, or because the NCA OTP flow behaves differently from anything customers have seen before. This guide covers all 8 root causes of Shopify account registration failures at checkout.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-account-registration-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify say my email is already in use when I try to create an account?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This means a customer account already exists for that email address in the store — either from a previous purchase (Shopify automatically creates an account record for every order email, even for guest checkouts) or from a prior registration attempt. In Classic Accounts, the solution is to use the 'Forgot password' link to set a password and gain access. In New Customer Accounts (NCA), there is no password — clicking 'Log in' sends an OTP to that email address, which lets you access the existing account. If you're certain you've never registered but the error appears, it almost always means you placed a guest order with that email before, which created a dormant account record."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why didn't I receive the OTP or magic link email after signing up for a Shopify account?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "New Customer Accounts (NCA) uses a one-time passcode (OTP) sent to email — there is no password. If the OTP email didn't arrive: (1) check your spam or junk folder first, as transactional emails from shops using Shopify's default sender domain (mail.shopify.com) are sometimes filtered; (2) the OTP expires in 10 minutes — if you waited too long or switched apps on mobile, request a new code; (3) some corporate email servers and Microsoft Exchange filters block OTP-style emails as potential phishing; (4) if you typed your email incorrectly at signup, the code went to a different address — re-enter checkout and try again carefully. Merchants on Classic Accounts can resend the account invite email via Admin → Customers → [customer] → Send account invite."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why didn't I receive a welcome email after creating a Shopify account?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are two distinct welcome email scenarios. In Classic Accounts, merchants must send an account invite email manually (Admin → Customers → Send invite) or via a bulk action — no email is sent automatically when you complete self-registration until the merchant enables 'Customer account invite' in notification settings. In New Customer Accounts (NCA), Shopify sends the OTP email as part of the login/registration flow but does not send a separate welcome email by default — the merchant must configure a welcome email automation in a connected email marketing platform (Klaviyo, Mailchimp, Shopify Email) triggered by the 'Customer account created' event. If no such automation exists, new NCA registrations receive no onboarding communication."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I implement customer account registration in a headless Shopify storefront?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Headless Shopify storefronts have no automatic account registration UI. The implementation depends on which account system the store uses. For New Customer Accounts (NCA), you must implement the Customer Account API OAuth 2.0 PKCE flow: register your app in the Partner Dashboard, direct the customer to Shopify's authorization endpoint, handle the redirect back to your app, exchange the authorization code for access and refresh tokens, and store these securely. There is no mutation to create an NCA account programmatically — all registration goes through Shopify's hosted authorization page. For Classic Accounts with the Storefront API, use the customerCreate mutation with email and password, then customerAccessTokenCreate to log in. These are completely different implementations. Stores actively migrating from Classic to NCA must handle both paths during the transition period."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Account Registration Not Working
+  </div>
+  <h1>Shopify <em>Checkout Account Registration Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Account creation blocked? "Email already in use" with no recovery path? OTP magic link not arriving? No welcome email after NCA signup? Password reset going nowhere? Here are all 8 root causes of Shopify customer account registration failures — for merchants and developers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Classic Accounts · NCA · OTP Expiry · Email Already in Use · Welcome Email · Password Reset · SSO Migration · Headless Registration</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify customer account registration sounds straightforward — enter an email, create a password, get access. In 2024, Shopify introduced New Customer Accounts (NCA), which replaced passwords entirely with one-time passcodes sent to email. The two systems behave so differently that most registration problems happen because merchants or customers don't know which system is active, or because the NCA OTP flow is unlike anything customers have encountered before.</p>
+
+  <p>The most common failure: a customer tries to register but gets "email already in use" — and in New Customer Accounts there's no self-serve recovery path, only "Log in" which sends an OTP to the same email. Customers who never consciously created an account don't realize their guest checkout email already created a dormant account record.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">The Two Account Systems — Most Important Thing to Know</div>
+    <strong>Classic Accounts</strong> — email + password, customer can self-register, merchant sends invite emails, Storefront API <code>customerCreate</code> mutation works here, password reset available.<br><br>
+    <strong>New Customer Accounts (NCA)</strong> — OTP magic link only, no password ever, registration and login are the same flow, no <code>customerCreate</code> API, Customer Account API with OAuth 2.0 PKCE is required.<br><br>
+    Check which system is active: Admin → Settings → Customer accounts → "Classic customer accounts" or "New customer accounts." The registration failure modes differ completely between the two.
+  </div>
+
+  <h2>Failure Mode 1: "Email Already in Use" — The Dormant Guest Account Problem</h2>
+
+  <p>This is the most common and most confusing account registration failure. A customer tries to create a new account and immediately gets: "An account with this email address already exists." They're certain they've never created an account. They're right — but Shopify created one for them.</p>
+
+  <h3>Why Shopify creates accounts for guest checkouts</h3>
+
+  <p>Every time a customer completes a checkout — even as a guest — Shopify creates or updates a customer record in the store's Admin. The customer never set a password and never "registered," but an account record exists with their email address. When they later try to register, Shopify correctly reports the email is already taken.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Account System</th>
+          <th>Recovery Path</th>
+          <th>Customer Can Do It Themselves?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Classic Accounts</td>
+          <td>Use "Forgot password" → Shopify sends a reset link → customer sets a password → account active</td>
+          <td><span class="tag green">Yes — fully self-serve</span></td>
+        </tr>
+        <tr>
+          <td>New Customer Accounts (NCA)</td>
+          <td>Use "Log in" → Shopify sends OTP to that email → OTP grants access to the existing account</td>
+          <td><span class="tag green">Yes — but customers must realize "Log in" is also the registration path</span></td>
+        </tr>
+        <tr>
+          <td>NCA — customer lost access to that email</td>
+          <td>No self-serve path; merchant must update email in Admin → Customers → [customer] → Edit</td>
+          <td><span class="tag red">No — requires merchant action</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The NCA mental model gap</h3>
+
+  <p>In New Customer Accounts, there is no distinction between "register" and "log in." Both flows start with entering an email. If the email has a customer record (from any prior purchase), Shopify sends an OTP. If the email is new, Shopify also sends an OTP and creates the account when it's verified. The customer sees the same flow either way. The "email already in use" error only appears in Classic Accounts, where the distinction between registration and login still matters. On NCA-enabled stores, the error effectively can't appear — but the OTP flow confuses customers who expect a traditional registration experience.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Merchant Bulk Invite Trap</div>
+    If you run a Classic Accounts store and imported a customer list or migrated from another platform, customers who never received an invite email may also hit "email already in use" when they try to register — because they were imported but never activated. Send account invite emails from Admin → Customers → select all → Actions → Send account invites. Or switch to NCA where invites aren't needed.
+  </div>
+
+  <h2>Failure Mode 2: OTP Email Not Arriving — New Customer Accounts Registration Stuck</h2>
+
+  <p>New Customer Accounts replaces every password flow with a one-time passcode (OTP) sent to the customer's email. Registration, login, and account recovery all go through OTP. When the OTP doesn't arrive, registration is completely blocked with no fallback.</p>
+
+  <h3>Root causes in order of frequency</h3>
+
+  <ul>
+    <li><strong>Spam / junk folder</strong> — Shopify sends OTP emails from <code>mail.shopify.com</code> infrastructure. Without a custom sender domain configured, these can be filtered by Gmail's Promotions tab, Outlook's Junk folder, or corporate spam filters. The subject line pattern ("Your verification code is XXXXXX") is sometimes misidentified as phishing.</li>
+    <li><strong>OTP expired before checking email</strong> — The OTP is valid for 10 minutes only. Customers who requested the code, went to check their email on a different device, or switched mobile apps may find the code has expired by the time they return to checkout.</li>
+    <li><strong>Corporate / Microsoft Exchange filtering</strong> — Enterprise email servers, particularly Microsoft 365 / Exchange Online, apply aggressive filtering to OTP-style numeric codes. The email may be quarantined at the organization level and never reach the user's inbox or even their junk folder.</li>
+    <li><strong>Email typo at entry</strong> — If the customer mistyped their email address during checkout, the OTP was sent to a non-existent address. There's no error shown because Shopify can't know the address is wrong. The customer must request a new OTP with the correct email.</li>
+    <li><strong>Custom domain email not configured on the store</strong> — Merchants can configure a custom sender domain for transactional emails in Shopify. Without it, all Shopify emails (including OTPs) come from Shopify's shared domain. Shared-domain emails are more likely to land in spam, especially for stores that send high volumes of marketing emails from the same domain.</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Merchant Fix: Configure Custom Email Sender Domain</div>
+    Admin → Settings → Notifications → Sender email → Add a custom email domain. This requires adding SPF and DKIM DNS records to your domain. Once verified, transactional emails including OTPs are sent from your own domain, which dramatically improves deliverability and customer trust.
+  </div>
+
+  <h3>The mobile app-switching problem</h3>
+
+  <p>On mobile, customers frequently trigger the OTP flow in a browser, switch to their email app to read the code, then switch back to the browser. On iOS and some Android configurations, the browser tab may be evicted from memory during this app switch. The customer returns to the browser to find the checkout session gone. The 6-digit code they just read from their email is now useless because the session that issued it no longer exists. They must start the OTP flow again — and if they use the old code in the new session, it won't work. Encouraging customers to copy the code before switching apps reduces this failure rate significantly.</p>
+
+  <h2>Failure Mode 3: No Welcome Email After Account Creation</h2>
+
+  <p>A customer successfully creates an account and gets access. They expect a welcome email with their account details. Nothing arrives. This causes confusion and support tickets, and misses the critical first-purchase moment to build loyalty.</p>
+
+  <h3>How welcome emails work (and don't) in each account system</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Account System</th>
+          <th>What Shopify Sends Automatically</th>
+          <th>What Requires Setup</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Classic Accounts — merchant sends invite</td>
+          <td>Account invite email (contains setup link)</td>
+          <td>Post-activation welcome email requires a marketing automation trigger</td>
+        </tr>
+        <tr>
+          <td>Classic Accounts — customer self-registers</td>
+          <td>Nothing automatic in Shopify Admin</td>
+          <td>Must add welcome email automation triggered by "Customer account enabled" event in Klaviyo, Shopify Email, or similar</td>
+        </tr>
+        <tr>
+          <td>New Customer Accounts (NCA)</td>
+          <td>OTP email only — not a welcome email</td>
+          <td>Welcome email must be configured as an automation triggered by "Customer created" event in your ESP; Shopify does not send one natively</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The most common mistake: merchants assume Shopify's account system automatically sends a welcome email. Shopify only sends the invite (Classic, merchant-triggered) and the OTP (NCA). The welcome email — introducing the customer, explaining account benefits, showing order history — requires a separate automation configured in Klaviyo, Shopify Email, Omnisend, or another connected platform.</p>
+
+  <div class="callout success">
+    <div class="callout-title">Setting Up Welcome Email in Klaviyo (NCA)</div>
+    In Klaviyo: Flows → Create Flow → Browse Templates → "Welcome Series." Set trigger to "Metric: Shopify — Created Account." This fires when a new customer record is created in Shopify, regardless of whether the store uses Classic or NCA. Add a 5-minute delay before the first email to ensure the OTP flow has completed and the customer has actually gained access.
+  </div>
+
+  <h2>Failure Mode 4: OTP Expires — 10-Minute Window Creates Registration Abandonment</h2>
+
+  <p>The NCA OTP is valid for exactly 10 minutes. This sounds generous, but several common scenarios cause customers to miss the window:</p>
+
+  <ul>
+    <li>Customer is on slow internet and the checkout page loads slowly, eating into the window</li>
+    <li>Customer is distracted during checkout (phone call, another tab) and doesn't check email promptly</li>
+    <li>Customer's email client is slow to receive the message (especially corporate email with delayed delivery)</li>
+    <li>Customer goes through multiple steps to locate the email (finds it in spam, reads other emails first)</li>
+    <li>Customer is interrupted and returns to checkout after the window closes</li>
+  </ul>
+
+  <p>When the OTP expires, entering the old code produces an error: "That code isn't valid. Please request a new one." The customer must go back to the email entry screen and request a fresh OTP. Many customers interpret the error as their account creation having failed entirely and give up.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">No Mechanism to Extend OTP Validity</div>
+    Merchants cannot configure the OTP validity window — it is set by Shopify at 10 minutes and cannot be extended. There is also no mechanism to send an automatic reminder if the OTP isn't used. The only available workaround is merchant education: add checkout help text near the "Check your email" screen instructing customers to check spam and to look for an email from the store's domain.
+  </div>
+
+  <h2>Failure Mode 5: Guest Checkout Creates Account — But Order History Isn't Linked</h2>
+
+  <p>A customer places an order as a guest, then tries to create an account to view order history. They successfully create (or activate) the account. But when they log in, they see no order history. Their guest order is nowhere to be found.</p>
+
+  <h3>Why order history doesn't appear</h3>
+
+  <p>Guest checkout orders are stored in Shopify under the customer record that was created during the order, but the connection between the customer record and the account's session depends on which account system is in use:</p>
+
+  <ul>
+    <li><strong>Classic Accounts</strong> — if the customer activates using "Forgot password" on the same email, orders placed under that email appear in the account immediately. This works because the dormant customer record is the one being activated.</li>
+    <li><strong>New Customer Accounts</strong> — orders placed while logged out are linked to the customer record for that email. When the customer logs in via NCA OTP with the same email, they access the same customer record and their order history appears correctly.</li>
+    <li><strong>Different email addresses</strong> — if the guest order was placed with email A and the customer creates an account with email B, the orders are in two separate customer records. There's no automatic merge. The merchant must manually merge the records in Admin → Customers, or use the Admin API <code>customerMerge</code> mutation (Shopify 2024-01+).</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">The Multiple Email Problem</div>
+    Many customers have multiple email addresses — personal and work, or old and new. A guest order placed with a work email and account created with a personal email produces two separate customer records. Orders don't appear because Shopify didn't merge them. The customer is not confused about their password — they're confused because they're looking at a completely different customer record. Shopify's <code>customerMerge</code> Admin API mutation (available in API version 2024-01+) can merge two customer records including their order history, but it's a one-way, irreversible operation.
+  </div>
+
+  <h2>Failure Mode 6: Password Reset Not Working — Classic Accounts</h2>
+
+  <p>On Classic Accounts, the password reset flow is the recovery path for "email already in use" cases. When password reset itself fails, customers have no way to access their account.</p>
+
+  <h3>Root causes of failed password reset emails</h3>
+
+  <ul>
+    <li><strong>Reset link expired</strong> — Shopify's password reset links are valid for a limited window (typically 30 minutes to a few hours depending on Shopify version). If the customer doesn't use it promptly, they must request another.</li>
+    <li><strong>Reset email in spam</strong> — Same deliverability issues as OTP emails. Without a custom sender domain, password reset emails can be filtered.</li>
+    <li><strong>Customer is looking at the wrong email inbox</strong> — they placed a guest order with email A but are trying to reset password on email B. The reset goes to A which they may not check.</li>
+    <li><strong>Store has switched to NCA</strong> — after a store migrates to New Customer Accounts, the Classic Accounts login page may no longer be active. Old "forgot password" links in browser bookmarks or cached pages may point to the Classic login endpoint, which now redirects to NCA's OTP flow. The password reset form no longer exists.</li>
+    <li><strong>Merchant has "Accounts are optional" set but customer tries /account/register directly</strong> — this endpoint may be disabled or redirect unexpectedly depending on theme configuration.</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Reset email never arrives</td>
+          <td>Spam filter or wrong email</td>
+          <td>Check spam; confirm email matches order email; merchant reconfigures sender domain</td>
+        </tr>
+        <tr>
+          <td>"This link has expired"</td>
+          <td>Link validity window passed</td>
+          <td>Request new reset link; use it immediately</td>
+        </tr>
+        <tr>
+          <td>Reset link goes to a blank page or 404</td>
+          <td>Store migrated to NCA — Classic endpoints deactivated</td>
+          <td>Use NCA OTP login instead; there is no password in NCA</td>
+        </tr>
+        <tr>
+          <td>Reset works but account shows no orders</td>
+          <td>Multiple email addresses — different customer records</td>
+          <td>Merchant merges records in Admin or via <code>customerMerge</code> API</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 7: Third-Party SSO and Social Login Break After NCA Migration</h2>
+
+  <p>Stores that installed social login or single sign-on (SSO) apps — Google login, Facebook login, Apple Sign-In, SAML-based enterprise SSO — commonly find these completely break when the store migrates from Classic Accounts to New Customer Accounts.</p>
+
+  <h3>Why SSO apps break on NCA</h3>
+
+  <p>Third-party SSO and social login apps built for Classic Accounts use Shopify's Classic Accounts customer API — specifically the Storefront API <code>customerCreate</code> and <code>customerAccessTokenCreate</code> mutations — to create and authenticate customers programmatically. New Customer Accounts uses a completely different authentication mechanism: OAuth 2.0 PKCE via the Customer Account API. There is no <code>customerCreate</code> equivalent in NCA — account creation and authentication happen through Shopify's hosted authorization page, not via third-party API calls.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">No Third-Party SSO Support on NCA (Yet)</div>
+    As of mid-2026, Shopify's New Customer Accounts does not support third-party identity providers (Google, Facebook, Apple, SAML) for authentication. The only external SSO-like mechanism available on NCA is Multipass (Shopify Plus only). If your store needs social login or SSO, you have three options: (1) stay on Classic Accounts, (2) upgrade to Shopify Plus and implement Multipass for your SSO provider, or (3) wait for Shopify to announce native social login support for NCA.
+  </div>
+
+  <h3>What merchants see after migrating</h3>
+
+  <p>After switching to NCA in Admin → Settings → Customer accounts → New customer accounts, the social login buttons installed by third-party apps typically disappear from the theme login page. Customers who previously registered via Google login now see only the NCA OTP form — and when they enter their email, Shopify finds their customer record (from the previous social login) and sends an OTP. If they still have access to that email, they can log in. If not, they're locked out and need merchant assistance to update their account email.</p>
+
+  <h2>Failure Mode 8: Headless Storefront — No Automatic Account Registration UI or API</h2>
+
+  <p>Headless Shopify storefronts (Hydrogen, custom React/Next.js, Vue) have zero automatic customer account registration functionality. Every part of the account flow must be implemented explicitly, and the implementation depends entirely on which account system the store uses — Classic or NCA — and these are completely different APIs.</p>
+
+  <h3>Classic Accounts — Storefront API implementation</h3>
+
+  <p>For stores using Classic Accounts, use the Storefront API:</p>
+
+  <pre><code># Create a new customer account
+mutation customerCreate($input: CustomerCreateInput!) {
+  customerCreate(input: $input) {
+    customer {
+      id
+      email
+      firstName
+      lastName
+    }
+    customerUserErrors {
+      code
+      field
+      message
+    }
+  }
+}
+
+# Input variables
+{
+  "input": {
+    "email": "customer@example.com",
+    "password": "securepassword",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "acceptsMarketing": false
+  }
+}</code></pre>
+
+  <p>Common error codes from <code>customerUserErrors</code>:</p>
+  <ul>
+    <li><code>TAKEN</code> — email already in use (another customer record exists)</li>
+    <li><code>INVALID</code> — email format is invalid</li>
+    <li><code>TOO_SHORT</code> — password doesn't meet minimum length</li>
+    <li><code>BLANK</code> — required field is empty</li>
+  </ul>
+
+  <h3>New Customer Accounts — Customer Account API OAuth 2.0 PKCE</h3>
+
+  <p>NCA cannot be implemented via the Storefront API. There is no mutation to create an NCA account or generate an OTP programmatically. The entire registration and login flow must go through Shopify's hosted authorization endpoint using OAuth 2.0 PKCE:</p>
+
+  <ol class="steps">
+    <li>Register your headless storefront as an application in the Shopify Partner Dashboard. Configure the redirect URI to a route in your app (e.g., <code>https://mystore.com/account/callback</code>).</li>
+    <li>Generate a code verifier (a random string) and derive a code challenge from it using SHA-256. Store the verifier in session state.</li>
+    <li>Redirect the customer to Shopify's authorization endpoint: <code>https://shopify.com/authentication/{store-id}/oauth/authorize?client_id=…&scope=…&redirect_uri=…&response_type=code&code_challenge=…&code_challenge_method=S256</code></li>
+    <li>Shopify handles the OTP flow on its hosted page. On success, it redirects back to your app's redirect URI with an authorization <code>code</code>.</li>
+    <li>Exchange the authorization code + code verifier for access and refresh tokens via the token endpoint.</li>
+    <li>Store the refresh token securely. Use the access token to make Customer Account API calls (customer data, addresses, orders, payment methods).</li>
+    <li>When the access token expires (~5 minutes), use the refresh token to get a new access token silently.</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">The Most Common Headless NCA Mistakes</div>
+    <strong>1. Using Storefront API token to call Customer Account API</strong> — returns null or authentication errors, not an obvious error message about wrong endpoint.<br><br>
+    <strong>2. Not persisting the refresh token</strong> — customers are logged out every 5 minutes because the access token expires and there's no refresh token to get a new one.<br><br>
+    <strong>3. Not storing code_verifier between redirect steps</strong> — the PKCE flow requires the verifier at step 5 (token exchange), but if the redirect clears session state, the verifier is gone and the token exchange fails with <code>invalid_grant</code>.<br><br>
+    <strong>4. Redirect URI not registered in Partner Dashboard</strong> — authorization fails with a redirect_uri mismatch error even though the URI looks correct in the code.
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Classic Accounts API</th>
+          <th>NCA (Customer Account API)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Create account</td>
+          <td>Storefront API <code>customerCreate</code></td>
+          <td>Redirect to Shopify OAuth hosted page</td>
+        </tr>
+        <tr>
+          <td>Login</td>
+          <td>Storefront API <code>customerAccessTokenCreate</code></td>
+          <td>Same OAuth PKCE redirect flow</td>
+        </tr>
+        <tr>
+          <td>Get customer data</td>
+          <td>Storefront API <code>customer</code> query + access token</td>
+          <td>Customer Account API <code>customer</code> query + access token</td>
+        </tr>
+        <tr>
+          <td>Get order history</td>
+          <td>Storefront API <code>customer.orders</code></td>
+          <td>Customer Account API <code>customer.orders</code></td>
+        </tr>
+        <tr>
+          <td>Manage addresses</td>
+          <td>Storefront API <code>customerAddressCreate</code></td>
+          <td>Customer Account API address mutations</td>
+        </tr>
+        <tr>
+          <td>Manage saved payment methods</td>
+          <td>Not available in Storefront API</td>
+          <td>Customer Account API <code>customerPaymentMethods</code></td>
+        </tr>
+        <tr>
+          <td>Social login / SSO</td>
+          <td>Third-party app via Classic API</td>
+          <td><span class="tag red">Not supported</span> (Multipass on Plus only)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Quick Diagnosis: Which Account Registration Issue Do You Have?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Account System</th>
+          <th>Root Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>"Email already in use" on registration</td>
+          <td>Classic Accounts</td>
+          <td>Guest order created dormant account record</td>
+          <td>Use "Forgot password" to activate the existing account</td>
+        </tr>
+        <tr>
+          <td>OTP email not arriving</td>
+          <td>NCA</td>
+          <td>Spam filter, OTP expired, email typo</td>
+          <td>Check spam; re-request OTP; configure custom sender domain</td>
+        </tr>
+        <tr>
+          <td>No welcome email after signup</td>
+          <td>Both</td>
+          <td>Shopify doesn't auto-send welcome emails</td>
+          <td>Configure "Customer created" flow in Klaviyo or Shopify Email</td>
+        </tr>
+        <tr>
+          <td>OTP expired before use</td>
+          <td>NCA</td>
+          <td>10-minute validity window</td>
+          <td>Request new OTP; use immediately; don't switch apps mid-flow</td>
+        </tr>
+        <tr>
+          <td>Account created but no order history</td>
+          <td>Both</td>
+          <td>Guest order used different email address</td>
+          <td>Merchant merges customer records in Admin or via API</td>
+        </tr>
+        <tr>
+          <td>Password reset email never arrives</td>
+          <td>Classic Accounts</td>
+          <td>Spam filter, wrong email, store migrated to NCA</td>
+          <td>Check spam; confirm email; try NCA OTP if store migrated</td>
+        </tr>
+        <tr>
+          <td>Social login button disappeared</td>
+          <td>After NCA migration</td>
+          <td>Classic Accounts SSO app incompatible with NCA</td>
+          <td>Stay on Classic Accounts or use Multipass (Plus only)</td>
+        </tr>
+        <tr>
+          <td>Headless storefront — account creation API not working</td>
+          <td>NCA</td>
+          <td>Using Storefront API instead of Customer Account API + OAuth PKCE</td>
+          <td>Implement OAuth 2.0 PKCE flow to Shopify's hosted authorization endpoint</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Shopify Checkout Actually Working Right Now?</h2>
+    <p>Account registration failures are just one layer. CheckPulse monitors your entire Shopify checkout — payment processing, login flow, inventory, and order creation — every 5 minutes, and alerts you the moment something breaks.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <p>OTP not arriving, Shop Pay wrong account, B2B login, Multipass token expiry</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <p>Saved addresses not showing, NCA address management moved, default address not set</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <p>Gateway switch kills native saved card, Shop Pay vs. Storefront Vault, token expiry</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <p>Guest checkout blocked, continue as guest missing, accounts required mode</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <p>Cart note field missing, express checkout bypass, app stripping notes</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <p>Recovery emails not sending, GDPR consent blocking, Klaviyo not firing</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Missing</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards Not Working</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Lost</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Card Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Ticket Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Membership Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns & Exchange Not Working</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="/checkpulse/shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-account-registration-not-working">Account Registration Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

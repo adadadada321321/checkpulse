@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify One-Click Purchase Not Working — Shop Pay One-Tap, Saved Payment Methods, OTP Issues (2026)</title>
+  <meta name="description" content="Shop Pay one-tap not working? Saved card not recognized? OTP not arriving? 8 root causes for Shopify accelerated checkout failures — eligibility gaps, expired cards, mobile session loss, subscription conflicts, and headless wiring mistakes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-click-purchase-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-one-click-purchase-not-working" />
+  <meta property="og:title" content="Shopify One-Click Purchase Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shop Pay one-tap requires email match, verified phone, saved address, and valid saved card — all four at once. Missing any one silently falls back to standard OTP flow. 8 failure modes including expired cards, mobile session loss, subscription conflicts, and headless wiring gaps." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify One-Click Purchase Not Working — Shop Pay One-Tap, Saved Payment Methods, OTP Issues",
+    "description": "Shop Pay one-tap checkout on Shopify requires four conditions to be simultaneously true: the customer's email must match a Shop Pay account, their phone must be verified, they must have a saved delivery address, and their saved payment method must be valid and unexpired. When any condition fails, Shop Pay silently falls back to the standard OTP flow rather than one-tap, and merchants have no visibility into why. This article covers all 8 root causes for one-click and accelerated checkout failures including expired saved cards, mobile OTP session loss, subscription product suppression, development store restrictions, headless integration gaps, and Shop Pay Installments qualification failures.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-one-click-purchase-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why doesn't Shopify's one-tap checkout show for my returning customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay one-tap — the version that lets returning customers complete a purchase with a single button tap and no OTP — requires four conditions to be simultaneously true at the moment of checkout: (1) the email address entered at checkout must match an existing Shop Pay account, (2) the phone number on that Shop Pay account must be verified and the customer's device recognized, (3) the Shop Pay account must have at least one saved delivery address, and (4) the saved payment method on the account must be valid and not expired. If any of these four conditions fails, Shop Pay silently falls back to its standard flow which requires an OTP text message. There is no error message shown to the customer and no notification sent to the merchant. Merchants cannot force one-tap for specific customers or debug which condition is failing — the one-tap experience is controlled entirely by Shopify's Shop Pay infrastructure based on account state."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "My customer isn't receiving the Shop Pay OTP text message. What's wrong?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay sends the 6-digit OTP to the phone number associated with the customer's Shop Pay account — not the phone number they type into the checkout contact field. If the customer changed their mobile number, switched to an international SIM, or is roaming in a country that blocks short-code SMS messages, the OTP will never arrive on their current phone. The OTP also has a 10-minute expiry window. To resolve: the customer must update their phone number by logging into shop.app or the Shop app with their Shop Pay email address, then changing the phone number under account settings. After updating, they will receive a verification OTP on the new number, and future Shop Pay sessions will use the new number. Carriers that commonly block short-code messages include prepaid plans and some international carriers in the EU and Asia. If the OTP consistently fails for a specific customer, they can complete checkout by selecting a different payment method — Shop Pay is not the only path."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shop Pay fail at the payment step even though my customer completes the OTP?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common cause is an expired saved payment card in the customer's Shop Pay wallet. Shop Pay stores the customer's card on file and charges it automatically when they use the accelerated checkout flow. If the card has expired since the last purchase — even by one month — the payment authorization fails after OTP verification. The error usually appears as a generic payment failure after the OTP step, which is confusing because the customer authenticated successfully. The resolution is for the customer to update their card at shop.app or in the Shop mobile app by going to Payment methods → Update card. A less common cause is that the billing address stored in Shop Pay does not match the current billing address on the card, which triggers an AVS (Address Verification System) mismatch decline at the bank level. If the payment failure persists after updating the card, ask the customer to try a different payment method or complete checkout as a guest with manual card entry."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shop Pay not appear at all on my store's checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay only activates on publicly accessible Shopify stores that have Shopify Payments enabled and in Active status. The most common reasons Shop Pay disappears entirely: (1) your store is password-protected (common during development or soft launches — remove the password or whitelist the checkout path), (2) Shopify Payments is in Pending or Suspended status, which removes all Shopify-native payment buttons including Shop Pay, Apple Pay, and Google Pay simultaneously, (3) you switched to a third-party payment gateway — Shop Pay is built on top of Shopify Payments and is not available with Stripe, PayPal, or other processors, (4) your development or preview theme has a bug that prevents the checkout button from rendering correctly — test with the published live theme, (5) you are accessing checkout from a geolocation where Shop Pay is not yet available. Shop Pay is available in the US, Canada, UK, Australia, Ireland, New Zealand, and a growing list of countries — if your store's Shopify Payments is configured for a country not on this list, Shop Pay may not appear."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I make one-click checkout work in my headless Shopify storefront?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "In headless or Hydrogen storefronts, Shop Pay accelerated checkout does not work automatically by rendering the Shop Pay button component. You must explicitly call the Shopify Storefront API `shopPayPaymentRequestSessionCreate` mutation to create a valid payment session before the button is rendered. The mutation returns a `token` which must be passed to the button component as an attribute. Without the session token, the button either appears disabled, throws an error when tapped, or redirects to an error page. The Storefront API version must be 2023-01 or later for the session mutation to be available. After the customer completes Shop Pay authentication, you must listen for the `shopPaySessionEstablished` event or handle the redirect callback to receive the session ID and complete the order creation. Additionally, the Storefront API requires that the shop's domain be registered in the Shopify Partner dashboard under allowed origins, or CORS errors will block the mutation in the browser. Test the entire flow with a real Shop Pay account — test mode does not accurately simulate the one-tap behavior."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → One-Click Purchase Not Working
+  </div>
+  <h1>Shopify <em>One-Click Purchase Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Shop Pay one-tap not showing for returning customers? OTP not arriving? Saved card failing after authentication? Here are all 8 root causes — for both customers and merchants debugging accelerated checkout.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shop Pay one-tap · OTP issues · Expired saved card · Mobile session loss · Subscription conflict · Headless integration</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's "one-click" accelerated checkout is called <strong>Shop Pay</strong>. When it works correctly for returning customers, they see a pre-filled checkout with their saved address and payment method and can complete the purchase with a single tap — no re-entering card details, no address typing. This is the closest Shopify gets to Amazon-style one-click purchasing.</p>
+
+  <p>When it doesn't work, the failure is almost always invisible. Shop Pay silently falls back to its standard OTP flow, the OTP doesn't arrive, or the saved payment fails after authentication. Merchants see abandoned checkouts; customers are confused. There are 8 distinct root causes, each with a different diagnostic path.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Terminology: One-Tap vs Accelerated vs Express vs Buy Now</div>
+    These four terms are often used interchangeably but they describe different things. <strong>One-tap</strong> = Shop Pay completing checkout with a single button tap using saved credentials (no OTP required). <strong>Accelerated checkout</strong> = Shop Pay, Apple Pay, or Google Pay appearing above the standard checkout form. <strong>Express checkout</strong> = a lane that skips address/payment entry by using saved wallet data (Shop Pay, Apple Pay, Google Pay, PayPal Express). <strong>Buy Now button</strong> = the product-page shortcut that bypasses the cart and jumps directly to checkout. Buy Now is covered in the <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a> guide. This guide covers Shop Pay's saved-credential / one-tap flow specifically.
+  </div>
+
+  <h2>Failure Mode 1: Shop Pay One-Tap Eligibility — Four Conditions Must All Be True</h2>
+
+  <p>Shop Pay one-tap is not a feature merchants enable. It activates automatically — or doesn't — based on whether the customer meets all four requirements at the moment of checkout. Missing any single condition causes a silent fallback to the standard OTP flow.</p>
+
+  <h3>The four eligibility conditions</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>What Must Be True</th>
+          <th>What Fails If Missing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Email match</strong></td>
+          <td>The email entered at checkout must exactly match an existing Shop Pay account</td>
+          <td>No Shop Pay at all — customer must create an account or use a different payment method</td>
+        </tr>
+        <tr>
+          <td><strong>Device recognized</strong></td>
+          <td>The customer's browser or app must be a recognized device (Shop Pay cookie or stored token)</td>
+          <td>Falls back to OTP verification on an unrecognized device</td>
+        </tr>
+        <tr>
+          <td><strong>Saved delivery address</strong></td>
+          <td>At least one delivery address must be saved in the Shop Pay account</td>
+          <td>Shop Pay prompts for address entry — not one-tap</td>
+        </tr>
+        <tr>
+          <td><strong>Valid saved payment method</strong></td>
+          <td>A non-expired card or payment method must be on file</td>
+          <td>One-tap silently fails at payment step — customer sees error after OTP</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Merchants have zero visibility into which condition is missing for a specific customer. There is no admin log, no failed attempt record, and no Shopify notification. The customer's perspective is that Shop Pay "doesn't work" or "doesn't show up" — the only way to diagnose is to walk through their Shop Pay account state at shop.app.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">One-Tap Is Not the Same as Shop Pay Showing</div>
+    Shop Pay can appear in the accelerated checkout row (showing the Shop Pay button) without one-tap eligibility. When Shop Pay shows but isn't one-tap, the customer must complete an OTP step. One-tap bypasses the OTP entirely because the device is already recognized. Customers who previously used Shop Pay on any Shopify store from the same device are more likely to have device recognition active.
+  </div>
+
+  <h2>Failure Mode 2: OTP Not Received — Wrong Phone Number in Shop Pay Account</h2>
+
+  <p>Shop Pay sends the 6-digit OTP to the phone number stored in the customer's <strong>Shop Pay account</strong> — not the phone number entered at checkout. This is the most misunderstood aspect of the OTP flow.</p>
+
+  <h3>Why the OTP goes to the wrong number</h3>
+
+  <ul>
+    <li>Customer changed mobile providers and has a new phone number</li>
+    <li>Customer is traveling internationally on a different SIM</li>
+    <li>Customer created their Shop Pay account with a number they no longer own</li>
+    <li>International roaming plan blocks short-code SMS messages (common in some EU and Asian carriers)</li>
+    <li>Customer uses a VoIP number that doesn't accept short-code messages</li>
+  </ul>
+
+  <h3>How to fix: update the Shop Pay phone number</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>shop.app</strong> or open the Shop mobile app</li>
+    <li>Sign in with the Shop Pay email address</li>
+    <li>Navigate to Account → Contact information → Phone number</li>
+    <li>Enter the new phone number and verify with OTP on the new number</li>
+    <li>Future Shop Pay sessions will send OTP to the updated number</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">10-Minute OTP Expiry</div>
+    The Shop Pay OTP expires in 10 minutes. If the customer spent time reading their email, switching apps, or looking for the SMS, the code may have expired by the time they enter it. Shop Pay shows a "code expired" error in this case. The customer must request a new code — Shop Pay limits how many times a code can be re-sent within a short window to prevent SMS abuse.
+  </div>
+
+  <h2>Failure Mode 3: Saved Card Expired — Payment Fails After Successful OTP</h2>
+
+  <p>The most confusing Shop Pay failure: the customer completes the OTP successfully and sees their saved address and payment method — then hits a payment error. The cause is almost always an <strong>expired card in the Shop Pay wallet</strong>.</p>
+
+  <p>Shop Pay charges the card stored on the account, not any card the customer types during checkout. If that stored card expired one month ago, the authorization attempt fails at the bank level after OTP authentication succeeds at the Shop Pay level. The customer authenticated themselves correctly but has no valid payment method for the charge.</p>
+
+  <h3>Diagnosing an expired card vs other payment failures</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Likely Cause</th>
+          <th>Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OTP succeeds, payment step immediately errors</td>
+          <td>Expired card or invalid saved payment method</td>
+          <td>Update card at shop.app → Payment methods</td>
+        </tr>
+        <tr>
+          <td>OTP succeeds, payment pending, then declines</td>
+          <td>Bank declined authorization (fraud, insufficient funds, AVS mismatch)</td>
+          <td>Customer contacts their bank or uses a different card</td>
+        </tr>
+        <tr>
+          <td>OTP succeeds, payment captured, then order auto-cancelled</td>
+          <td>Shopify post-capture fraud score elevated the risk</td>
+          <td>Merchant reviews and manually approves or sends invoice</td>
+        </tr>
+        <tr>
+          <td>OTP requested but amount charged is different</td>
+          <td>Currency conversion by customer's bank (FX fee added)</td>
+          <td>Expected behavior — bank converts at its own rate</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to update a card in Shop Pay</h3>
+
+  <ol class="steps">
+    <li>Open <strong>shop.app</strong> or the Shop mobile app</li>
+    <li>Sign in with the Shop Pay email address</li>
+    <li>Go to Payment methods</li>
+    <li>Find the expired card (shown with red expiry date)</li>
+    <li>Select Update or Add new card</li>
+    <li>Enter updated card details — the saved card is immediately available for next checkout</li>
+  </ol>
+
+  <h2>Failure Mode 4: Mobile Browser Tab Eviction During OTP Switch</h2>
+
+  <p>The second most common cause of Shop Pay one-tap failure on mobile: the customer receives the OTP via SMS, switches from the browser to the Messages app to copy the code, then returns to the browser to find the tab has reloaded — or is blank.</p>
+
+  <h3>Why this happens on iOS and Android</h3>
+
+  <p>iOS and Android both use aggressive memory management that evicts browser tabs from RAM when the user switches to another app. On iOS, Safari evicts tabs that are not the frontmost tab when the device is under memory pressure. On Android, Chrome background tabs are evicted after a variable time based on device RAM. When the customer switches to Messages to read the OTP and then returns to the browser:</p>
+
+  <ul>
+    <li>The Shopify checkout tab reloads from scratch — all session state gone</li>
+    <li>The Shop Pay OTP entry screen is replaced by the cart or product page</li>
+    <li>The 10-minute OTP timer has been running — if loading was slow, it may have expired</li>
+    <li>The authorization hold placed when the customer first entered payment may already exist on their card</li>
+  </ul>
+
+  <h3>Workarounds for merchants</h3>
+
+  <ul>
+    <li>Add visible instructional text near the Shop Pay button: "Keep this page open while checking your text messages"</li>
+    <li>Consider a pop-up or sticky message that appears when Shop Pay loads: "Complete authentication in this window"</li>
+    <li>For high-value products where abandonment is costly, consider advertising Shop Pay's App Clip flow — completing checkout inside the Shop app avoids browser tab eviction entirely</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Two Authorization Holds After Retry</div>
+    If the customer's session expires and they restart checkout, a new authorization hold is placed on their card. Combined with the hold from the first failed attempt, customers may see two pending holds — two identical amounts in their banking app. Both will release in 1–7 business days, but the customer experience is alarming. Merchants may receive support tickets about "being charged twice."
+  </div>
+
+  <h2>Failure Mode 5: Subscription Product in Cart Suppresses Shop Pay One-Tap</h2>
+
+  <p>When any subscription product is in the cart — a product sold through ReCharge, Shopify Subscriptions, Bold Subscriptions, Loop Subscriptions, or any other subscription app — Shopify hides all express payment buttons simultaneously: Shop Pay, Apple Pay, Google Pay, and PayPal Express all disappear from the checkout.</p>
+
+  <p>This is not a bug. Subscription products require the customer to explicitly agree to recurring billing terms. Express checkout flows like Shop Pay one-tap cannot display the recurring billing consent screen that Shopify requires for subscription agreements. Rather than complete a purchase without consent, Shopify removes all accelerated options and forces the customer through the full standard checkout where the consent screen can appear.</p>
+
+  <h3>What this means for merchants selling subscriptions</h3>
+
+  <ul>
+    <li>Customers who previously purchased non-subscription items via Shop Pay one-tap will notice it's gone when they add a subscription product</li>
+    <li>Mixed carts (subscription + one-time products) also lose the express buttons — the subscription item dominates</li>
+    <li>There is no workaround — this is a Shopify platform restriction, not a configuration error</li>
+    <li>The only way to enable a faster flow for subscription checkouts is Shopify's native Subscriptions product on Plus, which has a managed consent flow — but even this doesn't restore one-tap</li>
+    <li>Document this for your customer support team: "Why can't I use Shop Pay for my subscription order" is a frequent contact reason</li>
+  </ul>
+
+  <h2>Failure Mode 6: Shop Pay Not Showing — Store Eligibility and Status Issues</h2>
+
+  <p>Before diagnosing one-tap specifically, confirm that Shop Pay shows at all. When Shop Pay disappears from the checkout entirely (not just falling back to OTP), the cause is almost always a store-level eligibility issue.</p>
+
+  <h3>Store-level reasons Shop Pay is hidden</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>Why Shop Pay Is Hidden</th>
+          <th>How to Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Store password-protected</td>
+          <td>Shop Pay is disabled on access-controlled storefronts</td>
+          <td>Remove password or test in a browser that has the store password entered; Shop Pay should appear once the password gate is passed</td>
+        </tr>
+        <tr>
+          <td>Shopify Payments Pending or Suspended</td>
+          <td>Shop Pay is built on Shopify Payments — all native payment buttons disappear when Payments is not Active</td>
+          <td>Complete Shopify Payments identity verification or resolve the suspension before Shop Pay returns</td>
+        </tr>
+        <tr>
+          <td>Third-party payment gateway active</td>
+          <td>Switching to Stripe, Braintree, PayPal, or other gateways removes Shop Pay, Apple Pay, and Google Pay simultaneously</td>
+          <td>Restore Shopify Payments as the primary gateway to re-enable Shop Pay; third-party gateways can coexist as additional methods without removing the primary</td>
+        </tr>
+        <tr>
+          <td>Shop Pay not available in country</td>
+          <td>Shop Pay is available in US, Canada, UK, Australia, Ireland, New Zealand and expanding — unavailable in other regions</td>
+          <td>Check the Shopify Help Center for the current Shop Pay availability list; use local payment methods for unsupported countries</td>
+        </tr>
+        <tr>
+          <td>Development / preview theme</td>
+          <td>Some theme preview modes don't load checkout correctly, hiding payment buttons</td>
+          <td>Test with the live published theme, not a preview URL</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 7: Headless — Shop Pay Button Renders But Doesn't Work</h2>
+
+  <p>In headless Shopify storefronts (Hydrogen, custom React/Next.js frontends, or any build that uses the Storefront API instead of Shopify's hosted checkout theme), rendering the Shop Pay button component is only the first step. The button does nothing useful without an active payment request session created via the Storefront API.</p>
+
+  <h3>What headless developers must implement</h3>
+
+  <ol class="steps">
+    <li>Call the Storefront API <code>shopPayPaymentRequestSessionCreate</code> mutation to create a session — this returns a <code>token</code> required by the button</li>
+    <li>Pass the <code>token</code> to the <code>&lt;shop-pay-button&gt;</code> web component as the <code>store-url</code> and <code>variants</code> attributes (or via the equivalent SDK method)</li>
+    <li>Listen for the <code>shopPaySessionEstablished</code> custom event fired by the button after the customer authenticates</li>
+    <li>Use the session ID from the event to complete order creation via <code>checkoutCompleteWithTokenizedPaymentV3</code> or the equivalent mutation</li>
+    <li>Handle the post-checkout redirect back to your custom domain's order confirmation page (Shopify will redirect to checkout.shopify.com by default — override via <code>completionBehavior</code> in the Storefront API config)</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Common Headless Mistake: Button With No Session</div>
+    The most common headless Shop Pay implementation error is rendering the button UI without calling <code>shopPayPaymentRequestSessionCreate</code> first. The button appears and is clickable. When tapped, it either shows a generic error screen, opens a blank modal, or silently fails. The developer assumes Shop Pay is broken on their store when the issue is a missing API call.
+  </div>
+
+  <h3>CORS and domain registration</h3>
+
+  <p>The <code>shopPayPaymentRequestSessionCreate</code> mutation must be called from a domain that is registered as an allowed storefront origin. If your headless frontend is on a different domain than the Shopify store, you must register the frontend domain in the Shopify Partner dashboard or via the <code>storefrontAllowedOrigins</code> setting. Without this, the browser will block the Storefront API request with a CORS error before the mutation even fires.</p>
+
+  <h3>Storefront API version requirement</h3>
+
+  <p>The <code>shopPayPaymentRequestSessionCreate</code> mutation requires Storefront API version <strong>2023-01 or later</strong>. If your headless storefront was built before 2023 and hasn't been updated, the mutation may not exist in your pinned API version. Update the <code>X-Shopify-Storefront-Access-Token</code> header requests to use a current API version.</p>
+
+  <h2>Failure Mode 8: Shop Pay Installments Selected — Order Doesn't Qualify</h2>
+
+  <p>Shop Pay Installments is the buy-now-pay-later (BNPL) feature built into Shop Pay. When a customer has previously used Installments on another Shopify store, their Shop Pay account may default to the Installments payment method. If the current order doesn't qualify for Installments, the one-tap attempt fails — the customer sees a payment error without a clear explanation.</p>
+
+  <h3>Installments eligibility requirements (all must be true)</h3>
+
+  <ul>
+    <li><strong>Geography:</strong> US only — Installments is not available in Canada, UK, Australia, or other countries even if Shop Pay is</li>
+    <li><strong>Order total:</strong> $50 minimum, $17,500 maximum per transaction</li>
+    <li><strong>Product type:</strong> Physical products only — digital products, gift cards, and subscriptions are ineligible</li>
+    <li><strong>Merchant toggle:</strong> The merchant must have Installments enabled separately at Admin → Settings → Payments → Shop Pay Installments — it does not activate automatically with Shop Pay</li>
+    <li><strong>Customer eligibility:</strong> Affirm (which powers Installments) performs a soft credit check at the time of purchase — some customers are not approved</li>
+  </ul>
+
+  <h3>Why customers see Installments failures</h3>
+
+  <p>A customer whose Shop Pay account is configured to default to Installments will attempt an Installments payment even on a store where Installments is not enabled or the order doesn't qualify. Shop Pay cannot pre-screen the cart against Installments eligibility before the customer commits. The payment attempt fires and is rejected, showing an error that reads as a generic "payment failed."</p>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Recover: Switch to Pay-in-Full</div>
+    When Installments fails, the customer must switch to pay-in-full within the Shop Pay flow. On the payment error screen, look for "Change payment method" or "Pay in full" option. If this option is not visible, the customer must abandon the Shop Pay flow and complete checkout using the standard payment form — entering their card details directly. Merchants can reduce confusion by adding clear messaging about which payment methods are accepted on the product page or checkout.
+  </div>
+
+  <h2>Diagnostic Checklist: Shop Pay One-Click Not Working</h2>
+
+  <p>Work through these in order before escalating to Shopify support:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>What to Look For</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Is Shop Pay showing at all?</td>
+          <td>Look for Shop Pay button in the express checkout row above the checkout form</td>
+          <td>If missing: verify Shopify Payments is Active, store is not password-protected, no subscription items in cart</td>
+        </tr>
+        <tr>
+          <td>Is it OTP or one-tap?</td>
+          <td>One-tap = no OTP requested; OTP flow = 6-digit code sent to phone</td>
+          <td>OTP flow is normal for unrecognized devices — one-tap requires device recognition from prior Shop Pay use on same browser</td>
+        </tr>
+        <tr>
+          <td>Is OTP arriving?</td>
+          <td>Check the phone associated with the Shop Pay account (not checkout phone field)</td>
+          <td>Update phone at shop.app if number has changed</td>
+        </tr>
+        <tr>
+          <td>Is payment failing after OTP?</td>
+          <td>Successful OTP → payment error on the next screen</td>
+          <td>Update expired card at shop.app → Payment methods</td>
+        </tr>
+        <tr>
+          <td>Is it mobile-specific?</td>
+          <td>Failure on mobile only, works on desktop</td>
+          <td>Mobile tab eviction — add "keep this page open" messaging; suggest customers copy OTP quickly</td>
+        </tr>
+        <tr>
+          <td>Headless storefront?</td>
+          <td>Custom React/Next.js/Hydrogen build, not Shopify's hosted checkout</td>
+          <td>Verify <code>shopPayPaymentRequestSessionCreate</code> mutation is called, token is passed, CORS is configured</td>
+        </tr>
+        <tr>
+          <td>Subscription in cart?</td>
+          <td>Any product with a selling plan / subscription option added</td>
+          <td>No fix — by design; document for customer support team</td>
+        </tr>
+        <tr>
+          <td>Installments failure?</td>
+          <td>Customer expects to pay over time; order may be digital or out of price range</td>
+          <td>Check Installments eligibility; guide customer to "pay in full" option</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Catch Checkout Failures Before Customers Do</h2>
+    <p>CheckPulse monitors your Shopify checkout every minute and alerts you the moment something breaks — payment errors, loading failures, or flow interruptions.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Shop Pay vs Other Accelerated Checkout: Which Is Right?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>One-Tap Possible?</th>
+          <th>OTP Required?</th>
+          <th>Works with Subscriptions?</th>
+          <th>Headless Support</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Shop Pay</strong></td>
+          <td><span class="tag green">Yes</span> (recognized device)</td>
+          <td>Only on new devices</td>
+          <td><span class="tag red">No</span></td>
+          <td>Requires Storefront API session</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Pay</strong></td>
+          <td><span class="tag green">Yes</span> (biometric auth)</td>
+          <td>Face ID / Touch ID only</td>
+          <td><span class="tag red">No</span></td>
+          <td>Requires Apple Pay JS API + merchant session endpoint</td>
+        </tr>
+        <tr>
+          <td><strong>Google Pay</strong></td>
+          <td><span class="tag green">Yes</span> (Google account)</td>
+          <td>Google account PIN/biometric</td>
+          <td><span class="tag red">No</span></td>
+          <td>Requires PaymentRequest API + isReadyToPay</td>
+        </tr>
+        <tr>
+          <td><strong>PayPal Express</strong></td>
+          <td><span class="tag yellow">Partial</span> (PayPal account)</td>
+          <td>PayPal login required</td>
+          <td><span class="tag red">No</span></td>
+          <td>PayPal hosted flow — currency mismatch risk on multi-currency</td>
+        </tr>
+        <tr>
+          <td><strong>Standard Checkout + Saved Card</strong></td>
+          <td><span class="tag red">No</span></td>
+          <td>No (password login only)</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Standard cart + checkout flow</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Can I enable Shop Pay one-tap for specific customers?</h3>
+  <p>No. Merchants cannot configure, enable, or force Shop Pay one-tap for individual customers. One-tap activates automatically based on the customer's Shop Pay account state. The merchant has no control or visibility into which customers receive the one-tap vs OTP experience. The best a merchant can do is encourage customers to keep their Shop Pay account updated (phone number, payment card, address) and to complete prior purchases using Shop Pay to build device recognition.</p>
+
+  <h3>Does Shop Pay work on development stores?</h3>
+  <p>Shop Pay appears on development stores in test mode. However, one-tap and OTP flows behave differently in test mode — real OTPs are not sent, and the payment flow uses Shopify's test payment gateway. You cannot accurately test the real-world one-tap experience in a development store. Use a live store with Shopify Payments active and test with a real customer account on a recognized device.</p>
+
+  <h3>My customer used Shop Pay successfully before but it's not working now. Why?</h3>
+  <p>The most common reasons for a regression: (1) the customer's saved card has since expired, (2) the customer changed their phone number and the OTP goes to the old number, (3) the customer cleared their browser cookies or switched devices — device recognition is lost and OTP is required again, (4) a subscription product was added to the cart that wasn't there on prior purchases, (5) the store added a third-party payment gateway that replaced Shopify Payments, removing Shop Pay. Check shop.app for the customer's account state as the first diagnostic step.</p>
+
+  <h3>Why does the Shop Pay button appear but nothing happens when I tap it?</h3>
+  <p>On a standard Shopify hosted checkout, this is usually a JavaScript conflict — a third-party app script is interfering with the Shop Pay button's event handlers. Disable apps one by one (or use a checkout without apps installed) to identify the conflict. On a headless storefront, this is almost always a missing <code>shopPayPaymentRequestSessionCreate</code> session — the button renders without a valid payment token and cannot initiate the flow.</p>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <p>Buy Now button, Shop Pay express lane, Apple Pay, Google Pay, PayPal Express failures — including the subscription conflict that hides all express buttons.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <p>Apple Pay domain verification, Google Pay merchant registration, Shop Pay activation requirements, and third-party gateway conflicts that remove all wallet buttons.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <p>What to do when a payment fails and there's no retry button — including Send Invoice, draft orders, and 3DS retry loops.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <p>Device requirements, browser restrictions, domain verification failures, and Shopify Payments status issues that hide wallet buttons.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <p>Authorization holds vs actual charges — why the bank shows a deduction even when Shopify says declined, and how long holds take to release.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-split-payment">Split Payment / BNPL Not Working</a>
+      <p>Shop Pay Installments, Klarna, Afterpay, Affirm, and Klarna eligibility requirements and checkout conflict diagnosis.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring. Know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Checkout Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

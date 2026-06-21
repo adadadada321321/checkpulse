@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Address Book Not Working — Saved Addresses Not Pre-Filling, NCA Migration, B2B Address (2026)</title>
+  <meta name="description" content="Shopify saved addresses not showing at checkout? Address book empty after switching to New Customer Accounts? No default address pre-fill? 8 root causes for Shopify address book failures at checkout — NCA migration, missing default, B2B location conflict, autocomplete overwrite, and headless API." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-book-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-address-book-not-working" />
+  <meta property="og:title" content="Shopify Checkout Address Book Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify only pre-fills a saved address if the customer is logged in before entering checkout and has a default address set. New Customer Accounts moves address management off the storefront. B2B company locations override personal addresses. 8 address book failure modes explained with fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Address Book Not Working — Saved Addresses, NCA Migration, B2B, and Headless",
+    "description": "Shopify's address book pre-fill at checkout depends on several conditions most merchants don't know about: the customer must be logged in before starting checkout, a default address must be explicitly set, and New Customer Accounts moves the address portal off the storefront entirely. B2B stores add another layer — company-assigned locations can block personal address entry. This guide covers all 8 root causes for address book failures at Shopify checkout.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-address-book-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why don't saved addresses show at Shopify checkout even though the customer has saved addresses in their account?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify only pre-fills saved addresses at checkout when the customer is actively logged in at the moment they begin checkout. If a customer starts checkout as a guest and then logs in during the checkout flow (at the account login step), the saved address may not pre-fill because the checkout session was already initialized without customer context. Additionally, Shopify only pre-fills the address marked as the customer's default address — if no default is set, checkout starts with blank fields even if the customer has multiple saved addresses. To pre-fill: the customer must (1) be logged in to their account before clicking 'Buy' or adding to cart, and (2) have a default shipping address set in their account profile."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the Shopify address book look empty after switching to New Customer Accounts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "New Customer Accounts (NCA) moves address management from the storefront's /account/addresses page to Shopify's hosted account portal (shop.account). The classic Liquid template at /account/addresses renders a blank page or throws an error on NCA stores because the Classic Accounts customer API endpoints that populate that page are not used by NCA. Customer addresses are still saved — they exist in the customer record — but they are only accessible via the Shopify-hosted account portal or through the Customer Account API (for headless stores). Third-party address management apps built on Classic Accounts may also show empty or error states on NCA stores. Customers must manage their addresses via the account portal link (usually at /a/account or via a link in their order confirmation email), not the old /account/addresses storefront page."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify only show company addresses and not personal addresses for B2B customers at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify B2B (Shopify Plus) assigns company locations to B2B customers during company setup. When a B2B customer is authenticated via a B2B portal URL or invitation link, their checkout is scoped to the company's assigned locations — only addresses from the company's location list appear in the checkout address dropdown. Personal addresses saved to the customer's individual account are not shown in the B2B checkout context because B2B orders must be associated with a company location for net terms, invoicing, and price list application to work correctly. If a B2B customer needs to ship to a personal or one-off address, the merchant must either add that address as a company location, or the customer must place the order as a B2C customer (logged in via the standard storefront, not the B2B portal) with retail pricing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the Google address autocomplete overwrite the saved address fields at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's address autocomplete (powered by Google Places API) monitors all address input fields during checkout for keystroke activity. When a customer starts typing in any address field — even to correct a single character — the autocomplete triggers and populates all address fields with the top autocomplete suggestion. If the autofill suggestion is different from the saved address, all fields are overwritten with the autocomplete result. The customer's saved address in their account is unchanged, but the checkout form now shows the autocomplete-filled values. This is a UX issue, not a data loss issue. The customer's saved address still exists in their account. To proceed with their saved address, the customer should clear the autocomplete-overwritten fields and re-enter their saved address, or click outside the fields to dismiss autocomplete before it fires. Merchants cannot disable Google Places autocomplete on Shopify-hosted checkout without Plus-level Checkout UI Extensions."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Address Book Not Working
+  </div>
+  <h1>Shopify <em>Checkout Address Book Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Saved addresses not pre-filling at checkout? Address book empty after switching to New Customer Accounts? B2B customers only seeing company addresses? Here are all 8 root causes for Shopify address book failures — for merchants and customers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Saved Addresses · NCA Migration · Default Address · B2B Location · Autocomplete · Billing Address · Headless API</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's saved address pre-fill at checkout sounds simple: customer logs in, their saved address appears, they click "Continue." In practice, several conditions must all be true simultaneously for this to work — and each condition that fails produces a different symptom. The most common: addresses that "disappeared" after a store switched to New Customer Accounts, or addresses that exist in the account but never appear in the checkout form.</p>
+
+  <p>There are eight distinct root causes. Most are not bugs — they are behaviors that changed with New Customer Accounts or that depend on conditions merchants don't know to configure.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Three Things That Must Be True for Address Pre-Fill to Work</div>
+    <strong>1. Customer must be logged in BEFORE starting checkout</strong> — logging in mid-checkout (at the login step) does not reliably trigger address pre-fill.<br><br>
+    <strong>2. Customer must have a default address set</strong> — Shopify only pre-fills the explicitly marked default address. No default = blank checkout form even with 10 saved addresses.<br><br>
+    <strong>3. The store must be on a plan and account system that exposes saved addresses at checkout</strong> — New Customer Accounts (NCA) moves address management to the Shopify-hosted portal; the classic <code>/account/addresses</code> page is not used for address pre-fill on NCA stores.
+  </div>
+
+  <h2>Failure Mode 1: New Customer Accounts (NCA) Moves Address Management Off the Storefront</h2>
+
+  <p>The single biggest source of "address book suddenly empty" reports is a store switching from Classic Accounts to New Customer Accounts. Merchants and customers both see the same symptom: the saved addresses that were visible on <code>/account/addresses</code> are gone. Third-party address management apps also stop working.</p>
+
+  <h3>What actually happened to the saved addresses</h3>
+
+  <p>Nothing. The addresses still exist in Shopify's database attached to the customer record. What changed is the <em>interface</em> used to access them. Classic Accounts exposes addresses via a Liquid-rendered storefront page at <code>/account/addresses</code>. New Customer Accounts uses a Shopify-hosted account portal (accessible at <code>/a/account</code> or via links in order confirmation emails) that is separate from the storefront theme.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Account System</th>
+          <th>Where Addresses Are Managed</th>
+          <th>Storefront /account/addresses</th>
+          <th>Third-Party Address Apps</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Classic Accounts</td>
+          <td>Storefront page (<code>/account/addresses</code>)</td>
+          <td><span class="tag green">Works</span> — Liquid renders full address book</td>
+          <td><span class="tag green">Work</span> — use Classic Customer API</td>
+        </tr>
+        <tr>
+          <td>New Customer Accounts (NCA)</td>
+          <td>Shopify-hosted portal (<code>/a/account</code>)</td>
+          <td><span class="tag red">Broken / blank</span> — NCA doesn't populate this Liquid page</td>
+          <td><span class="tag red">Break</span> — Classic Customer API not used by NCA</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How customers access their addresses on NCA stores</h3>
+
+  <ol class="steps">
+    <li>Customer clicks their account link in the storefront header — on NCA stores this redirects to the Shopify-hosted account portal, not a theme page</li>
+    <li>In the account portal, customer navigates to "Addresses" to add, edit, or set a default shipping address</li>
+    <li>Alternatively: customers can access addresses from the link in any Shopify order confirmation email — the "View your order" button on NCA stores links to the account portal</li>
+    <li>The portal URL format is typically <code>https://shopify.com/authentication/{shop-id}/account</code> or the store's own <code>/a/account</code> redirect</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Third-Party Address Apps Built on Classic Accounts Will Break on NCA</div>
+    Apps that let customers manage "ship to multiple addresses," add address nicknames, or auto-fill from company address books typically use the Classic Accounts customer API to read and write address records. After switching to NCA, these apps either show a blank list, throw JavaScript errors, or fail silently. Check the app's documentation for NCA compatibility before switching. Most address-focused apps had not released NCA-compatible versions as of early 2026.
+  </div>
+
+  <h2>Failure Mode 2: Customer Must Log In Before Starting Checkout — Not During It</h2>
+
+  <p>This is the most common reason a customer's saved address doesn't pre-fill even though they logged in successfully: they logged in <em>at the login step inside checkout</em> rather than from the storefront before adding to cart. The two login moments produce different checkout sessions.</p>
+
+  <h3>How checkout session initialization works</h3>
+
+  <p>When a customer clicks "Check out" or "Buy Now," Shopify creates a checkout session. If the customer was already logged in at that moment, the session is created with customer context — Shopify knows which customer this is, reads their default address, and pre-fills the shipping address form. If the customer was a guest when checkout started, the session is created without customer context. Logging in at the account login step (for required-accounts stores) authenticates the customer but does not always retroactively inject their saved addresses into the already-initialized checkout session.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Login Timing</th>
+          <th>Address Pre-Fill?</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logged in before starting checkout</td>
+          <td><span class="tag green">Yes</span> — default address pre-fills</td>
+          <td>Checkout session created with full customer context; default address injected into shipping form</td>
+        </tr>
+        <tr>
+          <td>Started as guest, logged in at checkout login step</td>
+          <td><span class="tag yellow">Sometimes</span> — behavior varies</td>
+          <td>Session may or may not inherit saved addresses depending on checkout version and account system; not guaranteed</td>
+        </tr>
+        <tr>
+          <td>Started as guest, remained as guest throughout</td>
+          <td><span class="tag red">Never</span></td>
+          <td>No customer context = no address lookup possible</td>
+        </tr>
+        <tr>
+          <td>Shop Pay (logged-in Shop account)</td>
+          <td><span class="tag green">Yes</span> — via Shop Pay's own address vault</td>
+          <td>Shop Pay maintains its own address book separate from the store's customer address book; pre-fills from the Shop account</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to communicate this to customers</h3>
+
+  <p>This is primarily a UX communication problem. On storefront pages, prompt logged-out customers to log in before checkout rather than after. A simple "Log in to use your saved addresses" message near the cart or product page, with a link to the account login, sets the expectation. On account-optional stores, this must be explicit — the storefront default behavior puts the login prompt inside checkout where it's too late to improve address pre-fill.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Shop Pay as a Workaround</div>
+    For returning customers who consistently forget to log in before checkout: Shop Pay maintains its own shipping address vault (separate from the Shopify store address book) and pre-fills addresses regardless of whether the customer is logged into the store account. Returning customers who use Shop Pay get address pre-fill even without being logged into the store. Encourage returning customers to use the Shop Pay button as their default checkout method.
+  </div>
+
+  <h2>Failure Mode 3: No Default Address Set — Shopify Only Pre-Fills the Default</h2>
+
+  <p>Shopify's address book supports multiple saved addresses. At checkout, Shopify pre-fills only the one address marked as the customer's default. If no default is set — which is common for customers who saved addresses through import, manual merchant entry, or old app migrations — checkout starts with a completely blank shipping form even if 10 addresses are saved.</p>
+
+  <h3>How addresses get created without a default</h3>
+
+  <ul>
+    <li>Merchant bulk-imports customer addresses via the Admin API or CSV import — imported addresses are added but none is marked default</li>
+    <li>Customer saves multiple addresses and removes the one that was default, without setting a new default — Shopify doesn't auto-promote another address to default when the current default is deleted</li>
+    <li>Third-party app creates addresses programmatically (subscription apps adding delivery addresses, B2B company address sync apps) without setting the <code>default</code> flag on any record</li>
+    <li>Classic-to-NCA migration: some edge cases in the migration process result in default flags not being preserved correctly</li>
+  </ul>
+
+  <h3>How to diagnose and fix</h3>
+
+  <ol class="steps">
+    <li>Customer logs into their account and checks the address book — the default address is typically marked with a "Default" label</li>
+    <li>If no address shows the default label, or if all addresses look the same, the customer should click "Set as default" on their primary shipping address</li>
+    <li>Merchant who needs to set defaults at scale: use the Admin API <code>customerDefaultAddressUpdate</code> mutation to programmatically set default addresses for multiple customers at once</li>
+    <li>After setting a default, test by logging in as the customer (use Admin → Customers → [customer] → "View in storefront" or impersonate flow if available) and confirm the address pre-fills at checkout</li>
+  </ol>
+
+  <pre>// Admin API: set a customer's default address
+// Requires Admin API access with customer write permissions
+
+mutation customerDefaultAddressUpdate($customerId: ID!, $addressId: ID!) {
+  customerDefaultAddressUpdate(
+    customerId: $customerId
+    addressId: $addressId
+  ) {
+    customer {
+      id
+      defaultAddress {
+        id
+        address1
+        city
+        country
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}</pre>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Check If a Customer Has a Default Address</div>
+    In Admin → Customers → [customer name]: the address book section shows all saved addresses. The one labeled "Default address" is what will pre-fill at checkout. If you see addresses but no "Default address" label, none is set. Click the three-dot menu on the desired address and select "Set as default."
+  </div>
+
+  <h2>Failure Mode 4: B2B Company Location Restricts Address Options at Checkout</h2>
+
+  <p>Shopify B2B (Shopify Plus) assigns company locations to B2B customers. A company location includes a physical shipping address, an assigned price list, and payment terms. When a B2B customer authenticates via the B2B portal URL, their checkout session is scoped to the company's locations — not their personal account addresses.</p>
+
+  <h3>What B2B customers see vs what they expect</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Context</th>
+          <th>Address Options Shown</th>
+          <th>Personal Addresses Available?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>B2B portal session (via invitation link)</td>
+          <td>Only company-assigned location addresses</td>
+          <td><span class="tag red">No</span> — session is scoped to company context</td>
+        </tr>
+        <tr>
+          <td>Standard storefront session (via /account/login)</td>
+          <td>Personal saved addresses</td>
+          <td><span class="tag green">Yes</span> — but retail pricing, no net terms, no B2B price list</td>
+        </tr>
+        <tr>
+          <td>B2B with multiple company locations</td>
+          <td>All locations assigned to that company</td>
+          <td><span class="tag red">No personal addresses</span> — only company locations appear in dropdown</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Adding a one-off address for a B2B customer</h3>
+
+  <p>If a B2B customer needs to ship to an address outside their assigned company locations (a trade show, a temporary site, an individual recipient within their company), the merchant has two options:</p>
+
+  <ol class="steps">
+    <li><strong>Add a new company location:</strong> Admin → Customers → Companies → [company] → Locations → Add location — add the new delivery address as an additional location and assign it a price list and payment terms. The customer can then select it at B2B checkout.</li>
+    <li><strong>Create a draft order:</strong> The merchant creates a draft order in Admin → Orders → Create order, selects the B2B customer and their price list, and manually enters the one-off shipping address. Sends the draft order invoice link to the customer for payment. This bypasses the B2B portal checkout entirely.</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">B2B is Shopify Plus Only</div>
+    Native B2B company accounts, company locations, and net terms are available only on Shopify Plus. Non-Plus stores using third-party wholesale apps (Wholesale Club, BSS B2B, etc.) have different address restriction behavior determined by each app's own logic. Check your app's documentation for how it handles address book access for wholesale customers.
+  </div>
+
+  <h2>Failure Mode 5: Address Autocomplete Overwrites the Pre-Filled Saved Address</h2>
+
+  <p>Shopify's checkout uses Google Places API for address autocomplete. The autocomplete fires whenever a customer begins typing in any address input field. If a saved address was pre-filled and the customer starts editing a single character (to fix a typo, change an apartment number, or add a company name to the address), Google Places can fire and replace all address fields with its top suggestion — which may be completely different from the saved address.</p>
+
+  <h3>The exact sequence that causes the problem</h3>
+
+  <ul>
+    <li>Customer's default address pre-fills correctly: "123 Oak Street, Springfield, IL 62701, US"</li>
+    <li>Customer clicks on the address line to add "Apt 4B" — types "123 Oak S"</li>
+    <li>Google Places autocomplete fires after the first few keystrokes</li>
+    <li>Top suggestion is "123 Oak Street, Springfield, OH 45501" (different state, different ZIP)</li>
+    <li>If the customer accidentally clicks the suggestion or presses Enter, all fields are replaced</li>
+    <li>Customer sees a completely different address and assumes their saved address "changed"</li>
+  </ul>
+
+  <h3>The customer's saved address was not modified</h3>
+
+  <p>Autocomplete only modifies the checkout form fields — it does not update the saved address in the customer's account. The customer's account address book still has the original saved address. Only the in-progress checkout form was overwritten.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>What Was Changed</th>
+          <th>What Was NOT Changed</th>
+          <th>Recovery</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Checkout form fields (in-session only)</td>
+          <td>Customer's saved address in account (untouched)</td>
+          <td>Customer reloads checkout (fresh session) — saved address pre-fills again</td>
+        </tr>
+        <tr>
+          <td>Autocomplete suggestion filled state, city, ZIP</td>
+          <td>All other saved addresses in account (untouched)</td>
+          <td>Or: customer manually re-enters the correct address; the wrong data is only in the form</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Reducing autocomplete interference (Plus only)</h3>
+
+  <p>On Shopify Plus, a Checkout UI Extension can suppress or modify the autocomplete behavior by overlaying custom input handling. For non-Plus stores, there is no merchant-side way to disable Google Places autocomplete in Shopify-hosted checkout. The best customer guidance is: if editing a pre-filled address, be careful not to trigger autocomplete by typing slowly and watching for suggestions, clicking outside the field before pressing Enter, or waiting until all edits are complete before any keystroke suggestions appear.</p>
+
+  <h2>Failure Mode 6: Billing Address Is Not Saved to the Address Book</h2>
+
+  <p>A customer asks why their billing address never pre-fills at checkout even though they've entered it dozens of times. The reason: Shopify's customer address book stores <strong>shipping addresses only</strong>. Billing addresses entered at checkout are not persisted anywhere unless they are identical to the shipping address.</p>
+
+  <h3>How Shopify handles billing address storage</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Address Type</th>
+          <th>Saved to Account Address Book?</th>
+          <th>Pre-Fills at Next Checkout?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shipping address</td>
+          <td><span class="tag green">Yes</span> — if customer was logged in when order was placed</td>
+          <td><span class="tag green">Yes</span> — if marked as default</td>
+        </tr>
+        <tr>
+          <td>Billing address (when "same as shipping" is checked)</td>
+          <td><span class="tag yellow">Indirectly</span> — the shipping address is saved; billing is inferred as same</td>
+          <td><span class="tag green">Yes</span> — inferred from saved shipping address</td>
+        </tr>
+        <tr>
+          <td>Billing address (when "use different billing address" is checked)</td>
+          <td><span class="tag red">No</span> — the different billing address is NOT saved</td>
+          <td><span class="tag red">Never</span> — must be re-entered every checkout</td>
+        </tr>
+        <tr>
+          <td>Shop Pay — saved payment method billing address</td>
+          <td><span class="tag yellow">Shop Pay vault only</span> — not in the store's address book</td>
+          <td><span class="tag green">Yes</span> — via Shop Pay's own vault, not the store's address book</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>This is a common friction point for customers who have a permanent billing address (home office, corporate headquarters, billing department) different from every shipping address. There is no native Shopify solution for saving a separate billing address that auto-fills. Shop Pay partially solves this by saving the card's billing address in the payment vault, but this is only available when the customer uses Shop Pay as their payment method.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Communicating This to Customers</div>
+    In your order confirmation email or account settings page, add a note: "Your billing address is not saved separately. If you use the same billing address every time, add it as your default shipping address — it will pre-fill as the billing address option you can confirm at checkout. If your billing and shipping addresses always differ, you'll need to enter your billing address at each checkout."
+  </div>
+
+  <h2>Failure Mode 7: International Address Fields Don't Map to the Saved Address Format</h2>
+
+  <p>Shopify's checkout address form changes its field structure based on the selected country. A customer who saved a UK address (postcode, no "state/province" field) and then checks out on a store configured for US addresses encounters mismatched fields — their saved address pre-fills incompletely, with some fields empty or validation errors.</p>
+
+  <h3>Field mapping differences by country</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>Region Field Label</th>
+          <th>Postal Code Format</th>
+          <th>Common Mismatch</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>United States</td>
+          <td>State</td>
+          <td>5 or 9 digits (ZIP / ZIP+4)</td>
+          <td>UK postcodes rejected; Canadian postal codes fail ZIP validation</td>
+        </tr>
+        <tr>
+          <td>United Kingdom</td>
+          <td>County (optional)</td>
+          <td>Alphanumeric (e.g., SW1A 1AA)</td>
+          <td>Saved as "county" — maps to "state" field on US form; US validation rejects alphanumeric</td>
+        </tr>
+        <tr>
+          <td>Canada</td>
+          <td>Province</td>
+          <td>A1A 1A1 (letter-digit alternating)</td>
+          <td>Saved postal code pre-fills into ZIP field on US checkout; validation rejects format</td>
+        </tr>
+        <tr>
+          <td>Japan</td>
+          <td>Prefecture</td>
+          <td>7 digits (e.g., 100-0001)</td>
+          <td>Prefecture field may not have an equivalent in non-Japanese checkout form; field left blank</td>
+        </tr>
+        <tr>
+          <td>Australia</td>
+          <td>State / Territory</td>
+          <td>4 digits</td>
+          <td>Generally maps well to US form; rare mismatches on territory codes</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Why this happens at a technical level</h3>
+
+  <p>Shopify stores address fields as generic strings: <code>address1</code>, <code>address2</code>, <code>city</code>, <code>province</code>, <code>zip</code>, <code>country</code>. When the checkout form renders, it uses the selected country to determine what labels and validation rules apply to these fields. A UK postcode stored in <code>zip</code> will pre-fill into whatever field the checkout form calls the postal input — but if the form is set to US mode and validates ZIP codes as 5-digit numbers, the UK postcode fails validation and the field shows an error even though the data is technically present.</p>
+
+  <h3>Diagnosing international address pre-fill failures</h3>
+
+  <ol class="steps">
+    <li>Check which country the checkout form defaulted to — Shopify uses the store's country setting and the customer's saved country to determine the initial form layout</li>
+    <li>If the country dropdown shows the wrong country, the field labels and validation rules will mismatch the saved address; instruct the customer to first select their correct country, then the other fields will re-render and may populate correctly</li>
+    <li>For stores selling internationally: ensure your shipping zones include the customer's country, otherwise the country may not appear in the checkout country dropdown and the form defaults to the store's primary country with wrong field format</li>
+    <li>Merchants on Shopify Markets: assign the correct country to each market and ensure the checkout locale matches the market; Shopify Markets can auto-detect country from IP and set the correct checkout form layout</li>
+  </ol>
+
+  <h2>Failure Mode 8: Headless Storefront — Address Book Not Fetched or Rendered</h2>
+
+  <p>Headless Shopify storefronts (Hydrogen, Next.js, custom builds using the Storefront API) have zero automatic address pre-fill. There is no built-in address book component. Every step of address management — fetching saved addresses, displaying them for selection, updating the cart with the selected address, and passing the address into checkout — must be implemented by the developer.</p>
+
+  <h3>What headless storefronts must implement for address book support</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>API / Mutation Needed</th>
+          <th>Common Mistake</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fetch customer's saved addresses</td>
+          <td>Customer Account API: <code>customer { addresses { nodes { ... } } }</code></td>
+          <td>Using the Storefront API instead of Customer Account API — Storefront API doesn't return private customer address data</td>
+        </tr>
+        <tr>
+          <td>Display address selection UI</td>
+          <td>Custom React/UI component — not provided by Shopify</td>
+          <td>No UI built — customer sees blank form; developer assumed Shopify handles the display layer</td>
+        </tr>
+        <tr>
+          <td>Set selected address on cart</td>
+          <td>Storefront API: <code>cartBuyerIdentityUpdate</code> with deliveryAddressPreferences</td>
+          <td>Address selected in UI but not sent to Shopify cart — cart has no address context; checkout starts blank</td>
+        </tr>
+        <tr>
+          <td>Add new address to account</td>
+          <td>Customer Account API: <code>customerAddressCreate</code> mutation</td>
+          <td>Address saved only in component state — lost on refresh; never persisted to Shopify customer record</td>
+        </tr>
+        <tr>
+          <td>Set default address</td>
+          <td>Admin API: <code>customerDefaultAddressUpdate</code> — requires server-side Admin API call</td>
+          <td>Attempting to set default via Storefront API — not possible from client-side; requires server-side Admin API</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Minimal headless address book implementation</h3>
+
+  <pre>// Customer Account API: fetch saved addresses
+// (Must use OAuth 2.0 PKCE access token — see Login Not Working guide)
+
+const CUSTOMER_ADDRESSES_QUERY = `
+  query CustomerAddresses {
+    customer {
+      defaultAddress {
+        id
+        address1
+        address2
+        city
+        province
+        zip
+        country
+        firstName
+        lastName
+      }
+      addresses(first: 10) {
+        nodes {
+          id
+          address1
+          address2
+          city
+          province
+          zip
+          country
+          firstName
+          lastName
+        }
+      }
+    }
+  }
+`;
+
+// After customer selects an address, update the cart:
+const CART_BUYER_IDENTITY_UPDATE = `
+  mutation cartBuyerIdentityUpdate($cartId: ID!, $buyerIdentity: CartBuyerIdentityInput!) {
+    cartBuyerIdentityUpdate(cartId: $cartId, buyerIdentity: $buyerIdentity) {
+      cart {
+        id
+        buyerIdentity {
+          deliveryAddressPreferences {
+            ... on MailingAddress {
+              address1
+              city
+              country
+            }
+          }
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+// Pass the selected address as deliveryAddressPreferences in buyerIdentity
+const response = await fetch('https://{shop}.myshopify.com/api/2024-01/graphql.json', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Shopify-Storefront-Access-Token': storefrontAccessToken,
+  },
+  body: JSON.stringify({
+    query: CART_BUYER_IDENTITY_UPDATE,
+    variables: {
+      cartId: cartId,
+      buyerIdentity: {
+        customerAccessToken: customerAccountApiAccessToken,
+        deliveryAddressPreferences: [{
+          deliveryAddress: {
+            address1: selectedAddress.address1,
+            address2: selectedAddress.address2,
+            city: selectedAddress.city,
+            province: selectedAddress.province,
+            zip: selectedAddress.zip,
+            country: selectedAddress.country,
+            firstName: selectedAddress.firstName,
+            lastName: selectedAddress.lastName,
+          }
+        }]
+      }
+    }
+  })
+});</pre>
+
+  <div class="callout danger">
+    <div class="callout-title">Customer Account API Access Token Is Different from Storefront API Token</div>
+    The Customer Account API uses OAuth 2.0 PKCE — the access token is a short-lived JWT obtained after the customer completes the OTP login flow. The Storefront API uses a public API key that does not change. Many headless implementations mistakenly pass the Storefront API key to Customer Account API endpoints and get "unauthorized" errors. The two APIs have separate endpoints, separate authentication methods, and separate scopes. See the <a href="./shopify-checkout-login-not-working">Login Not Working guide</a> for the full Customer Account API auth flow.
+  </div>
+
+  <h2>Diagnostic Checklist: Shopify Address Book Not Working at Checkout</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>What to Look For</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Which account system is active?</td>
+          <td>Admin → Settings → Customer accounts — Classic or New?</td>
+          <td>NCA stores: address book is at /a/account portal, not /account/addresses storefront page</td>
+        </tr>
+        <tr>
+          <td>Does the customer have a default address set?</td>
+          <td>Admin → Customers → [customer] → address book — is any address labeled "Default address"?</td>
+          <td>Set a default address — without it, checkout form starts blank regardless of how many addresses are saved</td>
+        </tr>
+        <tr>
+          <td>Was the customer logged in before starting checkout?</td>
+          <td>Ask the customer — did they log in from the storefront/account page first, or at the checkout login step?</td>
+          <td>Customer must log in BEFORE initiating checkout; instruct them to log in first and then add to cart</td>
+        </tr>
+        <tr>
+          <td>Is this a B2B customer?</td>
+          <td>Check if the customer is associated with a company in Admin → Customers → Companies</td>
+          <td>B2B checkout only shows company locations, not personal addresses; add a new company location or use draft order for one-off addresses</td>
+        </tr>
+        <tr>
+          <td>Did autocomplete overwrite the pre-filled address?</td>
+          <td>Customer reports the saved address "appeared then changed" — especially after they started typing</td>
+          <td>Customer reloads checkout and avoids editing the pre-filled fields; or clears browser cookies and retries</td>
+        </tr>
+        <tr>
+          <td>Customer complains billing address never pre-fills?</td>
+          <td>Customer uses "different billing address" option at every checkout</td>
+          <td>Shopify does not save separate billing addresses; Shop Pay saves billing address in its own vault if Shop Pay is used</td>
+        </tr>
+        <tr>
+          <td>International address validation errors?</td>
+          <td>Saved address has a non-US postcode; checkout shows validation error on ZIP/postal field</td>
+          <td>Ensure checkout country dropdown is set to the customer's country first; Shopify Markets + country-specific checkout form required for correct field labels</td>
+        </tr>
+        <tr>
+          <td>Headless storefront — no addresses shown?</td>
+          <td>Customer Account API query not implemented; cartBuyerIdentityUpdate not called after selection</td>
+          <td>Implement full address book fetch, selection UI, and cart buyer identity update — no automatic pre-fill in headless</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Catch Checkout Failures Before Customers Do</h2>
+    <p>CheckPulse monitors your Shopify checkout every minute and alerts you the moment something breaks — address failures, payment errors, or flow interruptions.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Classic Accounts vs New Customer Accounts — Address Book Behavior Comparison</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Classic Accounts</th>
+          <th>New Customer Accounts (NCA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Address management page</td>
+          <td><code>/account/addresses</code> — Liquid storefront page</td>
+          <td>Shopify-hosted portal (<code>/a/account</code>)</td>
+        </tr>
+        <tr>
+          <td>Third-party address book apps</td>
+          <td>Supported via Classic Customer API</td>
+          <td>Break — Classic Customer API not used by NCA</td>
+        </tr>
+        <tr>
+          <td>Address pre-fill at checkout</td>
+          <td>Default address pre-fills when logged in before checkout</td>
+          <td>Same behavior — but login flow changed (OTP instead of password)</td>
+        </tr>
+        <tr>
+          <td>Default address setting</td>
+          <td>Via /account/addresses storefront page</td>
+          <td>Via Shopify-hosted account portal</td>
+        </tr>
+        <tr>
+          <td>Multiple addresses</td>
+          <td>Supported — up to unlimited addresses per customer</td>
+          <td>Supported — same limit; managed via portal</td>
+        </tr>
+        <tr>
+          <td>Billing address storage</td>
+          <td>Not saved separately — shipping addresses only</td>
+          <td>Same — not saved separately</td>
+        </tr>
+        <tr>
+          <td>Headless address fetch API</td>
+          <td>Classic Storefront API <code>customerAccessToken</code> mutations</td>
+          <td>Customer Account API with OAuth 2.0 PKCE</td>
+        </tr>
+        <tr>
+          <td>B2B company address management</td>
+          <td>Not natively supported (third-party apps)</td>
+          <td>Plus only: Admin → Companies → Locations</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Can a customer have saved addresses but see "no addresses found" at checkout?</h3>
+  <p>Yes — this happens in three scenarios. First, if no address is marked as the default, checkout doesn't know which address to pre-fill and starts blank (though a saved address dropdown may appear after clicking the address field, depending on checkout version). Second, if the customer is logged in via a Shop Pay identity that doesn't match the customer record with saved addresses — the Shop account email and the purchase account email are different. Third, on NCA stores where the storefront's <code>/account/addresses</code> Liquid page is still being used — the page renders blank because NCA doesn't populate it, giving the impression the address book is empty when addresses actually exist in the Shopify-hosted portal.</p>
+
+  <h3>Does Shopify save the shipping address from a completed order automatically?</h3>
+  <p>Yes — if the customer was logged in when the order was placed, Shopify adds the shipping address from the order to their address book. This is the primary way address books get populated: from past orders. Guest checkout orders do not save addresses to any account. If a logged-in customer's order address is different from their existing saved addresses, the new address is added to the account but not automatically set as the default — the existing default remains unchanged. This is why a customer who moved to a new address still sees their old address pre-fill until they go to the account portal and update their default.</p>
+
+  <h3>Why does the address pre-fill sometimes show the billing address instead of the shipping address at the shipping step?</h3>
+  <p>Shopify's checkout uses the customer's default saved address for the shipping address field. The billing address is handled separately at the payment step. If the checkout appears to pre-fill with a billing address at the shipping step, it's likely that the customer's saved "shipping" address in their account is actually their billing address — they saved it that way on a prior order where billing and shipping were the same. The customer can go to their account portal and add a separate default shipping address to fix this.</p>
+
+  <h3>Can I pre-fill checkout with an address without the customer having to log in?</h3>
+  <p>Yes, in two ways. First: cart permalink URLs support pre-filling checkout fields using URL parameters — you can encode address fields into a /cart URL and Shopify will populate them in the checkout form without requiring a customer login. This is useful for pre-filling addresses from CRM data or form submissions. Second: for headless storefronts, <code>cartBuyerIdentityUpdate</code> accepts a <code>deliveryAddressPreferences</code> parameter that can be set without a customer access token — passing a one-time-use address this way pre-fills the checkout address form for the current cart session without requiring account login.</p>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <p>Checkout address not persisting to customer account, saved address disappearing after checkout, address book not updating.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <p>Google Maps suggestions missing at checkout, address not populating from autocomplete, partial autofill issues.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <p>OTP not arriving, guest checkout disappeared, Shop Pay wrong account, NCA migration login failures.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <p>Guest checkout blocked, login wall at checkout, new customer accounts login prompt, loyalty points migration.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <p>B2B pricing not applying, net terms unavailable, wholesale login setup, Shopify Plus company accounts.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <p>Payment declined due to billing address mismatch, AVS failure, billing vs shipping address conflict.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring. Know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Checkout Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="./shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="./shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

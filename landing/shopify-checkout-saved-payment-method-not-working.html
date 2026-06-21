@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Saved Payment Method Not Working — Saved Card Not Showing, Shop Pay Vault, Token Expiry (2026)</title>
+  <meta name="description" content="Shopify saved payment method not appearing at checkout? Saved card not showing? Shop Pay vault vs. native saved card? Vault token expired? 8 root causes for Shopify saved payment method failures — gateway switch, NCA migration, headless API, and PCI isolation." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-saved-payment-method-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-saved-payment-method-not-working" />
+  <meta property="og:title" content="Shopify Checkout Saved Payment Method Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify has two completely separate card vaults: Shop Pay (shop.app) and Shopify's native Storefront Vault (Shopify Payments only). Switching gateways kills one. Switching account systems breaks the other. 8 saved payment method failure modes explained with fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Saved Payment Method Not Working — Shop Pay Vault, Token Expiry, Gateway Switch, Headless",
+    "description": "Shopify maintains two separate card storage systems: the Shop Pay vault (managed at shop.app, tied to the Shop ecosystem) and the native Shopify Storefront Vault (Shopify Payments–only, accessible via the Customer Payment Methods API). Most merchants and developers don't realize these are different systems. Switching from Shopify Payments to a third-party gateway silently disables the native vault. Switching to New Customer Accounts changes how the payment management UI works. Vault tokens expire when cards are reissued. Headless storefronts require full Customer Payment Methods API implementation — there is no automatic saved card UI. This guide covers all 8 root causes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-saved-payment-method-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why doesn't my saved card show at Shopify checkout even though I saved it before?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's native saved payment method feature (Storefront Vaulting) only works when the store uses Shopify Payments as its payment gateway. If the merchant switched to a third-party gateway such as Stripe, PayPal, Braintree, or Authorize.net, the native saved card no longer appears because Shopify's vault is tied to Shopify Payments infrastructure. Additionally, the customer must be logged in before starting checkout — guest checkout sessions never show saved cards. If you are logged in and the store is on Shopify Payments but your saved card still doesn't appear, check whether your card has expired or been reissued (the vault token becomes invalid when a card number changes), or whether the store has switched to New Customer Accounts (NCA), which changes how payment methods are managed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between the Shop Pay vault and Shopify's native saved payment method?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay and Shopify's native Storefront Vault are two completely separate card storage systems. Shop Pay (managed at shop.app) stores cards in the Shop ecosystem — it works across all Shopify stores regardless of which payment gateway the merchant uses, and it shows the Shop Pay express button at checkout. Shopify's native saved payment method (Storefront Vaulting, accessible via the Customer Payment Methods API) is specific to one store, requires Shopify Payments, and appears as a 'Use saved card' option inside the payment step of that store's checkout. A customer can have a card saved in Shop Pay without having it saved in the store's native vault, and vice versa. If a merchant disables Shopify Payments and switches to Stripe, Shop Pay may still work (as a separate express checkout option) but the native in-checkout saved card will not appear."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify saved card stop working after I got a new card from my bank?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a bank issues a new card number (due to fraud, expiry, or reissue), the vault token that Shopify stored for your previous card becomes invalid. Shopify Payments cannot automatically update vault tokens when a card is reissued because the new card number is different — it is a new payment instrument. The old token is now orphaned: it exists in the vault but will fail when used for payment. At checkout, Shopify may show the saved card with the last 4 digits of the old card, but attempting to use it will result in a payment error ('payment method not available' or a gateway decline). The customer must add the new card to their account: in their account portal under Payment methods, they can add the new card and optionally remove the old one. On Shop Pay, cards can be updated at shop.app → Payment methods."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I implement saved payment methods in a Shopify headless storefront?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Headless Shopify storefronts (Hydrogen, custom React/Vue front ends) do not get automatic saved payment method UI. You must implement it using the Customer Payment Methods API, which is part of the Customer Account API (not the Storefront API). The Customer Account API uses OAuth 2.0 PKCE authentication — the same system used for New Customer Accounts. To vault a card, call the customerPaymentMethodCreditCardCreate mutation after obtaining a Customer Account API access token with the customer_payment_methods scope. To display saved cards to the customer, query customerPaymentMethods. To use a vaulted card at checkout, you must reference the payment method in the checkout's payment step using the appropriate Checkout API mutation. This is a non-trivial implementation requiring Customer Account API registration in the Partner Dashboard, PKCE code flow handling, and token refresh management."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Saved Payment Method Not Working
+  </div>
+  <h1>Shopify <em>Checkout Saved Payment Method Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Saved card not appearing at checkout? Shop Pay vault vs. native Shopify saved card? Vault token expired after card reissue? Gateway switch killing saved payments? Here are all 8 root causes for Shopify saved payment method failures — for merchants and developers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shop Pay Vault · Storefront Vault · Gateway Switch · Token Expiry · NCA Migration · Headless API · PCI Isolation · Installments Requalification</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify saved payment methods sound simple: customer saves a card once, it appears at their next checkout. In practice, Shopify maintains two completely separate card storage systems — the Shop Pay vault and the native Storefront Vault — and most merchants, developers, and even customers don't know these are different. Switching payment gateways, switching account systems, getting a new card from the bank, or building a headless storefront can each break saved payment methods in different ways that produce completely different symptoms.</p>
+
+  <p>There are eight distinct root causes. The most common: a merchant switching from Shopify Payments to Stripe or PayPal silently disables the native saved card entirely — with no error message and no notification to customers.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">The Two Card Vaults — Most Important Thing to Know</div>
+    <strong>Shop Pay vault</strong> (managed at shop.app) — works across all Shopify stores regardless of gateway. Shows the Shop Pay express button at checkout. Customers manage it at shop.app/account → Payment methods.<br><br>
+    <strong>Shopify Storefront Vault</strong> (native saved card) — works only at one specific store, requires Shopify Payments as the active gateway, appears as "Use saved card" inside that store's checkout payment step. Customers manage it via the store's account portal under Payment methods.<br><br>
+    These are independent. A gateway switch breaks the Storefront Vault but may leave Shop Pay working. An account system change (Classic → NCA) affects how both are managed.
+  </div>
+
+  <h2>Failure Mode 1: Store Switched From Shopify Payments — The Native Saved Card Disappears</h2>
+
+  <p>Shopify's native Storefront Vault — the feature that lets customers save a card for "faster checkout next time" within a specific store — is built on Shopify Payments infrastructure. When a merchant switches from Shopify Payments to any third-party payment gateway (Stripe, PayPal, Braintree, Authorize.net, Square, Adyen), the native saved payment method capability is disabled. Previously vaulted cards are not migrated; they simply become inaccessible.</p>
+
+  <h3>What the customer experiences</h3>
+
+  <p>At their next checkout, the customer sees a standard blank payment form with no "Use your saved card" option. There is no error message, no explanation, and no indication that anything changed. From the customer's perspective, their saved card "disappeared."</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Gateway</th>
+          <th>Native Saved Card (Storefront Vault)</th>
+          <th>Shop Pay Express</th>
+          <th>Gateway's Own Vault</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shopify Payments</td>
+          <td><span class="tag green">Available</span></td>
+          <td><span class="tag green">Available</span></td>
+          <td>N/A — Shopify Payments is the vault</td>
+        </tr>
+        <tr>
+          <td>Stripe (third-party)</td>
+          <td><span class="tag red">Not available</span></td>
+          <td><span class="tag red">Not available</span> — Shop Pay requires Shopify Payments</td>
+          <td>Stripe's own vault — not surfaced in Shopify checkout UI</td>
+        </tr>
+        <tr>
+          <td>PayPal</td>
+          <td><span class="tag red">Not available</span></td>
+          <td><span class="tag red">Not available</span></td>
+          <td>PayPal Vault — only accessible via PayPal's own checkout button</td>
+        </tr>
+        <tr>
+          <td>Braintree / Authorize.net / Square</td>
+          <td><span class="tag red">Not available</span></td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Gateway-specific vault — not integrated with Shopify's "saved card" UI</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Why merchants switch and what they lose</h3>
+
+  <p>Merchants commonly switch away from Shopify Payments for lower transaction fees (especially on high-volume stores), to access a preferred payment processor their accountant or bank uses, or because Shopify Payments is unavailable in their country. What they don't realize until customer complaints arrive: the switch silently removes the native saved card experience for all returning customers simultaneously.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Third-Party Gateway's Own Vault Is Not the Same Thing</div>
+    Stripe, Braintree, Authorize.net, and other gateways have their own card vault systems. But these vaults are not integrated with Shopify's checkout UI in the same way. A card saved in Stripe's vault (for a recurring subscription, for example) is not accessible as a "saved payment method" at Shopify checkout — the customer still sees a blank payment form. The gateway's vault is only accessible through that gateway's own payment flows (Stripe's hosted checkout, subscription billing APIs, etc.).
+  </div>
+
+  <h2>Failure Mode 2: Shop Pay Account vs. Native Store Saved Card — Two Different Systems</h2>
+
+  <p>The vast majority of customers and merchants don't know these are different. A customer who clicks the Shop Pay express button and sees their card is not using the store's native saved card feature — they are using a completely separate card vault managed by Shopify's Shop network.</p>
+
+  <h3>How each system works</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Shop Pay Vault</th>
+          <th>Shopify Storefront Vault (Native Saved Card)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Where managed</td>
+          <td>shop.app → Account → Payment methods</td>
+          <td>Store's account portal → Payment methods</td>
+        </tr>
+        <tr>
+          <td>Scope</td>
+          <td>Works across all Shopify stores</td>
+          <td>Specific to one store only</td>
+        </tr>
+        <tr>
+          <td>Gateway requirement</td>
+          <td>Shopify Payments must be active on that store</td>
+          <td>Shopify Payments must be active on that store</td>
+        </tr>
+        <tr>
+          <td>How it appears at checkout</td>
+          <td>Shop Pay express button (bypasses checkout steps)</td>
+          <td>"Use saved card ending in XXXX" inside payment step</td>
+        </tr>
+        <tr>
+          <td>Authentication</td>
+          <td>Shop Pay OTP (phone SMS or email)</td>
+          <td>Customer logged into store account</td>
+        </tr>
+        <tr>
+          <td>Card update</td>
+          <td>shop.app → Payment methods</td>
+          <td>Store account portal → Payment methods</td>
+        </tr>
+        <tr>
+          <td>Cross-device persistence</td>
+          <td>Yes — tied to Shop account, works on any device</td>
+          <td>Partial — tied to store login session</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The support confusion this creates</h3>
+
+  <p>A customer contacts merchant support: "My saved card is gone." The merchant checks their account in Admin → Customers → [customer] and sees payment methods listed. But the customer is trying to use the native saved card via standard checkout (not Shop Pay), and what they see is a blank form. Both parties are confused because neither realizes there are two separate systems involved. The diagnostic question: was the customer using the Shop Pay button or the standard "Check out" button? Different answer, different fix.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Customer-Facing Diagnostic Question</div>
+    Ask the customer: "At checkout, were you clicking the blue Shop Pay button, or the standard 'Check out' / 'Buy Now' button?" If Shop Pay: the card issue is in their Shop Pay account at shop.app. If standard checkout: the issue is in the store's native Storefront Vault — check gateway, login status, and token validity.
+  </div>
+
+  <h2>Failure Mode 3: Customer Not Logged In Before Starting Checkout</h2>
+
+  <p>The native Storefront Vault only surfaces saved payment methods when the customer is authenticated — specifically, when they are logged into the store account <em>before</em> they enter checkout. Guest checkout sessions have no access to the vault. A customer who starts checkout as a guest and then logs in at the mid-checkout login prompt may not see their saved payment methods because the checkout session was initialized without customer context.</p>
+
+  <h3>The two login paths and their outcomes</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Login Timing</th>
+          <th>Saved Card Available?</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logged in before starting checkout (before Add to Cart or Buy Now)</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Checkout session created with full customer context; saved payment method offered at payment step</td>
+        </tr>
+        <tr>
+          <td>Started as guest, logged in at checkout login step</td>
+          <td><span class="tag yellow">Sometimes</span></td>
+          <td>Depends on checkout version and account system; not guaranteed on all store configurations</td>
+        </tr>
+        <tr>
+          <td>Guest checkout throughout</td>
+          <td><span class="tag red">Never</span></td>
+          <td>No customer context = no vault access</td>
+        </tr>
+        <tr>
+          <td>Shop Pay (OTP-authenticated)</td>
+          <td><span class="tag green">Yes — via Shop Pay vault</span></td>
+          <td>Shop Pay authentication is separate from store login; works regardless of store login state</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What merchants can do</h3>
+
+  <p>On storefront pages — product pages, cart page, collection pages — add a "Log in to use your saved payment method" prompt for non-authenticated visitors. A simple Liquid conditional that checks <code>{% if customer %}</code> can show a "Welcome back, use your saved card" message to logged-in customers, and a "Log in for faster checkout" link to guests. This sets the expectation before the customer enters checkout where it's too late to improve the experience.</p>
+
+  <h2>Failure Mode 4: Vault Token Expired or Card Reissued by Bank</h2>
+
+  <p>When Shopify Payments vaults a customer's card, it stores a token — a reference to the card, not the card number itself. This token is valid as long as the underlying card is valid. When a bank reissues a card with a new number (due to fraud, data breach, expiry replacement with a new number, or card upgrade), the old token in Shopify's vault becomes orphaned. The token still exists but points to a card number that no longer works.</p>
+
+  <h3>What the customer sees</h3>
+
+  <p>At checkout, the saved card appears normally — "Use card ending in 4321." The customer selects it and clicks "Pay now." The payment fails with a generic error ("Your payment could not be processed") or a gateway decline. There is no indication that the card was reissued; the saved card listing still shows the old card's last 4 digits and expiry date. The customer may try multiple times before realizing the card itself changed.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Bank Action</th>
+          <th>Effect on Vault Token</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Card expired (same number, new expiry)</td>
+          <td><span class="tag yellow">Partial</span> — some networks support network tokenization updater; not guaranteed</td>
+          <td>Customer updates card in account portal; adds new expiry</td>
+        </tr>
+        <tr>
+          <td>Card reissued with new number (fraud / breach)</td>
+          <td><span class="tag red">Token invalid</span> — new card number = different payment instrument</td>
+          <td>Customer must add new card to account portal; old token cannot be updated</td>
+        </tr>
+        <tr>
+          <td>Card upgraded (Visa Classic → Visa Signature)</td>
+          <td><span class="tag red">Token invalid if card number changed</span></td>
+          <td>Customer adds new card; removes old one</td>
+        </tr>
+        <tr>
+          <td>Card closed / account cancelled</td>
+          <td><span class="tag red">Token permanently invalid</span></td>
+          <td>Customer removes old card; adds active payment method</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to fix and prevent</h3>
+
+  <ol class="steps">
+    <li>Customer logs into their store account and navigates to the account portal → Payment methods</li>
+    <li>Customer removes the outdated saved card (identified by last 4 digits and expiry)</li>
+    <li>Customer adds their new card — this creates a fresh vault token for the new card number</li>
+    <li>For Shop Pay: customer updates at shop.app → Payment methods → Edit or Replace card</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Network Tokenization Can Help — But Is Not Universal</div>
+    Some card networks (Visa, Mastercard) support "account updater" or network tokenization services that automatically notify payment processors when a card is replaced. Shopify Payments implements network tokenization for supported cards — when it works, a reissued card's token is automatically updated and the customer's saved card continues to work without intervention. But this service is not available on all cards, issuers, or regions. Debit cards, prepaid cards, and cards from banks that haven't implemented the updater service will still need manual updates when the card number changes.
+  </div>
+
+  <h2>Failure Mode 5: New Customer Accounts (NCA) Changes Payment Method Management</h2>
+
+  <p>When a store switches from Classic Accounts to New Customer Accounts, the interface for managing saved payment methods changes significantly. Classic Accounts exposed payment method management via a Liquid-rendered storefront page. NCA moves all account management — including payment methods — to a Shopify-hosted account portal that is separate from the storefront theme.</p>
+
+  <h3>What breaks on NCA stores</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Classic Accounts</th>
+          <th>New Customer Accounts (NCA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Payment method management UI</td>
+          <td>Storefront page, customizable via Liquid theme</td>
+          <td>Shopify-hosted account portal — not theme-customizable</td>
+        </tr>
+        <tr>
+          <td>Third-party "save card" apps</td>
+          <td><span class="tag green">Work</span> — use Classic Customer API</td>
+          <td><span class="tag red">Break</span> — Classic Customer API not used in NCA; must use Customer Payment Methods API with NCA auth</td>
+        </tr>
+        <tr>
+          <td>Customer Payment Methods API</td>
+          <td>Accessible via Classic auth</td>
+          <td>Requires Customer Account API OAuth 2.0 PKCE token with <code>customer_payment_methods</code> scope</td>
+        </tr>
+        <tr>
+          <td>Vault created before NCA switch</td>
+          <td><span class="tag green">Valid</span></td>
+          <td><span class="tag green">Still valid</span> — tokens persist through account system switch; only the management UI changed</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The key point: vault tokens themselves survive a Classic-to-NCA switch. A card that was saved before the switch is still vaulted and will still appear at checkout. What changes is how customers access the payment methods management page — they now need to go through the Shopify-hosted portal rather than a storefront page. Third-party apps that let customers add or manage saved payment methods will break if they relied on Classic Accounts authentication to call the Customer Payment Methods API.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Third-Party "Saved Card" Apps May Stop Working After NCA Switch</div>
+    Apps that provide enhanced saved payment method functionality — multiple saved cards, default card selection, card nickname, or card management widgets embedded in the storefront account page — typically use Classic Accounts authentication. After switching to NCA, these apps may silently fail: the embedded widget shows an error or blank state, but the store's account portal still shows the customer's saved cards. Check app compatibility before switching account systems, and communicate the change to customers who used the third-party payment management features.
+  </div>
+
+  <h2>Failure Mode 6: Headless / Hydrogen Storefronts — No Automatic Saved Payment UI</h2>
+
+  <p>Headless Shopify storefronts — whether built on Hydrogen or custom React/Vue/Next.js front ends — do not get automatic saved payment method functionality. The Storefront API's <code>cartPaymentUpdate</code> mutation handles payment at checkout time but does not surface a customer's saved payment methods. To implement the full "save card and use later" flow, developers must work with the Customer Payment Methods API, which is part of the Customer Account API — a separate system from the Storefront API with a different authentication mechanism.</p>
+
+  <h3>What's required for headless saved payment methods</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>API / Tool</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Authenticate customer</td>
+          <td>Customer Account API — OAuth 2.0 PKCE</td>
+          <td>Different from Storefront API auth; requires app registration in Partner Dashboard with <code>customer_payment_methods</code> scope</td>
+        </tr>
+        <tr>
+          <td>Vault a new card</td>
+          <td><code>customerPaymentMethodCreditCardCreate</code> mutation</td>
+          <td>Requires a payment method creation token from Shopify Payments; card details are never sent to your server</td>
+        </tr>
+        <tr>
+          <td>List saved payment methods</td>
+          <td><code>customer { paymentMethods { nodes } }</code> query</td>
+          <td>Returns vaulted cards with masked PAN, expiry, brand; use to build "choose saved card" UI</td>
+        </tr>
+        <tr>
+          <td>Use saved card at checkout</td>
+          <td>Checkout API or Storefront API <code>cartPaymentUpdate</code></td>
+          <td>Must pass the payment method token reference; exact mutation depends on checkout flow version</td>
+        </tr>
+        <tr>
+          <td>Remove a saved card</td>
+          <td><code>customerPaymentMethodRevoke</code> mutation</td>
+          <td>Permanently removes vault token; customer must re-enter card to save again</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <pre>// Customer Payment Methods API — list saved cards
+// Requires Customer Account API OAuth 2.0 token with
+// customer_payment_methods scope
+
+query GetSavedPaymentMethods {
+  customer {
+    paymentMethods(first: 10) {
+      nodes {
+        id
+        instrument {
+          ... on CustomerCreditCard {
+            brand
+            lastDigits
+            expiryMonth
+            expiryYear
+            billingAddress {
+              firstName
+              lastName
+              address1
+              city
+              country
+              zip
+            }
+          }
+        }
+        revokedAt
+        isDefault
+      }
+    }
+  }
+}</pre>
+
+  <div class="callout danger">
+    <div class="callout-title">Customer Account API ≠ Storefront API</div>
+    The Customer Account API and the Storefront API are different endpoints with different authentication. The Storefront API uses a public Storefront access token (safe to use client-side). The Customer Account API uses OAuth 2.0 PKCE — you must register an app in the Partner Dashboard, implement the PKCE code flow, persist the refresh token, and exchange it for access tokens on each session. Using a Storefront API token to call Customer Account API endpoints (or vice versa) returns authentication errors. Many headless developers discover this difference the hard way when <code>customerPaymentMethods</code> returns <code>null</code> even after correctly authenticating via Storefront API customer tokens.
+  </div>
+
+  <h2>Failure Mode 7: PCI Compliance — Checkout Iframe Isolation Blocks Third-Party Injections</h2>
+
+  <p>Shopify's hosted checkout runs inside a PCI-compliant isolated environment — a separate domain (<code>checkout.shopify.com</code> or the store's checkout subdomain) with strict sandbox rules. Third-party JavaScript injected via the storefront theme cannot access the checkout payment iframe. Apps that attempt to pre-fill payment fields, auto-select saved cards, or inject payment UI into the checkout page cannot do so through standard JavaScript injection.</p>
+
+  <h3>What this means in practice</h3>
+
+  <p>Merchants sometimes install apps that promise "one-click repeat payment" or "faster checkout for returning customers" via a theme app extension. These apps can add UI to cart pages, product pages, and account pages — but they cannot reach inside the checkout payment step to auto-fill or pre-select a saved card. Apps that claim to do this on non-Plus stores typically work through workarounds like cart permalinks with pre-populated discount codes or customer redirect flows — they don't actually touch the payment vault at checkout.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>What Third-Party Apps Can Do</th>
+          <th>What They Cannot Do</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Add UI to product pages, cart page, account page</td>
+          <td>Inject into Shopify's checkout payment iframe</td>
+        </tr>
+        <tr>
+          <td>Redirect customers to checkout with pre-filled cart items</td>
+          <td>Pre-select or pre-fill payment method inside hosted checkout</td>
+        </tr>
+        <tr>
+          <td>Display saved card info on the storefront (read-only display)</td>
+          <td>Modify Shopify Payments vault tokens directly</td>
+        </tr>
+        <tr>
+          <td>Plus: add UI inside checkout via Checkout UI Extensions</td>
+          <td>Access cardholder data or raw card numbers</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Shopify Plus: the only legitimate path for custom payment UI in checkout</h3>
+
+  <p>Shopify Plus merchants can use Checkout UI Extensions to add custom UI components inside the checkout flow. These extensions run in a sandboxed environment with access to the checkout API — they can read payment method information and surface UI that guides customers to their saved card. But even Checkout UI Extensions cannot directly access cardholder data or bypass Shopify Payments' PCI-compliant vault — they work within defined APIs that Shopify exposes to extensions.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Legitimate "Saved Payment" Optimization Without Plus</div>
+    On non-Plus stores, the best approach for returning customers is to maximize Shop Pay adoption. Shop Pay's express button handles the full saved-card experience natively — OTP authentication, address and card pre-fill, one-tap payment — without any third-party app, and it works within Shopify's PCI sandbox. Encouraging customers to save cards via Shop Pay (not the native Storefront Vault) gives a better cross-device, cross-store experience and doesn't break when the merchant changes their app configuration.
+  </div>
+
+  <h2>Failure Mode 8: Shop Pay Installments — Not a Persistent Saved Payment Plan</h2>
+
+  <p>Shop Pay Installments (Shopify's buy-now-pay-later product) is the most common cause of customer confusion around "my payment method disappeared." A customer who used Shop Pay Installments on a previous order expects the "Pay in 4" or "Pay over 12 months" option to be their saved payment method on return. It is not. Installments requires qualification on every new order — it is not a pre-approved credit line or a persistent payment plan linked to the customer's account.</p>
+
+  <h3>Why Installments disappears for returning customers</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>Installments Available?</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Order total under $50</td>
+          <td><span class="tag red">No</span></td>
+          <td>Minimum order value for Installments; small top-up or accessory orders won't qualify</td>
+        </tr>
+        <tr>
+          <td>Order total over $17,500</td>
+          <td><span class="tag red">No</span></td>
+          <td>Maximum order value for Installments</td>
+        </tr>
+        <tr>
+          <td>Digital product or subscription in cart</td>
+          <td><span class="tag red">No</span></td>
+          <td>Installments not available for non-physical goods; mixed carts with any digital product are excluded</td>
+        </tr>
+        <tr>
+          <td>Customer's credit eligibility changed</td>
+          <td><span class="tag red">No</span></td>
+          <td>Affirm (the Installments provider) runs a soft credit check per order; previous approval doesn't guarantee future approval</td>
+        </tr>
+        <tr>
+          <td>Store not in supported country (US only)</td>
+          <td><span class="tag red">No</span></td>
+          <td>Shop Pay Installments is US-only as of 2026</td>
+        </tr>
+        <tr>
+          <td>Order qualifies on all dimensions</td>
+          <td><span class="tag green">Yes</span> — shown inside Shop Pay flow</td>
+          <td>Option appears inside the Shop Pay authentication flow, not as a separate button at checkout</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What customers see and what to tell them</h3>
+
+  <p>A returning customer who used Installments before may select the Shop Pay button expecting to see "Pay in 4" as before — but the current order doesn't qualify. Shop Pay processes as full payment (debit/credit charge) without showing the Installments option. The customer thinks their payment method changed or their "saved plan" was removed. The explanation: Installments is a per-order financing decision, not a standing agreement. Each order either qualifies or doesn't based on that order's attributes and a fresh eligibility check.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Installments Is Inside Shop Pay — Not a Separate Button</div>
+    Shop Pay Installments does not appear as a separate "Pay Later" button at checkout. It appears as an option inside the Shop Pay flow, after the customer authenticates via OTP. If Shop Pay isn't showing at all (Shopify Payments not active, or store in an unsupported country), Installments is also not available. The sequence: Shop Pay button → OTP authentication → shipping confirmation → payment step shows Installments option (if order qualifies).
+  </div>
+
+  <h2>Full Diagnostic Reference</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Native "Use saved card" option completely gone</td>
+          <td>Store switched from Shopify Payments to third-party gateway</td>
+          <td>Admin → Settings → Payments — confirm Shopify Payments is the active provider</td>
+        </tr>
+        <tr>
+          <td>Payment form blank despite previous saves</td>
+          <td>Customer not logged in before checkout, OR token expired</td>
+          <td>Customer: log in from account page before starting checkout; try again</td>
+        </tr>
+        <tr>
+          <td>Saved card shown but payment fails</td>
+          <td>Vault token expired — card was reissued or expired</td>
+          <td>Customer: remove old card from account portal, add new card</td>
+        </tr>
+        <tr>
+          <td>Payment method management page blank after NCA switch</td>
+          <td>Classic Accounts app breaking on NCA — management moved to hosted portal</td>
+          <td>Guide customers to /a/account or account portal link in order emails</td>
+        </tr>
+        <tr>
+          <td>Shop Pay Installments gone for returning customer</td>
+          <td>Current order doesn't meet Installments eligibility criteria</td>
+          <td>Check order total ($50–$17,500), product type (physical only), country (US only)</td>
+        </tr>
+        <tr>
+          <td>Headless: customerPaymentMethods returns null</td>
+          <td>Using wrong API auth — Storefront API token instead of Customer Account API OAuth token</td>
+          <td>Implement Customer Account API PKCE flow; request customer_payment_methods scope</td>
+        </tr>
+        <tr>
+          <td>Third-party "one-click" app not working at payment step</td>
+          <td>App cannot reach inside checkout iframe — PCI isolation</td>
+          <td>On Plus: use Checkout UI Extension; on non-Plus: route customers to Shop Pay</td>
+        </tr>
+        <tr>
+          <td>Shop Pay card gone after customer got new credit card</td>
+          <td>Bank reissued with new number — old Shop Pay vault token orphaned</td>
+          <td>Customer: update at shop.app → Payment methods → Replace card</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Losing Returning Customers?</h2>
+    <p>CheckPulse monitors your Shopify checkout every 13 minutes — catching payment failures, gateway errors, and session breaks before they cost you revenue.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Pricing</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <p>Shop Pay one-tap requires all 4 conditions: matching email, recognized device, saved address, and valid card. Any one missing = silent OTP fallback.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <p>Authorization hold vs. actual capture. Bank holds funds even when Shopify declines the order. Releases in 3–7 days without merchant action.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <p>No native retry button for completed orders. Guest checkout has no recovery path. 3DS infinite redirect loop after decline.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <p>Apple Pay Safari-only, domain verification required. Google Pay needs separate merchant registration. Shop Pay blocked until Shopify Payments is Active.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <p>NCA OTP magic link expiring. Shop Pay wrong account email. B2B invitation link required. Social login apps breaking after NCA switch.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment &amp; BNPL</a>
+      <p>Klarna/Afterpay/Affirm locking repayment schedule at session start. BNPL options hidden when local payment method not configured for market.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Inventory Sync</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup</a>
+    </div>
+    <div class="footer-copy">&copy; 2026 CheckPulse. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Extensibility Migration Not Working — checkout.liquid Deprecated, App Extensions Breaking, Plus-Only Gates (2026)</title>
+  <meta name="description" content="Shopify checkout.liquid was removed June 30 2025. Migration to Checkout Extensibility failing? 8 root causes: checkout.liquid removed, Plus-only gate, missing customizations template, apps not updated, Additional Scripts disabled, placement target changes, CSS migration, headless checkout limits." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensibility-migration-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-extensibility-migration-not-working" />
+  <meta property="og:title" content="Shopify Checkout Extensibility Migration Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify checkout.liquid was retired June 30 2025. Custom checkout elements silently disappeared. 8 root causes: checkout.liquid removed, Plus-only gate, checkout customizations template missing, apps not updated to UI Extensions, Additional Scripts deprecated, extension target changes, CSS migration, headless checkout limitations." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Extensibility Migration Not Working — checkout.liquid Deprecated, App Extensions Breaking, Plus-Only Gates",
+    "description": "Shopify retired checkout.liquid on June 30 2025. Stores that had custom fields, CSS, tracking scripts, or third-party app injections in checkout.liquid found those elements silently disappeared — checkout continued working normally but all customizations were gone. The migration path is Checkout Extensibility, which requires Shopify Plus and a new set of tools: Checkout UI Extensions, Web Pixels API, and the Checkout Customizations editor. This guide covers all 8 failure modes merchants encounter when the migration breaks or doesn't work as expected.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-extensibility-migration-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Did Shopify remove checkout.liquid?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Shopify retired checkout.liquid on June 30, 2025 for all stores on the Checkout Extensibility upgrade. Stores that had not yet migrated lost their custom Liquid templates silently — checkout continued to function but all customizations (custom fields, CSS, injected scripts, app-rendered UI) stopped rendering. The replacement is Checkout Extensibility: Checkout UI Extensions (Plus only), the Checkout Customizations editor, and the Web Pixels API for tracking scripts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify checkout customization not showing after upgrading to Checkout Extensibility?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reason is that the Checkout Customizations template in your theme editor was not configured. After upgrading, go to Online Store → Themes → Customize → select 'Checkout and thank you' from the page picker. If you installed a checkout app, you must also manually add the app's extension block inside this template — installing the app alone does not add the block to checkout. The extension block is dragged in from the left panel under 'Apps'."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can non-Plus Shopify stores use Checkout Extensibility?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Only partially. Checkout UI Extensions — which allow adding custom fields, UI blocks, and branding elements inside checkout — require Shopify Plus. Non-Plus stores can only configure the structured Checkout Settings panel (basic logo, colors, font from a limited set) and cannot install or create checkout UI extensions. The checkout.liquid file was also only available on Plus, so non-Plus stores were never able to use it anyway. Non-Plus customization options are limited to the Cart page (using Liquid themes), the Thank You page via post-purchase extensions, and the storefront before checkout begins."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Checkout Extensibility Migration Not Working
+  </div>
+  <h1>Shopify <em>Checkout Extensibility Migration Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">checkout.liquid was retired June 30 2025. Custom fields, CSS, tracking scripts, and app-injected UI silently disappeared. Here are all 8 root causes of Checkout Extensibility migration failures — for merchants, developers, and headless teams.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>checkout.liquid Removed · Plus-Only Gate · Customizations Template · App Extensions · Additional Scripts · Extension Targets · CSS Migration · Headless</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's Checkout Extensibility upgrade retired the <code>checkout.liquid</code> template file permanently on June 30, 2025. Stores that had customized checkout using this file — custom fields, CSS overrides, injected scripts, third-party app UI — found those elements silently gone after the sunset date. Checkout continued to function normally (orders still processed), but all visual and functional customizations disappeared without error or warning.</p>
+
+  <p>The replacement system is Checkout Extensibility: a combination of Checkout UI Extensions (Plus merchants only), the Checkout Customizations editor in the theme editor, and the Web Pixels API for tracking. Each piece has its own activation requirements, and failures in any one of them look identical from the outside — a blank or vanilla checkout with no customizations.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">checkout.liquid Is Gone — No Rollback</div>
+    <p>Shopify removed checkout.liquid access permanently. You cannot re-enable it, roll back to it, or use it on any plan. If you're editing a file called <code>checkout.liquid</code> in your theme and expecting changes to appear at checkout, they will not. The file is ignored. The only migration path is Checkout Extensibility (Plus) or working within the structured Checkout Settings panel (all plans).</p>
+  </div>
+
+  <h2>Quick Reference: What Replaced What</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Old System (checkout.liquid era)</th>
+          <th>New System (Extensibility)</th>
+          <th>Plan Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>checkout.liquid Liquid template</td>
+          <td>Checkout UI Extensions (React-based)</td>
+          <td><span class="tag red">Plus only</span></td>
+        </tr>
+        <tr>
+          <td>Additional Scripts field (tracking pixels)</td>
+          <td>Web Pixels API (via app or Partner Dashboard)</td>
+          <td><span class="tag green">All plans</span></td>
+        </tr>
+        <tr>
+          <td>CSS in checkout.liquid</td>
+          <td>Branding panel + Design extension (limited)</td>
+          <td><span class="tag yellow">Basic branding: all plans / Full CSS: Plus</span></td>
+        </tr>
+        <tr>
+          <td>Post-purchase page (checkout.liquid order-status section)</td>
+          <td>Post-purchase extension + Order Status Page extension</td>
+          <td><span class="tag red">Plus only</span></td>
+        </tr>
+        <tr>
+          <td>Third-party app checkout injection</td>
+          <td>Third-party app Checkout UI Extension block</td>
+          <td><span class="tag red">Plus only</span></td>
+        </tr>
+        <tr>
+          <td>Checkout customization template</td>
+          <td>Online Store → Themes → Customize → Checkout and thank you</td>
+          <td><span class="tag red">Plus only (editing)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 1 — checkout.liquid was silently retired and customizations stopped rendering</h2>
+
+  <p>On June 30, 2025, Shopify stopped reading <code>checkout.liquid</code> for stores that had been upgraded to Checkout Extensibility. The file wasn't deleted from the theme — it still appears in the code editor — but Shopify ignores it entirely. Any Liquid code, CSS, or HTML in that file stopped rendering at checkout.</p>
+
+  <p>Why it's hard to notice: checkout still works. Orders process normally. Customers can complete purchases. The only visible change is that customizations are gone — custom fields, brand colors applied via Liquid, injected app widgets, promotional banners, custom fonts. Many merchants didn't realize until a customer asked why checkout looked different or a custom required field disappeared.</p>
+
+  <p>What was lost for different store types:</p>
+  <ul>
+    <li><strong>Basic customization stores:</strong> Custom CSS (fonts, colors, button radius), promotional banners above the checkout form, custom header/footer content</li>
+    <li><strong>App-heavy stores:</strong> Third-party app UI injected via the app's checkout.liquid override (warranty widgets, upsell offers, loyalty point displays, custom fields, age verification forms)</li>
+    <li><strong>Developer-built stores:</strong> Custom Liquid logic, dynamic field rendering, conditional content based on cart contents or customer tags</li>
+    <li><strong>Tracking:</strong> Google Analytics, Meta Pixel, TikTok Pixel, and affiliate tracking scripts placed directly in checkout.liquid</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">How to Confirm You're Affected</div>
+    <p>Go to your theme code editor (Online Store → Themes → Actions → Edit code). Look for <code>checkout.liquid</code>. If it exists and has content, you were using it — and that content is no longer rendering. The file is now dead weight. Your migration must use the tools described in this guide.</p>
+  </div>
+
+  <h2>Failure Mode 2 — Checkout Extensibility is gated behind Shopify Plus</h2>
+
+  <p>The replacement for checkout.liquid — Checkout UI Extensions — is available exclusively to Shopify Plus merchants. This affects:</p>
+
+  <ul>
+    <li>Custom fields and UI blocks inside checkout (contact, shipping, payment steps)</li>
+    <li>Post-purchase UI extensions on the order status page</li>
+    <li>Installing third-party app checkout extensions (age verification, upsell widgets, custom fields)</li>
+    <li>Advanced branding customization via the Design extension</li>
+    <li>The Checkout Customizations editor (you can view it but not add extension blocks)</li>
+  </ul>
+
+  <p>What non-Plus merchants can do:</p>
+  <ul>
+    <li><strong>Checkout Settings branding panel:</strong> Admin → Settings → Checkout → customize logo, accent color, button color, background color, and font from Shopify's limited set. This applies to all plans.</li>
+    <li><strong>Cart page customization:</strong> The cart page (<code>/cart</code>) is a Liquid template fully editable on all plans. Use it for order notes, gift messages, and pre-checkout custom fields — but note that express checkout (Shop Pay, Apple Pay, Buy Now button) bypasses the cart page.</li>
+    <li><strong>Web Pixels API:</strong> Tracking scripts (GA4, Meta Pixel) via the Web Pixels API are available to all plans through the official Google & YouTube and Meta Pixel apps.</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Upgrade Path</div>
+    <p>If your store requires custom checkout fields (e.g., delivery date picker, gift message at checkout, age confirmation checkbox, loyalty point display), the only path is upgrading to Shopify Plus. Shopify Plus pricing starts at $2,500/month (or $2,300/month annual). If you need one custom field and you're on Basic/Shopify/Advanced, the cart page is your only option — with the caveat that express checkout bypasses it.</p>
+  </div>
+
+  <h2>Failure Mode 3 — Checkout Customizations template not configured in theme editor</h2>
+
+  <p>After upgrading to Checkout Extensibility, your checkout customizations are controlled via a new template in the Online Store theme editor — separate from the rest of your theme. This template is called "Checkout and thank you" and it lives under the page type dropdown in the theme customizer.</p>
+
+  <p>The most common mistake: merchants install a checkout app (or enable a Checkout UI Extension) and expect the extension to appear automatically. It doesn't. The extension block must be manually added to the Checkout Customizations template.</p>
+
+  <ol class="steps">
+    <li><span>Online Store → Themes → Customize</span></li>
+    <li><span>In the page picker dropdown at the top (which says "Home page" by default), select "Checkout and thank you"</span></li>
+    <li><span>You'll see sections for "Information", "Shipping", "Payment", "Thank you", and "Order status"</span></li>
+    <li><span>To add an app extension: click "Add block" in the relevant section, then find your app's extension in the Apps tab</span></li>
+    <li><span>Drag the extension block to the position you want within that checkout step</span></li>
+    <li><span>Save the template</span></li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Theme Switch Resets App Blocks</div>
+    <p>When you switch to a new theme, the Checkout Customizations template resets to default. All app extension blocks that were added must be re-added manually in the new theme's customizer. Apps are not automatically re-added. This is a common source of "my checkout app stopped working after the theme update" tickets.</p>
+  </div>
+
+  <p>Additional causes of missing customizations template configuration:</p>
+  <ul>
+    <li>The store was migrated from one Shopify account to another and the theme's checkout template was not transferred with the same extension configuration</li>
+    <li>A developer published a new theme version that didn't include the checkout customization blocks from the staging version</li>
+    <li>The checkout template was accidentally reset by publishing a different theme over the current one</li>
+  </ul>
+
+  <h2>Failure Mode 4 — Third-party apps not updated to publish a Checkout UI Extension</h2>
+
+  <p>Apps that previously injected UI into checkout by overriding <code>checkout.liquid</code> must now publish a Checkout UI Extension — a React-based component that Shopify renders inside the checkout sandbox. Not all apps have done this migration. Many older apps still list "checkout customization" as a feature but haven't published an updated extension version.</p>
+
+  <p>Symptoms:</p>
+  <ul>
+    <li>Installed a checkout app (age verification, warranty upsell, custom field, loyalty display) but nothing appears in checkout</li>
+    <li>The app's settings page in Admin says "active" or "enabled" but checkout looks unchanged</li>
+    <li>The app block doesn't appear in the Checkout Customizations editor (it would show under "Apps" if the extension was published)</li>
+  </ul>
+
+  <p>How to diagnose:</p>
+  <ol class="steps">
+    <li><span>Go to Online Store → Themes → Customize → Checkout and thank you page</span></li>
+    <li><span>Click "Add block" in the section where the app should appear</span></li>
+    <li><span>Check the "Apps" tab — if your app doesn't appear here, it hasn't published a Checkout UI Extension</span></li>
+    <li><span>Contact the app developer and ask if they have a "Checkout Extensibility compatible" version — get the specific app version number</span></li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Shopify's Checkout Compatibility Check</div>
+    <p>Shopify's Partner Dashboard shows a "Checkout Extensibility compatible" badge on apps that have published a Checkout UI Extension. Before installing any checkout-modifying app, check if it has this badge. Apps without it will not work in your checkout after the checkout.liquid migration.</p>
+  </div>
+
+  <p>Common apps that had delayed Checkout UI Extension releases (check the app's current version before assuming it works):</p>
+  <ul>
+    <li>Age verification apps — many relied on checkout.liquid for the gating logic</li>
+    <li>Custom field apps (Infinite Options, SC Product Options for checkout fields)</li>
+    <li>Upsell apps that placed offers between checkout steps</li>
+    <li>Loyalty and reward point display apps</li>
+    <li>Warranty and protection plan widgets</li>
+    <li>Donation and round-up widgets placed at checkout</li>
+  </ul>
+
+  <h2>Failure Mode 5 — Additional Scripts field deprecated; tracking pixels stopped</h2>
+
+  <p>The "Additional scripts" field in Admin → Settings → Checkout was the universal escape hatch for tracking. Merchants pasted Google Analytics, Meta Pixel, TikTok Pixel, affiliate tracking, chat widget initialization, and customer survey scripts directly into this field. It ran on the order status (thank-you) page and sometimes on other checkout steps depending on the script.</p>
+
+  <p>This field was deprecated alongside checkout.liquid and stopped executing scripts for stores on the Checkout Extensibility upgrade. Scripts in the field are still visible in the Admin UI but silently do nothing.</p>
+
+  <p>What broke for most merchants:</p>
+  <ul>
+    <li>GA4 <code>purchase</code> event stopped firing — analytics showed zero conversions</li>
+    <li>Meta Pixel <code>Purchase</code> event missing — Facebook/Instagram ads lost conversion attribution</li>
+    <li>TikTok Pixel <code>CompletePayment</code> event gone</li>
+    <li>Affiliate and referral tracking (Impact, ShareASale, CJ) lost the conversion pixel</li>
+    <li>Post-purchase survey tools (Fairing, KnoCommerce) stopped loading</li>
+  </ul>
+
+  <p>The replacement for tracking scripts:</p>
+  <ul>
+    <li><strong>GA4:</strong> Install the official Google &amp; YouTube app → it creates a Web Pixel Extension that fires GA4 <code>purchase</code> events correctly from inside the checkout sandbox</li>
+    <li><strong>Meta Pixel:</strong> Install the official Meta Pixel app → same mechanism via Web Pixel Extension</li>
+    <li><strong>Custom tracking:</strong> Create a custom Web Pixel via Shopify's Partner Dashboard (requires a basic app) — Web Pixels run in the checkout sandbox and have access to standard checkout events including <code>checkout_completed</code></li>
+    <li><strong>Third-party pixels:</strong> If the pixel provider hasn't published a Web Pixel integration, use server-side Conversions API (CAPI / Measurement Protocol) triggered by the <code>orders/create</code> webhook instead</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Double-Tracking After Migration</div>
+    <p>A common post-migration mistake: merchant installs the official Google &amp; YouTube app to get GA4 working again, but leaves the old <code>gtag.js</code> script in their theme's <code>theme.liquid</code> file. Result: GA4 fires <code>page_view</code> events on storefront pages (from theme.liquid) and <code>purchase</code> events from the checkout sandbox (from the Web Pixel). These two instances share a measurement ID but fire from different contexts — GA4 may deduplicate correctly but Meta Pixel and TikTok often show inflated numbers. Audit all theme.liquid tracking scripts after the migration.</p>
+  </div>
+
+  <h2>Failure Mode 6 — Extension targets don't match your expected placement</h2>
+
+  <p>Checkout UI Extensions render at specific, predefined positions in checkout called "targets" or "extension points". Unlike checkout.liquid — where you could insert HTML anywhere in the DOM — Checkout UI Extensions must be assigned to one of Shopify's defined positions.</p>
+
+  <p>Available standard checkout extension targets (as of 2026):</p>
+  <ul>
+    <li><code>purchase.checkout.contact.render-after</code> — below the email/phone field</li>
+    <li><code>purchase.checkout.shipping-option-list.render-after</code> — below the shipping rate list</li>
+    <li><code>purchase.checkout.delivery-address.render-before</code> — above the shipping address form</li>
+    <li><code>purchase.checkout.payment-method-list.render-after</code> — below payment method selection</li>
+    <li><code>purchase.checkout.actions.render-before</code> — above the "Pay now" button</li>
+    <li><code>purchase.checkout.block.render</code> — for app blocks dragged to custom positions in the Customizations editor</li>
+    <li><code>purchase.thank-you.block.render</code> — on the thank-you page</li>
+    <li><code>purchase.order-status.block.render</code> — on the order status page</li>
+  </ul>
+
+  <p>Common placement failures:</p>
+  <ul>
+    <li>Developer tries to place a "terms and conditions" checkbox immediately before the payment button — this requires <code>purchase.checkout.actions.render-before</code> which must be declared in the extension's configuration, not just the React component code</li>
+    <li>Extension blocks added to the wrong checkout step in the Customizations editor (e.g., dragging an "Information step" block into the "Payment step" section — it won't appear where expected)</li>
+    <li>Extension expects to render on both the checkout flow and the order status page but only one target is declared in the extension's <code>shopify.extension.toml</code> configuration</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Checking Your Extension's Declared Targets</div>
+    <p>In your extension's <code>shopify.extension.toml</code> file, the <code>[[extensions.targeting]]</code> blocks define where the extension renders. If your extension doesn't appear at a particular checkout step, check that step's target is declared there. You cannot render at a target not listed in your toml config, even if you drag the block to that position in the Customizations editor.</p>
+  </div>
+
+  <h2>Failure Mode 7 — CSS and branding customizations not migrating correctly</h2>
+
+  <p>Many merchants used <code>checkout.liquid</code> for detailed CSS customization: custom fonts (loaded via <code>@font-face</code> or Google Fonts), specific button shapes, color palette overrides, spacing adjustments, and brand-specific styling. The Checkout Extensibility branding system does not accept raw CSS — it uses a structured visual editor.</p>
+
+  <p>What the Branding panel (Admin → Settings → Checkout → Branding) controls:</p>
+  <ul>
+    <li>Logo upload and placement</li>
+    <li>Background color (solid) and optional background image</li>
+    <li>Accent color (applied to buttons and links)</li>
+    <li>Heading font (from Shopify's approved font list)</li>
+    <li>Body font (from Shopify's approved font list)</li>
+    <li>Button corner radius (sharp, slightly rounded, rounded, pill)</li>
+    <li>Field border style</li>
+    <li>Error message color</li>
+  </ul>
+
+  <p>What the Branding panel cannot do:</p>
+  <ul>
+    <li>Custom fonts not in Shopify's approved list — no <code>@font-face</code> declarations</li>
+    <li>Per-element CSS targeting (you can't style only the shipping section differently)</li>
+    <li>Custom animations or transitions</li>
+    <li>Multi-color layouts or gradient backgrounds with full control</li>
+    <li>Custom hover states on buttons</li>
+    <li>Hiding or repositioning native checkout elements</li>
+  </ul>
+
+  <p>For Plus merchants who need more control: a "Design" Checkout UI Extension can inject custom styles using the <code>useSettings()</code> hook combined with Shopify's Checkout UI kit styling primitives. This is not raw CSS — it's a constrained styling API. Full arbitrary CSS injection is not available even on Plus, by design (PCI compliance isolates checkout from the storefront's CSS context).</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Font Workaround for Non-Approved Fonts</div>
+    <p>If your brand font isn't in Shopify's approved font list, the closest workaround on Plus is a Design extension that uses <code>BlockStack</code> or <code>Text</code> components with inline style overrides for font-family. This has limitations and may not fully match the brand's typography. Most Plus merchants in this situation use the closest available alternative from the approved list or accept the constraint.</p>
+  </div>
+
+  <h2>Failure Mode 8 — Headless storefronts using Shopify-hosted checkout cannot inject via checkout.liquid either</h2>
+
+  <p>Headless Shopify storefronts (built with Hydrogen, Next.js + Storefront API, or custom frontends) typically use Shopify's hosted checkout on <code>checkout.shopify.com</code> (or the store's <code>myshopify.com</code> domain) for the actual payment step. Some headless teams assumed they could customize this hosted checkout via checkout.liquid — they could not, even before the retirement. checkout.liquid was exclusively for Plus stores using the standard Shopify checkout.</p>
+
+  <p>After the retirement, the headless checkout customization story changed:</p>
+
+  <ul>
+    <li><strong>Still using Shopify hosted checkout:</strong> Upgrade to Plus + implement Checkout UI Extensions. The hosted checkout now uses the Extensibility system regardless of whether your storefront is headless or native Liquid.</li>
+    <li><strong>Cart customization before checkout:</strong> Headless storefronts control the pre-checkout experience (cart page, product page, mini-cart) entirely. Custom fields, gift messages, and upsells can be collected here and passed as cart attributes or line item properties.</li>
+    <li><strong>Hydrogen/Remix custom checkout:</strong> Shopify's Hydrogen framework supports building a fully custom checkout experience using Cart API + Payment Sessions + Shopify Functions. This is a significant engineering investment — it bypasses the hosted checkout entirely. Most headless teams do not use this path unless they have very specific checkout requirements.</li>
+  </ul>
+
+  <p>Common headless mistakes after the migration:</p>
+  <ul>
+    <li>Assuming Checkout UI Extensions work automatically on a headless storefront — they require the hosted Shopify checkout and a Plus plan; they don't inject into custom-built checkout pages</li>
+    <li>Trying to add custom JS to the hosted Shopify checkout from the headless frontend — the checkout runs on a different domain in a PCI-isolated sandbox; JavaScript from the storefront domain cannot reach it</li>
+    <li>Using cart permalink URLs (<code>/cart/[variant-id]:1</code>) and expecting checkout customizations to apply — they do apply to hosted Shopify checkout via Checkout UI Extensions, but only if the store is Plus</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">The Practical Headless Migration Path</div>
+    <p>For most headless teams: upgrade to Plus, implement Checkout UI Extensions for checkout customization, and use the Storefront API for everything before checkout. The Cart API's <code>cartAttributesUpdate</code> mutation lets you pass custom data (collected in your headless frontend) into the checkout session where it appears as order attributes — no checkout.liquid required.</p>
+  </div>
+
+  <h2>Diagnosis Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Fix to Try</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Custom checkout elements disappeared</td>
+          <td>checkout.liquid retired</td>
+          <td>Migrate to Checkout UI Extensions (Plus) or Checkout Settings branding (all plans)</td>
+        </tr>
+        <tr>
+          <td>App's checkout widget not showing</td>
+          <td>App hasn't published UI Extension OR block not added to Customizations template</td>
+          <td>Open Customizations editor → Add block → check if app appears in Apps tab</td>
+        </tr>
+        <tr>
+          <td>Tracking pixels not firing at checkout</td>
+          <td>Additional Scripts field deprecated</td>
+          <td>Install official Google &amp; YouTube app and/or Meta Pixel app</td>
+        </tr>
+        <tr>
+          <td>Checkout branding looks generic</td>
+          <td>Branding panel not configured after migration</td>
+          <td>Admin → Settings → Checkout → Branding — configure logo, colors, fonts</td>
+        </tr>
+        <tr>
+          <td>Custom fields missing</td>
+          <td>Plus-only gate (non-Plus can't use UI Extensions)</td>
+          <td>Upgrade to Plus OR move field collection to cart page</td>
+        </tr>
+        <tr>
+          <td>Post-purchase upsell not showing</td>
+          <td>Extension not added to "Thank you" section of Customizations template</td>
+          <td>Customizations editor → Thank you section → Add block → select app</td>
+        </tr>
+        <tr>
+          <td>Extension renders at wrong step</td>
+          <td>Wrong extension target declared in toml or wrong section in Customizations editor</td>
+          <td>Check <code>shopify.extension.toml</code> targets; re-add block to correct section</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Working Right Now?</h2>
+    <p>CheckPulse monitors your Shopify checkout every 3 minutes and alerts you the moment something breaks — silent migration failures, payment errors, or any step in the checkout flow going down.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <p>Migration broke apps and UI; checkout.liquid deprecated failures in the context of the one-page layout rollout.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <p>Post-purchase extension not showing; Additional Scripts deprecated; conversion tracking gone from order status page.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <p>GA4 purchase event missing; Meta Pixel not firing; checkout.liquid tracking scripts silently stopped.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <p>Line item properties not showing; checkout attribute not saving; Checkout UI Extension TextField not persisting.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <p>Age gate app using deprecated checkout.liquid injection; Checkout UI Extension not published; direct URL bypass.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <p>ReConvert, Zipify not showing; post-purchase extension not selected as active; block not added to Thank You section.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch silent failures before customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-checkout-monitoring-comparison">vs UptimeRobot</a>
+      <a href="/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-store-password-protected">Store Password Protected</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="/checkpulse/shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="/checkpulse/shopify-checkout-error-codes">Error Codes</a>
+      <a href="/checkpulse/shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="/checkpulse/shopify-checkout-speed-test">Speed Test</a>
+      <a href="/checkpulse/shopify-checkout-app-audit">App Audit</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout</a>
+      <a href="/checkpulse/shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+      <a href="/checkpulse/shopify-checkout-cro">Checkout CRO</a>
+      <a href="/checkpulse/shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="/checkpulse/shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Missing</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards Not Working</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Lost</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Card Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Ticket Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Membership Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="/checkpulse/shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-account-registration-not-working">Account Registration Not Working</a>
+      <a href="/checkpulse/shopify-checkout-language-not-switching">Language Not Switching</a>
+      <a href="/checkpulse/shopify-checkout-buy-now-button-not-working">Buy Now Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-duties-import-fees-not-working">Duties &amp; Import Fees Not Working</a>
+      <a href="/checkpulse/shopify-checkout-cart-drawer-not-working">Cart Drawer Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-extensibility-migration-not-working">Extensibility Migration Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

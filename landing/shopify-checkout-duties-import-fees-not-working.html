@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Duties and Import Fees Not Working — DDP vs DDU, HS Codes, De Minimis, Headless (2026)</title>
+  <meta name="description" content="Shopify duties and import fees not showing at checkout? Estimated duty amount wrong? DDP collection failing? 8 root causes for Shopify duty and import fee failures — with fixes for merchants and developers." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-duties-import-fees-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-duties-import-fees-not-working" />
+  <meta property="og:title" content="Shopify Checkout Duties and Import Fees Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify's duty collection at checkout requires Shopify Payments, HS codes on every product, and country of origin — all three simultaneously. DDU mode shows an estimate but doesn't collect it, so customers get a surprise bill on delivery. De minimis thresholds, exchange rate timing, and headless @inContext directives each cause silent duty failures. 8 root causes explained." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Duties and Import Fees Not Working — DDP vs DDU, HS Codes, De Minimis, Headless",
+    "description": "Shopify Markets duty and import fee collection at checkout requires Shopify Payments as the active gateway, HS codes on every product, and country of origin — all three simultaneously. DDU mode shows an estimated duty but does not collect it, meaning customers receive an unexpected bill from the carrier on delivery. Missing HS codes silently produce $0 estimates. De minimis thresholds vary dramatically by country. This guide covers all 8 root causes of Shopify duty and import fee failures at checkout.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-duties-import-fees-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show an 'Estimated duties' line at checkout but customers still get a duty bill on delivery?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Markets has two duty modes: DDU (Delivered Duty Unpaid) and DDP (Delivered Duty Paid). In DDU mode, Shopify shows an estimated duty amount at checkout as an informational notice — it does not collect the money. The customer pays only for the goods and shipping. The carrier collects the actual duty from the customer on delivery, which may differ from the estimate. To collect duties at checkout and prevent surprise bills, you must enable DDP mode: Admin → Markets → [Market] → Duties and import taxes → toggle on 'Collect duties and import taxes at checkout'. DDP mode requires Shopify Payments as your active gateway."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are duties not showing at all in my Shopify checkout, even though I enabled Markets?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Duty display at checkout requires three conditions to be true simultaneously: (1) HS code must be filled in on the product under Admin → Products → [Product] → Shipping → Customs information → HS (Harmonized System) code; (2) Country of origin must be set on the same product; (3) The destination country must be covered by Shopify's duty calculation engine. If any one of these is missing, Shopify cannot calculate a duty and shows nothing — no estimate, no error. Run a test order to a country like Germany or Australia using a product you know has a realistic duty rate, and check whether the HS code and country of origin are filled in for that product."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't I enable 'Collect duties at checkout' (DDP mode) in Shopify Markets?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "DDP duty collection at checkout is exclusively available to stores using Shopify Payments as their primary payment gateway. If your store uses a third-party gateway (Stripe via third-party integration, PayPal, Authorize.net, Braintree, Square, or any other non-Shopify Payments processor), the 'Collect duties and import taxes at checkout' toggle is either hidden or greyed out. There is no workaround — DDP mode is a Shopify Payments feature. Third-party gateway stores can only show duty estimates (DDU mode) as informational text but cannot collect the funds. To enable DDP, you must switch to or add Shopify Payments as your payment provider."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Duties &amp; Import Fees Not Working
+  </div>
+  <h1>Shopify Checkout <em>Duties &amp; Import Fees Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Duties not showing at checkout? Estimated duty amount wrong? DDP collection toggle greyed out? Customers getting surprise duty bills on delivery? Here are all 8 root causes of Shopify duty and import fee failures — for merchants and developers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>DDP vs DDU · HS Codes · Shopify Payments Required · De Minimis · Country of Origin · Exchange Rate · Headless</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify Markets introduced native duty and import fee calculation at checkout — but the feature has more silent failure modes than almost any other part of the checkout flow. When duties don't show, show the wrong amount, or aren't actually collected, there's rarely an error message to explain why.</p>
+
+  <p>The two most common causes merchants don't know about: (1) there is a fundamental difference between DDU mode (shows an estimate, collects nothing) and DDP mode (actually collects the duty at checkout) — most merchants enable Markets without realizing they're in DDU mode and their customers still get carrier duty bills on delivery; and (2) DDP mode is only available on Shopify Payments — third-party gateways cannot collect duties at checkout regardless of Markets settings.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Silent Failure Pattern</div>
+    <p>Shopify shows <strong>no error</strong> when duty calculation is incomplete. If your HS code is missing or your gateway doesn't support DDP, the checkout silently shows nothing (or a $0 estimate) with no indication that duties should have appeared. The first sign of a problem is often a customer complaint about an unexpected bill on delivery.</p>
+  </div>
+
+  <h2>Failure Mode 1 — DDU vs DDP: "Estimated duties" is displayed but not collected</h2>
+
+  <p>Shopify Markets has two distinct duty modes that most merchants confuse:</p>
+
+  <ul>
+    <li><strong>DDU (Delivered Duty Unpaid):</strong> Shopify shows an "Estimated duties and import fees" line at checkout as an informational notice. The customer does NOT pay at checkout. The carrier collects the actual duty from the customer on delivery. The actual amount often differs from the estimate (different exchange rate, carrier handling fees added).</li>
+    <li><strong>DDP (Delivered Duty Paid):</strong> Shopify actually collects the calculated duty at checkout. The customer pays upfront. No duty bill on delivery. Requires Shopify Payments.</li>
+  </ul>
+
+  <p>Most merchants who "enable Markets" land in DDU mode without realizing it. The checkout looks correct — it shows a duty line — but the duty isn't collected. Customers still get bills from DHL, FedEx, or UPS on delivery, which generates support tickets and chargebacks.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Check Your Mode</div>
+    <p>Admin → Markets → [Market] → Duties and import taxes. If you see "Include an estimate of duties and import taxes" selected, you're in DDU mode. To switch to DDP, select "Collect duties and import taxes at checkout" — this option only appears if Shopify Payments is your active gateway.</p>
+  </div>
+
+  <h2>Failure Mode 2 — Shopify Payments required for DDP duty collection</h2>
+
+  <p>DDP duty collection at checkout is <strong>exclusively available to stores using Shopify Payments</strong> as their primary payment gateway. This is not documented prominently in the Markets setup flow.</p>
+
+  <p>If your store uses any third-party gateway — Stripe (via direct integration, not Shopify Payments with Stripe backend), PayPal, Authorize.net, Braintree, Square, Adyen, or any other processor — the "Collect duties and import taxes at checkout" (DDP) toggle is hidden or greyed out in Markets settings. You can only offer DDU estimates.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Gateway</th><th>DDU Estimate</th><th>DDP Collection</th></tr></thead>
+      <tbody>
+        <tr><td>Shopify Payments</td><td><span class="tag green">✓ Yes</span></td><td><span class="tag green">✓ Yes</span></td></tr>
+        <tr><td>Stripe (third-party)</td><td><span class="tag green">✓ Yes</span></td><td><span class="tag red">✗ No</span></td></tr>
+        <tr><td>PayPal (primary gateway)</td><td><span class="tag green">✓ Yes</span></td><td><span class="tag red">✗ No</span></td></tr>
+        <tr><td>Authorize.net</td><td><span class="tag green">✓ Yes</span></td><td><span class="tag red">✗ No</span></td></tr>
+        <tr><td>Any other third-party</td><td><span class="tag green">✓ Yes</span></td><td><span class="tag red">✗ No</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Note: In some countries, Shopify Payments is not available. Merchants in those regions cannot use DDP mode at all. Check Shopify's country availability list for Shopify Payments coverage.</p>
+
+  <h2>Failure Mode 3 — HS code missing on products: silent $0 duty</h2>
+
+  <p>Shopify uses the Harmonized System (HS) code on each product to look up the applicable duty rate for the destination country. If the HS code is missing, Shopify cannot calculate a duty and shows nothing — no estimate, no error, just a blank where the duty line should be.</p>
+
+  <p>The HS code field is located at: <strong>Admin → Products → [Product] → Shipping → Customs information → HS (Harmonized System) code</strong></p>
+
+  <p>Common situations where HS codes are missing:</p>
+  <ul>
+    <li>Products imported from a CSV that didn't include HS codes</li>
+    <li>Products added before the merchant enabled Markets / duty calculation</li>
+    <li>Products created via third-party inventory sync apps that don't map HS codes</li>
+    <li>Products added via the Shopify mobile app (HS code field less prominent)</li>
+    <li>Large catalogs where only some products have HS codes — duty shows for some, not others</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Bulk HS Code Update</div>
+    <p>Use the Products CSV export/import to update HS codes in bulk. The column is "Variant HS Code". GS1 and the WCO HS Nomenclature database are free references. For US imports, use the HTS (Harmonized Tariff Schedule) code — the first 6 digits are internationally standardized and work for Shopify's lookup.</p>
+  </div>
+
+  <h2>Failure Mode 4 — Country of origin missing: wrong duty rate or no duty</h2>
+
+  <p>Alongside the HS code, Shopify also requires the <strong>country of origin</strong> for each product to calculate the correct duty rate. The same product with the same HS code has very different duty rates depending on where it was made — trade agreements (USMCA/CUSMA for North America, EU trade deals, GSP programs for developing nations) can reduce duty to 0% for eligible origins.</p>
+
+  <p>Country of origin is set at: <strong>Admin → Products → [Product] → Shipping → Customs information → Country/Region of origin</strong></p>
+
+  <p>Impact of missing country of origin:</p>
+  <ul>
+    <li>Shopify may fall back to the <strong>Most Favored Nation (MFN) rate</strong> — the standard tariff rate that applies without any trade agreement, which is typically the highest possible duty rate</li>
+    <li>For some product/country combinations, duty calculation is blocked entirely with no estimate shown</li>
+    <li>Merchants selling products made in China entering the US may see vastly different rates from merchants selling EU-made goods — country of origin determines whether Section 301 tariffs apply</li>
+  </ul>
+
+  <h2>Failure Mode 5 — De minimis thresholds not applied correctly</h2>
+
+  <p>Every country has a <strong>de minimis threshold</strong> — an order value below which no duties or taxes are charged. When an order is below the threshold, duties should show as $0 at checkout. When above, full duties apply. Merchants are surprised when duty behavior changes at an invisible value boundary.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Country</th><th>De Minimis Threshold</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>United States</td><td>$800 USD</td><td>Highest threshold globally — most US cross-border purchases are duty-free</td></tr>
+        <tr><td>Canada</td><td>CAD $20</td><td>Very low — almost all imported goods attract duty; common merchant surprise</td></tr>
+        <tr><td>European Union</td><td>€150</td><td>Duty-free below €150; VAT applies on all orders (€0 threshold since 2021)</td></tr>
+        <tr><td>United Kingdom</td><td>£135</td><td>Import VAT applies on all orders; customs duty only above £135</td></tr>
+        <tr><td>Australia</td><td>AUD $1,000</td><td>High threshold; most consumer purchases are duty-free</td></tr>
+        <tr><td>Norway</td><td>NOK 350</td><td>Very low — most goods attract VAT + duty</td></tr>
+        <tr><td>Switzerland</td><td>CHF 150</td><td>VAT applies; duty threshold depends on product category</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Common failures related to de minimis:</p>
+  <ul>
+    <li><strong>Canada shock:</strong> Merchants who sell into Canada successfully assume duty-free because US orders are duty-free. Canada's CAD $20 threshold means almost everything attracts duty — customers get large unexpected bills.</li>
+    <li><strong>EU VAT misconception:</strong> The EU eliminated the €22 VAT exemption in July 2021. Now all EU imports attract VAT (no de minimis for VAT). The €150 threshold only applies to customs duty, not VAT. Merchants show €0 "duties" for sub-€150 orders but EU customers still owe VAT on delivery if the store doesn't collect it via IOSS.</li>
+    <li><strong>Third-party app conflict:</strong> Some duty calculation apps have outdated threshold tables and show duties on US orders under $800 or fail to show duty on Canadian orders under CAD $20.</li>
+  </ul>
+
+  <h2>Failure Mode 6 — Third-party duty apps conflicting with Shopify Markets</h2>
+
+  <p>Before Shopify Markets introduced native duty calculation, many merchants installed third-party duty and landed cost apps (Zonos, DutiCalc, Easyship, GlobalE, Flow Commerce). When Shopify Markets is later enabled with duty calculation, both systems try to calculate and display duties simultaneously, causing:</p>
+
+  <ul>
+    <li><strong>Double duty line items:</strong> Two separate duty charges appear at checkout — one from the Shopify Markets engine and one from the third-party app</li>
+    <li><strong>Conflicting amounts:</strong> The two systems use different rate databases and exchange rates, producing different numbers that confuse customers</li>
+    <li><strong>Cart total inconsistency:</strong> One system's duty amount is included in the cart total while the other is displayed as informational, causing the displayed total to not match what's actually charged</li>
+    <li><strong>Third-party app overrides Shopify Markets:</strong> Some apps inject their own duty calculation layer that overrides Shopify's native calculation entirely, breaking DDP collection</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Pick One System</div>
+    <p>You cannot reliably run both Shopify Markets native duty calculation and a third-party duty app simultaneously. Decide which system you want to use and disable or uninstall the other. For most merchants on Shopify Payments, the native Markets system is the simpler choice. For complex multi-carrier landed cost scenarios, a dedicated third-party solution with the native system disabled is the alternative.</p>
+  </div>
+
+  <h2>Failure Mode 7 — Exchange rate timing: checkout estimate vs actual customs bill</h2>
+
+  <p>Even when Shopify correctly calculates and collects duty in DDP mode, the amount collected at checkout may differ from the actual duty assessed by customs. This is structural and expected, but causes customer confusion and disputes.</p>
+
+  <p>The sequence:</p>
+  <ol>
+    <li>Customer checks out on Day 1. Shopify calculates duty using today's exchange rate between the destination currency and the product's origin currency.</li>
+    <li>The package ships and clears customs on Day 10 (or Day 30 for surface shipping).</li>
+    <li>Customs assesses duty using the exchange rate on Day 10 — a different rate than Day 1.</li>
+    <li>In DDP mode, the carrier pays customs and reconciles against the amount collected at checkout. If the customs bill is higher than collected, the carrier may bill the merchant for the difference. If lower, the difference is typically absorbed.</li>
+  </ol>
+
+  <p>Additional factors that cause checkout estimate vs actual bill differences:</p>
+  <ul>
+    <li><strong>Carrier handling fees:</strong> DHL, FedEx, UPS charge an "advancement fee" or "customs brokerage fee" for paying duty on the customer's behalf — typically $10–40 USD. This fee is not included in the Shopify duty estimate and appears as a separate charge even in DDP mode for DDU carriers.</li>
+    <li><strong>HS code reclassification:</strong> Customs inspectors sometimes reclassify goods under a different HS code than declared, applying a different duty rate. The Shopify estimate is based on the declared HS code, not the inspected classification.</li>
+    <li><strong>Declared value disputes:</strong> Some countries (Brazil, Russia, India) apply duty to a calculated import value that may differ from the invoice value, especially for high-value goods.</li>
+  </ul>
+
+  <h2>Failure Mode 8 — Headless storefronts: @inContext missing or duties not queried</h2>
+
+  <p>Headless storefronts using the Shopify Storefront API have no automatic duty display. Duties must be explicitly requested and rendered. Two separate issues cause duties to silently not appear:</p>
+
+  <h3>Issue A — Missing @inContext directive</h3>
+  <p>Duty calculation in the Storefront API requires the <code>@inContext(country: X)</code> directive on all cart and product price queries. Without it, Shopify returns prices and costs in the store's primary currency with no duty calculation applied.</p>
+
+  <pre>
+# WRONG — no country context, no duty calculation
+query {
+  cart(id: $cartId) {
+    cost {
+      totalAmount { amount currencyCode }
+    }
+  }
+}
+
+# CORRECT — country context enables duty calculation
+query @inContext(country: CA) {
+  cart(id: $cartId) {
+    cost {
+      totalAmount { amount currencyCode }
+      dutiesAmount { amount currencyCode }   # Must query this field explicitly
+      totalDutyAmount { amount currencyCode }
+    }
+  }
+}</pre>
+
+  <h3>Issue B — Duties not in totalAmount in DDU mode</h3>
+  <p>The behavior of <code>cart.cost.totalAmount</code> differs by duty mode:</p>
+  <ul>
+    <li><strong>DDP mode:</strong> <code>totalAmount</code> includes duties. The customer pays the displayed total and owes nothing on delivery.</li>
+    <li><strong>DDU mode:</strong> <code>totalAmount</code> does NOT include duties. Duties appear in <code>dutiesAmount</code> as an informational field. If your headless storefront only renders <code>totalAmount</code>, duties are invisible to customers in DDU mode.</li>
+  </ul>
+
+  <p>Most common headless duty mistakes:</p>
+  <ul>
+    <li>Querying <code>totalAmount</code> only and not displaying <code>dutiesAmount</code> separately in DDU mode</li>
+    <li>Using Storefront API token with <code>@inContext</code> for product prices but forgetting to pass it for cart queries</li>
+    <li>Country selector updates the display locale but doesn't call <code>cartBuyerIdentityUpdate</code> with the new country — cart currency and duty calculation stay stale</li>
+    <li>Passing an incorrect country code format — must be ISO 3166-1 alpha-2 (e.g., <code>CA</code>, not <code>CAN</code> or <code>Canada</code>)</li>
+  </ul>
+
+  <pre>
+# cartBuyerIdentityUpdate must fire when country changes
+mutation updateBuyerIdentity($cartId: ID!, $country: CountryCode!) @inContext(country: $country) {
+  cartBuyerIdentityUpdate(
+    cartId: $cartId
+    buyerIdentity: { countryCode: $country }
+  ) {
+    cart {
+      cost {
+        totalAmount { amount currencyCode }
+        dutiesAmount { amount currencyCode }
+      }
+    }
+  }
+}</pre>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Failing Right Now?</h2>
+    <p>CheckPulse monitors your Shopify checkout end-to-end every 5 minutes and alerts you before customers notice.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">View Plans</a>
+  </div>
+
+  <h2>Quick Diagnosis Checklist</h2>
+
+  <ul class="steps">
+    <li>Go to Admin → Markets → [Market] → Duties and import taxes — confirm whether you're in DDU or DDP mode</li>
+    <li>Confirm Shopify Payments is your active gateway (required for DDP)</li>
+    <li>Check one affected product: Admin → Products → [Product] → Shipping — verify HS code AND country of origin are both filled in</li>
+    <li>Run a test order to a duty-applicable country (Germany, Australia, Canada) with a product that has HS codes set — verify whether a duty line appears</li>
+    <li>Check whether you have any third-party duty calculation apps active — if so, test with them disabled</li>
+    <li>For headless storefronts: verify <code>@inContext(country: X)</code> is present on cart queries and <code>dutiesAmount</code> is being queried and rendered</li>
+    <li>For EU/UK: confirm IOSS (EU VAT One-Stop Shop) or UK VAT registration if applicable — failure to collect VAT is separate from duty calculation but often confused with it</li>
+  </ul>
+
+  <h2>Duty Failure Summary Table</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Root Cause</th>
+          <th>Symptom</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>DDU mode — estimate shown, nothing collected</td>
+          <td>Duty line at checkout, customers get carrier bills on delivery</td>
+          <td>Switch to DDP mode in Markets → Duties settings (requires Shopify Payments)</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Third-party gateway — DDP toggle greyed out</td>
+          <td>"Collect duties at checkout" option unavailable or hidden</td>
+          <td>Switch to Shopify Payments; DDU estimate-only mode available for third-party gateways</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>HS code missing on products</td>
+          <td>No duty line at checkout, or $0 estimate for taxable goods</td>
+          <td>Add HS codes to all products via Admin → Products → Shipping → Customs information; bulk update via CSV</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Country of origin missing on products</td>
+          <td>Wrong duty rate shown, or no duty line; MFN rate applied instead of treaty rate</td>
+          <td>Add country of origin to all products alongside HS code</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>De minimis threshold misunderstood</td>
+          <td>Duties appear on US sub-$800 orders; Canada surprises; EU VAT applied even when duty is $0</td>
+          <td>Verify threshold per destination country; separate EU duty threshold (€150) from EU VAT threshold (€0)</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Third-party duty app conflict</td>
+          <td>Double duty lines, conflicting amounts, broken DDP collection</td>
+          <td>Disable third-party duty app when using Shopify Markets native duty calculation</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Exchange rate timing + carrier handling fees</td>
+          <td>Checkout duty amount differs from actual customs bill; carrier charges extra fee</td>
+          <td>Inform customers in checkout UI; include estimated carrier handling fee buffer; use DDP-capable carriers (DHL Express Global, UPS)</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Headless — @inContext missing or dutiesAmount not queried</td>
+          <td>No duty shown in headless storefront; cart total doesn't include duties in DDP mode</td>
+          <td>Add <code>@inContext(country: X)</code> to all cart queries; query <code>dutiesAmount</code> explicitly; call <code>cartBuyerIdentityUpdate</code> on country change</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <p>Wrong tax rate, tax exempt customer charged, nexus not configured, EU VAT double charged</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <p>EU B2B VAT number not removing tax, VIES validation, UK reverse charge</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <p>Shopify Markets currency mismatch, display vs actual charge, multi-currency checkout failures</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <p>Shopify Markets international checkout failures, localization errors</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <p>iDEAL, OXXO, Bancontact, Klarna not showing for international customers</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <p>Carrier calculated rates missing, no shipping methods available mid-checkout</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Checkout Check</a>
+      <a href="/checkpulse/shopify-checkout-monitoring-comparison">Comparison</a>
+      <a href="/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Missing</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards Not Working</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Lost</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Card Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Ticket Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Membership Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="/checkpulse/shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-account-registration-not-working">Account Registration Not Working</a>
+      <a href="/checkpulse/shopify-checkout-language-not-switching">Language Not Switching</a>
+      <a href="/checkpulse/shopify-checkout-buy-now-button-not-working">Buy Now Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-duties-import-fees-not-working">Duties &amp; Import Fees Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

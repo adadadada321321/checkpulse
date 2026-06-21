@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Express Checkout Not Working — Buy Now Button, Shop Pay, Apple Pay, PayPal Express Failures (2026)</title>
+  <meta name="description" content="Shopify's Buy Now button silently bypasses cart-page customizations. Shop Pay OTP expires in 10 minutes. Apple Pay only works in Safari on Apple devices. Subscription products hide all express buttons. Checkout UI Extensions don't fire in express lanes. 8 failure modes explained." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-express-checkout-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-express-checkout-not-working" />
+  <meta property="og:title" content="Shopify Express Checkout Not Working — Buy Now, Shop Pay, Apple Pay, PayPal Express" />
+  <meta property="og:description" content="Shopify's Buy Now button bypasses all cart-page customizations silently. Subscription products hide all express checkout buttons. Apple Pay only works in Safari on Apple devices. Shop Pay OTP expires mid-flow. 8 failure modes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Express Checkout Not Working — Buy Now Button, Shop Pay, Apple Pay, Google Pay, PayPal Express Failure Modes",
+    "description": "Shopify's express checkout paths — Buy Now button, Shop Pay, Apple Pay, Google Pay, PayPal Express — each have distinct failure modes in 2026. The Buy Now button bypasses the cart page entirely, silently dropping order notes, cart attributes, upsell apps, and all product customization data. Any subscription product in the cart hides all express checkout buttons simultaneously. Apple Pay renders only in Safari on Apple devices — the most common merchant testing mistake. Shop Pay's 6-digit OTP expires in 10 minutes, and mobile app-switching kills the session. Checkout UI Extensions don't fire in express checkout lanes even on Plus. PayPal Express currency mismatch causes silent capture failure on international stores.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-express-checkout-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does the Shopify Buy Now button skip my order notes and custom fields?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's Buy Now button bypasses the cart page entirely. It sends a POST request directly to the checkout with buyNow=true, skipping the /cart route. Any customization that lives on the cart page — order note textarea, cart-page discount code entry, upsell app widgets, gift message fields, cart attribute inputs — is never rendered, so its data is never collected. Similarly, product customization options set via line item properties (Infinite Options, SC Product Options, Bold Product Options) are attached during Add to Cart form submission. Buy Now bypasses the product form submission, so those properties are never transmitted. The result is clean checkout orders with none of the merchant-added customization data. To collect this data from Buy Now users: (1) use a pre-checkout popup app that intercepts Buy Now and collects required inputs before proceeding, (2) move required customization to the checkout itself via Checkout UI Extensions (Plus only), or (3) add messaging near Buy Now buttons advising customers to use the cart path if they need to add notes or customizations."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do the Shop Pay, Apple Pay, and Google Pay buttons disappear when I add a subscription product to the cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "All express checkout buttons — Shop Pay, Apple Pay, Google Pay, and PayPal Express — are hidden when any line item in the cart has a selling plan (subscription). Shopify's checkout must display the subscription agreement consent and terms at the payment step, and express checkout flows cannot display these required consent screens. This is by design: Shopify checks cart contents at button render time and suppresses all express options when a subscription product is detected. The express buttons return as soon as the subscription item is removed. There is no workaround for this on standard Shopify plans — subscription products always require the full checkout path. On Shopify Plus with a custom checkout UI extension, some subscription apps can inject consent into the checkout flow, but the express buttons still may not appear depending on the app architecture."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Apple Pay not appear in my Shopify store even though it's set up correctly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay on Shopify requires all four of these conditions to be true simultaneously: (1) the browser must be Safari — Apple Pay never appears in Chrome, Firefox, Edge, Brave, or any non-Safari browser, even on a Mac; (2) the device must be an Apple device (Mac, iPhone, iPad) — it does not appear on Windows or Android regardless of browser; (3) the device must have at least one valid payment card configured in Apple Wallet / Keychain; and (4) the store domain must pass Apple Pay domain verification (the .well-known/apple-developer-merchantid-domain-association file must be reachable). The most common testing mistake is merchants testing on their Mac in Chrome and assuming Apple Pay isn't working, when it's simply the wrong browser. The second most common is custom domain verification failing silently — test by visiting yourdomain.com/.well-known/apple-developer-merchantid-domain-association directly in your browser to confirm the file is reachable."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my customer's Shop Pay verification code expire before they can complete checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shop Pay's 6-digit one-time verification code expires in 10 minutes. On mobile devices, the problem is compounded by app-switching: when a customer taps the Shop Pay button, receives the SMS or email OTP, switches to their Messages or email app to find the code, and then switches back to the browser — iOS and Android may have evicted the browser tab from memory, resetting the Shop Pay session. The customer returns to find the Shop Pay popup closed and must start again. Resolution for customers: keep the browser tab active during OTP entry (do not switch apps), copy the OTP from the notification without opening the Messages app fully, or use the Shop Pay app (native app maintains session better than browser). Resolution for merchants: you cannot extend the OTP expiry window — it's controlled by Shop Pay's system. Inform customers via a tooltip or checkout message that the code must be entered quickly and without leaving the browser tab."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do Checkout UI Extensions work with Shop Pay express checkout on Shopify Plus?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify Plus Checkout UI Extensions — including custom fields, validators, age verification prompts, post-purchase offers, and checkout branding changes — do not apply to the Shop Pay express checkout flow or PayPal's hosted checkout flow. These express paths run in their own hosted environments outside Shopify's checkout customization layer. A customer who clicks the Shop Pay button goes through Shop Pay's own accelerated checkout UI; a customer who clicks the standard checkout button goes through Shopify's hosted checkout where your extensions render. On stores where 40-60% of orders use express checkout (common for stores with mobile-first audiences), this means a large proportion of orders entirely bypass checkout customizations. For age verification, this is a compliance gap: customers using express checkout can bypass age gates that only exist as checkout UI extensions. Use Shopify Flow to trigger a post-purchase age verification step for express checkout orders if compliance requires it."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Express Checkout Not Working
+  </div>
+  <h1>Shopify <em>Express Checkout Not Working</em> — Buy Now Button Bypasses Customizations, Shop Pay OTP Expires, Apple Pay Safari-Only, Subscription Products Hide All Express Buttons</h1>
+  <p class="hero-sub">The Buy Now button silently skips order notes, cart attributes, discount entry, and all line item property customizations. Any subscription product in the cart hides every express checkout button simultaneously. Apple Pay only appears in Safari on Apple devices — never in Chrome. Shop Pay's OTP expires in 10 minutes and mobile app-switching kills the session. Checkout UI Extensions don't fire in any express checkout lane.</p>
+  <div class="meta-row">
+    <span>📅 Updated June 2026</span>
+    <span>⏱ 13 min read</span>
+    <span>💡 Applies to: All Shopify plans</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="callout danger">
+    <div class="callout-title">Critical — Express Checkout Silently Bypasses Cart-Level Customizations</div>
+    Buy Now, Shop Pay, Apple Pay, Google Pay, and PayPal Express all skip the <code>/cart</code> page. Order notes, cart attributes, upsell app widgets, gift message fields, discount code fields on the cart page, and any data collected via cart page forms is never shown to express checkout customers and never transmitted to Shopify. This is the #1 source of "why is order data missing?" from merchants who add customizations to their cart page.
+  </div>
+
+  <h2>Express Checkout Failure Map</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Failure Mode</th>
+          <th>When It Happens</th>
+          <th>Who Is Affected</th>
+          <th>Fix Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Buy Now bypasses cart customizations</strong></td>
+          <td>Any Buy Now button click</td>
+          <td>All plans</td>
+          <td>Move inputs to product page or checkout (Plus)</td>
+        </tr>
+        <tr>
+          <td><strong>Subscription product hides all express buttons</strong></td>
+          <td>Any selling plan in cart</td>
+          <td>All plans with subscriptions</td>
+          <td>No workaround — full checkout path required</td>
+        </tr>
+        <tr>
+          <td><strong>Shop Pay OTP expires / session lost on mobile</strong></td>
+          <td>Customer app-switches during OTP entry</td>
+          <td>All plans</td>
+          <td>Advise customers not to leave browser tab</td>
+        </tr>
+        <tr>
+          <td><strong>Apple Pay Safari-only — won't appear in Chrome</strong></td>
+          <td>Testing in wrong browser</td>
+          <td>All plans</td>
+          <td>Test only in Safari on Apple device</td>
+        </tr>
+        <tr>
+          <td><strong>Checkout UI Extensions bypass by express paths</strong></td>
+          <td>Any express checkout on Plus</td>
+          <td>Shopify Plus</td>
+          <td>Flow post-purchase verification for express orders</td>
+        </tr>
+        <tr>
+          <td><strong>PayPal Express currency mismatch</strong></td>
+          <td>Multi-currency stores + PayPal</td>
+          <td>International stores</td>
+          <td>Match PayPal account currency to store currency</td>
+        </tr>
+        <tr>
+          <td><strong>Buy Now + line item properties = lost customization</strong></td>
+          <td>Product form data bypassed</td>
+          <td>Stores using product options apps</td>
+          <td>Use checkout extension (Plus) or pre-checkout popup</td>
+        </tr>
+        <tr>
+          <td><strong>Headless express checkout — nothing is automatic</strong></td>
+          <td>Hydrogen / custom storefront</td>
+          <td>Headless stores</td>
+          <td>Implement each express flow via Storefront API</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 1 — Buy Now Button Silently Bypasses Cart-Page Data</h2>
+
+  <p>Shopify's Buy Now button (also called the dynamic checkout button) appears on product pages, collection pages, and search results. When clicked, it sends a POST request directly to checkout with <code>buyNow=true</code>, skipping the cart page entirely. Every customization merchants add to the <code>/cart</code> route is silently skipped.</p>
+
+  <h3>What gets bypassed</h3>
+
+  <ul>
+    <li><strong>Order notes textarea:</strong> the <code>note</code> field on the cart template (<code>name="note"</code>) is never shown, so special instructions are never collected</li>
+    <li><strong>Cart-page discount code field:</strong> many themes show a discount code input on the cart page. Buy Now customers cannot enter discount codes until they reach the checkout itself (where the code field appears in the order summary)</li>
+    <li><strong>Cart attribute inputs:</strong> any <code>cart.attributes</code> inputs (<code>name="attributes[field_name]"</code>) on the cart template are bypassed — gift message fields, PO number inputs, delivery date pickers</li>
+    <li><strong>Upsell and cross-sell apps:</strong> apps like Frequently Bought Together, ReConvert Cart, and CartHook that inject widget content into the cart page are never shown</li>
+    <li><strong>Gift wrapping and gift message apps:</strong> almost all gift option apps present their UI on the cart page — this is entirely skipped by Buy Now</li>
+    <li><strong>Custom shipping notes or delivery window selectors:</strong> any custom UI element on the cart page that collects data sent via cart attributes is bypassed</li>
+  </ul>
+
+  <h3>How to mitigate Buy Now data loss</h3>
+
+  <ol class="steps">
+    <li><strong>Move required inputs to the product page:</strong> use line item properties (<code>name="properties[field_name]"</code> inside the product form) for fields that must be collected before checkout. These are captured when the product is added to cart via the standard Add to Cart flow — but see Failure Mode 7 for why this still fails with Buy Now.</li>
+    <li><strong>Use a pre-checkout popup app:</strong> apps like Qstomizer, OrderDesk, or custom theme code can intercept the Buy Now button click and display a modal collecting required fields before proceeding to checkout.</li>
+    <li><strong>Checkout UI Extensions (Shopify Plus only):</strong> add custom fields directly inside the checkout flow at Admin → Settings → Checkout → Customize → add UI extension blocks. These appear for all checkout paths including express checkout — with one exception (see Failure Mode 5).</li>
+    <li><strong>Add messaging near Buy Now buttons:</strong> if full migration isn't immediate, add a notice such as "Need to add a gift message or special instructions? Use 'Add to cart' instead." This redirects customization-requiring customers to the standard path.</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Disabling Buy Now Buttons Reduces Conversion</div>
+    You can disable dynamic checkout buttons in Admin → Settings → Checkout → uncheck "Show dynamic checkout buttons" — but this removes all express checkout buttons store-wide and typically reduces conversion by 5–15% for mobile-first audiences. Only do this if missing customization data is causing operational problems that outweigh the conversion impact.
+  </div>
+
+  <h2>Failure Mode 2 — Subscription Products Hide All Express Checkout Buttons</h2>
+
+  <p>This is the most surprising express checkout behavior: adding any single subscription product (a product with a selling plan) to the cart causes every express checkout button to disappear simultaneously — Shop Pay, Apple Pay, Google Pay, and PayPal Express all vanish from the cart page and product pages.</p>
+
+  <h3>Why this happens</h3>
+
+  <p>Express checkout flows are designed for fast, minimal-friction payment. Shopify's checkout must display the subscription agreement consent, recurring billing terms, and cancellation policy disclosures at the payment step — content that express checkout UIs cannot accommodate. As a safeguard, Shopify checks cart contents at button render time and suppresses all express checkout options when a selling plan is detected on any line item.</p>
+
+  <h3>What this looks like to merchants</h3>
+
+  <ul>
+    <li>A customer adds a one-time purchase product → express buttons show normally</li>
+    <li>Customer then adds a subscription product → all express buttons disappear instantly</li>
+    <li>Customer removes the subscription product → express buttons reappear</li>
+    <li>Merchants who sell both subscription and one-time products report customers confused about why express payment disappeared "randomly"</li>
+  </ul>
+
+  <h3>What merchants can do</h3>
+
+  <ul>
+    <li>There is no configuration to override this — it is platform-level behavior by design</li>
+    <li>Inform customers via cart page messaging: "Subscription products require our standard checkout. Express payment isn't available when subscribing."</li>
+    <li>Consider separating subscription and one-time products into different purchasing paths (different pages or a dedicated subscription purchase flow)</li>
+    <li>On Shopify Plus with certain subscription app configurations, the checkout UI extension can display consent inline — but express buttons still may not appear depending on the specific selling plan configuration</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">This Also Affects Mixed Carts (One-Time + Subscription)</div>
+    A cart with two products — one regular, one subscription — has all express buttons hidden. Customers who are trying to use Shop Pay for the regular product in their cart cannot do so if a subscription item is also present. Some merchants resolve this by setting a store policy that subscription items must be purchased separately.
+  </div>
+
+  <h2>Failure Mode 3 — Shop Pay OTP Expires During Mobile Session</h2>
+
+  <p>Shop Pay uses a 6-digit one-time passcode (OTP) sent to the customer's phone number or email to verify identity before completing express checkout. This OTP expires in 10 minutes. The session can also be lost entirely on mobile devices due to app-switching behavior.</p>
+
+  <h3>How the session gets lost on mobile</h3>
+
+  <p>The most common sequence on iOS and Android:</p>
+  <ol>
+    <li>Customer taps Shop Pay button on product or cart page → browser sends OTP request</li>
+    <li>SMS or email notification arrives → customer taps the notification → switches to Messages or Gmail app</li>
+    <li>Customer copies the OTP → switches back to browser</li>
+    <li>On low-memory devices or after extended time in another app: the browser tab has been evicted from memory → the Shop Pay session is gone → customer sees the cart or product page again, not the Shop Pay verification screen</li>
+    <li>Customer pastes the OTP into a field that no longer exists → must start over</li>
+  </ol>
+
+  <h3>Additional Shop Pay failure modes</h3>
+
+  <ul>
+    <li><strong>Email OTP spam folder:</strong> if the customer's email OTP lands in spam, they find it after the 10-minute window and the code is expired</li>
+    <li><strong>Phone number not on file:</strong> if the customer's phone number changed since enrolling in Shop Pay, the SMS goes to the old number</li>
+    <li><strong>Multiple devices:</strong> customers who start Shop Pay on their phone and try to complete it on a desktop browser encounter session mismatch errors</li>
+    <li><strong>Shop Pay account locked:</strong> after repeated failed OTP attempts (typically 5), Shop Pay temporarily locks the account — customer must wait or use standard checkout</li>
+  </ul>
+
+  <h3>What to tell customers experiencing this</h3>
+
+  <ol class="steps">
+    <li>When Shop Pay sends the OTP notification, do <strong>not tap the notification</strong> — instead, switch to the browser tab first, then switch to Messages/email by pressing the home button, copy the code, and switch back quickly.</li>
+    <li>Alternatively, if your phone supports notification previews, read the OTP from the lock screen notification without unlocking to the Messages app.</li>
+    <li>If the session is already lost, proceed with standard checkout (the "or" link below the Shop Pay button) — your cart items are preserved.</li>
+    <li>Download the Shop Pay app — native app sessions are more stable than browser-based sessions and maintain OTP state better when switching apps.</li>
+  </ol>
+
+  <h2>Failure Mode 4 — Apple Pay Only Appears in Safari on Apple Devices</h2>
+
+  <p>Apple Pay's rendering requirement is the most frequently misunderstood express checkout behavior. It requires four conditions simultaneously — and most merchant testing setups fail at condition one.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>Required?</th>
+          <th>Common Testing Mistake</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Browser must be Safari</td>
+          <td><span class="tag red">Required</span></td>
+          <td>Testing in Chrome or Firefox on a Mac — Apple Pay will never appear</td>
+        </tr>
+        <tr>
+          <td>Device must be Apple (Mac, iPhone, iPad)</td>
+          <td><span class="tag red">Required</span></td>
+          <td>Testing on Windows PC or Android — not supported</td>
+        </tr>
+        <tr>
+          <td>Device has a card in Apple Wallet / Keychain</td>
+          <td><span class="tag red">Required</span></td>
+          <td>Test device with no cards enrolled — button doesn't render</td>
+        </tr>
+        <tr>
+          <td>Domain passes Apple Pay domain verification</td>
+          <td><span class="tag red">Required</span></td>
+          <td>Custom domain without .well-known file reachable — silent failure</td>
+        </tr>
+        <tr>
+          <td>Shopify Payments enabled and active</td>
+          <td><span class="tag red">Required</span></td>
+          <td>Using third-party gateway — Apple Pay unavailable regardless</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to diagnose Apple Pay not appearing</h3>
+
+  <ol class="steps">
+    <li>Open your store in <strong>Safari on an iPhone or Mac</strong> that has a card in Apple Wallet. If Apple Pay appears here, it's working — your previous test environment was wrong.</li>
+    <li>If it still doesn't appear in Safari on an Apple device with a card: navigate to <code>yourdomain.com/.well-known/apple-developer-merchantid-domain-association</code> — this file must return a JSON response, not a 404. If it 404s, domain verification has failed.</li>
+    <li>Check that Shopify Payments is active (not "Pending" or "Suspended") at Admin → Settings → Payments.</li>
+    <li>If your store uses a third-party payment gateway (Stripe, PayPal, Braintree, Authorize.net) instead of Shopify Payments: Apple Pay is not available. It is only available through Shopify Payments.</li>
+    <li>For custom or headless domains: re-run domain verification at Admin → Settings → Payments → Shopify Payments → Manage → Apple Pay → Verify domain.</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Mixed Content Blocks Apple Pay Silently</div>
+    If your store loads any <code>http://</code> (non-HTTPS) resource on the checkout or product page, the browser may block Apple Pay's payment session request as mixed content. The button may render but clicking it produces no popup. Check your browser console for mixed content warnings and ensure all resources load over HTTPS.
+  </div>
+
+  <h2>Failure Mode 5 — Checkout UI Extensions Don't Fire in Express Checkout Lanes (Plus)</h2>
+
+  <p>Shopify Plus merchants who invest in Checkout UI Extensions — custom fields, age verification validators, consent checkboxes, post-purchase offers, checkout branding, loyalty point displays — discover that a large proportion of their orders bypass these customizations entirely.</p>
+
+  <h3>Which express paths bypass Checkout UI Extensions</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Express Path</th>
+          <th>Checkout UI Extensions Apply?</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Standard "Check out" button</td>
+          <td><span class="tag green">Yes — fully</span></td>
+          <td>Extensions render at all configured positions</td>
+        </tr>
+        <tr>
+          <td>Shop Pay express lane</td>
+          <td><span class="tag red">No</span></td>
+          <td>Shop Pay runs its own hosted UI; extensions don't inject</td>
+        </tr>
+        <tr>
+          <td>Apple Pay / Google Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Payment sheet UI only — no extension injection points</td>
+        </tr>
+        <tr>
+          <td>PayPal Express</td>
+          <td><span class="tag red">No</span></td>
+          <td>PayPal's hosted checkout flow; Shopify extensions absent</td>
+        </tr>
+        <tr>
+          <td>Buy Now → standard checkout</td>
+          <td><span class="tag green">Yes — fully</span></td>
+          <td>Buy Now routes to Shopify checkout where extensions render</td>
+        </tr>
+        <tr>
+          <td>Meta Pay / Facebook Pay</td>
+          <td><span class="tag red">No</span></td>
+          <td>Hosted external flow if enabled</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Compliance implications</h3>
+
+  <p>If you've implemented age verification as a Checkout UI Extension (a validator that prevents checkout completion without confirming age), customers using Shop Pay, Apple Pay, or Google Pay bypass this entirely. This is a compliance gap for merchants selling age-restricted products (alcohol, tobacco, adult content, certain supplements).</p>
+
+  <h3>Workarounds for express checkout extension bypass</h3>
+
+  <ul>
+    <li><strong>Shopify Flow post-purchase verification:</strong> trigger a Flow automation on <code>orders/create</code> where payment method is Shop Pay or an express method → send a verification email or tag the order for manual review</li>
+    <li><strong>Third-party age verification apps with API-level enforcement:</strong> some apps can check age on the server side via webhooks rather than only in the checkout UI, catching express checkout orders</li>
+    <li><strong>Pre-checkout popup gates:</strong> require age confirmation before the product page (not inside checkout) via a sitewide age gate cookie — this runs before any checkout path</li>
+    <li><strong>Order tagging and fulfillment hold:</strong> for high-stakes compliance, auto-tag express checkout orders and add a fulfillment hold pending human verification</li>
+  </ul>
+
+  <h2>Failure Mode 6 — PayPal Express Currency Mismatch Causes Silent Capture Failure</h2>
+
+  <p>PayPal Express checkout creates an order in Shopify's store currency and displays that currency to the customer during the PayPal approval screen. However, PayPal captures payment in the currency of the customer's PayPal account balance (or their PayPal account's default currency). When these differ and the merchant's PayPal account cannot receive that currency, the capture fails — often silently from Shopify's perspective.</p>
+
+  <h3>When this happens</h3>
+
+  <ul>
+    <li><strong>Shopify Markets multi-currency stores:</strong> a customer browsing in EUR on a USD-primary store sees prices in EUR, clicks PayPal Express, PayPal shows the EUR amount, the customer's PayPal account is set to EUR, but the merchant's PayPal business account only accepts USD — capture fails</li>
+    <li><strong>Region-based pricing:</strong> the displayed price is a converted price, but PayPal cannot reconcile the currency conversion with the merchant's payout currency</li>
+    <li><strong>PayPal's currency conversion vs Shopify's:</strong> if PayPal auto-converts at a different rate than Shopify, the captured amount differs from the authorized amount by more than PayPal's tolerance → capture rejected</li>
+  </ul>
+
+  <h3>How to detect and fix PayPal Express currency issues</h3>
+
+  <ol class="steps">
+    <li>In PayPal Business account settings → Money, Banks, and Cards → Currency Balances: ensure your account has a balance or accepted currency that matches your Shopify store's primary currency.</li>
+    <li>In Shopify Admin → Settings → Payments → PayPal: review which currency PayPal is configured to accept. It should match your Shopify store's default currency, not your markets' presentation currencies.</li>
+    <li>Enable "Auto-convert" in PayPal account settings if you want PayPal to handle currency conversion — but be aware that PayPal's conversion rates are less favorable than Shopify's Markets rates, so customer-displayed prices may differ from what PayPal charges.</li>
+    <li>For international stores: consider removing PayPal Express from markets where currency mismatch is most common, or test PayPal checkout flows from a customer account in each target market currency.</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">PayPal Capture Failures May Not Generate Merchant Alerts</div>
+    When a PayPal Express capture fails after an order is created in Shopify, the failure is logged in the order timeline but does not trigger an automatic merchant notification email by default. Orders can appear to be "paid via PayPal" in the order list while actually having a failed capture. Monitor Admin → Orders → filter by "Payment status: Authorized" to catch these.
+  </div>
+
+  <h2>Failure Mode 7 — Buy Now Button Loses Line Item Property Customizations</h2>
+
+  <p>Line item properties are the standard Shopify mechanism for attaching per-product customization data to cart items — engraving text, color choices, personalization fields, size notes, and any other input collected on the product page. They work by having input fields inside the product form with <code>name="properties[Field Name]"</code> syntax, which are submitted when the Add to Cart button is clicked.</p>
+
+  <p>Buy Now bypasses the product form submission. When a customer clicks Buy Now, the browser POSTs directly to <code>/cart/add</code> with the product variant ID and quantity, but not the form contents — because the form was never submitted. All line item properties are silently absent from the resulting checkout.</p>
+
+  <h3>This affects all product options apps</h3>
+
+  <ul>
+    <li><strong>Infinite Options (ShopPad):</strong> option values not transmitted via Buy Now</li>
+    <li><strong>SC Product Options (formerly Bold Product Options):</strong> same behavior</li>
+    <li><strong>Hulk Product Options:</strong> same</li>
+    <li><strong>Custom theme line item property fields:</strong> same</li>
+    <li><strong>Engraving and personalization apps:</strong> engraving text lost on Buy Now</li>
+  </ul>
+
+  <h3>Solutions</h3>
+
+  <ul>
+    <li><strong>Most reliable fix:</strong> hide the Buy Now button on products that require customization. In your theme customizer, some themes allow hiding dynamic checkout buttons per product type or for specific products via metafields.</li>
+    <li><strong>JavaScript interception:</strong> add a JS handler that intercepts the Buy Now click, validates that required properties are filled in, and either passes the properties programmatically or blocks the click until they are.</li>
+    <li><strong>Checkout UI Extension (Plus):</strong> recreate the customization fields inside checkout itself using a TextField extension, and use <code>applyAttributeChange</code> to store the values as order attributes or line item changes.</li>
+    <li><strong>Pre-checkout modal:</strong> trigger a modal on Buy Now click that collects required inputs before proceeding, passing them as URL parameters to the checkout with a custom checkout URL builder.</li>
+  </ul>
+
+  <h2>Failure Mode 8 — Headless Express Checkout Is Not Automatic</h2>
+
+  <p>On headless Hydrogen storefronts or custom storefronts built on the Storefront API, no express checkout button works automatically. Each payment method requires its own full implementation — the UI component alone does not process payments.</p>
+
+  <h3>What each express method requires in headless</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Express Method</th>
+          <th>Required Implementation</th>
+          <th>Most Common Mistake</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shop Pay</td>
+          <td><code>shopPayPaymentRequestSessionCreate</code> mutation → session token → <code>ShopPayButton</code> component with token</td>
+          <td>Rendering ShopPayButton without creating a payment request session first — button appears but tapping it errors</td>
+        </tr>
+        <tr>
+          <td>Apple Pay</td>
+          <td><code>window.ApplePaySession</code> JS API + server-side merchant session validation endpoint + <code>onpaymentauthorized</code> handler calling Storefront API</td>
+          <td>Missing <code>validatemerchant</code> server endpoint — Apple Pay sheet opens but immediately shows "Payment not completed"</td>
+        </tr>
+        <tr>
+          <td>Google Pay</td>
+          <td>PaymentRequest API with Google Pay config + <code>isReadyToPay</code> check + <code>onpaymentauthorized</code> calling Storefront API</td>
+          <td>Using wrong <code>merchantId</code> or skipping <code>isReadyToPay</code> check — button renders but returns MERCHANT_ERROR on tap</td>
+        </tr>
+        <tr>
+          <td>PayPal Express</td>
+          <td>PayPal JS SDK with <code>createOrder</code> + <code>onApprove</code> callbacks calling Shopify Storefront API checkout mutations</td>
+          <td>Connecting PayPal's order creation directly to Shopify without mapping PayPal's order ID to a Storefront API checkout — payment captured by PayPal but no Shopify order created</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Hydrogen-specific notes</h3>
+
+  <pre>// Hydrogen's ShopPayButton requires a payment request session
+// Do NOT just render &lt;ShopPayButton /&gt; without this
+
+const session = await storefront.mutate(SHOP_PAY_PAYMENT_REQUEST_SESSION_CREATE, {
+  variables: {
+    paymentRequest: {
+      currencyCode: cart.cost.totalAmount.currencyCode,
+      lineItems: cart.lines.nodes.map(line =&gt; ({
+        quantity: line.quantity,
+        variantId: line.merchandise.id,
+      })),
+      // ... shipping, tax, discounts
+    },
+  },
+});
+
+// Then pass session.token to &lt;ShopPayButton token={session.token} /&gt;</pre>
+
+  <div class="callout tip">
+    <div class="callout-title">Test Each Express Method in Isolation</div>
+    When debugging headless express checkout, test one method at a time: disable all others, add verbose console logging to every callback (<code>createOrder</code>, <code>onApprove</code>, <code>validatemerchant</code>, <code>onpaymentauthorized</code>), and watch the browser network tab for failed API calls. Express checkout failures often produce no visible error to the customer while producing clear error responses in the network log.
+  </div>
+
+  <h2>Express Checkout Diagnostic Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>All express buttons disappeared from cart</td>
+          <td>Subscription product in cart</td>
+          <td>Remove selling plan item, check if buttons return</td>
+        </tr>
+        <tr>
+          <td>Apple Pay not showing anywhere</td>
+          <td>Wrong browser (not Safari) or non-Apple device</td>
+          <td>Test in Safari on iPhone with card in Wallet</td>
+        </tr>
+        <tr>
+          <td>Buy Now orders missing notes or fields</td>
+          <td>Cart-page data bypassed by express route</td>
+          <td>Move fields to product page or checkout (Plus)</td>
+        </tr>
+        <tr>
+          <td>Shop Pay verification code not arriving</td>
+          <td>Phone number stale, OTP in spam, account locked</td>
+          <td>Proceed via standard checkout; update Shop Pay account</td>
+        </tr>
+        <tr>
+          <td>Checkout extension not showing for many orders</td>
+          <td>Express checkout bypasses extension injection</td>
+          <td>Check order payment method — Shop Pay orders skip extensions</td>
+        </tr>
+        <tr>
+          <td>PayPal orders created but payment not captured</td>
+          <td>Currency mismatch between PayPal account and store</td>
+          <td>Check PayPal account accepted currencies</td>
+        </tr>
+        <tr>
+          <td>Product options missing from Buy Now orders</td>
+          <td>Line item properties bypassed — form not submitted</td>
+          <td>Hide Buy Now on customizable products</td>
+        </tr>
+        <tr>
+          <td>Headless Shop Pay button tapped — nothing happens</td>
+          <td>No payment request session created before rendering button</td>
+          <td>Check <code>shopPayPaymentRequestSessionCreate</code> mutation response</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>How CheckPulse Detects Express Checkout Failures</h2>
+
+  <p>Express checkout failures are invisible in Shopify's standard monitoring — there's no alert when a Buy Now button bypasses your customizations, when Shop Pay sessions are dying at high rates, or when an express checkout path stops working after a theme update. CheckPulse monitors your actual checkout flows:</p>
+
+  <ul>
+    <li>Detects when express checkout buttons fail to render on product and cart pages</li>
+    <li>Monitors Buy Now checkout flow completion rates</li>
+    <li>Catches payment gateway errors in express checkout paths before customers report them</li>
+    <li>Identifies when theme updates or app installs break express checkout button rendering</li>
+    <li>Alerts within minutes when any checkout path stops completing successfully</li>
+  </ul>
+
+  <div class="cta-block">
+    <h2>Is Your Express Checkout Working Right Now?</h2>
+    <p>Run a free Shopify checkout health check — we test your full checkout flow including express paths, in under 60 seconds.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Related Shopify Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <p>Domain verification, Shopify Payments requirement, and device/browser prerequisites.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <p>Apple Pay domain verification failure, Google Pay merchant registration, Shop Pay activation.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <p>Line item properties, checkout attributes, Buy Now bypass, and note_attributes confusion.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout Not Working</a>
+      <p>ReCharge checkout errors, selling plan conflicts, subscription renewal failures.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <p>ReConvert not showing, one-click upsell charge failing, express checkout bypass.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <p>No native retry button, 3DS loop, guest checkout no recovery path, session expiry.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Checkout Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

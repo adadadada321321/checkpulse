@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify BNPL Not Working — Klarna, Afterpay, Affirm Not Showing at Checkout (2026)</title>
+  <meta name="description" content="Shopify Buy Now Pay Later (Klarna, Afterpay, Affirm, Shop Pay Installments) not showing at checkout? 8 root causes: Shopify Payments required, order total limits, country restrictions, subscription cart suppression, silent eligibility failure, provider not enabled, Shop Pay Installments restrictions, headless BNPL gap." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-plan-not-available" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-plan-not-available" />
+  <meta property="og:title" content="Shopify BNPL Not Showing at Checkout — 8 Causes Explained" />
+  <meta property="og:description" content="Klarna, Afterpay, Affirm, or Shop Pay Installments missing at Shopify checkout? 8 root causes: Shopify Payments required, order total out of range, country/currency restrictions, subscription product suppression, silent eligibility check, provider not enabled, Shop Pay Installments hard limits, headless BNPL gap." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify BNPL Not Working — Klarna, Afterpay, Affirm, Shop Pay Installments Not Showing at Checkout",
+    "description": "Buy Now Pay Later options (Klarna, Afterpay/Clearpay, Affirm, Zip, Sezzle, Shop Pay Installments) silently disappear from Shopify checkout for a range of interconnected reasons. This guide covers all 8 failure modes: gateway requirements, order total limits, country/currency restrictions, subscription cart suppression, real-time eligibility checks, individual provider activation, Shop Pay Installments-specific limits, and headless implementation gaps.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-payment-plan-not-available",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Klarna or Afterpay not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons are: (1) you switched from Shopify Payments to a third-party gateway — all BNPL options require Shopify Payments and are removed silently when you switch; (2) the BNPL provider isn't individually enabled under Admin → Settings → Payments → Shopify Payments → Manage; (3) the order total is outside the provider's eligibility range — Afterpay requires $1–$4,000, Affirm requires $50–$30,000; (4) a subscription product in the cart is suppressing all BNPL options simultaneously."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Shopify require Shopify Payments for Klarna and Afterpay?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Klarna, Afterpay/Clearpay, Affirm, Zip, Sezzle, and Shop Pay Installments all require Shopify Payments as the active primary gateway. If you use Stripe, PayPal, Authorize.net, or any other third-party gateway instead of Shopify Payments, all BNPL options disappear from checkout simultaneously with no error message. The only workaround is to re-enable Shopify Payments or offer BNPL via a third-party checkout solution (not native Shopify checkout)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Afterpay disappear when I add a subscription product to my cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Any subscription product in the cart (using selling plans, Recharge, Bold Subscriptions, or any recurring billing app) suppresses all BNPL options for the entire cart — not just for the subscription item. BNPL lenders cannot lock repayment schedules when the order total is tied to a recurring billing cycle. There is no partial BNPL for non-subscription items. Customers must remove subscription products from the cart before BNPL options will reappear."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → BNPL Payment Plan Not Available
+  </div>
+  <h1>Shopify <em>Buy Now Pay Later Not Showing</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Klarna, Afterpay, Affirm, or Shop Pay Installments missing at checkout? All BNPL options share the same silent failure modes. Here are all 8 root causes — for merchants, developers, and headless teams.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shopify Payments Required · Order Total Limits · Country Restrictions · Subscription Suppression · Eligibility Check · Provider Not Enabled · Shop Pay Installments · Headless BNPL</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Buy Now Pay Later (BNPL) options — Klarna, Afterpay/Clearpay, Affirm, Zip, Sezzle, and Shop Pay Installments — are available through Shopify Payments on eligible plans. When they work, they appear as selectable payment methods in the payment step of checkout. When they don't work, they simply disappear with no error message, no explanation, and no indication that they were ever supposed to be there.</p>
+
+  <p>The failure modes stack invisibly. A store may have Afterpay enabled, Shopify Payments active, and the order total in range — but a subscription product in the cart wipes out all BNPL options regardless. Or Klarna may be enabled but the customer's country routes them to a market where Klarna isn't configured. Each failure looks identical from the outside: the payment step renders without a BNPL section.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">All BNPL Failures Look the Same — No Error Is Shown</div>
+    <p>Whether the cause is a gateway switch, an out-of-range order total, a subscription product, a real-time eligibility check, or a missing provider toggle, the outcome is identical: BNPL options are absent from checkout. The customer sees nothing. The merchant gets no notification. Diagnosing which failure is active requires checking each condition in order.</p>
+  </div>
+
+  <h2>Quick Reference: BNPL Eligibility Matrix</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Countries</th>
+          <th>Order Range</th>
+          <th>Gateway Required</th>
+          <th>Subscriptions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Afterpay / Clearpay</strong></td>
+          <td>US, CA, AU, NZ, UK</td>
+          <td>$1 – $4,000 USD</td>
+          <td><span class="tag red">Shopify Payments only</span></td>
+          <td><span class="tag red">Not supported</span></td>
+        </tr>
+        <tr>
+          <td><strong>Klarna</strong></td>
+          <td>US, UK, most EU, AU, CA</td>
+          <td>$1 – $10,000</td>
+          <td><span class="tag red">Shopify Payments only</span></td>
+          <td><span class="tag red">Not supported</span></td>
+        </tr>
+        <tr>
+          <td><strong>Affirm</strong></td>
+          <td>US, CA</td>
+          <td>$50 – $30,000</td>
+          <td><span class="tag red">Shopify Payments only</span></td>
+          <td><span class="tag red">Not supported</span></td>
+        </tr>
+        <tr>
+          <td><strong>Shop Pay Installments</strong></td>
+          <td>US only</td>
+          <td>$50 – $17,500</td>
+          <td><span class="tag red">Shopify Payments only</span></td>
+          <td><span class="tag red">Not supported</span></td>
+        </tr>
+        <tr>
+          <td><strong>Zip (Quadpay)</strong></td>
+          <td>US, AU, UK, CA</td>
+          <td>$35 – $1,500</td>
+          <td><span class="tag red">Shopify Payments only</span></td>
+          <td><span class="tag red">Not supported</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 1 — Shopify Payments required — third-party gateway removes ALL BNPL options silently</h2>
+
+  <p>Every BNPL payment method available through Shopify — Klarna, Afterpay/Clearpay, Affirm, Zip, Sezzle, and Shop Pay Installments — is built on Shopify Payments infrastructure. Switching from Shopify Payments to any third-party gateway (Stripe, PayPal, Authorize.net, Braintree, Square, or any other provider) removes all BNPL options simultaneously with no error message and no notification to the merchant.</p>
+
+  <p>Why merchants are surprised: the switch feels unrelated. A merchant may switch to Stripe for lower transaction fees, or add PayPal as an alternative payment method while keeping Shopify Payments. But if Shopify Payments is no longer the active primary gateway, BNPL disappears. There's no warning during the switch. The Admin Payments page shows no indication that BNPL has been lost.</p>
+
+  <ul>
+    <li><strong>Switched primary gateway:</strong> Any gateway set as "primary" other than Shopify Payments removes all BNPL</li>
+    <li><strong>Shopify Payments verification pending:</strong> If Shopify Payments is in a Pending or Suspended state, BNPL appears unavailable even though Shopify Payments is technically still selected</li>
+    <li><strong>Country where Shopify Payments isn't available:</strong> Shopify Payments isn't available in every country — merchants in unsupported countries have no native BNPL path and must use third-party BNPL apps (Sezzle, Splitit, Paidy) that integrate as alternative payment methods</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Diagnosing Gateway Conflict</div>
+    <p>Go to Admin → Settings → Payments. Check what's shown under "Payment providers." If Shopify Payments shows "Complete setup" or "Pending verification" rather than "Active," BNPL will not appear. If you see a third-party gateway as the primary provider, BNPL is unavailable until Shopify Payments is re-enabled and verified.</p>
+  </div>
+
+  <h2>Failure Mode 2 — Order total out of range — each BNPL has hard thresholds that suppress it silently</h2>
+
+  <p>Every BNPL provider enforces minimum and maximum order total thresholds. When an order total falls below the minimum or above the maximum, that specific BNPL option disappears from checkout without any explanation to the customer. This is one of the most commonly encountered failures because merchants don't know their own cart values will hit these limits.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Minimum</th>
+          <th>Maximum</th>
+          <th>When It Disappears</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Afterpay</td>
+          <td>$1 USD</td>
+          <td>$4,000 USD</td>
+          <td>Orders over $4,000 — common for jewelry, furniture, electronics</td>
+        </tr>
+        <tr>
+          <td>Klarna</td>
+          <td>$1 USD</td>
+          <td>$10,000 USD</td>
+          <td>Very high-ticket items only</td>
+        </tr>
+        <tr>
+          <td>Affirm</td>
+          <td>$50 USD</td>
+          <td>$30,000 USD</td>
+          <td>Orders under $50 — common for accessories and small consumables</td>
+        </tr>
+        <tr>
+          <td>Shop Pay Installments</td>
+          <td>$50 USD</td>
+          <td>$17,500 USD</td>
+          <td>Under $50 or over $17,500</td>
+        </tr>
+        <tr>
+          <td>Zip</td>
+          <td>$35 USD</td>
+          <td>$1,500 USD</td>
+          <td>Most common upper-limit suppression</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The practical impact varies by store type. Furniture and electronics merchants find Afterpay disappears for most of their catalog (orders commonly exceed $4,000). Accessories and low-ticket consumable merchants find Affirm never appears ($50 minimum). Merchants offering both high-ticket and low-ticket items may see different BNPL options for different products without understanding why.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Minimum Is the More Surprising Limit</div>
+    <p>Merchants expect a maximum but rarely plan for a minimum. Affirm and Shop Pay Installments both have a $50 minimum — an order for $45 of candles or vitamins gets zero BNPL options. If your average order value is near $50, test with an order at exactly $49 vs $51 to see the threshold in action.</p>
+  </div>
+
+  <h2>Failure Mode 3 — Country and currency restriction — BNPL is geography-locked</h2>
+
+  <p>BNPL availability is tied to both the customer's country and the store's primary currency. A US store selling in USD has access to the broadest set of BNPL providers. A UK store, an Australian store, and a German store each see different available providers, and the same provider in different geographies may be a completely different product with different terms and different activation requirements.</p>
+
+  <p>The specific geography issues that trip merchants up:</p>
+
+  <ul>
+    <li><strong>Afterpay vs Clearpay:</strong> Afterpay and Clearpay are the same product but branded separately by geography — Afterpay in US/AU/CA/NZ, Clearpay in UK. In Shopify's payment settings, UK stores see "Clearpay" not "Afterpay." Merchants who search for "Afterpay not working" while running a UK store may be looking at the wrong toggle entirely.</li>
+    <li><strong>Klarna regional differences:</strong> Klarna US offers Pay in 4, Pay Later, and Financing. Klarna EU offers different products with different interest structures in each country. The Klarna integration in Shopify Payments is separate for US and EU — enabling Klarna in your Shopify Payments settings for a US-primary store does not enable it for EU customers routed through Shopify Markets.</li>
+    <li><strong>Shopify Markets routing:</strong> When a customer from Germany visits a US store configured with Shopify Markets, they may be routed to a European market. If BNPL is not configured for that market in Shopify Payments, they see no BNPL — even though the merchant believes Klarna is enabled.</li>
+    <li><strong>Store currency must match BNPL currency:</strong> BNPL providers settle in specific currencies. A store whose primary currency is CAD needs Afterpay's CAD configuration, not the USD one. If the store currency was recently changed in Shopify Markets, BNPL may need to be reconfigured.</li>
+    <li><strong>Affirm US and CA only:</strong> Affirm is not available for any non-US, non-CA customer regardless of what currency the store displays. A UK customer on a US store never sees Affirm even if the store shows USD pricing.</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Diagnosing Geography Issues</div>
+    <p>Test checkout in an Incognito window using a VPN to simulate the customer's country. If BNPL appears for a US IP but not a UK IP on your store, the issue is Shopify Markets configuration, not the provider toggle itself.</p>
+  </div>
+
+  <h2>Failure Mode 4 — Subscription product in cart suppresses all BNPL simultaneously</h2>
+
+  <p>Any subscription or selling plan product in the cart causes all BNPL options to disappear from checkout — not just for the subscription item, but for every item in the cart. This is by design and cannot be overridden: BNPL providers cannot lock a fixed repayment schedule (4 weekly installments, monthly financing) against a cart that contains a recurring charge whose future amounts are not predetermined.</p>
+
+  <p>The mechanics of the suppression:</p>
+  <ul>
+    <li>Shopify detects any cart line item with a <code>selling_plan_id</code> attribute</li>
+    <li>When a selling plan is present, Shopify hides all BNPL payment methods from the payment step</li>
+    <li>This applies regardless of whether the subscription product is the majority or minority of the cart value</li>
+    <li>A cart with 10 one-time items and 1 subscription item shows zero BNPL options</li>
+    <li>The customer is not told why BNPL is absent — the section simply doesn't render</li>
+  </ul>
+
+  <p>Subscription apps affected: Recharge, Bold Subscriptions, Ordergroove, Stay.ai, Loop Subscriptions, Skio, and any app that creates selling plans via the Shopify Selling Plans API. Native Shopify subscription functionality (if your theme or app uses selling plans) also triggers this suppression.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">Mixed Cart — No Partial BNPL Solution</div>
+    <p>There is no Shopify-native way to offer BNPL for the non-subscription portion of a mixed cart. If your store sells both subscriptions and one-time products, customers who add both to a single cart lose all BNPL access. The standard recommendation is to guide customers to purchase subscriptions separately, or to split subscription and one-time checkout flows.</p>
+  </div>
+
+  <h2>Failure Mode 5 — Customer eligibility check fails silently at checkout load</h2>
+
+  <p>BNPL providers run a real-time eligibility check when checkout loads. This check happens before the payment step renders, and if the customer doesn't qualify, the BNPL option is simply not shown. No error. No explanation. The customer sees only the remaining payment methods (credit card, etc.).</p>
+
+  <p>What the eligibility check evaluates (varies by provider):</p>
+  <ul>
+    <li><strong>Soft credit pull:</strong> Most BNPL providers run a soft credit inquiry at checkout load. No credit history, thin credit file, prior BNPL defaults, or recent hard inquiries from multiple BNPL providers can cause pre-display suppression.</li>
+    <li><strong>Identity verification:</strong> Address mismatch between the shipping address and the address on file with the BNPL provider, or an unverified email address</li>
+    <li><strong>Prior account standing:</strong> Missed payments on a previous Klarna, Afterpay, or Affirm order cause that specific provider to suppress at checkout — across all merchants, not just the one where the default occurred</li>
+    <li><strong>Device and behavior signals:</strong> Some providers factor in browser fingerprint, device age, and behavioral signals. First-time users on a new device with no browsing history may see lower BNPL availability.</li>
+    <li><strong>Merchant's account standing:</strong> If the merchant's Shopify Payments account has elevated fraud or chargeback rates, BNPL providers may reduce their exposure by lowering per-order limits or suppressing for certain customer profiles</li>
+  </ul>
+
+  <p>Merchant visibility: zero. You cannot see why a specific customer didn't see Klarna. Shopify's Admin doesn't log BNPL non-displays. The only diagnostic is asking the customer to try a different device, clear cookies, or use a different browser to rule out session-level signals.</p>
+
+  <h2>Failure Mode 6 — BNPL provider not individually enabled in Shopify Payments settings</h2>
+
+  <p>Having Shopify Payments active doesn't automatically enable all BNPL providers. Each provider — Klarna, Afterpay, Affirm, Zip — must be individually toggled on in the Shopify Payments settings. Many merchants who set up Shopify Payments years ago never returned to the Payments settings page to enable newer BNPL providers that Shopify added to the platform.</p>
+
+  <p>Where to enable each provider:</p>
+  <ol class="steps">
+    <li><span>Go to Admin → Settings → Payments</span></li>
+    <li><span>Under "Shopify Payments," click "Manage"</span></li>
+    <li><span>Scroll to "Payment options" or "Supported payment methods"</span></li>
+    <li><span>Look for each BNPL provider (Klarna, Afterpay/Clearpay, Affirm, Zip). Each has an individual toggle.</span></li>
+    <li><span>Enable each provider you want to offer. Save.</span></li>
+    <li><span>For Shop Pay Installments specifically: Admin → Settings → Payments → Shop Pay → "Offer Shop Pay Installments" toggle (separate from the main Shopify Payments panel)</span></li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Theme Switch Can Reset BNPL Display</div>
+    <p>The BNPL provider toggles live in Admin settings, not in the theme. A theme switch does not disable them. However, if you switched Shopify plans (e.g., from Shopify to Advanced), some BNPL providers may have been deactivated during plan migration and need to be re-enabled. Check the Payments settings page after any plan or gateway change.</p>
+  </div>
+
+  <h3>Shop Pay Installments has a separate toggle</h3>
+
+  <p>Shop Pay and Shop Pay Installments are two different toggles in two different sections of Shopify Payments settings. Shop Pay (for accelerated checkout) can be enabled while Shop Pay Installments (for 4-installment or monthly financing) remains disabled. Merchants who see "Shop Pay" at checkout but no installment option typically have Shop Pay enabled but Installments turned off.</p>
+
+  <h2>Failure Mode 7 — Shop Pay Installments hard restrictions: US only, physical goods, $50–$17,500, per-order qualification</h2>
+
+  <p>Shop Pay Installments is Shopify's native BNPL product, powered by Affirm's underwriting for 4-installment plans. It has the strictest eligibility requirements of any BNPL option available through Shopify Payments, and those requirements are enforced silently.</p>
+
+  <p>Hard requirements that must all be true simultaneously:</p>
+  <ul>
+    <li><strong>US stores only:</strong> Shop Pay Installments is not available for stores with a primary business address outside the United States, regardless of where customers are located</li>
+    <li><strong>Physical products required:</strong> Digital products, digital downloads, gift cards, and services are excluded. An order containing even one digital line item may suppress Installments for the entire cart on some plan configurations.</li>
+    <li><strong>Order total $50–$17,500:</strong> Orders below $50 or above $17,500 suppress Installments silently</li>
+    <li><strong>Shopify plan eligibility:</strong> Shop Pay Installments requires Shopify plan or higher (Basic plan excludes it in some regions) — check your current plan's payment feature list</li>
+    <li><strong>Not a persistent payment method:</strong> Shop Pay Installments is not a "saved" payment plan. Each new order requires a fresh qualification check. A customer who qualified last month may not qualify today. Qualification is per-order, not per-account.</li>
+    <li><strong>Not available for subscriptions:</strong> Same subscription suppression as all other BNPL</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Installments "Disappearing" After Working Previously</div>
+    <p>If a customer reports Shop Pay Installments was available on their last order but is gone now, the most likely causes are: (1) current order total is outside $50–$17,500, (2) the current cart contains a digital product or gift card, (3) the underwriting model produced a different eligibility result for this specific cart, or (4) the merchant's Installments feature was toggled off during a Shopify plan change. Check Admin → Settings → Payments → Shop Pay → Installments toggle.</p>
+  </div>
+
+  <h2>Failure Mode 8 — Headless storefronts — BNPL options don't render automatically</h2>
+
+  <p>In headless Shopify storefronts, BNPL payment buttons don't appear at checkout unless the headless implementation explicitly handles them. The mechanism varies depending on whether the headless store uses Shopify's hosted checkout domain or a fully custom checkout implementation.</p>
+
+  <h3>Headless using Shopify-hosted checkout domain</h3>
+
+  <p>If the headless storefront hands off to Shopify's checkout at <code>checkout.shopify.com</code> or the store's <code>.myshopify.com</code> domain, BNPL should work automatically — the hosted checkout handles payment method display including BNPL. The only failure modes are the same ones that affect non-headless stores (gateway, country, order total, subscription suppression, eligibility).</p>
+
+  <p>The most common headless issue: the storefront is building a custom cart and passing incorrect currency or country context to checkout initialization. If the Storefront API <code>cartCreate</code> mutation doesn't include the correct <code>@inContext(country: X, language: Y)</code> directive, checkout may initialize in the wrong market — and BNPL availability is market-specific.</p>
+
+  <h3>Headless with custom checkout implementation</h3>
+
+  <p>If the headless store implements a fully custom checkout (beyond the Shopify-hosted domain), BNPL options require explicit integration with each provider's SDK:</p>
+
+  <ul>
+    <li><strong>Klarna:</strong> Klarna.js SDK integration with Klarna's Payments API — requires separate Klarna merchant account, server-side session creation, and client-side rendering of the Klarna widget. Klarna's hosted checkout script is blocked inside Shopify's checkout sandbox (PCI isolation); it only works in a custom checkout outside that sandbox.</li>
+    <li><strong>Afterpay:</strong> Afterpay.js integration with Afterpay's API for order token creation and redirect flow — separate Afterpay merchant account and API credentials required</li>
+    <li><strong>Affirm:</strong> Affirm.js SDK with server-side charge creation — separate Affirm merchant account required</li>
+    <li><strong>Shop Pay Installments:</strong> Requires the <code>shopPayPaymentRequestSessionCreate</code> Storefront API mutation — the same mutation used for Shop Pay accelerated checkout, but with the Installments option surfaced. Rendering the Shop Pay button without wiring this mutation produces a button that errors on tap or shows no Installments option.</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">Displaying BNPL Logos Without Integration Is a Conversion Killer</div>
+    <p>A common headless mistake is rendering Klarna, Afterpay, or Affirm logos on product pages (as social proof for "available payment options") without completing the provider integration. Customers select those options at checkout, encounter an error or empty state, and abandon. Either complete the full SDK integration for each provider or remove the logos from the storefront entirely.</p>
+  </div>
+
+  <h2>Diagnostic Checklist</h2>
+
+  <p>Work through these in order — each one eliminates a class of failure modes:</p>
+
+  <ol class="steps">
+    <li><span><strong>Gateway check:</strong> Admin → Settings → Payments. Is Shopify Payments the active primary gateway with "Active" status? If not, BNPL cannot work until Shopify Payments is re-enabled and verified.</span></li>
+    <li><span><strong>Provider toggle check:</strong> Admin → Settings → Payments → Shopify Payments → Manage. Is the specific BNPL provider individually toggled on? Check each one separately.</span></li>
+    <li><span><strong>Order total check:</strong> Does your test order total fall within the specific provider's range? Afterpay: $1–$4,000. Affirm: $50–$30,000. Shop Pay Installments: $50–$17,500.</span></li>
+    <li><span><strong>Subscription check:</strong> Does the cart contain any product with a selling plan? Remove it. Does BNPL reappear? If yes, subscription suppression is the cause.</span></li>
+    <li><span><strong>Country/currency check:</strong> Test checkout from the same country as your primary market. Use a VPN to simulate an international customer if needed. Confirm Shopify Markets is routing to the correct market.</span></li>
+    <li><span><strong>Product type check (for Shop Pay Installments):</strong> Are there any digital products, gift cards, or service items in the cart? Remove them and test.</span></li>
+    <li><span><strong>Eligibility check:</strong> Have a different person (different browser, different email, different device) test the same cart. If BNPL appears for them but not the original customer, the issue is per-customer eligibility — not a store configuration problem.</span></li>
+    <li><span><strong>Headless context check:</strong> If using Storefront API, confirm <code>@inContext(country: X)</code> is present in your <code>cartCreate</code> mutation and that <code>cartBuyerIdentityUpdate</code> is called when the customer's country changes.</span></li>
+  </ol>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Monitoring for BNPL Drops?</h2>
+    <p>BNPL options can disappear silently after a gateway change, plan migration, or Shopify update. CheckPulse monitors your checkout 24/7 and alerts you before customers notice.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run a Free Checkout Check</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <p>Express wallet buttons missing — gateway, domain verification, and browser requirements.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <p>Klarna, Afterpay, Affirm BNPL showing but order splitting failing at authorization.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <p>Apple Pay domain verification, Google Pay merchant registration, Shop Pay activation.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <p>Broader payment method availability — local methods, Shopify Payments requirements.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <p>iDEAL, Bancontact, OXXO, Boleto — regional methods not appearing at checkout.</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewals Not Working</a>
+      <p>Recharge rebill, dunning, card update, and subscription checkout issues.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-checkout-monitoring-comparison">Comparison</a>
+      <a href="/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-store-password-protected">Store Password Protected</a>
+      <a href="/checkpulse/shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-currency-error">Currency Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="/checkpulse/shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-performance-revenue">Performance &amp; Revenue</a>
+      <a href="/checkpulse/shopify-checkout-error-codes">Error Codes</a>
+      <a href="/checkpulse/shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="/checkpulse/shopify-checkout-speed-test">Speed Test</a>
+      <a href="/checkpulse/shopify-checkout-app-audit">App Audit</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-abandoned">Abandoned Checkout</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout</a>
+      <a href="/checkpulse/shopify-checkout-agencies">Agencies</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscriptions</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="/checkpulse/shopify-checkout-localization-error">Localization Error</a>
+      <a href="/checkpulse/shopify-checkout-cro">Checkout CRO</a>
+      <a href="/checkpulse/shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="/checkpulse/shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards Not Working</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Lost</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Card Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Ticket Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Membership Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="/checkpulse/shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-account-registration-not-working">Account Registration Not Working</a>
+      <a href="/checkpulse/shopify-checkout-language-not-switching">Language Not Switching</a>
+      <a href="/checkpulse/shopify-checkout-buy-now-button-not-working">Buy Now Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-duties-import-fees-not-working">Duties &amp; Import Fees Not Working</a>
+      <a href="/checkpulse/shopify-checkout-cart-drawer-not-working">Cart Drawer Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-extensibility-migration-not-working">Extensibility Migration Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-plan-not-available">BNPL / Payment Plan Not Available</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

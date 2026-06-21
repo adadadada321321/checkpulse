@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Gift Card Balance Not Showing at Checkout — Partial Balance, Multi-Currency, Multiple Cards (2026)</title>
+  <meta name="description" content="Shopify gift card balance not showing? Applied but wrong amount deducted? Can't use on a different store? 8 root causes for gift card balance display issues — partial use confusion, multi-currency discrepancies, multiple card limits, and headless implementation gaps." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-balance-not-showing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-balance-not-showing" />
+  <meta property="og:title" content="Shopify Gift Card Balance Not Showing — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify doesn't show gift card balance before the customer enters the code. After applying, partial-use balance, multi-currency display, and multiple-card limits cause most of the remaining confusion. 8 failure modes explained with fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Gift Card Balance Not Showing at Checkout — Partial Balance, Multi-Currency, Multiple Cards",
+    "description": "Shopify's checkout does not display a gift card's balance until the customer enters the code and applies it. After applying, the deducted amount is shown but the remaining balance on the card is not prominently displayed. This creates confusion for partially-used cards, multi-currency stores, multiple-card orders, and headless storefronts. This article covers all 8 root causes for gift card balance not showing or appearing incorrectly at Shopify checkout, including partial-use balance display, store-specific card restrictions, automatic discount field conflicts, multi-currency value discrepancies, and Storefront API implementation gaps for headless builds.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-gift-card-balance-not-showing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How can a customer check their Shopify gift card balance before checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's hosted checkout does not display a gift card's balance before the customer enters the code. To find the balance before checkout: (1) the customer can click the gift card link in the original gift card email — Shopify's gift card confirmation page shows the current balance including any prior deductions; (2) the merchant can look up the card in Admin → Discounts → Gift cards and search by code — the admin view shows the original value, amount used, and current balance; (3) some merchants build a public gift card balance check page on their storefront, but this requires custom development. Once the customer enters the code at checkout, Shopify displays how much will be deducted and the remaining amount to pay — but the remaining balance ON the card after this purchase is not shown at checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify gift card show a different balance than what was issued?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common reasons for a balance discrepancy: (1) the gift card was partially used on a prior order — every redemption reduces the balance permanently and Shopify does not send a balance-updated notification after use; (2) the gift card was issued in a different currency than the checkout currency — on multi-currency stores, a gift card issued in USD for $100 will display as the equivalent in EUR/GBP at checkout, and since Shopify uses a snapshot exchange rate at the time of issuance, the displayed amount may differ from what the customer expected; (3) the gift card code was shared and another person used it first — gift card codes are not account-bound on Shopify, so anyone with the code can redeem it; (4) the merchant issued a gift card with an expiry date and the card has expired — Shopify allows merchants to set expiration dates on gift cards, and expired cards show $0 balance."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can a customer use a Shopify gift card on a different store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Shopify gift cards are store-specific. A gift card issued by Store A cannot be used at Store B, even if both stores are owned by the same merchant. Each Shopify store maintains its own gift card ledger and the codes are valid only within that store. This is one of the most common sources of gift card 'not working' support tickets — a customer received a gift card from a brand, doesn't realize the brand operates multiple Shopify stores (e.g., separate US and UK stores), and tries to use the gift card on the wrong store. The checkout shows 'Gift card not found' or 'Invalid gift card code' in this case. Merchants who operate multiple stores and want cross-store gift cards must use a third-party gift card app that manages codes across multiple storefronts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why can't a customer apply multiple gift cards at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify does support multiple gift cards per order — up to 8 gift cards can be applied to a single checkout. However, the checkout UI only shows one 'Gift card or discount code' input field initially. After the customer applies the first gift card and it doesn't fully cover the order total, a second gift card field appears below the first one. This secondary field is not visible until the first card is applied, so customers often assume only one gift card is accepted and abandon checkout. The fix is to instruct customers (on the product page, in the gift card email, or via a checkout banner) that multiple gift cards can be applied and that the second field appears after the first is entered."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Gift Card Balance Not Showing
+  </div>
+  <h1>Shopify <em>Gift Card Balance Not Showing</em> at Checkout — 8 Causes Explained</h1>
+  <p class="hero-sub">Gift card applied but showing wrong amount? Remaining balance invisible after partial use? Can't add a second gift card? Here are all 8 root causes — for customers and merchants debugging gift card balance display at Shopify checkout.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Partial balance · Multi-currency · Multiple cards · Store-specific codes · Headless API</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's gift card system works differently from most e-commerce platforms. The checkout does not display a gift card's balance <em>before</em> the customer enters the code — it only reveals the available balance after the code is typed and applied. After applying, the amount deducted from the order is shown, but the remaining balance <em>left on the card</em> is not prominently displayed anywhere in the checkout flow.</p>
+
+  <p>This design creates predictable confusion: customers don't know how much they have before committing, partial-use balances are invisible after checkout, and multi-store or multi-currency scenarios produce unexpected numbers. There are 8 distinct failure modes, and most of them are misdiagnosed as checkout bugs when they're actually working as designed.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Gift Cards vs Discount Codes vs Store Credit</div>
+    These three are separate systems in Shopify with different UIs and different rules. <strong>Gift cards</strong> are pre-loaded monetary values applied from the checkout gift card field — they reduce the order total and can partially cover it. <strong>Discount codes</strong> are promotional reductions applied from the discount code field — they stack differently with automatic discounts. <strong>Store credit</strong> is issued per-customer account and applied automatically on Plus plans or via apps like Rise.ai. This guide covers gift card <em>balance display</em> specifically. For gift card + discount stacking conflicts, see the <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card &amp; Loyalty Stacking</a> guide.
+  </div>
+
+  <h2>Failure Mode 1: No Balance Display Before Entering the Code</h2>
+
+  <p>Shopify's hosted checkout does not show a gift card's current balance until the customer enters the code and taps "Apply." This is the expected behavior — it is not a bug. But customers who received a gift card months ago, or who partially used a gift card on a prior order, don't know how much is available before they start checkout.</p>
+
+  <h3>How customers can check balance before checkout</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Who Can Use It</th>
+          <th>How</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gift card email link</td>
+          <td>Customer</td>
+          <td>The original gift card confirmation email contains a link to a Shopify-hosted gift card page that shows the current balance including any prior deductions</td>
+        </tr>
+        <tr>
+          <td>Admin gift card lookup</td>
+          <td>Merchant</td>
+          <td>Admin → Discounts → Gift cards → search by last 4 digits or full code — shows original value, used amount, and current balance</td>
+        </tr>
+        <tr>
+          <td>Custom balance check page</td>
+          <td>Customer (if merchant built one)</td>
+          <td>Some merchants build a Liquid-based balance check form using the <code>/gift_cards/[code]</code> endpoint — requires custom theme development</td>
+        </tr>
+        <tr>
+          <td>Enter code at checkout</td>
+          <td>Customer</td>
+          <td>Apply the code at checkout — Shopify displays the balance deducted and the remaining amount to pay; this is the simplest balance reveal</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">After Purchase: Where Does the Remaining Balance Show?</div>
+    After a successful order, Shopify sends the customer a gift card usage confirmation showing the amount used and the remaining balance on the card. This is sent as part of the order confirmation email <em>only if</em> the merchant has not disabled the gift card usage section of the email template. If customers report "not knowing what's left," check Admin → Settings → Notifications → Gift card used email.
+  </div>
+
+  <h2>Failure Mode 2: Partial-Use Balance Invisible — Remaining Balance After Prior Orders</h2>
+
+  <p>A customer received a $100 gift card and spent $35 on a previous order. The remaining balance is $65. When they return to the store and apply the same code, Shopify applies up to $65 toward the new order — but the checkout doesn't explain the opening balance or why it isn't $100 anymore.</p>
+
+  <h3>Why this creates support tickets</h3>
+
+  <ul>
+    <li>Customer sees "$65 applied" and remembers they had $100 — assumes the store "took" their balance</li>
+    <li>There is no balance history visible to customers — they cannot see a transaction log of gift card use</li>
+    <li>Shopify does not send a balance-updated notification after each partial use; the only record is the original "Gift card used" email for that specific order</li>
+    <li>If the customer lost the original gift card email, they have no self-serve way to view their usage history</li>
+  </ul>
+
+  <h3>How merchants can help customers with partial-balance confusion</h3>
+
+  <ol class="steps">
+    <li>Look up the gift card in Admin → Discounts → Gift cards and share the transaction history with the customer — the admin view shows every order where the card was used</li>
+    <li>If the card is genuinely showing the wrong balance, check whether another device or person used the code — gift card codes are not account-bound</li>
+    <li>Issue a replacement gift card for the correct amount if the original was used without the customer's knowledge</li>
+  </ol>
+
+  <h2>Failure Mode 3: Multiple Gift Cards — Second Card Field Not Visible</h2>
+
+  <p>Shopify supports up to <strong>8 gift cards per order</strong>. However, the checkout UI shows only a single "Gift card or discount code" input field. After the customer applies the first gift card and the order total is not fully covered, a second gift card input field appears below the first. This progressive reveal is not documented in the UI, so customers routinely assume only one gift card is accepted and abandon checkout.</p>
+
+  <h3>The progressive reveal flow</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>What Happens</th>
+          <th>Customer Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gift card fully covers order ($50 card, $40 order)</td>
+          <td>Card applied, remaining $10 stays on card, order completes — no second field needed</td>
+          <td>Smooth — customer sees "$40 applied, $10 remaining on card"</td>
+        </tr>
+        <tr>
+          <td>Gift card partially covers order ($50 card, $80 order)</td>
+          <td>$50 applied, remaining $30 to pay — second gift card field appears below first</td>
+          <td>Confusing — customer often doesn't notice the second field or assumes they must pay $30 with a credit card</td>
+        </tr>
+        <tr>
+          <td>Customer has two gift cards both needed</td>
+          <td>Must apply first, then notice second field, then apply second</td>
+          <td>High abandonment if customer doesn't realize second field is available</td>
+        </tr>
+        <tr>
+          <td>Order total $0 after all gift cards applied</td>
+          <td>Checkout allows $0 payment — no credit card required</td>
+          <td>Works correctly — customer can complete $0 checkout without a payment method</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Reduce Multiple-Card Abandonment</div>
+    Add a small note near the gift card input — "You can apply multiple gift cards. Enter one at a time." — via a Checkout UI Extension banner (Plus) or by placing a note in the order summary section of your theme's cart page. Since customers arrive at checkout from the cart, a note on the cart page is often more effective than one in the checkout itself.
+  </div>
+
+  <h2>Failure Mode 4: Gift Card Code Works on Some Orders But Not Others — Store-Specific Restriction</h2>
+
+  <p>Shopify gift cards are <strong>store-specific</strong>. A gift card issued by one Shopify store cannot be redeemed at any other Shopify store, including stores owned by the same merchant. The code will show "Gift card not found" or "Invalid gift card" on the wrong store.</p>
+
+  <h3>Common scenarios that trigger this error</h3>
+
+  <ul>
+    <li>Merchant operates a US store and a UK store — gift cards issued on the US store are invalid on the UK store</li>
+    <li>Merchant rebranded or migrated to a new Shopify store — old gift cards from the previous store are invalid on the new one</li>
+    <li>Customer received a gift card from a brand's marketplace or wholesale portal running on a separate Shopify account</li>
+    <li>A third-party reseller sold "gift cards" that are actually promotional codes — these are discount codes, not Shopify gift card codes, and behave differently</li>
+  </ul>
+
+  <h3>Fix: cross-store gift cards require a third-party app</h3>
+
+  <p>Shopify's native gift card system has no cross-store functionality. Merchants who need gift cards valid across multiple stores must use a third-party app — such as Gift Reggie, Govalo, or a custom integration using the Admin API to issue and validate gift cards programmatically across store instances. Migrating gift card balances from an old store to a new one also requires either manual re-issuance or an API migration script.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Store Migration Warning</div>
+    If a merchant migrates their store to a new Shopify account (not just a new theme — an actual new account or store), all existing gift card codes become invalid on the new store. Shopify does not provide a built-in migration tool for gift card balances. Merchants must export their gift card list from the old store (Admin → Discounts → Gift cards → Export) and manually re-issue matching balances on the new store before the old store is deactivated.
+  </div>
+
+  <h2>Failure Mode 5: Gift Card Balance Wrong Due to Multi-Currency Display</h2>
+
+  <p>On Shopify stores using Shopify Markets or multi-currency, gift cards are issued and stored in the store's primary currency. When a customer browses in a different display currency, the gift card value displayed at checkout is converted to the display currency using Shopify's exchange rate — which may differ from the customer's expectation.</p>
+
+  <h3>How the discrepancy appears</h3>
+
+  <ul>
+    <li>Customer in the UK receives a gift card email showing $100 USD (the store's primary currency)</li>
+    <li>At checkout, they browse in GBP — the gift card field shows "£79.50" (Shopify's exchange rate)</li>
+    <li>The actual bank exchange rate when the customer made the original purchase might have been £81 — the customer sees a lower value than expected</li>
+    <li>The payment is processed in the store's primary currency — GBP display is only cosmetic; the actual charge/deduction is in USD</li>
+  </ul>
+
+  <h3>Why the gift card amount displayed might differ from what was purchased</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Cause</th>
+          <th>Example</th>
+          <th>Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Exchange rate changed between gift card issuance and redemption</td>
+          <td>$100 USD gift card issued when 1 USD = 0.85 GBP; redeemed when 1 USD = 0.79 GBP — customer sees £79 instead of £85</td>
+          <td>Inform customers in gift card emails that values display in their local currency at current exchange rates</td>
+        </tr>
+        <tr>
+          <td>Customer browsing in wrong currency for their region</td>
+          <td>Customer in Germany sees checkout in USD because Shopify Markets hasn't auto-detected their country</td>
+          <td>Ensure currency selector and Shopify Markets country detection are working</td>
+        </tr>
+        <tr>
+          <td>Gift card issued in secondary currency via Markets</td>
+          <td>Merchant issued an EUR gift card but store primary is USD — card redeems in EUR but checkout shows USD equivalent</td>
+          <td>Avoid issuing gift cards in secondary currencies unless the app or flow explicitly supports it; use primary currency only</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 6: Automatic Discount Active — Gift Card Field Appears to Conflict</h2>
+
+  <p>When a Shopify automatic discount is active sitewide, Shopify hides the discount code input field at checkout. This does <em>not</em> affect gift cards — gift cards have their own separate input field and are not blocked by the one-discount-per-order rule. However, customers frequently confuse the two fields and assume their gift card is being blocked when in fact it is the discount code field that is hidden.</p>
+
+  <h3>What the customer sees</h3>
+
+  <ul>
+    <li>Automatic discount (e.g., "SUMMER20" — 20% off all orders) is active and applying automatically</li>
+    <li>The discount code text input is hidden — Shopify removed it because a discount is already applied</li>
+    <li>Customer looks for a field to enter their gift card code and cannot find the combined "Gift card or discount code" field</li>
+    <li>Customer believes their gift card cannot be applied because the field is missing</li>
+  </ul>
+
+  <h3>What's actually happening</h3>
+
+  <p>In Shopify's new checkout (post-2023 extensibility), the gift card field and the discount code field are displayed as a single combined input labeled "Gift card or discount code." When automatic discounts hide this field, <em>both</em> gift card and discount code entry disappear. This is a known Shopify checkout UX issue — the combined field hiding is all-or-nothing.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Shopify Plus Workaround</div>
+    On Shopify Plus, you can use a Checkout UI Extension to add a separate gift card input that is always visible regardless of discount state. This requires developing and deploying a custom extension via the Shopify CLI. Non-Plus merchants have no native workaround — the only option is to ensure automatic discounts are scoped to specific products or collections so the general discount code field remains visible.
+  </div>
+
+  <h2>Failure Mode 7: Gift Card Balance Shows $0 — Card Expired or Already Fully Redeemed</h2>
+
+  <p>A gift card with a $0 remaining balance applies $0 at checkout. Shopify still shows "Gift card applied" in the order summary — with a $0 deduction — which confuses customers who expected a discount. Two causes produce $0 balance:</p>
+
+  <h3>Cause A: Gift card fully redeemed on a prior order</h3>
+
+  <p>The card was used in full on a previous order. The code is still technically valid but has no remaining balance. The customer may have the code written down or saved and assume it still has value. Admin lookup shows "Balance: $0.00 / Original: $50.00."</p>
+
+  <h3>Cause B: Merchant set an expiry date on the gift card</h3>
+
+  <p>Shopify allows merchants to configure gift card expiry dates at Admin → Settings → Gift cards → Expiration. In some regions (EU member states, UK, California), gift card expiry is legally restricted or prohibited — but Shopify allows merchants to set expiry globally regardless of jurisdiction. If a card is past its expiry date, Shopify treats it as having $0 balance. The checkout shows "Gift card applied: $0" with no indication that the card expired.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">Legal Note on Gift Card Expiry</div>
+    In California, gift cards cannot legally expire (with narrow exceptions). In the EU, many member states limit or prohibit gift card expiry. In the UK, expiry must be clearly disclosed at point of sale. If your Shopify store sells to customers in these regions and you have gift card expiry configured, expired cards that show $0 balance at checkout may create legal liability. Review your gift card terms with a legal advisor before setting expiry dates.
+  </div>
+
+  <h2>Failure Mode 8: Headless Storefront — Gift Card Balance Not Accessible via Storefront API</h2>
+
+  <p>For merchants running headless Shopify storefronts (Hydrogen, custom React/Next.js, or any build using the Storefront API instead of Shopify's hosted checkout), gift card handling requires explicit API calls — and the <strong>Storefront API does not expose gift card balance lookup</strong> for privacy reasons. A customer in a headless storefront cannot check their gift card balance via the frontend without a server-side proxy.</p>
+
+  <h3>What headless developers must know</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Operation</th>
+          <th>API to Use</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apply gift card to cart</td>
+          <td>Storefront API: <code>cartDiscountCodesUpdate</code> does NOT work for gift cards</td>
+          <td>Gift cards cannot be applied via Cart API; must use legacy Checkout API <code>checkoutGiftCardsAppend</code> mutation or route through hosted checkout</td>
+        </tr>
+        <tr>
+          <td>Check gift card balance</td>
+          <td>Admin API only — not available in Storefront API</td>
+          <td>Requires a server-side proxy that calls <code>GET /admin/api/gift_cards.json?code=[code]</code> and returns balance to the frontend; never expose Admin API keys client-side</td>
+        </tr>
+        <tr>
+          <td>Display applied gift card at checkout</td>
+          <td>Storefront API checkout object includes <code>appliedGiftCards</code> field</td>
+          <td>After applying via <code>checkoutGiftCardsAppend</code>, read <code>checkout.appliedGiftCards[].amountUsed</code> and <code>.balance</code> to display balance remaining</td>
+        </tr>
+        <tr>
+          <td>Remove an applied gift card</td>
+          <td>Storefront API: <code>checkoutGiftCardsRemove</code> mutation</td>
+          <td>Pass the gift card ID (not the code) to remove — retrieve the ID from <code>checkout.appliedGiftCards[].id</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-title">Common Headless Mistake: Using cartDiscountCodesUpdate for Gift Cards</div>
+    The Shopify Cart API's <code>cartDiscountCodesUpdate</code> mutation accepts discount codes but <em>does not accept gift card codes</em>. Gift card codes entered here are silently ignored — the cart shows no error and no applied gift card. Developers who build a combined "discount or gift card" field and route everything through <code>cartDiscountCodesUpdate</code> will see gift cards appear to apply without reducing the total. The fix is to detect gift card codes (they use a distinct format) and route them to <code>checkoutGiftCardsAppend</code> on the legacy Checkout API or handle them via your checkout completion flow.
+  </div>
+
+  <h3>Server-side gift card balance proxy (outline)</h3>
+
+  <pre>// Server endpoint: POST /api/gift-card-balance
+// Body: { code: "XXXX-XXXX-XXXX-XXXX" }
+// Never expose Admin API credentials to the frontend
+
+const response = await fetch(
+  `https://${SHOPIFY_STORE}/admin/api/2024-01/gift_cards.json`,
+  {
+    headers: {
+      'X-Shopify-Access-Token': process.env.SHOPIFY_ADMIN_TOKEN,
+      'Content-Type': 'application/json',
+    },
+    // Use search by code: POST /admin/api/gift_cards/search.json?query=code:[code]
+  }
+);
+// Return only { balance, currency } to the frontend — never the full gift card object</pre>
+
+  <h2>Diagnostic Checklist: Gift Card Balance Issues at Checkout</h2>
+
+  <p>Work through these before escalating to Shopify support:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>What to Look For</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Is the code valid on this store?</td>
+          <td>Admin → Discounts → Gift cards — does the code exist?</td>
+          <td>If not found: customer may be using a code from a different store or a rebranded/migrated store</td>
+        </tr>
+        <tr>
+          <td>What is the current balance?</td>
+          <td>Admin gift card detail — shows original value, used amount, current balance</td>
+          <td>Share transaction history with customer; if balance is wrong, check for unauthorized use</td>
+        </tr>
+        <tr>
+          <td>Is the card expired?</td>
+          <td>Admin gift card detail — shows expiry date if set</td>
+          <td>If expired: re-issue a new card manually; review expiry policy for legal compliance in customer's region</td>
+        </tr>
+        <tr>
+          <td>Is the code field visible at checkout?</td>
+          <td>Visit checkout — is the "Gift card or discount code" field showing?</td>
+          <td>If hidden: check whether an automatic discount is active; the combined field is hidden when automatic discounts apply</td>
+        </tr>
+        <tr>
+          <td>Is the customer trying to use a second gift card?</td>
+          <td>Customer has multiple codes to apply</td>
+          <td>Apply the first card, then the second input field appears below — instruct customer to wait for the second field</td>
+        </tr>
+        <tr>
+          <td>Is the balance lower than expected?</td>
+          <td>Customer expected $100 but only $65 is applying</td>
+          <td>Check transaction history — prior partial use is the most common cause</td>
+        </tr>
+        <tr>
+          <td>Multi-currency store — amount looks wrong?</td>
+          <td>Customer browsing in local currency, sees a different number than the gift card email</td>
+          <td>Explain that gift cards are stored in store currency and display value converts at current exchange rate</td>
+        </tr>
+        <tr>
+          <td>Headless storefront?</td>
+          <td>Custom React/Next.js/Hydrogen build using Storefront API</td>
+          <td>Verify gift cards are routed through <code>checkoutGiftCardsAppend</code> not <code>cartDiscountCodesUpdate</code>; add server-side balance proxy if balance check needed pre-apply</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Catch Checkout Failures Before Customers Do</h2>
+    <p>CheckPulse monitors your Shopify checkout every minute and alerts you the moment something breaks — payment errors, loading failures, or flow interruptions.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Gift Card Balance: What Shows Where</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Touchpoint</th>
+          <th>What Is Shown</th>
+          <th>What Is Not Shown</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gift card confirmation email</td>
+          <td>Original value, code, link to gift card page</td>
+          <td>Real-time remaining balance (static at issuance)</td>
+        </tr>
+        <tr>
+          <td>Shopify gift card page (via email link)</td>
+          <td>Current balance, original value, expiry date (if set)</td>
+          <td>Transaction history of where/when it was used</td>
+        </tr>
+        <tr>
+          <td>Checkout — before entering code</td>
+          <td>Nothing — field is blank</td>
+          <td>Balance — not revealed until code is entered</td>
+        </tr>
+        <tr>
+          <td>Checkout — after applying code</td>
+          <td>Amount to be deducted from this order</td>
+          <td>Remaining balance on card after this purchase</td>
+        </tr>
+        <tr>
+          <td>Order confirmation email</td>
+          <td>Amount applied from gift card, remaining balance on card</td>
+          <td>Full transaction history across all uses</td>
+        </tr>
+        <tr>
+          <td>Customer account (logged in)</td>
+          <td>Gift cards applied to past orders (per order detail)</td>
+          <td>Standalone gift card balance dashboard (not native)</td>
+        </tr>
+        <tr>
+          <td>Admin → Discounts → Gift cards</td>
+          <td>Original value, balance, expiry, all orders where used</td>
+          <td>Nothing — admin has full visibility</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Can a customer apply a gift card and a discount code at the same time?</h3>
+  <p>Yes. Gift cards and discount codes are separate systems in Shopify and do not conflict with each other. A customer can apply one discount code AND one or more gift cards to the same order. The discount code reduces the price, and the gift card covers part or all of the discounted total. The conflict that confuses merchants is with <em>automatic discounts</em> — when an automatic discount is active, the discount code field is hidden, which also hides the gift card field in Shopify's combined input UI.</p>
+
+  <h3>What happens to the remaining gift card balance after a partial-use purchase?</h3>
+  <p>The remaining balance stays on the gift card — the original code is still valid and can be used on future purchases at the same store. Shopify sends a "Gift card used" email after the order showing the amount used and the remaining balance. The card does not expire after partial use unless the merchant has set an expiry date. The customer can check the remaining balance by visiting the gift card page via the original gift card email link.</p>
+
+  <h3>Can I issue a refund back to a gift card?</h3>
+  <p>Yes. When processing a refund in Shopify Admin, merchants can choose to refund "To store credit" which issues a new gift card to the customer for the refunded amount. This is different from refunding to the original payment method. If the original order was paid partly by gift card, Shopify will refund the gift card portion back to the original gift card by default (restoring the balance) — though merchant can override this. Gift card refunds create a new gift card code, not a balance addition to the original code.</p>
+
+  <h3>Why does the gift card show "applied" but the order total didn't change?</h3>
+  <p>The most common cause is an expired gift card ($0 balance that Shopify still allows to be "applied") or a fully-redeemed card. The checkout shows "Gift card applied" regardless of whether the card had any remaining balance. Check the card in Admin → Discounts → Gift cards to confirm the current balance. If the card shows $0 balance and you believe the card should have value, check the transaction log for any unauthorized uses.</p>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <p>Combining gift cards with loyalty points, discount codes, and store credit — stacking rules, one-discount limits, and app conflicts.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working at Checkout</a>
+      <p>Gift card code rejected, showing as invalid, not applying — code format errors, plan restrictions, and Shopify Payments requirements.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards Not Delivered</a>
+      <p>Gift card email not received after purchase — delivery failures, spam filtering, and fulfillment app configuration.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-store-credit">Store Credit Not Working</a>
+      <p>Rise.ai store credit, Shopify Plus credit, guest checkout invisibility — how store credit differs from gift cards and why it fails.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <p>One-discount-per-order limit, automatic discount blocking coupon codes, gift card + discount interaction, and Plus stacking options.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <p>Refund to gift card vs original payment method, store credit issuance, exchange checkout, and refund processing timelines.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring. Know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Checkout Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

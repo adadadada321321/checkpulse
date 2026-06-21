@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Currency Converter Not Working — Markets, Exchange Rate, Multi-Currency Charge (2026)</title>
+  <meta name="description" content="Shopify checkout currency converter not working? Customers seeing EUR prices but charged in USD? Shopify Markets local currency not applying? Exchange rate wrong at checkout? 8 root causes for Shopify multi-currency checkout failures — third-party converters, Markets config, Shopify Payments requirement, and headless presentment currency." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-converter-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-converter-not-working" />
+  <meta property="og:title" content="Shopify Checkout Currency Converter Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Third-party currency converters are display-only — checkout always reverts to store currency unless Shopify Payments + Markets is configured. Exchange rate locked at session start. Gift cards stored in primary currency. 8 multi-currency checkout failure modes explained." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Currency Converter Not Working — Markets, Exchange Rate, Multi-Currency Charge",
+    "description": "Shopify's multi-currency checkout system has a critical misunderstanding at its core: third-party currency converter apps (Bold Currency, Auto Currency Switcher) change only the displayed price — they cannot change what Shopify actually charges at checkout. The only way to charge customers in a local currency is Shopify Markets with Shopify Payments active. This guide covers all 8 root causes for currency converter and multi-currency checkout failures, including Markets configuration, exchange rate discrepancies, discount code currency mismatch, gift card balance fluctuation, and headless presentment currency setup.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-currency-converter-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-21",
+    "dateModified": "2026-06-21"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify store show prices in EUR but charge customers in USD at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If your store uses a third-party currency converter app (Bold Currency Switcher, Auto Currency Switcher, BEST Currency Converter, etc.), these apps change only the displayed price on your storefront using JavaScript — they cannot change the actual Shopify checkout currency. When a customer proceeds to checkout, Shopify's checkout always uses the store's primary currency unless you have Shopify Payments enabled AND Shopify Markets configured with local currencies assigned. Third-party currency apps are display-only by design. To actually charge customers in EUR, you need: (1) Shopify Payments active as your payment gateway, (2) Shopify Markets enabled with a European market created, and (3) EUR added as a local currency for that market in Admin → Settings → Markets."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify Markets local currency not work at checkout even though I've set it up?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Markets local currency at checkout requires ALL of the following conditions to be true simultaneously: (1) Shopify Payments must be active — not Stripe, not PayPal, not any other third-party gateway; (2) the customer's market must be detected correctly (by IP geolocation, browser language, or a manual market selector); (3) a local currency must be assigned to that market in Admin → Settings → Markets → [Market name] → Currencies; (4) the currency must be one that Shopify Payments supports for your store's country. If any condition fails, checkout silently falls back to the store's primary currency with no error message shown to the customer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the amount my customer was charged different from the price shown on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There are two main reasons for a charge amount different from the displayed price: (1) Exchange rate fluctuation — Shopify locks the exchange rate at the start of the checkout session, but the rate at the time of browsing the product page may have been different. If the customer browsed products, added to cart, then checked out hours later, the locked rate may differ from what they saw. (2) Bank FX fees — even if Shopify charges exactly the right local currency amount, the customer's bank applies its own foreign exchange conversion rate and typically adds a 1-3% FX fee. The customer's bank statement may show a slightly different amount than Shopify's checkout total. This is not a Shopify bug — it is standard banking behavior for cross-currency transactions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify gift card balance look different in different currencies?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify gift cards are stored in the store's primary currency (usually USD). When a customer redeems a gift card on a store with multi-currency enabled, Shopify converts the gift card balance to the customer's local currency at the current exchange rate. This means a $100 gift card issued when 1 USD = 0.92 EUR would show as €92 at issuance. If the customer waits a month and the dollar strengthens to 1 USD = 0.87 EUR, the same $100 gift card now shows as €87 — the customer's balance appears to have 'shrunk' by €5 without any transactions. There is no way to lock a Shopify gift card's value in a non-primary currency. The only workaround is to issue gift cards denominated in the customer's local currency, which requires a separate store on Shopify Markets with that currency as the primary currency."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Currency Converter Not Working
+  </div>
+  <h1>Shopify <em>Checkout Currency Converter Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Customers seeing EUR prices but getting charged in USD? Shopify Markets currency not applying at checkout? Exchange rate showing the wrong amount? Here are all 8 root causes for Shopify multi-currency checkout failures — for merchants and developers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shopify Markets · Third-Party Converters · Exchange Rate · Shopify Payments · Headless Storefront API</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's multi-currency system has one critical misunderstanding at its core: <strong>third-party currency converter apps cannot change what Shopify actually charges at checkout</strong>. Apps like Bold Currency Switcher, Auto Currency Switcher, and BEST Currency Converter change the displayed price on your storefront using JavaScript — but when a customer clicks "Check out," Shopify's checkout always uses the store's primary currency unless you have Shopify Payments enabled with Shopify Markets properly configured.</p>
+
+  <p>The result: customers see €89 on the product page and get charged $97 at checkout. Eight distinct failure modes all produce this same visible symptom but have completely different root causes and different fixes.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Two Completely Different Multi-Currency Systems</div>
+    <strong>Display-only (third-party apps):</strong> JavaScript converts displayed storefront prices. Checkout always uses store's primary currency. Customer bank does the FX conversion. Works with any payment gateway.<br><br>
+    <strong>True multi-currency (Shopify Markets + Shopify Payments):</strong> Shopify actually charges the customer in their local currency. Requires Shopify Payments as the active gateway. Exchange rate set and locked by Shopify. No FX conversion at the bank for supported currencies.<br><br>
+    Check which system your store uses: If you have Shopify Payments active and Markets configured with local currencies — you have true multi-currency. If you have a third-party app installed and use Stripe/PayPal/Braintree — you have display-only.
+  </div>
+
+  <h2>Failure Mode 1: Third-Party Currency Converter Apps Are Display-Only — Checkout Always Reverts to Store Currency</h2>
+
+  <p>The most common multi-currency complaint: "My store shows prices in EUR/GBP/AUD but customers get charged in USD at checkout." This is the expected behavior of every third-party currency converter app on the Shopify App Store.</p>
+
+  <h3>Why third-party currency apps cannot change the checkout currency</h3>
+
+  <p>Shopify's checkout is a sandboxed environment hosted on Shopify's infrastructure. Theme JavaScript does not execute inside the checkout. Third-party currency apps work by injecting a script into your storefront theme that replaces displayed price text with converted values. When the customer lands on the checkout page, they have left the storefront — the app's script no longer runs. Checkout reads the actual Shopify prices in the store's primary currency.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>App</th>
+          <th>What It Changes</th>
+          <th>What Checkout Uses</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Bold Currency Switcher</td>
+          <td>Displayed price on storefront only</td>
+          <td>Store primary currency</td>
+        </tr>
+        <tr>
+          <td>Auto Currency Switcher</td>
+          <td>Displayed price on storefront only</td>
+          <td>Store primary currency</td>
+        </tr>
+        <tr>
+          <td>BEST Currency Converter</td>
+          <td>Displayed price on storefront only</td>
+          <td>Store primary currency</td>
+        </tr>
+        <tr>
+          <td>Shopify Markets + Shopify Payments</td>
+          <td>Actual checkout price + storefront display</td>
+          <td>Local currency (true multi-currency)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What to do</h3>
+
+  <ul>
+    <li>If you need to actually charge customers in local currencies: migrate to Shopify Markets with Shopify Payments (see Failure Mode 2)</li>
+    <li>If display-only is acceptable: ensure the currency app shows a clear disclaimer at checkout — something like "Prices are for reference only. You will be charged in USD." Many merchants add this via the checkout's "Additional policies" field in Admin → Settings → Checkout</li>
+    <li>If you use Shopify Payments but are still seeing display-only behavior: your Markets configuration may be incomplete (see Failure Mode 3)</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Consumer Protection Risk</div>
+    In the EU, UK, and Australia, showing prices in a local currency and then charging in a different currency without clear disclosure can violate consumer protection regulations. The EU's Omnibus Directive and the UK's Consumer Rights Act both require that the final price shown to the customer matches what they are charged. If you operate a display-only currency converter without a disclosure, this creates legal risk in these markets.
+  </div>
+
+  <h2>Failure Mode 2: Shopify Markets Local Currency Requires Shopify Payments — Third-Party Gateway Kills It</h2>
+
+  <p>The second most common scenario: a merchant enables Shopify Markets, configures local currencies for each market, and sees prices in EUR on the storefront — but checkout still charges in USD. The cause is almost always the payment gateway.</p>
+
+  <h3>Shopify Payments is mandatory for local currency charging</h3>
+
+  <p>Shopify Markets can display local currencies on the storefront without Shopify Payments. But the ability to <em>charge</em> in those local currencies — so that the customer's bank receives a EUR transaction, not a USD transaction — requires Shopify Payments to be the active payment method processing the transaction. Stripe, PayPal, Braintree, Authorize.net, and every other third-party gateway always settle in the store's primary currency.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Gateway</th>
+          <th>Markets Storefront Display</th>
+          <th>Actual Charge Currency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shopify Payments (active)</td>
+          <td><span class="tag green">Local currency</span></td>
+          <td><span class="tag green">Local currency</span></td>
+        </tr>
+        <tr>
+          <td>Shopify Payments (pending/suspended)</td>
+          <td>Local currency display only</td>
+          <td><span class="tag red">Falls back to primary currency</span></td>
+        </tr>
+        <tr>
+          <td>Stripe</td>
+          <td>Local currency display only</td>
+          <td><span class="tag red">Store primary currency only</span></td>
+        </tr>
+        <tr>
+          <td>PayPal</td>
+          <td>Local currency display only</td>
+          <td><span class="tag red">Store primary currency only</span></td>
+        </tr>
+        <tr>
+          <td>Braintree / Adyen / other</td>
+          <td>Local currency display only</td>
+          <td><span class="tag red">Store primary currency only</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Diagnosis steps</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Payments</li>
+    <li>Check if Shopify Payments shows status "Active" — not "Pending", "Paused", or "Suspended"</li>
+    <li>If Shopify Payments is not available in your country, you cannot use Shopify Markets for true local currency charging — display-only via a third-party app is your only option</li>
+    <li>If Shopify Payments is active but local currencies still aren't charging: continue to Failure Mode 3 to check Markets configuration</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Countries Where Shopify Payments Is Available (2026)</div>
+    Shopify Payments is available in: Australia, Austria, Belgium, Canada, Czech Republic, Denmark, Finland, France, Germany, Hong Kong SAR, Ireland, Italy, Japan, Netherlands, New Zealand, Portugal, Romania, Singapore, Spain, Sweden, Switzerland, United Kingdom, United States. If your store is based outside these countries, you cannot use Shopify Payments and true multi-currency charging is not available through Shopify's native system.
+  </div>
+
+  <h2>Failure Mode 3: Currency Not Assigned to the Market in Markets Configuration</h2>
+
+  <p>Shopify Markets does not automatically assign local currencies when you create a market. Many merchants create a "Europe" market or "UK" market but skip the step of adding local currencies — so the market exists but customers from those regions are still shown and charged in the primary currency.</p>
+
+  <h3>Complete Markets currency setup checklist</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Markets</li>
+    <li>Click on the market you want to configure (e.g., "Europe" or "United Kingdom")</li>
+    <li>Under the "Products and pricing" section, find "Currencies"</li>
+    <li>Click "Add currencies" and add the local currency (EUR, GBP, etc.) — this step is separate from creating the market</li>
+    <li>Set the exchange rate: "Automatic" uses Shopify's daily rate, or set a manual rate with a fixed markup (e.g., 5% above spot rate to protect against fluctuation)</li>
+    <li>Optionally set rounding rules: e.g., round to nearest .99 or .00 for price aesthetic consistency</li>
+    <li>Verify the currency is now shown on the market settings page under the assigned currencies list</li>
+    <li>Test by visiting the storefront in an Incognito window with a VPN set to the target country — confirm both storefront price display AND checkout currency</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Market Detection — How Shopify Assigns Customers to Markets</div>
+    Shopify assigns customers to markets based on: (1) IP geolocation (automatic, highest priority), (2) browser language/locale headers, (3) manual market selector if you've added one to your theme. If a customer uses a VPN with a US IP address while physically in Germany, they will be placed in the US market and shown USD prices. Shopify does not have a way to override IP-based detection on the customer's side — you can only add a manual currency/market selector as a fallback.
+  </div>
+
+  <h2>Failure Mode 4: Customer Charged Different Amount Than Displayed — Exchange Rate Fluctuation + Bank FX Fees</h2>
+
+  <p>Even with Shopify Payments and Shopify Markets correctly configured, customers sometimes report being charged a different amount than what Shopify displayed. This is not a bug — it is the combined effect of two separate currency conversion steps.</p>
+
+  <h3>The two conversion steps that cause the discrepancy</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>When It Happens</th>
+          <th>Who Controls It</th>
+          <th>Customer Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shopify exchange rate lock</td>
+          <td>When checkout session starts</td>
+          <td>Shopify (daily update)</td>
+          <td>Rate may differ from when customer viewed product — browsed at 1.08, checked out at 1.06</td>
+        </tr>
+        <tr>
+          <td>Bank FX conversion fee</td>
+          <td>When bank processes the transaction</td>
+          <td>Customer's bank</td>
+          <td>Bank adds 1–3% above interbank rate; customer sees higher amount on bank statement than on Shopify checkout</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Shopify's exchange rate behavior</h3>
+
+  <p>Shopify updates exchange rates daily. When a customer enters checkout, Shopify locks the exchange rate for that session. This rate is held for the duration of the checkout session (10–15 minutes of inactivity before session expiry). If the customer browses for an hour, adds items to cart, then comes back the next day and completes checkout, they will get the rate from when their current checkout session started — not from when they first viewed the product.</p>
+
+  <p>For merchants using a manual exchange rate with a fixed markup (e.g., 5% above spot), the displayed price in local currency reflects that markup but Shopify's actual settlement rate from the payment processor may differ slightly from the spot rate on any given day.</p>
+
+  <h3>What to communicate to customers</h3>
+
+  <p>For display-only converter stores: include a clear note that prices shown are approximate and the final charge is in USD (or your primary currency). For Shopify Markets stores with true multi-currency: note that the amount on the bank statement may appear slightly different from the checkout total due to the customer's bank's FX processing fee.</p>
+
+  <h2>Failure Mode 5: Currency Switch Mid-Session Resets Cart Pricing</h2>
+
+  <p>When a customer switches currency after items are already in the cart, Shopify reprices the cart in the new currency using the current exchange rate. This creates visible price changes that confuse customers — and with display-only currency apps, it creates a worse problem.</p>
+
+  <h3>Display-only app + cart currency mismatch</h3>
+
+  <p>A customer adds a product to cart while viewing "€89" (displayed by the converter app). They then switch to GBP. The converter app now shows "£76." The customer proceeds to checkout and sees $97 — the original USD price. Three different numbers for the same product in one session.</p>
+
+  <p>With true Shopify Markets multi-currency, the cart is re-priced in the new currency at the current market rate when the customer switches. The cart total changes. This is accurate — but if the EUR price was €89.00 and the GBP price at the current rate is £76.43, the customer may assume the price changed and contact support.</p>
+
+  <h3>Preventing mid-session currency confusion</h3>
+
+  <ul>
+    <li>If you have Shopify Markets: add a currency selector to the storefront header that sets the market context before the customer starts shopping — not after items are in the cart</li>
+    <li>Consider using Shopify's <code>country_selector</code> feature which sets both the market and currency simultaneously</li>
+    <li>For display-only apps: some apps offer a "lock currency to cart" option that prevents switching after cart add — check your app's settings</li>
+    <li>If customers are confused by mid-session repricing: a clear tooltip on the currency selector explaining "Switching currency recalculates prices at the current exchange rate" reduces support tickets</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">How Shopify Markets Handles Currency Switching</div>
+    When a customer switches market (which triggers a currency switch in Shopify Markets), Shopify creates a new checkout context. The cart is preserved but line item prices are recalculated in the new currency using the current rate for that market. Any discounts, automatic discounts, or shipping rates that applied to the previous market context are re-evaluated against the new market's rules. This means a free shipping threshold set at "over $75 USD" may or may not trigger in the EUR market if the threshold is configured separately per market.
+  </div>
+
+  <h2>Failure Mode 6: Fixed-Amount Discount Codes Apply in Primary Currency, Not Local Currency Equivalent</h2>
+
+  <p>Discount codes in Shopify are created in the store's primary currency. When used on a multi-currency store, fixed-amount discounts behave unexpectedly: a "$20 off" code gives €20 off to a European customer — not the EUR equivalent of $20.</p>
+
+  <h3>Currency-specific discount behavior</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Discount Type</th>
+          <th>Multi-Currency Behavior</th>
+          <th>Issue?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Percentage (e.g., 20% off)</td>
+          <td>Applied to local currency price — works correctly across currencies</td>
+          <td><span class="tag green">No issue</span></td>
+        </tr>
+        <tr>
+          <td>Fixed amount (e.g., $20 off)</td>
+          <td>$20 deducted from the amount in the store's primary currency — if store is USD, EUR customer gets €20 off regardless of the USD/EUR rate</td>
+          <td><span class="tag yellow">Causes confusion</span></td>
+        </tr>
+        <tr>
+          <td>Free shipping</td>
+          <td>Applied correctly to the local currency checkout — no issue</td>
+          <td><span class="tag green">No issue</span></td>
+        </tr>
+        <tr>
+          <td>Buy X get Y (BXGY)</td>
+          <td>Works correctly — product quantity logic is currency-independent</td>
+          <td><span class="tag green">No issue</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Example of the fixed-amount problem</h3>
+
+  <p>A merchant creates a "$20 off orders over $100" discount code for a US promotion. They send this code to their European email list. A European customer with a €95 order (≈ $103) applies the code. The discount deducts €20 from their order — reducing a €95 cart to €75. The merchant intended to give $20 USD off (≈ €18.40 at the current rate), but the customer received €20 off — 8.6% more value than intended. At scale this is a meaningful revenue impact.</p>
+
+  <h3>Fix for fixed-amount discount codes on multi-currency stores</h3>
+
+  <ul>
+    <li>Prefer percentage discounts on multi-currency stores — they are inherently currency-neutral</li>
+    <li>For market-specific promotions, use Shopify Markets' ability to set per-market prices and create market-specific discount codes via the Shopify Admin (available on Shopify plan and above with Markets Pro on some plans)</li>
+    <li>For Shopify Plus, use Shopify Functions to create custom discount logic that applies per-currency fixed-amount discounts correctly</li>
+    <li>If you must use fixed-amount codes globally: document the expected behavior so support staff can explain the discrepancy to customers who calculate the discount differently</li>
+  </ul>
+
+  <h2>Failure Mode 7: Gift Card Balance Fluctuates in Local Currency — Stored in Primary Currency</h2>
+
+  <p>Shopify gift cards are stored in the store's primary currency. When a customer redeems a gift card on a multi-currency store, Shopify converts the gift card balance to the local currency at the current exchange rate. This means the displayed gift card balance changes every day with the exchange rate — a $100 gift card may show as €92 one month and €87 the next.</p>
+
+  <h3>Specific scenarios that confuse customers</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>What Customer Sees</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gift card issued at $100 USD when rate was 1.08</td>
+          <td>€92.59 at issuance</td>
+          <td>$100 ÷ 1.08 = €92.59</td>
+        </tr>
+        <tr>
+          <td>Same card checked 6 months later, rate now 1.15</td>
+          <td>€86.96 remaining — no purchases made</td>
+          <td>$100 ÷ 1.15 = €86.96 — "balance shrank" by €5.63</td>
+        </tr>
+        <tr>
+          <td>Partial use — spent $40, remaining $60</td>
+          <td>Balance shown in EUR recalculated at today's rate</td>
+          <td>$60 at current rate — may differ from remaining at rate when card was issued</td>
+        </tr>
+        <tr>
+          <td>Gift card email from sender says "€100 gift card"</td>
+          <td>Displays less than €100 at checkout if rate changed</td>
+          <td>Shopify issued a $109 card (rate at issuance), now converts to €100 at new rate — accurate but confusing</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What merchants can do</h3>
+
+  <ul>
+    <li>There is no way to lock a Shopify gift card's value in a non-primary currency — this is a Shopify platform limitation</li>
+    <li>For gift card products intended for European customers: set the gift card product's price in the European market using Shopify Markets per-market pricing — but the underlying stored value is still in primary currency</li>
+    <li>The most reliable fix is to issue gift cards in the customer's currency by setting up a separate Shopify store for each major currency market (complex, but eliminates the fluctuation entirely)</li>
+    <li>For support purposes: train your team to explain that gift card balances are stored in USD (or your primary currency) and display in local currency at the current rate</li>
+  </ul>
+
+  <h2>Failure Mode 8: Headless Storefront API — Missing presentmentCurrencyCode / countryCode on Cart</h2>
+
+  <p>In headless Shopify storefronts (Hydrogen, Next.js Commerce, custom React/Vue frontends), multi-currency requires explicit configuration in every Storefront API call. Many headless implementations fetch prices and display them in local currency using JavaScript conversion — then create the Shopify cart without passing the customer's country or currency context. This produces the same display-vs-charge discrepancy as third-party converter apps.</p>
+
+  <h3>What must be set for true headless multi-currency</h3>
+
+  <p>The Storefront API uses <code>buyerIdentity.countryCode</code> on the cart to determine the presentment currency. When a cart is created with a country code, Shopify returns prices in that country's market currency. Without it, all prices return in the store's primary currency.</p>
+
+  <pre>mutation CartCreate($input: CartInput!) {
+  cartCreate(input: $input) {
+    cart {
+      id
+      cost {
+        totalAmount {
+          amount
+          currencyCode   # Will be EUR if buyerIdentity.countryCode = "DE"
+        }
+      }
+    }
+  }
+}
+
+# Input with country code:
+{
+  "input": {
+    "buyerIdentity": {
+      "countryCode": "DE"   # Required for EUR presentment
+    },
+    "lines": [
+      {
+        "merchandiseId": "gid://shopify/ProductVariant/...",
+        "quantity": 1
+      }
+    ]
+  }
+}</pre>
+
+  <h3>Common headless multi-currency mistakes</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mistake</th>
+          <th>Symptom</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Prices fetched via <code>products</code> query without <code>@inContext(country: DE)</code></td>
+          <td>Product pages show USD prices — currency converter app overrides with JS</td>
+          <td>Add <code>@inContext(country: $countryCode)</code> directive to all product price queries</td>
+        </tr>
+        <tr>
+          <td>Cart created without <code>buyerIdentity.countryCode</code></td>
+          <td>Storefront shows EUR, cart shows USD, checkout charges USD</td>
+          <td>Pass <code>buyerIdentity: { countryCode: "DE" }</code> in <code>cartCreate</code> mutation</td>
+        </tr>
+        <tr>
+          <td><code>cartBuyerIdentityUpdate</code> not called when customer changes country/currency</td>
+          <td>Cart currency stuck at initial country, price doesn't update on currency switch</td>
+          <td>Call <code>cartBuyerIdentityUpdate</code> mutation with new <code>countryCode</code> when customer changes market</td>
+        </tr>
+        <tr>
+          <td>Reading <code>priceV2</code> instead of <code>presentmentPrices</code> on cart lines</td>
+          <td>Cart totals in USD even when country code set correctly</td>
+          <td>Use <code>cost.totalAmount</code> and <code>cost.subtotalAmount</code> on the cart object — these reflect the presentment currency</td>
+        </tr>
+        <tr>
+          <td>Checkout URL opened without preserving cart context</td>
+          <td>Cart currency set to EUR, checkout opens and reverts to USD</td>
+          <td>Ensure the cart's <code>checkoutUrl</code> is used directly — do not reconstruct a checkout URL manually</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Verifying headless multi-currency is working end-to-end</h3>
+
+  <ol class="steps">
+    <li>After creating a cart with <code>buyerIdentity.countryCode: "DE"</code>, query the cart and check <code>cost.totalAmount.currencyCode</code> — it should return "EUR", not "USD"</li>
+    <li>Use the cart's <code>checkoutUrl</code> field to redirect to checkout — verify the checkout page shows prices in EUR</li>
+    <li>Complete a test order with a test card — verify the order in Admin shows the EUR amount in the order details</li>
+    <li>Check Admin → Orders → the specific order: if the order currency field shows EUR and the order total is in EUR, true multi-currency is working; if it shows USD, the cart country code was not set</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Hydrogen (Shopify's Official Headless Framework) Multi-Currency</div>
+    Shopify's Hydrogen framework handles multi-currency via the <code>I18nLocale</code> type and the <code>countries</code> config in <code>app/lib/context.ts</code>. The <code>storefront.query</code> utility automatically appends <code>@inContext</code> directives when a country is set in the locale context. If you are building on Hydrogen and multi-currency is not working, check that the locale is being set from the URL path or subdomain, and that <code>cartCreate</code> is passing <code>buyerIdentity</code> from the session. The Hydrogen demo store source code on GitHub is a reliable reference implementation.
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Checkout Charging the Right Currency?</h2>
+    <p>CheckPulse monitors your Shopify checkout end-to-end — including currency, payment methods, and shipping rates — and alerts you the moment something breaks.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Quick Diagnosis: Shopify Multi-Currency Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>Where to Verify</th>
+          <th>Expected Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Payment gateway is Shopify Payments</td>
+          <td>Admin → Settings → Payments</td>
+          <td>"Active" status — not Stripe, PayPal, or other third-party</td>
+        </tr>
+        <tr>
+          <td>Shopify Markets is enabled</td>
+          <td>Admin → Settings → Markets</td>
+          <td>At least one non-primary market exists with countries assigned</td>
+        </tr>
+        <tr>
+          <td>Local currency added to each market</td>
+          <td>Admin → Settings → Markets → [Market] → Currencies</td>
+          <td>EUR, GBP, etc. listed under the market's currencies section</td>
+        </tr>
+        <tr>
+          <td>Exchange rate set</td>
+          <td>Admin → Settings → Markets → [Market] → Currencies</td>
+          <td>Automatic (daily update) or manual rate with optional markup</td>
+        </tr>
+        <tr>
+          <td>Checkout test with VPN</td>
+          <td>Incognito + VPN set to target country</td>
+          <td>Both storefront AND checkout show local currency</td>
+        </tr>
+        <tr>
+          <td>Order created shows local currency</td>
+          <td>Admin → Orders → [Test order] → Order currency</td>
+          <td>Order currency field shows EUR/GBP, not USD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Can I use Stripe for payments and still charge customers in local currencies?</h3>
+  <p>No. Shopify's native multi-currency charging (where the customer is actually billed in EUR, GBP, etc.) only works with Shopify Payments. If you use Stripe as your payment gateway through Shopify, all charges settle in your store's primary currency — the EUR price shown on the storefront is a display conversion only. If you want to use Stripe and support true local currency charging, you would need to build a custom headless checkout directly on Stripe's API (outside of Shopify's checkout), which is a significant engineering undertaking and loses Shopify's fraud protection, order management, and native checkout features.</p>
+
+  <h3>Why does my Markets currency work for some products but not others?</h3>
+  <p>If some products show and charge correctly in EUR while others revert to USD, the most likely cause is that those specific products have product-level pricing overrides set for the market. In Shopify Markets, you can set per-market prices for individual products (Admin → Products → [Product] → Pricing → Markets-specific pricing). If a product-level override is set in USD instead of EUR, that product will use the USD override rather than the market's automatic currency conversion. Check each affected product for market-specific pricing overrides and either remove them (to use automatic conversion) or update them to the correct local currency amounts.</p>
+
+  <h3>Why does the currency shown in checkout not match the currency in the confirmation email?</h3>
+  <p>This usually happens when the order is captured in one currency but the email template is not configured for multi-currency display. Shopify's default order confirmation email uses <code>{{ order.total_price | money }}</code> which should display in the order's currency. If your email template uses a custom money filter or hardcodes a currency symbol (e.g., <code>$</code>), it will show USD even on EUR orders. Check your notification email templates in Admin → Settings → Notifications → Order confirmation and ensure the Liquid money filters are not overriding the currency symbol.</p>
+
+  <h3>Can I show one currency in all countries but charge in local currency?</h3>
+  <p>No. With Shopify Markets and Shopify Payments, the currency displayed to the customer is the same currency they are charged in — Shopify does not support showing USD prices but charging in EUR. If you want all customers to see prices in USD regardless of location (for simplicity or brand consistency), you should use your primary currency as USD and not add local currencies to your markets. Customers from EUR countries will see USD prices and their bank will convert at the bank's FX rate when processing the charge.</p>
+
+  <h2>Related Checkout Issues</h2>
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <p>Shopify Markets checkout not working, international checkout error, language and locale configuration.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <p>iDEAL, OXXO, Bancontact, PIX, Konbini not showing — local payment method configuration and Markets.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <p>Wrong tax rate, EU VAT not removing for B2B, nexus not configured, digital product tax rules.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <p>EU B2B VAT number not removing tax, VIES validation, UK reverse charge, legacy vs new EU VAT.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <p>Gift card balance not visible, partial payment not applying, multi-currency gift card balance discrepancy.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <p>Authorization hold, FX conversion causing unexpected charge amount, bank statement vs checkout amount.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring. Know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-gift-card-not-working-at-checkout">Gift Card Not Working</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-store-password-protected">Store Password Protected</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-tax-error">Tax Error</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-headless-checkout-error">Headless Checkout Error</a>
+      <a href="./shopify-checkout-performance-revenue">Checkout Performance &amp; Revenue</a>
+      <a href="./shopify-checkout-error-codes">Checkout Error Codes</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Order Confirmation Email Not Sending — Notification Disabled, Spam, Klaviyo Conflict, Headless (2026)</title>
+  <meta name="description" content="Shopify order confirmation email not received? 8 root causes: notification toggled off, shared sender domain going to spam, Apple Hide My Email bounce, Klaviyo double-send or zero-send, POS receipt vs order confirmation, subscription renewals with no email, Liquid template error, headless checkout not triggering notification." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation-email-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation-email-not-working" />
+  <meta property="og:title" content="Shopify Order Confirmation Email Not Sending — 8 Causes Explained" />
+  <meta property="og:description" content="Shopify order confirmation email not received? 8 root causes: notification disabled, spam delivery, Apple Hide My Email bounce, Klaviyo conflict sending zero or two emails, POS orders using Receipt not Order Confirmation, subscription renewals with no automatic email, Liquid template errors causing silent failures, and headless storefronts that skip Shopify's notification system entirely." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Order Confirmation Email Not Sending — Notification Disabled, Spam, Klaviyo Conflict, Headless",
+    "description": "Shopify's order confirmation email is a separate system from the order status page. The email fires via Shopify's notification engine at the moment an order is created — completely independently from what the customer sees on the thank-you page. It fails for 8 distinct reasons: the notification toggle is off, the shared mail.shopify.com sender domain is routed to spam, the customer typed a wrong or Apple-relay email address, Klaviyo creates a double-send or zero-send conflict, POS orders use a Receipt template not the Order Confirmation template, subscription renewal charges don't trigger the standard notification, a Liquid syntax error in a customized template causes silent failure, or a headless checkout creates the order outside Shopify's standard flow. This guide covers all 8 root causes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-order-confirmation-email-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify order confirmation email not being sent to customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The most common causes are: (1) the Order confirmation notification is toggled off in Admin → Settings → Notifications → Order confirmation, (2) the email is being delivered to the customer's spam folder because Shopify sends from a shared mail.shopify.com domain, (3) the customer typed a wrong email address at checkout and Shopify sent to that incorrect address, or (4) a Klaviyo Placed Order flow is enabled at the same time as Shopify's native notification, causing conflicts. Check the notification toggle first, then look at Admin → Orders → [order] → Timeline to see if Shopify recorded a notification send attempt."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my POS order not send an order confirmation email in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "POS orders use a completely different notification template called 'POS Receipt', not the 'Order confirmation' template. Go to Admin → Settings → Notifications → Point of sale → Receipt to manage the POS email. The Order confirmation template only fires for online checkout orders. If your POS staff tap 'Mark as paid' without entering the customer's email, no receipt is sent at all — the email address must be captured at the POS terminal before payment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do my subscription renewal orders not send a confirmation email?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Subscription renewal charges (via Recharge, Bold Subscriptions, Loop, Skio) create orders in Shopify through the subscription app's billing engine, not through the standard checkout flow. The 'Charge success' email for renewals must be configured separately inside the subscription app's notification settings — it is not the same as Shopify's native Order confirmation email and is not enabled by default. Customers who received a confirmation email for their first order often expect the same for renewals but get nothing, leading to unrecognized charge disputes."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Order Confirmation Email Not Working
+  </div>
+  <h1>Shopify <em>Order Confirmation Email Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Customers not receiving order confirmation emails? Notification sent but going to spam? POS orders sending nothing? Subscription renewals silent? Here are all 8 root causes of Shopify order confirmation email failures — for merchants, developers, and headless teams.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Notification Toggle · Spam · Klaviyo Conflict · POS Receipt · Subscription Renewals · Template Error · Headless</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's order confirmation email is a completely separate system from the order status page (the thank-you page at <code>/thank_you</code>). The email fires through Shopify's notification engine the moment an order is created — independently from anything the customer sees on screen. A customer can land on the thank-you page successfully while receiving zero emails, and vice versa.</p>
+
+  <p>The most widely misunderstood fact: Shopify's notification system does not bounce or alert the merchant when a confirmation email fails. If the notification is disabled, if the customer typed the wrong email, or if a Liquid template error breaks the template — Shopify sends nothing and records nothing visible in the storefront. The only audit trail is the order Timeline in Admin.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Silent Failure Pattern</div>
+    <p>Order confirmation email failures don't trigger any alert in Shopify Admin. A customer who didn't receive their confirmation will contact support — the merchant then checks the order and sees "Order confirmation sent" in the Timeline even though the email went to spam or was never delivered. Timeline records the send attempt, not the delivery.</p>
+  </div>
+
+  <h2>Failure Mode 1 — Order confirmation notification is disabled</h2>
+
+  <p>Shopify's order confirmation is a notification toggle that can be switched off. When it's off, no confirmation email is sent for any order — no error, no warning, nothing in the storefront UI.</p>
+
+  <p>Where to check: <strong>Admin → Settings → Notifications → Order confirmation</strong>. The toggle must be set to "Send" (green). It defaults to on for new stores, but can be accidentally disabled during bulk notification management.</p>
+
+  <p>Common reasons merchants find it disabled:</p>
+  <ul>
+    <li>Staff disabled it while testing ("I'll re-enable it later")</li>
+    <li>Shopify plan downgrade or store transfer that reset notification settings</li>
+    <li>Integration with a third-party ESP (Klaviyo, Mailchimp) where someone assumed the app handles it and disabled the native notification — then the app's flow broke</li>
+    <li>Developer disabled it during a theme migration and forgot to re-enable</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Resend a Missed Confirmation</div>
+    <p>Admin → Orders → [order] → More actions → Resend order confirmation. This manually triggers the notification for that specific order. For bulk resends (many orders affected), you'll need a third-party app or the Admin API: <code>POST /admin/api/2024-01/orders/{id}/send_invoice.json</code> — note this sends the "invoice" email, not the exact same template as order confirmation; use a custom workflow for exact duplicates.</p>
+  </div>
+
+  <h2>Failure Mode 2 — Email delivered to spam or Gmail Promotions tab</h2>
+
+  <p>Shopify sends order confirmation emails from its shared sending domain (<code>mail.shopify.com</code> or <code>no-reply@shopify.com</code>). Because thousands of Shopify stores share this domain, ISPs see high email volume from it and route some stores' emails to spam — especially newer stores with no sending history.</p>
+
+  <p>The Gmail Promotions tab is a softer version of this: the email was delivered, but the customer didn't see it because Gmail categorized it as promotional. Most customers check Primary and Spam but not Promotions.</p>
+
+  <p>Fix: configure a custom sender email address for your store:</p>
+  <ol class="steps">
+    <li><span>Admin → Settings → Notifications → Sender email → enter your business email address (e.g., orders@yourdomain.com)</span></li>
+    <li><span>Set up SPF, DKIM, and DMARC records for your domain via your DNS provider — Shopify provides the required DNS values after you enter your email</span></li>
+    <li><span>Verify the domain in Shopify — the status should show "Authenticated"</span></li>
+    <li><span>Send a test order to confirm emails arrive in Primary inbox, not spam</span></li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Google Workspace Note</div>
+    <p>If your business email is hosted on Google Workspace (Gmail for business), you can use that address as your Shopify sender. Emails sent from an authenticated business domain (e.g., orders@yourstore.com) consistently land in inbox rather than spam — and customers recognize your brand name instead of "Shopify".</p>
+  </div>
+
+  <p>Additional causes of spam delivery:</p>
+  <ul>
+    <li>Store name contains words that trigger spam filters (words like "free", "discount", "winner")</li>
+    <li>Order confirmation template was customized to include promotional content, which increases spam score</li>
+    <li>Customer's mail server has a strict allowlist that blocks unfamiliar senders</li>
+    <li>Corporate email accounts (Outlook 365, corporate Exchange) often have aggressive spam filtering that blocks external retail mail</li>
+  </ul>
+
+  <h2>Failure Mode 3 — Customer's email address is wrong or undeliverable</h2>
+
+  <p>Shopify sends the order confirmation to exactly the email the customer entered at the contact step of checkout. There is no bounce notification to the merchant — if the email bounces, the order Timeline still shows "Order confirmation sent" because Shopify handed it off to its mail delivery service. Delivery failure is silent.</p>
+
+  <p>Common email address issues:</p>
+  <ul>
+    <li><strong>Typo at checkout:</strong> Customer typed <code>gmai.com</code> instead of <code>gmail.com</code>, or transposed letters in their own address. Shopify validates basic email format (<code>@</code> symbol, domain part present) but does not verify the address is real.</li>
+    <li><strong>Apple "Hide My Email":</strong> iOS customers using Sign in with Apple may use a relay address like <code>abc123@privaterelay.appleid.com</code>. Apple forwards emails sent to this address to the customer's real inbox — but some corporate email servers and spam filters block or delay Apple relay addresses. If the customer uses a different device or signs in differently at checkout, the relay address may not match their Apple ID.</li>
+    <li><strong>Disposable email addresses:</strong> Services like Mailinator, Guerrilla Mail, and Temp Mail create addresses that expire after minutes or hours. A confirmation sent to a disposable address bounces silently after expiry.</li>
+    <li><strong>Plus addressing stripped:</strong> Some older email integrations strip plus addressing (e.g., <code>user+shopify@gmail.com</code> is a valid Gmail address that delivers to <code>user@gmail.com</code>, but some systems treat it as invalid).</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">How to Fix a Wrong Email on an Existing Order</div>
+    <p>Admin → Orders → [order] → Customer section → Edit → update the email address → Save. Then Admin → Orders → [order] → More actions → Resend order confirmation. This sends the confirmation to the corrected address.</p>
+  </div>
+
+  <h2>Failure Mode 4 — Klaviyo / ESP conflict creates double-send or zero-send</h2>
+
+  <p>Many stores use Klaviyo or another email service provider (Mailchimp, Drip, Omnisend) alongside Shopify's native notifications. This creates two common failure patterns:</p>
+
+  <h3>Double-send (two confirmation emails)</h3>
+  <p>Both Shopify's native "Order confirmation" notification AND a Klaviyo "Placed Order" flow are active. The customer receives two nearly identical emails minutes apart. Confusing to the customer, increases unsubscribe rates.</p>
+
+  <h3>Zero-send (no confirmation email)</h3>
+  <p>The merchant disabled Shopify's native notification because they believed Klaviyo would handle it — but the Klaviyo "Placed Order" flow was paused, the list was filtered incorrectly, or the Klaviyo-Shopify integration lost connection. Result: no confirmation email for any order.</p>
+
+  <p>How to diagnose:</p>
+  <ol class="steps">
+    <li><span>Check Admin → Settings → Notifications → Order confirmation → is it set to "Send"?</span></li>
+    <li><span>Check Klaviyo → Flows → search "Placed Order" → is the flow Active (not Draft or Manual)?</span></li>
+    <li><span>In Klaviyo → Flows → Placed Order → check "Recent activity" to see if recent orders triggered the flow</span></li>
+    <li><span>Check Klaviyo → Integrations → Shopify → confirm the integration is connected and last synced recently</span></li>
+    <li><span>Place a test order and watch both Shopify's notification timeline AND Klaviyo's activity feed</span></li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Pick One System, Not Both</div>
+    <p>The cleanest architecture is to disable Shopify's native Order confirmation notification and use Klaviyo's "Placed Order" flow exclusively — OR keep Shopify's native notification and don't build a Klaviyo order confirmation flow. Running both simultaneously requires careful conditional logic in Klaviyo to avoid duplicate sends (e.g., suppress the Klaviyo flow if Shopify already sent the notification).</p>
+  </div>
+
+  <h2>Failure Mode 5 — POS orders use "Receipt" not "Order confirmation"</h2>
+
+  <p>When staff complete a sale on Shopify POS, the notification sent to the customer is not the "Order confirmation" template. It is the "POS Receipt" — a completely separate template managed in a completely separate Admin location.</p>
+
+  <p>Where they live:</p>
+  <ul>
+    <li><strong>Online checkout orders:</strong> Admin → Settings → Notifications → Orders section → "Order confirmation"</li>
+    <li><strong>POS orders:</strong> Admin → Settings → Notifications → Point of sale section → "Receipt"</li>
+  </ul>
+
+  <p>Merchants who edit or disable the "Order confirmation" template expecting it to affect POS orders see no change — because POS uses a different template entirely.</p>
+
+  <p>Additional POS email issues:</p>
+  <ul>
+    <li>If the staff member does not enter the customer's email address at the POS terminal before completing the sale, no receipt is sent — there is no email to send it to</li>
+    <li>The POS Receipt template supports Liquid customization but the available variables are different from the Order confirmation template — code copied between them may break silently</li>
+    <li>If a POS order is later fulfilled from the online store (e.g., shipped from warehouse), the fulfillment confirmation email uses the standard shipping notification template, not the POS receipt</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Sending a Receipt After POS Sale</div>
+    <p>If the customer's email wasn't captured at the time of sale, a receipt can be sent from Admin → Orders → [order] → More actions → Resend order confirmation. This sends the order confirmation template (not the POS receipt template) to whatever email is on the order. To capture email reliably at POS, train staff to add the customer's account or collect email before tapping "Charge".</p>
+  </div>
+
+  <h2>Failure Mode 6 — Subscription renewal orders have no confirmation email by default</h2>
+
+  <p>When a subscription app (Recharge, Bold Subscriptions, Loop, Skio, Awtomatic, Seal Subscriptions) processes a recurring billing charge, it creates a new Shopify order. However, the order creation path used by subscription apps goes through the Admin API or the subscription app's own billing infrastructure — not through the standard Shopify checkout flow.</p>
+
+  <p>The result: Shopify does not automatically send the "Order confirmation" notification for subscription renewal orders. The notification engine that fires on checkout completion does not fire the same way for programmatically-created subscription orders.</p>
+
+  <p>What the customer experiences:</p>
+  <ul>
+    <li>They received a confirmation email for their first subscription order (placed through the standard checkout)</li>
+    <li>For every subsequent renewal, their bank shows a charge but no email arrives</li>
+    <li>They call their bank to dispute the "unrecognized" charge</li>
+    <li>Chargeback rate for subscription merchants is disproportionately high partly for this reason</li>
+  </ul>
+
+  <p>How to configure renewal confirmation emails:</p>
+  <ul>
+    <li><strong>Recharge:</strong> Admin → Recharge → Notifications → Charge success email — enable and customize the template</li>
+    <li><strong>Bold Subscriptions:</strong> Bold Dashboard → Emails → Recurring order confirmation — enable separately from Bold's initial order email</li>
+    <li><strong>Loop:</strong> Loop Dashboard → Notifications → Order confirmation for renewal — each app has its own notification system</li>
+    <li><strong>Klaviyo integration:</strong> Configure a Klaviyo flow triggered by the subscription app's "Charge success" event (not Shopify's "Placed Order" event) for branded renewal emails</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">Don't Assume Shopify Handles Renewal Emails</div>
+    <p>Every subscription app has its own email notification system that must be configured separately. The Shopify native order confirmation does not reliably fire for renewal orders. If you switch subscription apps, the notification configuration from the old app does not carry over.</p>
+  </div>
+
+  <h2>Failure Mode 7 — Liquid template error causes silent notification failure</h2>
+
+  <p>Shopify allows merchants to fully customize the order confirmation email template using Liquid. Admin → Settings → Notifications → Order confirmation → Edit code. A Liquid syntax error in the template causes the entire notification to fail silently — Shopify does not send a broken template, it sends nothing.</p>
+
+  <p>Common template errors that break confirmation emails:</p>
+  <ul>
+    <li>Unclosed Liquid tags: <code>{% if condition %}</code> without a matching <code>{% endif %}</code></li>
+    <li>Invalid filter names or incorrect filter arguments: <code>{{ amount | money_without_decimal }}</code> when <code>money_without_decimal</code> isn't a valid Shopify filter</li>
+    <li>Reference to a variable that no longer exists (e.g., a custom property that was removed from products)</li>
+    <li>Broken HTML that prevents the email client from rendering correctly (email clients are much stricter than browsers)</li>
+    <li>External font imports (<code>@import url()</code> in style tags) that time out during email generation</li>
+    <li>Pixel tracking scripts or JavaScript added to the email template — email clients strip JavaScript; if the script references a CDN that's unreachable, it can time out template rendering</li>
+  </ul>
+
+  <p>How to detect a template error:</p>
+  <ol class="steps">
+    <li><span>Admin → Settings → Notifications → Order confirmation → Send test notification — if no email arrives and the order confirmation is enabled, the template has an error</span></li>
+    <li><span>In the notification editor, look for red error indicators or validate the Liquid manually</span></li>
+    <li><span>Restore the default template using the "Revert to default" button, then re-apply your customizations incrementally, testing after each change</span></li>
+    <li><span>Check Admin → Orders → any recent order → Timeline section — if "Order confirmation could not be sent" appears, that confirms a template render failure</span></li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Version Control Your Email Templates</div>
+    <p>Copy the current notification template code into a text file and save it before making any edits. Shopify's notification editor has a "Revert to default" button, but it reverts to Shopify's original default — not your previous custom version. There is no version history for notification templates.</p>
+  </div>
+
+  <h2>Failure Mode 8 — Headless checkout doesn't trigger Shopify's notification</h2>
+
+  <p>Shopify's order confirmation notification fires automatically when an order is created through the standard checkout flow. Headless storefronts using custom checkout implementations may create orders through paths that don't trigger the notification reliably.</p>
+
+  <p>Scenarios where the notification doesn't fire in headless:</p>
+
+  <h3>Order created via Admin API with suppressed notifications</h3>
+  <p>When creating orders via <code>POST /admin/api/2024-01/orders.json</code>, the <code>send_receipt</code> field defaults to <code>false</code> in some API versions. If the order creation call doesn't explicitly set <code>"send_receipt": true</code>, no confirmation is sent:</p>
+  <pre>
+// Missing send_receipt causes no confirmation email
+{
+  "order": {
+    "line_items": [...],
+    "customer": { "email": "customer@example.com" }
+    // send_receipt not set — defaults to false in some contexts
+  }
+}
+
+// Correct — explicitly request the notification
+{
+  "order": {
+    "line_items": [...],
+    "customer": { "email": "customer@example.com" },
+    "send_receipt": true,
+    "send_fulfillment_receipt": true
+  }
+}</pre>
+
+  <h3>Custom payment flow creates an unpaid order</h3>
+  <p>Some headless checkout implementations create the Shopify order in a "payment pending" state while processing the payment externally. If the order notification fires only on creation (before payment), the customer receives a confirmation for an order that may not complete. If the notification is suppressed until payment is confirmed, and the payment webhook fails, no notification is ever sent.</p>
+
+  <h3>Webhook-triggered ESP flow with 5-second timeout</h3>
+  <p>If the confirmation email is sent via a custom webhook (orders/create → custom server → Klaviyo/Mailchimp API), the Shopify webhook has a 5-second response timeout. If the custom server takes longer than 5 seconds to process the webhook and call the ESP API, Shopify marks the webhook as failed. After 19 consecutive failures, Shopify auto-disables the webhook entirely with no merchant notification.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">Webhook Auto-Disable is Silent</div>
+    <p>Shopify auto-disables webhooks after 19 consecutive delivery failures. Check Admin → Settings → Notifications → Webhooks to see if any webhooks show "Disabled" status. Re-enable and fix the endpoint latency issue — the root cause is usually a slow third-party API call in the webhook handler that consistently times out past 5 seconds.</p>
+  </div>
+
+  <h3>Storefront API checkout flow and email</h3>
+  <p>For headless storefronts using the Storefront API (non-Hydrogen), the <code>checkoutComplete</code> mutation creates the order and should trigger Shopify's standard notification pipeline. Most failures here come from the customer email not being set on the checkout object before completion — if <code>checkoutEmailUpdateV2</code> was never called, the order has no email and no confirmation can be sent.</p>
+
+  <h2>Quick Diagnosis Checklist</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Failure Mode</th>
+          <th>Customer Symptom</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Notification disabled</td>
+          <td>No email for any order</td>
+          <td>Admin → Settings → Notifications → Order confirmation → enable</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Spam / Promotions tab</td>
+          <td>Email exists but customer can't find it</td>
+          <td>Set up custom authenticated sender domain with SPF/DKIM</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Wrong or undeliverable email</td>
+          <td>No email; customer never received anything</td>
+          <td>Fix email on order in Admin → resend confirmation</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Klaviyo/ESP conflict</td>
+          <td>Two emails or zero emails</td>
+          <td>Choose one system; disable the other's order confirmation</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>POS uses Receipt template</td>
+          <td>POS orders get no email or wrong email</td>
+          <td>Admin → Settings → Notifications → Point of sale → Receipt</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Subscription renewals silent</td>
+          <td>No email for renewal charges</td>
+          <td>Enable "Charge success" email in subscription app settings</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Liquid template error</td>
+          <td>No email; send test also fails</td>
+          <td>Revert to default template; re-apply customizations incrementally</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Headless — send_receipt false or webhook timeout</td>
+          <td>No email; headless checkout only</td>
+          <td>Set send_receipt: true in API; fix webhook response latency</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-block">
+    <h2>Monitor Your Shopify Checkout Before Customers Report It</h2>
+    <p>CheckPulse runs automated checkout tests every 5 minutes and alerts you the moment payment, email, or order creation fails — before the next customer complaint.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Plans</a>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Page Not Loading</a>
+      <p>Order status page (thank-you page) not loading, missing order details, wrong URL</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <p>Abandoned checkout emails not sending, 1-hour delay, GDPR consent, webhook failures</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <p>orders/create webhook not received, 5-second timeout, auto-disabled webhooks</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-subscription-renewals">Subscription Renewal Failed</a>
+      <p>Recharge rebill not working, dunning email not sent, card update link not working</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <p>Post-purchase page missing, additional scripts deprecated, ReConvert not showing</p>
+    </div>
+    <div class="related-card">
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Field Not Working at Checkout</a>
+      <p>Invalid email format errors, Apple Hide My Email issues, disposable email blocked</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/free-check">Free Checkout Check</a>
+      <a href="/checkpulse/shopify-checkout-monitoring-comparison">Comparison</a>
+      <a href="/checkpulse/shopify-checkout-testing-checklist">Testing Checklist</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="/checkpulse/shopify-checkout-button-not-working">Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="/checkpulse/shopify-checkout-slow">Checkout Slow</a>
+      <a href="/checkpulse/shopify-checkout-payment-error">Payment Error</a>
+      <a href="/checkpulse/shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="/checkpulse/shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="/checkpulse/shopify-checkout-session-expired">Session Expired</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-checkout-tax-error">Tax Error</a>
+      <a href="/checkpulse/shopify-checkout-app-conflict">App Conflict</a>
+      <a href="/checkpulse/shopify-checkout-mobile">Mobile Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-international">International Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-subscriptions">Subscription Checkout Error</a>
+      <a href="/checkpulse/shopify-b2b-checkout-not-working">B2B Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-guest-checkout">Guest Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page">One Page Checkout</a>
+      <a href="/checkpulse/shopify-checkout-upsells">Checkout Upsells Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation">Order Confirmation Missing</a>
+      <a href="/checkpulse/shopify-checkout-fraud-prevention">Fraud Prevention Blocking Orders</a>
+      <a href="/checkpulse/shopify-checkout-digital-products">Digital Products Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-loyalty-rewards">Loyalty Rewards Not Working</a>
+      <a href="/checkpulse/shopify-checkout-pre-order">Pre-Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-flash-sale">Flash Sale Checkout Error</a>
+      <a href="/checkpulse/shopify-checkout-bundle-kit">Bundle Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-store-credit">Store Credit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-affiliate-referral-code">Affiliate Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-age-verification">Age Verification Not Working</a>
+      <a href="/checkpulse/shopify-checkout-product-customization">Product Customization Lost</a>
+      <a href="/checkpulse/shopify-checkout-digital-gift-cards">Digital Gift Card Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-event-tickets">Event Ticket Not Delivered</a>
+      <a href="/checkpulse/shopify-checkout-memberships">Membership Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-payment-methods">Local Payment Methods Missing</a>
+      <a href="/checkpulse/shopify-checkout-vat-exemption">VAT Exemption Not Working</a>
+      <a href="/checkpulse/shopify-checkout-split-payment">Split Payment Not Working</a>
+      <a href="/checkpulse/shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="/checkpulse/shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="/checkpulse/shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="/checkpulse/shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="/checkpulse/shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="/checkpulse/shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="/checkpulse/shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="/checkpulse/shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="/checkpulse/shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="/checkpulse/shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="/checkpulse/shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="/checkpulse/shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="/checkpulse/shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="/checkpulse/shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="/checkpulse/shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="/checkpulse/shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="/checkpulse/shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="/checkpulse/shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="/checkpulse/shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="/checkpulse/shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="/checkpulse/shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="/checkpulse/shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="/checkpulse/shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="/checkpulse/shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="/checkpulse/shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="/checkpulse/shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="/checkpulse/shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="/checkpulse/shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="/checkpulse/shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="/checkpulse/shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="/checkpulse/shopify-checkout-currency-not-working">Currency Not Working</a>
+      <a href="/checkpulse/shopify-checkout-address-book-not-working">Address Book Not Working</a>
+      <a href="/checkpulse/shopify-checkout-saved-payment-method-not-working">Saved Payment Method Not Working</a>
+      <a href="/checkpulse/shopify-checkout-account-registration-not-working">Account Registration Not Working</a>
+      <a href="/checkpulse/shopify-checkout-language-not-switching">Language Not Switching</a>
+      <a href="/checkpulse/shopify-checkout-buy-now-button-not-working">Buy Now Button Not Working</a>
+      <a href="/checkpulse/shopify-checkout-duties-import-fees-not-working">Duties &amp; Import Fees Not Working</a>
+      <a href="/checkpulse/shopify-checkout-cart-drawer-not-working">Cart Drawer Not Working</a>
+      <a href="/checkpulse/shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

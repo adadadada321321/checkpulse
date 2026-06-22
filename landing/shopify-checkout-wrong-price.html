@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Showing Wrong Price — 8 Reasons Price Changes at Checkout (2026)</title>
+  <meta name="description" content="Shopify checkout showing a different price than your product page? Price changes at checkout, wrong total, currency amount not matching? 8 root causes — tax mismatch, currency conversion, pricing app conflict, discount not applying, variant price error, B2B price missing — with exact diagnostic steps and fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-wrong-price" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-wrong-price" />
+  <meta property="og:title" content="Shopify Checkout Showing Wrong Price — 8 Causes Price Doesn't Match Product Page" />
+  <meta property="og:description" content="Shopify checkout showing wrong price? Tax mismatch, currency conversion error, pricing app conflict, discount not applying, variant price not updating, B2B price missing, compare-at price bug, Shopify Markets FX lag. 8 failure modes with fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Showing Wrong Price — 8 Reasons the Price Changes at Checkout",
+    "description": "Shopify checkout displaying the wrong price has eight root causes: tax included/excluded mismatch where the storefront shows tax-inclusive prices but checkout adds tax on top; currency conversion lag in Shopify Markets where the FX rate at checkout differs from the browsed price; a third-party pricing app conflict where Bold Pricing, Quantity Breaks, or Wholesale apps apply a different price than Shopify's native checkout expects; an automatic discount not applying because the product doesn't qualify or the discount has a usage limit; a product variant price not updating when the buyer selects a different size or color; a customer-specific price — wholesale, member, or B2B — not loading at checkout for an eligible buyer; a compare-at price being displayed as the actual price due to a theme or app bug; and a Shopify Markets geo-price not localizing because the market assignment or IP detection failed.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-wrong-price",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Shopify checkout showing a different price than the product page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout shows a different price than the product page for eight main reasons: (1) Tax included/excluded mismatch — the storefront displays prices including tax but checkout shows prices without tax and adds it separately, making the total appear higher than expected. (2) Currency conversion lag in Shopify Markets — international buyers browse at one FX rate but the checkout FX rate updates independently and may differ by the time they reach checkout. (3) Third-party pricing app conflict — apps like Bold Custom Pricing, Quantity Breaks, or Wholesale Gorilla calculate prices differently than Shopify's native checkout pricing, causing a gap between the app-displayed price and the checkout total. (4) Automatic discount not applying — a discount configured to reduce price at checkout isn't triggering because the product doesn't qualify, the discount code is expired, or a usage limit was hit. (5) Variant price not updating — the buyer selected a product variant with a different price but the price display didn't update, so checkout shows the variant's actual price while the product page was still showing the base price. (6) Customer-specific price not loading — wholesale prices, member prices, or B2B tiered pricing configured for the buyer's customer tag aren't applying at checkout. (7) Compare-at price showing as actual price — a theme or checkout extension bug is displaying the compare-at price instead of the sale price. (8) Shopify Markets geo-price not localizing — the buyer is in a market with a local price but market assignment or IP detection failed, defaulting to base currency pricing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Shopify checkout price is higher than product page — is tax being added?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If the Shopify checkout total is higher than the product page price, the most likely cause is a tax display mismatch. Check Admin → Settings → Taxes and duties → scroll to 'Tax calculations' — if 'Include tax in product prices' is not enabled, prices on the storefront are shown before tax and checkout adds the applicable tax rate on top. If your theme or product page is showing a tax-inclusive price hint (e.g., 'Tax included') but this setting is off, buyers will see a lower price on the product page and a higher total at checkout. The fix is to either enable 'Include tax in product prices' (all prices will include tax and checkout will not add it separately) or update your theme to clearly show prices without tax. For EU merchants with VAT, 'Include tax in product prices' should almost always be enabled to show VAT-inclusive prices on the storefront."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show a different price in checkout for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For international buyers, a different price at Shopify checkout is usually caused by a Shopify Markets currency conversion issue. Shopify Markets displays prices in the buyer's local currency on the storefront using a live or rounded FX rate. At checkout, the price is converted to the base currency for processing and then displayed back in the buyer's local currency. If the FX rate changed between when the buyer viewed the product and when they reached checkout, the checkout amount may differ slightly. Additionally, if Shopify Markets geo-detection fails — for example, the buyer is using a VPN or the IP lookup returns an incorrect country — the buyer may be assigned to the wrong market and see prices in the wrong currency or with a different market price. Check Admin → Markets to verify that the buyer's region has a correctly configured market with local prices. Use the 'Preview as' feature to test what a buyer from that region sees."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix a third-party pricing app showing wrong prices at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "If a third-party pricing app (Bold Custom Pricing, Quantity Breaks, Wholesale Gorilla, or similar) is causing wrong prices at checkout, the fix depends on how the app integrates with Shopify checkout. Most pricing apps use one of two methods: (1) Shopify Scripts (now deprecated, replaced by Shopify Functions) — these run server-side in checkout and modify prices during the checkout flow. If the script or function has a logic error or the product isn't in scope, the discount won't apply. Check the app's dashboard for script errors. (2) Draft orders — some wholesale apps create a draft order to apply pricing and redirect the buyer to that draft. If the redirect fails or the draft is created with wrong line items, checkout shows incorrect prices. Diagnosis: test checkout logged in as a customer who should see the custom price. Compare the price in the cart vs. at checkout — if they differ, the app's checkout integration is failing. Contact the app developer with the specific SKU, customer tag, and expected vs. actual price."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Checkout Wrong Price
+  </div>
+  <h1>Shopify Checkout <em>Showing Wrong Price</em> — 8 Reasons the Amount Doesn't Match</h1>
+  <p class="hero-sub">Customers see one price on your product page and a different amount at checkout? Price changes at checkout, total looks wrong, or currency amount doesn't match? Here are all 8 root causes for Shopify checkout displaying an incorrect price, with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Tax Mismatch · Currency Conversion · Pricing App Conflict · Discount Not Applying · Variant Price Error · B2B Price Missing · Compare-At Bug · Markets Geo-Price Failure</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>A price discrepancy between your Shopify product page and checkout is one of the most trust-destroying experiences a buyer can have. They add an item at $49.00, reach checkout, and see $58.80. No explanation. No breakdown. Just a number that doesn't match what they expected to pay.</p>
+
+  <p>Most buyers don't ask why. They assume you're hiding fees, abandon the cart, and don't come back. The ones who do reach out often frame it as deceptive pricing — which is the worst possible interpretation of what is usually a technical misconfiguration.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">First: Check Whether Tax Is the Difference</div>
+    Before diagnosing other causes, calculate the difference as a percentage of the product price. If the difference is close to your local tax rate (e.g., 20% VAT, 8–10% US sales tax), the cause is almost certainly a tax display mismatch — the storefront shows prices without tax while checkout adds it. Go to Admin → Settings → Taxes and duties → confirm whether "Include tax in product prices" is enabled. This single setting accounts for the majority of wrong-price complaints from Shopify merchants.
+  </div>
+
+  <h2>Failure Mode 1: Tax Included / Excluded Display Mismatch</h2>
+
+  <p>The most common cause of "Shopify checkout showing a higher price than the product page" is a tax display configuration mismatch. By default, Shopify shows product prices excluding tax on the storefront and adds tax at checkout. If buyers expect prices to be tax-inclusive — which is the norm in most of Europe, Australia, Canada, and the UK — they will see a lower price on the product page and a higher total at checkout every single time.</p>
+
+  <p>This is not a bug. It is a configuration that doesn't match buyer expectations for your market. But from the buyer's perspective, the price changed — and that creates abandonment and distrust at the exact moment they were about to purchase.</p>
+
+  <h3>How to identify a tax mismatch</h3>
+
+  <ul>
+    <li><strong>Difference equals a tax rate:</strong> The checkout total is higher than the product page price by exactly your tax rate percentage (e.g., product shows $100.00, checkout shows $120.00 in a 20% VAT market).</li>
+    <li><strong>Affects all products equally:</strong> Every product in the store shows the same relative price difference — not a subset of SKUs or a specific collection.</li>
+    <li><strong>Tax setting mismatch:</strong> Admin → Settings → Taxes and duties → "Include tax in product prices" is NOT checked, but your storefront theme or locale displays prices with text like "Tax included" or "Incl. VAT" (a theme config error).</li>
+    <li><strong>International buyers affected most:</strong> If you sell to markets where tax-inclusive pricing is the standard, buyers from those markets will notice the discrepancy immediately while domestic buyers may not.</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tax Setting</th>
+          <th>Storefront Price</th>
+          <th>Checkout Price</th>
+          <th>Buyer Experience</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Include tax in product prices: ON</td>
+          <td>$120.00 (incl. VAT)</td>
+          <td>$120.00</td>
+          <td><span class="tag green">Matches — no surprise</span></td>
+        </tr>
+        <tr>
+          <td>Include tax in product prices: OFF</td>
+          <td>$100.00 (before tax)</td>
+          <td>$120.00 (+ VAT)</td>
+          <td><span class="tag yellow">Higher at checkout — expected if clearly labeled</span></td>
+        </tr>
+        <tr>
+          <td>Include tax: OFF, theme says "incl. tax"</td>
+          <td>$100.00 labeled "Tax included"</td>
+          <td>$120.00</td>
+          <td><span class="tag red">Wrong price shown — trust destroyed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Fix</h3>
+
+  <ol>
+    <li>Go to Admin → Settings → Taxes and duties.</li>
+    <li>Under "Tax calculations," enable "Include tax in product prices" if your market standard is tax-inclusive pricing.</li>
+    <li>If you can't enable tax-inclusive pricing (e.g., you sell to mixed tax-exempt and taxable customers), update your theme to clearly display "Price excludes tax" on product pages so buyers are not surprised at checkout.</li>
+    <li>For EU VAT compliance, tax-inclusive display is legally required in most jurisdictions for consumer sales — enable this setting and verify all product prices already include the correct VAT amount.</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Re-Check Prices After Enabling Tax-Inclusive</div>
+    When you enable "Include tax in product prices," Shopify will display your existing prices as tax-inclusive — meaning a product priced at $100 will show $100 and the tax component ($16.67 at 20% VAT) will be extracted from that $100 at checkout. Your margin changes. If you intend the tax to be on top of your $100, you need to update product prices to $120 before enabling this setting.
+  </div>
+
+  <h2>Failure Mode 2: Currency Conversion Lag in Shopify Markets</h2>
+
+  <p>Shopify Markets allows you to display prices in local currencies for international buyers. When a buyer from Germany browses your store, they see prices in EUR. When a UK buyer browses, they see GBP. Shopify converts your base currency prices using a live exchange rate, with an optional rounding rule applied on top.</p>
+
+  <p>The problem occurs when the FX rate changes between when a buyer views a product page and when they reach checkout. The product page may have been served with a cached rate from an hour ago, while checkout calculates using the current live rate. The two numbers can differ by 1–3% in volatile FX environments — enough to create visible price differences that look like checkout overcharging.</p>
+
+  <h3>Identifying a currency conversion mismatch</h3>
+
+  <ul>
+    <li><strong>Affects only international buyers:</strong> Domestic buyers (paying in your base currency) see consistent prices. Only buyers in markets with currency conversion see the discrepancy.</li>
+    <li><strong>Difference is small and varies:</strong> Unlike a tax mismatch (which is always the same percentage), a currency conversion difference fluctuates with FX rates — 1–3% typically, larger during high-volatility events.</li>
+    <li><strong>Shopify Markets enabled:</strong> Admin → Markets → confirm that international markets with local pricing are active. If markets are disabled, the issue is not currency conversion.</li>
+    <li><strong>Rounding rules applied inconsistently:</strong> Shopify allows you to configure price rounding per market (e.g., "round to nearest €0.99"). If rounding is applied on the storefront but not at checkout, prices can differ by a few cents even when the FX rate is identical.</li>
+  </ul>
+
+  <h3>Fix</h3>
+
+  <ol>
+    <li>Go to Admin → Markets → select the affected market → Pricing.</li>
+    <li>Check whether "Price rounding" is configured. Ensure the rounding rule matches across storefront and checkout.</li>
+    <li>Consider enabling fixed local prices for your highest-volume international markets instead of relying on live FX conversion. Fixed prices eliminate rate fluctuation entirely: Admin → Markets → [market] → Pricing → set fixed local prices per product.</li>
+    <li>Add a note on your product pages for international buyers: "Prices shown in [currency] are approximate. Final checkout amount may vary slightly due to exchange rates." This sets expectations and reduces abandonment from buyers who notice a small difference.</li>
+  </ol>
+
+  <h2>Failure Mode 3: Third-Party Pricing App Conflict</h2>
+
+  <p>Quantity break apps, wholesale pricing apps, and custom pricing tools (Bold Custom Pricing, Wholesale Gorilla, Quantity Breaks &amp; Discounts, Dealeasy, and others) work by intercepting Shopify's pricing at either the storefront, the cart, or the checkout layer. When these integrations are misconfigured or conflict with Shopify's native checkout, the price a buyer sees on the product page — set by the app — doesn't match what Shopify charges at checkout.</p>
+
+  <p>This category of price discrepancy is the most complex to diagnose because the failure can happen at multiple layers: the app may correctly display a discounted price on the product page but fail to apply the same discount at checkout, or it may apply the discount twice (undercharging), or apply it to the wrong line items.</p>
+
+  <h3>Common third-party pricing app failure modes</h3>
+
+  <ul>
+    <li><strong>Shopify Functions conflict:</strong> Modern pricing apps use Shopify Functions to modify checkout prices server-side. If the function has a logic error — wrong collection scope, incorrect customer tag match, or a quantity threshold bug — the discount applies on the storefront but not at checkout, or applies to different items than expected.</li>
+    <li><strong>Draft order redirect failure:</strong> Wholesale apps that use draft orders redirect the buyer from the standard checkout to a draft-order checkout. If the redirect fails silently, the buyer proceeds through standard checkout without the wholesale pricing applied. They see a higher price because the draft order discount is not active.</li>
+    <li><strong>App conflict with Shopify automatic discounts:</strong> If both an app-based discount and a Shopify native automatic discount apply to the same order, they may interact unexpectedly — with one overriding or negating the other.</li>
+    <li><strong>Price not updating after plan change:</strong> If you recently changed your Shopify plan, some pricing app integrations break silently because they depend on plan-specific APIs. The app continues to show discounts on the storefront but the checkout reverts to full price.</li>
+  </ul>
+
+  <h3>Diagnosis steps</h3>
+
+  <ol class="steps">
+    <li>Test checkout as a buyer who should qualify for the custom pricing. Log in with a customer account that has the correct customer tag for wholesale or member pricing.</li>
+    <li>Add to cart and proceed to checkout — compare the price shown in cart vs. at checkout. If they differ, the app's checkout integration is failing at the cart-to-checkout handoff.</li>
+    <li>Check the app's admin dashboard for error logs or failed function executions.</li>
+    <li>Temporarily disable the pricing app and test checkout with Shopify native pricing — if the discrepancy disappears, the app is the cause.</li>
+    <li>Contact the app developer with: the specific SKU, customer tag, expected price, actual checkout price, and your Shopify plan.</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Pricing App Conflicts Can Cause Both Overcharging and Undercharging</div>
+    While most merchant complaints involve overcharging (checkout shows more than product page), pricing app conflicts can also cause undercharging — the buyer pays less than your intended price and you absorb the margin loss silently. Run a full audit of your last 30 days of orders through any pricing app to verify that charged amounts match intended prices across all customer segments.
+  </div>
+
+  <h2>Failure Mode 4: Automatic Discount Not Applying at Checkout</h2>
+
+  <p>Shopify's automatic discounts are configured to apply without a code — the buyer simply adds eligible items to the cart and the discount appears at checkout. When an automatic discount is configured but not applying, buyers see the full price at checkout even though the product page or marketing material implied they'd get a discount.</p>
+
+  <p>This is different from a "price change" — the product page shows the correct price — but buyers arriving from a promotional campaign expect a discount that doesn't materialize, making checkout look like it's showing the wrong total.</p>
+
+  <h3>Why automatic discounts fail to apply</h3>
+
+  <ul>
+    <li><strong>Product not in scope:</strong> The discount is scoped to a specific collection or product list, and the buyer's cart contains items that don't qualify. Admin → Discounts → select the discount → verify which products/collections are included.</li>
+    <li><strong>Usage limit hit:</strong> The discount has a maximum use count or per-customer use limit that has been reached. It becomes inactive without surfacing an error to the buyer.</li>
+    <li><strong>Date range expired:</strong> The discount had a start and end date and the end date has passed. The promotion is over but the product page still displays promotional pricing set by a separate theme script.</li>
+    <li><strong>Minimum order value not met:</strong> The discount requires a minimum order total (e.g., "20% off orders over $100") and the cart value is below the threshold.</li>
+    <li><strong>Conflict with another discount:</strong> Shopify only allows one automatic discount per checkout by default. If multiple automatic discounts are active, only one applies — which may not be the one the buyer expected.</li>
+    <li><strong>Customer eligibility mismatch:</strong> The discount is scoped to specific customer segments and the buyer doesn't meet the criteria (e.g., first-time customers only, specific email domain).</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Discount Issue</th>
+          <th>Storefront Shows</th>
+          <th>Checkout Shows</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Product not in scope</td>
+          <td>Full price</td>
+          <td>Full price</td>
+          <td><span class="tag blue">Add product to discount scope</span></td>
+        </tr>
+        <tr>
+          <td>Usage limit hit</td>
+          <td>Promo price (theme)</td>
+          <td>Full price</td>
+          <td><span class="tag yellow">Increase usage limit or end promo on theme</span></td>
+        </tr>
+        <tr>
+          <td>Minimum order not met</td>
+          <td>Promo advertised</td>
+          <td>Full price</td>
+          <td><span class="tag green">Show minimum clearly on cart/product page</span></td>
+        </tr>
+        <tr>
+          <td>Discount conflict</td>
+          <td>Both promos shown</td>
+          <td>Only one applies</td>
+          <td><span class="tag red">Deactivate conflicting discount or use combine settings</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 5: Product Variant Price Not Updating</h2>
+
+  <p>Shopify products with multiple variants — sizes, colors, materials — can have different prices per variant. When a buyer selects a variant, the price display on the product page should update to show that variant's price. If the price display fails to update (due to a theme JavaScript error or a slow network request), the buyer sees the base product price on the product page but sees the variant's actual price at checkout.</p>
+
+  <p>This scenario most commonly appears as the reverse of the typical complaint: the buyer selected a cheaper variant but saw the base price, then checkout correctly shows the variant price which may be lower. But it can also cause the buyer to see a higher price at checkout than displayed — if they selected a premium variant but the display showed the base price.</p>
+
+  <h3>Diagnosing variant price issues</h3>
+
+  <ul>
+    <li><strong>Reproducible on specific variants:</strong> The issue affects particular variant combinations — not all variants. A buyer selecting "Large / Black" sees the correct price, but "XL / Black" doesn't update.</li>
+    <li><strong>JavaScript errors in browser console:</strong> Open your browser's developer console (F12) on the product page and change variant selections — JavaScript errors will appear if the price-update script is failing. Look for errors referencing <code>variant.price</code>, <code>money_format</code>, or a theme section name.</li>
+    <li><strong>Price update works with no apps:</strong> Test in an incognito window to rule out browser extensions. If the variant price updates correctly without extensions, a browser extension (currency converter, price tracker) is interfering with the theme's price display.</li>
+    <li><strong>Recent theme update:</strong> Variant price display breaks most commonly after Shopify theme updates that changed the template structure, or after adding/removing a theme section that contained price display logic.</li>
+  </ul>
+
+  <h3>Fix</h3>
+
+  <ol>
+    <li>Test the specific variant in a clean browser environment to reproduce the issue.</li>
+    <li>Check your theme's <code>product.js</code> or <code>product-form.js</code> for errors in the variant selection handler.</li>
+    <li>If using a third-party theme, check the theme developer's changelog for known bugs with variant price display. Many themes had breaking changes after Shopify's 2024 Online Store 2.0 updates.</li>
+    <li>As a short-term fix, add the correct price to the variant option label: "XL (+$10)" so buyers see the price difference before reaching checkout.</li>
+  </ol>
+
+  <h2>Failure Mode 6: Customer-Specific Price Not Loading at Checkout</h2>
+
+  <p>Shopify allows you to configure customer-tag-based pricing: wholesale customers see lower prices, VIP members see exclusive rates, B2B accounts see tiered pricing by volume. When these pricing rules are set up through Shopify Functions, metafields, or third-party apps, they must be applied at checkout — not just on the storefront — for the buyer to actually be charged the correct price.</p>
+
+  <p>When customer-specific pricing fails at checkout, the eligible buyer sees the correct lower price on the product page (because the app is modifying the storefront display correctly) but is charged the full retail price at checkout (because the checkout pricing function failed to recognize the customer's eligibility).</p>
+
+  <h3>Why customer-specific pricing fails at checkout</h3>
+
+  <ul>
+    <li><strong>Buyer not logged in:</strong> Customer-tag-based pricing requires the buyer to be authenticated at checkout. If the buyer added items to cart before logging in and proceeds to checkout as a guest, Shopify cannot evaluate their customer tag and applies standard pricing.</li>
+    <li><strong>Customer tag not assigned:</strong> The pricing rule requires a specific customer tag (e.g., "wholesale") but the buyer's account doesn't have it. Verify: Admin → Customers → find the customer → check Tags field.</li>
+    <li><strong>Shopify Function not deployed:</strong> Custom pricing via Shopify Functions must be actively deployed. If the Function was unpublished, the pricing rule evaporates silently at checkout. Check Admin → Apps and sales channels → [your app] → Extensions → verify function status is "Active."</li>
+    <li><strong>B2B company account not linked:</strong> For Shopify B2B merchants, the buyer must be associated with a company account and location to receive B2B pricing. If the company association is missing or the buyer logged in with a personal (non-company) account, B2B pricing won't apply.</li>
+  </ul>
+
+  <div class="callout tip">
+    <div class="callout-title">Always Test Customer Pricing as a Logged-In Customer</div>
+    Customer-specific pricing issues are invisible when you test as an admin or in preview mode — Shopify shows you the admin view, not the customer view. Create a test customer account with the relevant customer tag (e.g., "wholesale-test"), log in as that customer in a separate incognito session, and proceed through checkout end-to-end. This is the only reliable way to verify that customer pricing is applying correctly.
+  </div>
+
+  <h2>Failure Mode 7: Compare-At Price Showing as the Actual Price</h2>
+
+  <p>Shopify has two price fields per variant: the actual price and the compare-at price (the "was" price used to show a strikethrough for sale items). On the storefront, your theme correctly distinguishes between these — showing compare-at as a strikethrough and the actual price as the purchase price. But certain theme configurations, checkout extensions, or app integrations can incorrectly display or use the compare-at price as the price the buyer expects to pay.</p>
+
+  <p>This failure mode typically causes the buyer to see a higher "price" on the product page (if the compare-at field is being shown prominently) and the actual (lower) price at checkout — which is the opposite of the usual complaint. But it can also create confusion when a buyer interprets the compare-at price as the price they'll be charged.</p>
+
+  <h3>Diagnosing compare-at price issues</h3>
+
+  <ul>
+    <li><strong>Affect only sale products:</strong> Products without a compare-at price display correctly. Only items currently on sale (with a compare-at price set) show the discrepancy.</li>
+    <li><strong>Theme customization error:</strong> Admin → Online Store → Themes → Customize → navigate to a sale product. Check whether the price display section is using the correct Liquid variable: <code>product.selected_or_first_available_variant.price</code> (actual price) vs. <code>product.selected_or_first_available_variant.compare_at_price</code> (compare-at).</li>
+    <li><strong>Third-party app overriding price display:</strong> Some review apps, upsell apps, or wishlist apps inject their own price display that may pull the wrong field. Test in incognito without extensions and with all apps disabled to isolate.</li>
+  </ul>
+
+  <h3>Fix</h3>
+
+  <ol>
+    <li>Audit your theme's product template Liquid code for any use of <code>compare_at_price</code> in a context where the actual price should be displayed.</li>
+    <li>Check for any installed app that modifies price display on product pages — particularly upsell, cross-sell, or wishlist apps that render product prices in their widgets.</li>
+    <li>Verify the compare-at price is set correctly on the product: Admin → Products → select product → Variants → confirm "Compare at price" is higher than "Price." If compare-at is set lower than the actual price, the display logic inverts.</li>
+  </ol>
+
+  <h2>Failure Mode 8: Shopify Markets Geo-Price Not Localizing</h2>
+
+  <p>Shopify Markets allows you to set different fixed prices per market — for example, $49 USD in the US market, £42 GBP in the UK market, and €45 EUR in the EU market. When geo-detection correctly identifies the buyer's market, they see the local price. When it fails, they fall through to the default market and see the base currency price, which may be significantly different from what they expected.</p>
+
+  <p>This failure affects buyers using VPNs, proxy connections, or whose IP address geolocates to a different country than their actual location. It also affects buyers who manually switch their market via a country selector and then have their session resetting the market assignment.</p>
+
+  <h3>Identifying geo-price failures</h3>
+
+  <ul>
+    <li><strong>Affects specific countries:</strong> Buyers from one country report seeing prices in a different currency than expected, while buyers from other countries are fine. This localizes the issue to a specific market configuration.</li>
+    <li><strong>VPN users disproportionately affected:</strong> If the complaints cluster around buyers using corporate or privacy VPNs, the IP-based geo-detection is working as designed — the VPN exit node is in a different country.</li>
+    <li><strong>Market selector is available but resets:</strong> The buyer uses the market/currency selector to switch to their local market, but it resets when they add to cart or proceed to checkout — usually a session cookie or URL parameter issue.</li>
+    <li><strong>Price difference is market-specific:</strong> The buyer sees $49 USD when they expect £42 GBP. The difference isn't a tax or conversion rounding issue — it's the wrong currency entirely.</li>
+  </ul>
+
+  <h3>Fix</h3>
+
+  <ol>
+    <li>Go to Admin → Markets → verify that the relevant market is active and has local fixed prices configured (not just currency conversion).</li>
+    <li>Test using a VPN exit node in the target country to reproduce what international buyers see.</li>
+    <li>Add a prominent market/currency selector to your store header so buyers can self-correct if geo-detection assigns them the wrong market. This is the most reliable UX fix for geo-detection failures.</li>
+    <li>For high-value markets, consider using <code>?currency=GBP</code> URL parameters in your marketing links to force the correct market assignment from the first page view.</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Monitor Checkout Price Consistency Across Markets</div>
+    Price discrepancies in international markets are especially hard to detect because they affect buyers in regions you may not be monitoring. A buyer in the Netherlands who sees the wrong price won't reach out — they'll just leave. CheckPulse runs checkout monitoring across your configured markets, detecting price display inconsistencies before international buyers encounter them.
+  </div>
+
+  <div class="cta-block">
+    <h2>Catch Price Discrepancies Before Your Customers Do</h2>
+    <p>CheckPulse runs automated checkout tests every few minutes — including price verification across variants, markets, and discount conditions — and alerts you the moment something doesn't match.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Quick Reference: Shopify Checkout Wrong Price Diagnostic</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Checkout ~20% higher (EU market)</td>
+          <td><span class="tag red">Tax mismatch</span></td>
+          <td>Admin → Settings → Taxes → Include tax in product prices</td>
+        </tr>
+        <tr>
+          <td>International buyers see slightly different amount (1–3%)</td>
+          <td><span class="tag yellow">Currency conversion lag</span></td>
+          <td>Admin → Markets → Pricing → use fixed local prices</td>
+        </tr>
+        <tr>
+          <td>Wholesale/member price not at checkout</td>
+          <td><span class="tag blue">Customer pricing not loading</span></td>
+          <td>Test logged in as the customer; check customer tag assignment</td>
+        </tr>
+        <tr>
+          <td>Quantity discount doesn't apply</td>
+          <td><span class="tag yellow">Pricing app conflict or Shopify Function error</span></td>
+          <td>Check app dashboard for function errors; test in incognito</td>
+        </tr>
+        <tr>
+          <td>Sale price different from product page</td>
+          <td><span class="tag blue">Variant price not updating or compare-at bug</span></td>
+          <td>Browser console for JS errors on variant change</td>
+        </tr>
+        <tr>
+          <td>Wrong currency entirely (USD instead of GBP)</td>
+          <td><span class="tag red">Markets geo-price failure</span></td>
+          <td>Test with VPN in target country; check Markets config</td>
+        </tr>
+        <tr>
+          <td>Promo price on product page, full price at checkout</td>
+          <td><span class="tag yellow">Automatic discount not applying</span></td>
+          <td>Admin → Discounts → verify scope, usage limits, date range</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-tax-not-calculating">Tax Not Calculating at Checkout</a>
+      <p>Tax showing $0 or wrong amount — nexus config, product taxability, exempt customers.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <p>Multiple discounts not combining — stack permissions, conflict rules, automatic vs. code.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <p>Cross-border card declines — issuer blocks, 3DS SCA, currency support, geographic restrictions.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <p>Shopify price rules not applying — configuration scope, combination settings, date conflicts.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs. Automatic Discount Conflict</a>
+      <p>Manual code and automatic discount conflicting at checkout — combine settings, priority, resolution.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-stuck-processing">Checkout Stuck on Processing</a>
+      <p>Spinner runs forever after Place Order — gateway timeout, 3DS deadlock, extension JS error.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch errors before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-discount-not-working">Discount Not Working</a>
+      <a href="./shopify-checkout-shipping-not-working">Shipping Not Working</a>
+      <a href="./shopify-checkout-address-not-working">Address Not Working</a>
+      <a href="./shopify-checkout-paypal-not-working">PayPal Not Working</a>
+      <a href="./shopify-checkout-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="./shopify-checkout-google-pay-not-working">Google Pay Not Working</a>
+      <a href="./shopify-checkout-cart-not-updating">Cart Not Updating</a>
+      <a href="./shopify-checkout-coupon-not-working">Coupon Not Working</a>
+      <a href="./shopify-checkout-gift-card-not-working">Gift Card Not Working</a>
+      <a href="./shopify-checkout-order-not-confirmed">Order Not Confirmed</a>
+      <a href="./shopify-checkout-page-not-loading">Checkout Page Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-email-not-sent">Confirmation Email Not Sent</a>
+      <a href="./shopify-checkout-mobile-not-working">Mobile Checkout Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-card-not-accepted">Card Not Accepted</a>
+      <a href="./shopify-checkout-3d-secure-failing">3D Secure Failing</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error at Checkout</a>
+      <a href="./shopify-checkout-currency-not-converting">Currency Not Converting</a>
+      <a href="./shopify-checkout-local-delivery-not-showing">Local Delivery Not Showing</a>
+      <a href="./shopify-checkout-name-field-not-working">Name Field Not Working</a>
+      <a href="./shopify-checkout-zip-code-not-working">ZIP Code Not Working</a>
+      <a href="./shopify-checkout-klarna-not-working">Klarna Not Working</a>
+      <a href="./shopify-checkout-afterpay-not-working">Afterpay Not Working</a>
+      <a href="./shopify-checkout-buy-now-pay-later-not-working">Buy Now Pay Later Not Working</a>
+      <a href="./shopify-checkout-taxes-wrong">Taxes Wrong at Checkout</a>
+      <a href="./shopify-checkout-free-product-not-applying">Free Product Not Applying</a>
+      <a href="./shopify-checkout-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="./shopify-checkout-discount-code-invalid">Discount Code Invalid</a>
+      <a href="./shopify-checkout-shipping-address-not-saving">Shipping Address Not Saving</a>
+      <a href="./shopify-checkout-payment-gateway-error">Payment Gateway Error</a>
+      <a href="./shopify-checkout-order-summary-wrong">Order Summary Wrong</a>
+      <a href="./shopify-checkout-cross-sell-not-working">Cross-Sell Not Working</a>
+      <a href="./shopify-checkout-bundle-discount-not-applying">Bundle Discount Not Applying</a>
+      <a href="./shopify-checkout-membership-discount-not-working">Membership Discount Not Working</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="./shopify-checkout-stuck-processing">Checkout Stuck on Processing</a>
+      <a href="./shopify-checkout-wrong-price">Checkout Wrong Price</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

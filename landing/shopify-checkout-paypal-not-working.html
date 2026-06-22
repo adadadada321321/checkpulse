@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify PayPal Not Working at Checkout — 8 Failure Modes Explained (2026)</title>
+  <meta name="description" content="Shopify PayPal not working at checkout? PayPal button missing, popup closes immediately, order completes in PayPal but not Shopify, works on desktop not mobile. 8 root causes with exact fixes — currency mismatch, IPN failure, account holds, in-app browser blocks." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-paypal-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-paypal-not-working" />
+  <meta property="og:title" content="Shopify PayPal Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="PayPal popup closes immediately = currency mismatch. Order paid in PayPal but not in Shopify = IPN failure. Works desktop not mobile = in-app browser blocking. 8 Shopify PayPal failure modes explained with fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify PayPal Not Working at Checkout — 8 Failure Modes Explained",
+    "description": "Shopify PayPal checkout failures fall into eight distinct categories: PayPal not appearing as a payment option due to activation misconfiguration, the PayPal popup closing immediately due to currency mismatch, orders completing in PayPal but not in Shopify due to IPN webhook failure, PayPal being hidden for certain countries or customers, processing errors from account holds or product category restrictions, 'can't complete purchase' errors from email mismatch or suspended accounts, Pay Later not appearing due to eligibility requirements, and PayPal working on desktop but failing on mobile due to popup blockers and in-app browser restrictions.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-paypal-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is PayPal not showing as a payment option at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PayPal not appearing at Shopify checkout is caused by one of four issues: (1) PayPal is not activated in your Shopify Payments settings — go to Admin → Settings → Payments → Manage Shopify Payments → scroll to Wallets and toggle PayPal on. Note: Shopify Payments and PayPal are two separate systems; enabling Shopify Payments does not automatically enable PayPal. (2) PayPal Express Checkout is configured as a separate gateway under 'Alternative payment providers' but the gateway credential has expired or the connection was lost — disconnect and reconnect PayPal under Admin → Settings → Payments → Alternative payment methods. (3) Your store's market doesn't have PayPal as an available payment method for the buyer's region — check Admin → Settings → Markets → [market] → Payment methods. (4) The cart total is $0 (100% discount applied) — Shopify automatically hides PayPal when the cart total is zero because a $0 PayPal transaction creates reconciliation issues."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the PayPal popup close immediately without completing payment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A PayPal checkout popup that opens and immediately closes — or shows a blank white screen before closing — is almost always caused by a currency mismatch. Shopify supports 133+ currencies but PayPal only accepts approximately 25 currencies for transactions. If the buyer's selected currency (for example XOF West African CFA, or an unsupported Asian currency) is not in PayPal's accepted currency list, the PayPal SDK rejects the session initialization and the popup closes silently. The fix: go to Admin → Settings → Currencies and verify that every currency you accept has a PayPal equivalent. For stores selling in unsupported currencies, either restrict the available currencies or display prices in a PayPal-accepted currency. Other causes include: a Content Security Policy on your storefront that blocks PayPal's JavaScript domains (paypal.com, paypalobjects.com), or browser popup blockers that intercept the PayPal window on the second click attempt."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does PayPal show the order as paid but Shopify shows the order as unpaid?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer completes payment in the PayPal flow but the Shopify order remains unpaid or does not appear, the cause is almost always an Instant Payment Notification (IPN) failure. PayPal sends a webhook callback to Shopify's payment confirmation endpoint after each transaction. If that callback never arrives or is rejected, Shopify never marks the order as paid. Four root causes: (1) The PayPal IPN URL was manually changed in your PayPal account settings to something other than Shopify's endpoint — go to PayPal Business dashboard → Account Settings → Notifications → Instant Payment Notifications and verify the URL matches what Shopify provided. (2) PayPal Sandbox mode is still active on a production store — sandbox transactions never fire real IPN webhooks to production Shopify stores. (3) The PayPal account email address configured in Shopify does not exactly match the receiving email in your PayPal Business account — even a case difference can cause PayPal to route payments to a different account. (4) Network timeout — PayPal retried the IPN callback but Shopify's endpoint was temporarily unavailable; PayPal retries for up to 5 days, so late payment confirmations may appear days after the transaction."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does PayPal work on desktop but not on mobile or in the Instagram app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PayPal checkout uses a popup window on desktop and a redirect flow on mobile. Three issues cause mobile-specific failures: (1) Meta (Facebook/Instagram) in-app browser: when a customer taps 'Buy Now' from an Instagram or Facebook ad, they see the product in Meta's in-app browser (not Safari or Chrome). Meta's in-app browser strips third-party cookies and blocks OAuth redirects — when the customer taps 'Pay with PayPal', PayPal's OAuth handshake fails because the redirect cannot return to the Shopify checkout domain from inside the Meta browser. The customer sees a white screen or gets returned to the beginning of checkout. The fix is to add a 'Open in Safari' button or use Meta's 'Open external browser' deep link parameter in your ads. (2) iOS Safari popup blocker: if a theme or app intercepts the checkout button click with JavaScript (for analytics, upsell modals, etc.) before opening the PayPal window, iOS Safari treats the PayPal window as a popup not triggered by a direct user gesture and blocks it. Remove any click interceptors on the PayPal button. (3) Samsung Internet browser: some versions of Samsung Internet apply strict third-party cookie policies that break PayPal's session cookie, causing the customer to be logged out of PayPal mid-flow and returned to the Shopify checkout without completing payment."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → PayPal Not Working
+  </div>
+  <h1>Shopify <em>PayPal Not Working</em> at Checkout — 8 Failure Modes Explained</h1>
+  <p class="hero-sub">PayPal button not showing? Popup closes immediately? Order shows paid in PayPal but not in Shopify? Works on desktop but breaks on mobile or in Instagram? Here are all 8 root causes for Shopify PayPal checkout failures — with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>PayPal Express · IPN Webhook · Currency Mismatch · Account Holds · Pay Later · In-App Browser</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>PayPal appears at Shopify checkout in two distinct places: as "PayPal" in the express checkout row above the contact form (alongside Shop Pay, Apple Pay, Google Pay) and as a payment method in the payment method list below the billing form. Each placement has different activation requirements, and a misconfiguration in one does not affect the other. Most PayPal failures are silent from the merchant side — no alert in Admin, no error log — which makes checkout monitoring the only reliable way to detect them before customers report the problem.</p>
+
+  <p>The most deceptive PayPal failure is when a customer successfully completes payment in the PayPal flow but returns to Shopify to find the order unpaid or missing. This is an IPN (Instant Payment Notification) webhook failure — PayPal processed the payment but Shopify never received the confirmation. The customer's card was charged. The merchant never got the order. This failure affects approximately 1-2% of PayPal transactions on stores with misconfigured IPN settings and is entirely invisible without order reconciliation monitoring.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Two PayPal Integrations in Shopify — Know Which You Have</div>
+    <strong>PayPal Express Checkout (via Shopify Payments):</strong> Activated inside Shopify Payments settings under Wallets. This is the recommended integration. PayPal appears as a wallet button in the express checkout row. Shopify manages the connection.<br><br>
+    <strong>PayPal as an Alternative Payment Provider:</strong> Set up separately under Admin → Settings → Payments → Alternative payment methods → PayPal. Uses older API. Still required for stores that cannot access Shopify Payments (certain countries). Has separate IPN configuration.<br><br>
+    Most PayPal failures in 2026 involve the Shopify Payments integration. If you recently migrated from the Alternative Provider integration to Shopify Payments, verify both are not active simultaneously — duplicate PayPal connections cause checkout errors.
+  </div>
+
+  <h2>Failure Mode 1: PayPal Button Not Appearing at Checkout</h2>
+
+  <p>PayPal not showing as a payment option at all — neither in the express checkout row nor in the payment methods list — is caused by one of four issues: PayPal is not activated, the connection is broken, the market doesn't include PayPal, or the cart total disqualifies the order.</p>
+
+  <h3>Check PayPal activation status</h3>
+
+  <ol class="steps">
+    <li>Admin → Settings → Payments</li>
+    <li>Under "Shopify Payments" → click "Manage"</li>
+    <li>Scroll to "Wallets" section → verify PayPal toggle is ON</li>
+    <li>If PayPal shows as disconnected, click "Connect PayPal" and authorize with your PayPal Business account credentials</li>
+    <li>Also check under "Alternative payment methods" — if PayPal appears there AND in Shopify Payments, you have a duplicate connection. Remove the Alternative Provider version.</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PayPal Not Showing Cause</th>
+          <th>Where to Check</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PayPal wallet toggle off</td>
+          <td>Admin → Payments → Manage Shopify Payments → Wallets</td>
+          <td><span class="tag yellow">Toggle on</span></td>
+        </tr>
+        <tr>
+          <td>PayPal connection expired/disconnected</td>
+          <td>Same page — shows "Reconnect PayPal" link</td>
+          <td><span class="tag yellow">Reconnect with PayPal Business credentials</span></td>
+        </tr>
+        <tr>
+          <td>Market doesn't include PayPal</td>
+          <td>Admin → Markets → [market] → Payment methods</td>
+          <td><span class="tag yellow">Add PayPal to market's payment methods</span></td>
+        </tr>
+        <tr>
+          <td>Cart total is $0</td>
+          <td>Test checkout with 100% off discount code applied</td>
+          <td><span class="tag blue">Expected — PayPal hides at $0 total</span></td>
+        </tr>
+        <tr>
+          <td>Shopify Payments not available in your country</td>
+          <td>Admin → Settings → Payments → "Shopify Payments unavailable"</td>
+          <td><span class="tag yellow">Use PayPal as Alternative Payment Provider instead</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">PayPal Requires a PayPal Business Account</div>
+    Shopify's PayPal integration requires a <strong>PayPal Business account</strong>, not a Personal account. Personal accounts can receive payments but cannot be connected to the Shopify Payments wallet integration. If you connected a Personal account, the PayPal button may appear but transactions will fail silently or the connect flow will show an error. Upgrade the account at paypal.com/upgrade or create a new Business account and connect it.
+  </div>
+
+  <h2>Failure Mode 2: PayPal Popup Closes Immediately — Currency Mismatch</h2>
+
+  <p>A PayPal checkout popup that opens and immediately closes — or shows a white screen for 1-2 seconds then disappears — is almost always caused by a currency mismatch. PayPal accepts only ~25 currencies for transactions, while Shopify supports 133+. When a buyer has selected an unsupported currency, the PayPal SDK initialization fails silently and the popup closes without showing an error to the buyer or the merchant.</p>
+
+  <h3>PayPal accepted currencies (2026)</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Currency Code</th>
+          <th>Currency</th>
+          <th>PayPal Supported?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>USD, EUR, GBP, CAD, AUD</td>
+          <td>Major Western currencies</td>
+          <td><span class="tag green">Supported</span></td>
+        </tr>
+        <tr>
+          <td>JPY, CNY, HKD, SGD, MYR</td>
+          <td>Major Asian currencies</td>
+          <td><span class="tag green">Supported</span></td>
+        </tr>
+        <tr>
+          <td>BRL, MXN, ARS</td>
+          <td>Latin American currencies</td>
+          <td><span class="tag yellow">Partial — BRL/MXN yes, ARS limited</span></td>
+        </tr>
+        <tr>
+          <td>TRY, THB, PHP, IDR, VND</td>
+          <td>Regional currencies</td>
+          <td><span class="tag yellow">Limited — check PayPal's current list</span></td>
+        </tr>
+        <tr>
+          <td>XOF, XAF, GHS, NGN, KES</td>
+          <td>African currencies</td>
+          <td><span class="tag red">Not supported — popup closes immediately</span></td>
+        </tr>
+        <tr>
+          <td>INR</td>
+          <td>Indian Rupee</td>
+          <td><span class="tag red">Not supported for international transactions</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to diagnose currency-related PayPal failures</h3>
+
+  <ol class="steps">
+    <li>Open checkout in browser DevTools (F12) → Console tab</li>
+    <li>Click the PayPal button and watch the console output as the popup attempts to open</li>
+    <li>Look for errors containing "currency" or "INVALID_CURRENCY_CODE" or "This transaction cannot be completed"</li>
+    <li>Alternatively: switch the browser to a different currency via your storefront's currency selector and test PayPal in USD or EUR — if it works in USD but not in the buyer's local currency, it's a currency mismatch</li>
+    <li>Fix: either remove unsupported currencies from your store's currency list, or present prices in a PayPal-supported currency for buyers in unsupported-currency countries</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Currency Mismatch Produces No Merchant Alert</div>
+    When PayPal rejects a currency, there is no alert in your Shopify Admin, no email notification, and no error in the checkout UI that tells the customer what went wrong. The customer sees the PayPal popup appear and disappear. They may try multiple times, assume their PayPal account is broken, and abandon the checkout. This is one of the highest-impact silent checkout failures: globally-selling stores with many active currencies can have PayPal silently unavailable for a significant portion of their customers.
+  </div>
+
+  <h2>Failure Mode 3: Order Paid in PayPal But Not in Shopify — IPN Webhook Failure</h2>
+
+  <p>The most financially damaging PayPal failure: the customer completes payment in PayPal's flow, their card or bank account is charged, and they receive a PayPal receipt — but when they return to your Shopify store, the order shows as "Payment pending" or doesn't exist at all. This is caused by a breakdown in the Instant Payment Notification (IPN) handshake between PayPal and Shopify.</p>
+
+  <h3>How the PayPal IPN flow works</h3>
+
+  <ol class="steps">
+    <li>Customer completes payment in PayPal popup or redirect</li>
+    <li>PayPal charges the customer and sends an IPN POST request to Shopify's payment confirmation endpoint</li>
+    <li>Shopify validates the IPN, marks the order as paid, fulfills inventory reservations, and sends the order confirmation email</li>
+    <li>PayPal receives Shopify's acknowledgment and considers the IPN delivered</li>
+    <li><strong>If step 3 fails:</strong> PayPal retries every few minutes for up to 5 days. Shopify never marks the order as paid. Customer has no order confirmation. Money is in PayPal limbo.</li>
+  </ol>
+
+  <h3>Root causes of IPN failure</h3>
+
+  <ul>
+    <li><strong>IPN URL changed in PayPal settings:</strong> If anyone manually edited the IPN URL in your PayPal Business account settings to anything other than Shopify's endpoint, PayPal sends confirmations to the wrong URL and Shopify never receives them. Check: PayPal Business → Account Settings → Notifications → Instant Payment Notifications → see the URL. It should be set to "Shopify's default" (do not override it).</li>
+    <li><strong>PayPal Sandbox mode active on production store:</strong> If your store was set up with PayPal sandbox credentials (for testing) and someone forgot to switch to live credentials, sandbox transactions never send real IPN notifications. Check Admin → Payments → Alternative Payment Methods → PayPal → see if "Test mode" is enabled.</li>
+    <li><strong>PayPal account email mismatch:</strong> The email address in your Shopify PayPal configuration must exactly match the primary email of your PayPal Business account. A typo, different capitalization, or a pending email change in PayPal routes transactions to a different account silently.</li>
+    <li><strong>Shopify endpoint temporarily unavailable:</strong> If Shopify had a brief outage when PayPal attempted the IPN, PayPal will retry. Most retried IPNs eventually succeed within hours. Check your PayPal account's IPN history for "Resend" status on recent transactions.</li>
+  </ul>
+
+  <pre>
+# To check IPN delivery status in PayPal:
+# PayPal Business dashboard → Activity → All Transactions → click a transaction
+# → Transaction Details → scroll to "IPN"
+# Status will show: "Delivered", "Retrying", or "Failed"
+# For "Failed" — Shopify's endpoint rejected the notification.
+# For "Retrying" — IPN is pending, order may self-resolve within 24-48 hours.
+
+# To manually resend an IPN (for a specific transaction):
+# PayPal Business → Tools → Business Tools → Instant Payment Notifications
+# → IPN History → find the transaction → Resend IPN
+  </pre>
+
+  <div class="callout success">
+    <div class="callout-title">Immediate Action for IPN Failure</div>
+    If a customer contacts you about a PayPal charge with no Shopify order: (1) Verify the payment in your PayPal account, (2) Create a manual order in Shopify Admin → Orders → Create order for the same items, (3) Mark it as paid using "Mark as paid" (do not re-charge the customer), (4) Then investigate and fix the IPN configuration to prevent future occurrences.
+  </div>
+
+  <h2>Failure Mode 4: PayPal Not Available for Certain Customers or Countries</h2>
+
+  <p>PayPal is not available in all countries, and Shopify's market configuration can further restrict which payment methods appear for buyers in specific regions. PayPal also applies its own geographic restrictions based on the buyer's IP address and account location.</p>
+
+  <h3>PayPal geographic restrictions</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Restriction Type</th>
+          <th>Who Applies It</th>
+          <th>How to Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PayPal not available in buyer's country</td>
+          <td>PayPal (applies to ~60 countries including Iran, Cuba, North Korea, and many others)</td>
+          <td>Visit PayPal's "Countries and regions" page; test with VPN to buyer's country</td>
+        </tr>
+        <tr>
+          <td>PayPal excluded from market's payment methods</td>
+          <td>Shopify merchant (Admin → Markets → [market] → Payment methods)</td>
+          <td>Check each market — PayPal must be explicitly enabled per market</td>
+        </tr>
+        <tr>
+          <td>PayPal not shown for Business accounts buying B2B</td>
+          <td>PayPal (B2B restrictions on some account types)</td>
+          <td>PayPal's business-to-business rules; test with a personal PayPal account</td>
+        </tr>
+        <tr>
+          <td>Cart amount outside PayPal limits</td>
+          <td>PayPal ($0 minimum, $10,000 maximum per transaction for most accounts)</td>
+          <td>Test with cart values at both extremes of your typical order range</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">Testing PayPal Availability by Country</div>
+    Use a reputable VPN to simulate a buyer's location before assuming PayPal should be available. Shopify shows different payment methods based on the buyer's market (determined by shipping address or browser locale). Even if you have PayPal enabled globally, a buyer in a PayPal-unsupported country will not see the PayPal button — this is correct behavior, not a bug.
+  </div>
+
+  <h2>Failure Mode 5: "Trouble Processing Your Payment Through PayPal" Error</h2>
+
+  <p>The error message "We're having trouble processing your payment through PayPal" shown during checkout — usually after the customer is redirected back from the PayPal flow — indicates a transaction-level decline by PayPal rather than a Shopify configuration problem. This error comes from PayPal's risk and compliance systems.</p>
+
+  <h3>Common causes of PayPal processing errors</h3>
+
+  <ul>
+    <li><strong>New PayPal Business account review period:</strong> PayPal places new Business accounts under a 30-day review with transaction limits (typically $500–$2,000 total before review clears). Transactions that would exceed the limit are declined. Contact PayPal business support to expedite the review if you're in this period.</li>
+    <li><strong>PayPal's fraud risk score blocking the transaction:</strong> High-value orders, new customer PayPal accounts, mismatched billing/shipping addresses, or multiple failed attempts from the same IP address can trigger PayPal's fraud filters. This affects only specific transactions, not all PayPal transactions. The customer should try a different payment method or contact their PayPal account support.</li>
+    <li><strong>Product category restriction:</strong> PayPal's Acceptable Use Policy prohibits certain product categories (supplements with health claims, certain digital goods, firearms accessories, adult content). If your products fall into a restricted category, PayPal may allow some transactions but block others based on product descriptions in the order data Shopify sends. Review PayPal's Acceptable Use Policy and ensure your product descriptions don't trigger category flags.</li>
+    <li><strong>Transaction velocity limit exceeded:</strong> Multiple large orders from the same customer or same IP in a short window can trigger PayPal's velocity controls. This is rare but occurs during flash sales where the same buyer attempts multiple purchases.</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">PayPal Processing Errors Are Not Shopify Errors</div>
+    When PayPal declines a transaction, the error is generated and returned by PayPal's API — Shopify displays it as-is. No change to your Shopify configuration will resolve a PayPal-side decline. The buyer must resolve the issue with PayPal directly (verify their account, remove limitations, use a different funding source). For persistent processing errors affecting all transactions, contact PayPal Business support — your account may have a hold or restriction that isn't visible in your dashboard.
+  </div>
+
+  <h2>Failure Mode 6: "Sorry, We Can't Complete Your Purchase at This Time"</h2>
+
+  <p>This specific PayPal error message — shown inside the PayPal popup or on the PayPal redirect page — is different from the Shopify-side processing error in Failure Mode 5. This error comes from PayPal's session validation and usually means PayPal cannot route the payment to the merchant's account as configured.</p>
+
+  <h3>What causes this specific error</h3>
+
+  <ul>
+    <li><strong>PayPal email mismatch between Shopify and PayPal:</strong> The PayPal Business account email configured in Shopify Admin → Payments does not match the primary email of the PayPal account receiving funds. Even a period difference ("john.smith" vs "johnsmith") can cause this. Go to PayPal → Account Settings → Account info → verify the primary email exactly matches what's in Shopify.</li>
+    <li><strong>PayPal account suspended or limited:</strong> Your PayPal Business account has a limitation or suspension that prevents receiving payments. Log in to your PayPal Business account and check the notification banner. PayPal often places accounts under review without emailing the merchant — the account looks normal but cannot process transactions until the review is resolved.</li>
+    <li><strong>PayPal API credentials expired:</strong> If you're using the Alternative Payment Provider integration (not Shopify Payments), the API credentials (API username, password, signature) may have expired. PayPal rotates API credentials periodically for security. Generate new credentials from PayPal → Account Settings → Security → API access → Classic API credentials.</li>
+    <li><strong>Duplicate PayPal connection:</strong> Both "Shopify Payments + PayPal wallet" and "PayPal Alternative Provider" are active simultaneously, creating conflicting session tokens. Disable one — keep the Shopify Payments integration if available in your country, remove the Alternative Provider connection.</li>
+  </ul>
+
+  <ol class="steps">
+    <li>Log in to your PayPal Business account at business.paypal.com</li>
+    <li>Check the top of the page for any limitation, resolution request, or suspension notices</li>
+    <li>If there's a banner about account review, click through and provide requested documents</li>
+    <li>If the account shows no issues, go to Admin → Settings → Payments → disconnect PayPal</li>
+    <li>Reconnect PayPal fresh — this regenerates the OAuth token and fixes stale connection issues</li>
+  </ol>
+
+  <h2>Failure Mode 7: PayPal Pay Later (Pay in 4) Not Appearing</h2>
+
+  <p>PayPal Pay Later — including "Pay in 4" (four interest-free installments) and PayPal Credit (revolving credit line) — has strict eligibility requirements that are separate from standard PayPal availability. Merchants frequently enable PayPal expecting Pay Later to appear automatically, but it doesn't.</p>
+
+  <h3>Pay Later eligibility requirements</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Requirement</th>
+          <th>Pay in 4</th>
+          <th>PayPal Credit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Eligible currencies</td>
+          <td>USD, GBP, AUD, EUR, FRA (French stores)</td>
+          <td>USD only</td>
+        </tr>
+        <tr>
+          <td>Minimum cart total</td>
+          <td>$30 USD (or equivalent)</td>
+          <td>No minimum</td>
+        </tr>
+        <tr>
+          <td>Maximum cart total</td>
+          <td>$1,500 USD (or equivalent)</td>
+          <td>Up to approved credit limit</td>
+        </tr>
+        <tr>
+          <td>Merchant country requirement</td>
+          <td>US, UK, Australia, Germany, France, Italy, Spain</td>
+          <td>US only</td>
+        </tr>
+        <tr>
+          <td>PayPal account type</td>
+          <td>PayPal Business account required</td>
+          <td>PayPal Business account required</td>
+        </tr>
+        <tr>
+          <td>Pay Later opt-in</td>
+          <td>Must be enabled in PayPal Business settings</td>
+          <td>Must be enabled in PayPal Business settings</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Enabling Pay Later in PayPal</h3>
+
+  <ol class="steps">
+    <li>Log in to your PayPal Business account at business.paypal.com</li>
+    <li>Go to Account Settings → Website Payments → Pay Later</li>
+    <li>Toggle "Accept Pay Later payments" to On</li>
+    <li>Also enable "Show Pay Later messaging" to display the Pay Later option prominently on product pages</li>
+    <li>In Shopify: reconnect your PayPal account after changing the PayPal settings to sync the updated configuration</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Pay Later Requires Pay Later Messaging for Maximum Visibility</div>
+    Even when Pay Later is enabled and the buyer is eligible, the "Pay in 4" option may not be prominently visible at checkout because the PayPal checkout button doesn't display the installment option until the buyer opens the PayPal flow. Consider adding PayPal's Pay Later messaging banner to your product pages and cart page (via Shopify's PayPal messaging app or the PayPal JavaScript SDK) so buyers know the installment option is available before they begin checkout. This alone can increase PayPal conversion by 15-20% according to PayPal's own data.
+  </div>
+
+  <h2>Failure Mode 8: PayPal Works on Desktop But Fails on Mobile or In-App Browsers</h2>
+
+  <p>Mobile-specific PayPal failures are among the hardest to diagnose because they depend on the browser environment the customer is using — which varies by device, OS version, and how the customer arrived at your store. Three specific environments cause the most mobile PayPal failures.</p>
+
+  <h3>Meta (Facebook/Instagram) in-app browser</h3>
+
+  <p>When a customer taps your product link from an Instagram story ad, a Facebook post, or a DM, they see your store inside Meta's in-app browser (IAB) — not their device's default browser (Safari or Chrome). Meta's IAB blocks third-party OAuth redirects to prevent fraud. When the customer taps "Pay with PayPal", the PayPal authorization redirect either fails silently, shows a white screen, or returns the customer to the start of checkout with no payment applied.</p>
+
+  <ul>
+    <li><strong>Symptom:</strong> PayPal abandonment rate is significantly higher for traffic from paid social ads than from direct or organic traffic</li>
+    <li><strong>Fix option 1:</strong> Ensure your Instagram ads use the "Open in external browser" link parameter — this forces the link to open in Safari/Chrome instead of the IAB. In Meta Ads Manager, use the "Destination" setting to choose "External browser"</li>
+    <li><strong>Fix option 2:</strong> Add a prominent "Tap to open in Safari" banner at the top of your store when the in-app browser is detected, using <code>navigator.userAgent</code> detection for "FBIOS" or "FB_IAB"</li>
+  </ul>
+
+  <h3>iOS Safari popup blocker</h3>
+
+  <p>iOS Safari blocks popups unless they are triggered directly by a user tap event with no JavaScript intermediary. If your theme or a checkout extension runs JavaScript when the PayPal button is clicked (for analytics tracking, upsell modal checking, or cart validation), iOS Safari may classify the subsequent PayPal window as a "popup not triggered by user action" and block it.</p>
+
+  <ul>
+    <li><strong>Symptom:</strong> PayPal fails specifically on iPhone Safari; works on Android Chrome</li>
+    <li><strong>Diagnostic:</strong> Open Safari on iPhone → Settings → scroll to the site → disable "Block Pop-ups" temporarily → test PayPal</li>
+    <li><strong>Fix:</strong> Remove any JavaScript click interceptors on the PayPal button. If you need to run tracking code, use the PayPal JavaScript SDK's <code>onApprove</code> callback after the payment completes rather than intercepting the button click</li>
+  </ul>
+
+  <h3>Samsung Internet browser third-party cookie restrictions</h3>
+
+  <p>Samsung Internet browser (the default browser on Samsung devices, which represent ~20% of Android users) applies strict third-party cookie restrictions in recent versions. PayPal's checkout flow sets cross-domain cookies to maintain the session between your Shopify store domain and paypal.com. If these cookies are blocked, the PayPal session cannot be maintained and the buyer is returned to checkout without completing payment.</p>
+
+  <ul>
+    <li><strong>Symptom:</strong> PayPal abandonment higher on Samsung Android devices vs other Android devices</li>
+    <li><strong>Fix:</strong> This is a browser-level behavior that cannot be resolved at the store level. Ensure your checkout has good fallback payment options (Apple Pay, Google Pay, credit card) that do not depend on cross-domain session cookies</li>
+  </ul>
+
+  <div class="cta-block">
+    <h2>Detect PayPal Failures Before Your Customers Do</h2>
+    <p>PayPal checkout failures are silent — no Admin alert, no error email, no notification until a customer reports it or you notice abandoned carts. CheckPulse runs a 4-step checkout simulation every 30 minutes and alerts you immediately if any payment method stops working.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Quick Diagnostic: Which PayPal Failure Mode Am I Facing?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Step</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PayPal button not visible at all</td>
+          <td>PayPal not activated or disconnected</td>
+          <td>Admin → Payments → Manage Shopify Payments → Wallets → toggle PayPal on</td>
+        </tr>
+        <tr>
+          <td>PayPal popup opens then immediately closes</td>
+          <td>Currency mismatch or browser popup blocker</td>
+          <td>Check browser console for INVALID_CURRENCY_CODE error; test in USD</td>
+        </tr>
+        <tr>
+          <td>PayPal shows paid, Shopify shows unpaid</td>
+          <td>IPN webhook failure</td>
+          <td>PayPal Business → Tools → IPN History → check delivery status for the transaction</td>
+        </tr>
+        <tr>
+          <td>PayPal not available for customers in certain countries</td>
+          <td>Geographic restriction or market configuration</td>
+          <td>Test with VPN from that country; check Admin → Markets → payment methods</td>
+        </tr>
+        <tr>
+          <td>"Trouble processing payment through PayPal" error</td>
+          <td>PayPal account hold or fraud filter</td>
+          <td>Log in to PayPal Business → check for account limitations or notices</td>
+        </tr>
+        <tr>
+          <td>"Can't complete your purchase at this time" error</td>
+          <td>Email mismatch or suspended account</td>
+          <td>Verify PayPal email in Shopify exactly matches PayPal Business primary email</td>
+        </tr>
+        <tr>
+          <td>Pay Later / Pay in 4 not showing</td>
+          <td>Eligibility requirements not met or Pay Later not opted in</td>
+          <td>PayPal Business → Account Settings → Website Payments → Pay Later → enable</td>
+        </tr>
+        <tr>
+          <td>PayPal works on desktop, fails on mobile</td>
+          <td>In-app browser (Meta IAB) or iOS popup blocker</td>
+          <td>Test on iPhone Safari directly; check if failure correlates with paid social traffic</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-methods">Payment Methods Not Showing</a>
+      <p>Apple Pay, Google Pay, Shop Pay, and other wallet options not appearing at checkout</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Authentication Failed</a>
+      <p>Card declined after 3DS popup, authentication loop, bank redirect fails</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-payment-failed">Payment Failed at Checkout</a>
+      <p>Generic payment decline errors, gateway timeouts, and card processing failures</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <p>Shop Pay, Apple Pay, Google Pay express checkout buttons not working</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <p>Customer charged but order not created — reconciliation guide</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <p>Cross-border payments, currency conversion, international card declines</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch silent failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Checkout Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-payments-suspended">Payments Suspended</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay &amp; Google Pay</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-shipping-not-showing">Shipping Not Showing</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-tax-not-calculating">Tax Not Calculating</a>
+      <a href="./shopify-checkout-paypal-not-working">PayPal Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="./shopify-checkout-notification-email-customization-not-working">Notification Email Customization</a>
+      <a href="./shopify-checkout-functions-not-working">Functions Not Working</a>
+      <a href="./shopify-checkout-extensibility-migration-not-working">Checkout Extensibility Migration</a>
+      <a href="./shopify-checkout-payment-plan-not-available">Payment Plan Not Available</a>
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Notification Email Customization Not Working — Logo, Liquid Error, Deliverability, Template Override (2026)</title>
+  <meta name="description" content="Shopify notification email customization not working? Logo not showing in order confirmation? Liquid error in notification template? Emails going to spam? Third-party app overriding Shopify templates? 8 root causes for Shopify transactional email failures — Liquid syntax, brand settings, SPF/DKIM, Klaviyo override, test vs real email, theme separation." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-notification-email-customization-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-notification-email-customization-not-working" />
+  <meta property="og:title" content="Shopify Notification Email Customization Not Working — 8 Causes Explained" />
+  <meta property="og:description" content="Liquid errors break entire templates to plain text. Brand logo requires manual template injection. Klaviyo/Omnisend override Shopify notifications silently. SPF/DKIM failure routes transactional emails to spam. 8 notification email failure modes explained." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Notification Email Customization Not Working — Logo, Liquid Error, Deliverability, Template Override",
+    "description": "Shopify notification email customization failures span eight distinct failure modes: Liquid syntax errors reduce the template to plain text, brand logo settings require manual template injection not auto-apply, Shopify Email (marketing) and notification templates (transactional) are completely separate systems, notification types can be silently disabled by app installs, third-party email apps like Klaviyo or Omnisend intercept the notification flow, SPF/DKIM misconfiguration routes transactional emails to spam, storefront theme changes have zero effect on email templates, and the test notification feature uses a different code path than real order emails. This guide covers all eight root causes with exact fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-notification-email-customization-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify order confirmation email showing no logo or branding?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify's brand settings (Admin → Settings → Brand) store your logo and brand colors but do NOT automatically inject them into notification email templates. Each notification template is a standalone Liquid file that must be manually edited to include your logo. To show your logo in the order confirmation email, edit the template at Admin → Settings → Notifications → Order confirmation, and add your logo using the Liquid variable {{ shop.email_logo_url }} in an img tag. Example: <img src=\"{{ shop.email_logo_url }}\" alt=\"{{ shop.name }}\" width=\"{{ shop.email_logo_width }}\">. If you recently uploaded a new logo in Brand settings but the old logo still shows in emails, the template still contains a hardcoded image URL from the previous logo — you must manually update it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify notification email show as plain text with no formatting?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plain-text notification emails with no HTML formatting are almost always caused by a Liquid syntax error in the notification template. A single malformed Liquid tag — unclosed {% if %} block, invalid filter, or misspelled variable — causes Shopify to abandon the HTML template entirely and fall back to a plain-text email with no branding, no layout, and no styling. To find the error: go to Admin → Settings → Notifications → [affected notification] → Edit, then click Preview. If the preview shows an error message instead of the email, that is the Liquid error to fix. Common errors include: using {{ order.customer.email }} when the variable should be {{ customer.email }}, forgetting to close {% if %} blocks with {% endif %}, and referencing custom line item properties with incorrect syntax."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are my Shopify order notification emails going to spam or promotions?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify transactional emails landing in spam or Gmail's Promotions tab are caused by email authentication failures — specifically missing or misconfigured SPF and DKIM records for the sender domain. By default, Shopify sends notification emails from a shopify.com subdomain on your behalf, which has Shopify's SPF/DKIM in place. If you configured a custom sender email address (Admin → Settings → Notifications → Sender email), your domain's DNS must include an SPF record that authorizes Shopify's mail servers, and you must add Shopify's DKIM CNAME records to your domain's DNS. If these records are missing or have a typo, email providers mark the messages as suspicious. To check: use MXToolbox SPF checker and DKIM checker with selector 'shopify' for your sending domain. Additionally, if you are sending from a free email provider like Gmail or Yahoo as your notification sender, those providers' DMARC policies will reject or quarantine your emails because Shopify is not an authorized sender for those domains."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify notification emails stop working after installing Klaviyo or Omnisend?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Email marketing apps like Klaviyo, Omnisend, Drip, and AfterShip work by registering webhooks on your Shopify store that fire when orders are created, fulfilled, or updated. These apps then send their own branded emails for those events instead of Shopify's default notification emails. The problem arises when you uninstall or disable the app: the webhooks may be removed but Shopify's default notifications do not automatically re-enable. After uninstalling an email override app, you must go to Admin → Settings → Notifications and manually verify that each notification type (order confirmation, shipping confirmation, refund, etc.) is enabled. Some apps also disable Shopify's native notifications during installation — after uninstallation, these remain disabled. Check each notification template and look for a 'Disabled' badge next to the notification name."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Notification Email Customization Not Working
+  </div>
+  <h1>Shopify <em>Notification Email Customization Not Working</em> — 8 Causes Explained</h1>
+  <p class="hero-sub">Logo not showing in order confirmation? Liquid error turning your email to plain text? Shopify notification emails going to spam? Klaviyo taking over and breaking defaults? Here are all 8 root causes for Shopify transactional notification email failures — for merchants and developers.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Liquid Templates · Brand Settings · SPF/DKIM · Klaviyo Override · Shopify Email vs Notifications · Deliverability</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify's notification email system has a structural complexity that trips up most merchants: <strong>notification templates (transactional) and Shopify Email (marketing) are completely separate systems</strong>, brand settings do not auto-apply to email templates, and a single Liquid syntax error in any template collapses the entire email to unformatted plain text. Adding a third-party email app like Klaviyo or Omnisend introduces a second separate override layer that persists even after uninstallation.</p>
+
+  <p>The result: a merchant changes their logo, configures brand colors, and expects their order confirmation to look great — but customers receive a plain white email with no logo, or worse, no email at all. Eight distinct failure modes produce these symptoms with completely different root causes and fixes.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Two Separate Email Systems in Every Shopify Store</div>
+    <strong>Notification emails (transactional):</strong> Order confirmation, shipping confirmation, refund, cancellation. Edited at Admin → Settings → Notifications. Liquid-based templates. Fire automatically on order events. These are what this guide covers.<br><br>
+    <strong>Shopify Email (marketing):</strong> Newsletters, promotions, abandoned cart campaigns. Managed in the Shopify Email app or a third-party app like Klaviyo. Completely separate codebase. Changes here have zero effect on notification templates.<br><br>
+    Confirm which system is broken before spending time in the wrong place.
+  </div>
+
+  <h2>Failure Mode 1: Liquid Syntax Error Breaks the Entire Template — Falls Back to Plain-Text Email</h2>
+
+  <p>The most severe notification template failure: customers receive a plain-text email with no layout, no logo, no colors, and just raw order data as unformatted text. This is Shopify's fallback behavior when a Liquid rendering error is detected in the notification template.</p>
+
+  <h3>Why a single Liquid error wipes all formatting</h3>
+
+  <p>Shopify notification templates are rendered by the Liquid templating engine server-side. If the Liquid parser encounters an error — an unclosed tag, an invalid filter, a misspelled variable — the entire HTML template is abandoned and Shopify falls back to a minimal plain-text representation of the order data. The plain-text fallback is not a separate template you can edit; it is auto-generated from the order object.</p>
+
+  <div class="callout danger">
+    <div class="callout-title">This Is Silent — No Error Email to Merchant</div>
+    When a Liquid error triggers the plain-text fallback, Shopify sends the degraded email to the customer without notifying the merchant. You will not receive an alert. The only ways to detect it: a customer reports the email looked broken, you notice it during a test order review, or you check the template preview and see a Liquid error in the preview panel.
+  </div>
+
+  <h3>Most common Liquid errors in notification templates</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Error Pattern</th>
+          <th>Example</th>
+          <th>Correct Syntax</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Wrong variable path</td>
+          <td><code>{{ order.customer.email }}</code></td>
+          <td><code>{{ customer.email }}</code></td>
+        </tr>
+        <tr>
+          <td>Unclosed if block</td>
+          <td><code>{% if line_item.sku %} ... (no endif)</code></td>
+          <td>Add <code>{% endif %}</code> to close every <code>{% if %}</code></td>
+        </tr>
+        <tr>
+          <td>Invalid filter</td>
+          <td><code>{{ subtotal_price | money_with_tax }}</code></td>
+          <td><code>{{ subtotal_price | money }}</code></td>
+        </tr>
+        <tr>
+          <td>Line item property typo</td>
+          <td><code>{{ line_item.properties["_custom"] }}</code></td>
+          <td><code>{{ line_item.properties["custom"] }}</code> (no underscore prefix in emails)</td>
+        </tr>
+        <tr>
+          <td>For loop not closed</td>
+          <td><code>{% for item in line_items %}</code> without <code>{% endfor %}</code></td>
+          <td>Every <code>{% for %}</code> needs <code>{% endfor %}</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to find and fix the Liquid error</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Notifications → select the affected notification (e.g., Order confirmation)</li>
+    <li>Click "Edit" to open the template editor</li>
+    <li>Click "Preview" — if a Liquid error exists, it renders inline in the preview with the line number and error description</li>
+    <li>Fix the Liquid syntax error on the indicated line</li>
+    <li>Preview again to confirm no more errors</li>
+    <li>Save and test by placing a test order or using "Send test notification"</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Reset to Default if You Can't Find the Error</div>
+    If the Liquid error is hard to locate, scroll to the bottom of the notification editor and click "Revert to default" to restore Shopify's original template. You will lose customizations but regain a working email immediately, then re-apply your changes one section at a time.
+  </div>
+
+  <h2>Failure Mode 2: Brand Logo and Colors Don't Auto-Apply to Notification Templates</h2>
+
+  <p>The second most common merchant complaint: "I updated my logo in Settings → Brand but my order confirmation email still shows the old logo (or no logo at all)." Shopify's brand settings and notification templates are not linked — the brand settings are a storage vault, not an auto-injection system.</p>
+
+  <h3>How Shopify brand settings actually work</h3>
+
+  <p>Uploading a logo at Admin → Settings → Brand stores the image in Shopify's CDN and makes it available as a Liquid variable. But the notification templates do not read from brand settings automatically. Each template is a standalone HTML/Liquid file. If the template contains a hardcoded <code>src="https://old-logo-url.com/logo.png"</code>, it will always display that URL regardless of what is in brand settings.</p>
+
+  <p>To use the brand logo in notification templates, the template must explicitly reference the Liquid variable:</p>
+
+  <pre>{% if shop.email_logo_url %}
+  &lt;img src="{{ shop.email_logo_url }}"
+       alt="{{ shop.name }}"
+       width="{{ shop.email_logo_width }}"
+       style="max-width:100%;"&gt;
+{% else %}
+  &lt;h1&gt;{{ shop.name }}&lt;/h1&gt;
+{% endif %}</pre>
+
+  <h3>Brand-related Liquid variables for notification templates</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Variable</th>
+          <th>Source in Admin</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>shop.email_logo_url</code></td>
+          <td>Settings → Notifications → (logo upload field)</td>
+          <td>URL of the logo specifically uploaded for notification emails — separate from Settings → Brand logo</td>
+        </tr>
+        <tr>
+          <td><code>shop.email_logo_width</code></td>
+          <td>Settings → Notifications → (logo width)</td>
+          <td>Pixel width for the notification email logo</td>
+        </tr>
+        <tr>
+          <td><code>shop.email_accent_color</code></td>
+          <td>Settings → Notifications → (accent color)</td>
+          <td>Hex color used for buttons and accent elements in default notification templates</td>
+        </tr>
+        <tr>
+          <td><code>shop.name</code></td>
+          <td>Settings → General → Store name</td>
+          <td>Store name as text fallback when no logo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Two Separate Logo Upload Locations</div>
+    Shopify has a logo in Admin → Settings → Brand (used for the storefront and Shopify Email marketing campaigns) AND a separate logo upload in Admin → Settings → Notifications → Email customization (used for transactional notification emails). These are different files. Changing one does not change the other. If your storefront logo and notification email logo look different, this is why.
+  </div>
+
+  <h2>Failure Mode 3: Shopify Email (Marketing) and Notification Templates Are Completely Separate Systems</h2>
+
+  <p>Merchants regularly spend time customizing Shopify Email templates and then expect those changes to appear in order confirmation or shipping notification emails — they don't. These are two distinct systems with no shared state.</p>
+
+  <h3>The two email systems side by side</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Notification Emails (Transactional)</th>
+          <th>Shopify Email (Marketing)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Where to edit</td>
+          <td>Admin → Settings → Notifications</td>
+          <td>Shopify Email app or third-party (Klaviyo, Omnisend)</td>
+        </tr>
+        <tr>
+          <td>Templating language</td>
+          <td>Liquid (HTML-based)</td>
+          <td>Drag-and-drop builder or HTML editor in app</td>
+        </tr>
+        <tr>
+          <td>When they fire</td>
+          <td>Automatically on order/fulfillment/refund events</td>
+          <td>Manually sent or scheduled/automated campaigns</td>
+        </tr>
+        <tr>
+          <td>Affected by theme changes</td>
+          <td>Never — completely separate from storefront theme</td>
+          <td>Never — app manages its own templates</td>
+        </tr>
+        <tr>
+          <td>Examples</td>
+          <td>Order confirmation, shipping, refund, cancellation</td>
+          <td>Newsletters, abandoned cart, welcome series, promotions</td>
+        </tr>
+        <tr>
+          <td>Sending infrastructure</td>
+          <td>Shopify's transactional email servers</td>
+          <td>Shopify Email app servers (or Klaviyo/Omnisend servers)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>If you installed Shopify Email to redesign your "order confirmation" and customized a template there, you may have been editing a marketing template — not the transactional notification. The actual order confirmation email is still the unmodified template at Settings → Notifications → Order confirmation.</p>
+
+  <h3>Abandoned cart email confusion</h3>
+
+  <p>Shopify's built-in abandoned checkout notification (Admin → Settings → Notifications → Abandoned checkout) fires 10 hours after a cart is abandoned. If you have Klaviyo or Omnisend installed and configured with an abandoned cart flow, both systems may fire — the customer gets two emails. To avoid this, disable Shopify's native abandoned checkout notification when using a third-party email marketing app's abandoned cart flow.</p>
+
+  <h2>Failure Mode 4: Notification Type Silently Disabled by App Install or Manual Toggle</h2>
+
+  <p>Shopify has over 25 individual notification types, each with its own on/off toggle. These can be disabled silently during app installs, store migrations, or accidental admin changes — and there is no dashboard showing which are currently disabled without clicking into each one.</p>
+
+  <h3>Notification types with the highest disable-rate</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Notification Type</th>
+          <th>Common Reason for Accidental Disable</th>
+          <th>Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Order confirmation</td>
+          <td>Email marketing app installation (app takes over and disables Shopify default)</td>
+          <td><span class="tag red">Critical</span> Customers don't receive order receipt</td>
+        </tr>
+        <tr>
+          <td>Shipping confirmation</td>
+          <td>Fulfillment app (ShipBob, ShipStation) disables to send its own branded email</td>
+          <td><span class="tag red">Critical</span> Customers don't get tracking information</td>
+        </tr>
+        <tr>
+          <td>Refund notification</td>
+          <td>Returns management app install</td>
+          <td><span class="tag yellow">High</span> Customers unaware their refund was processed</td>
+        </tr>
+        <tr>
+          <td>Abandoned checkout</td>
+          <td>Klaviyo/Omnisend abandoned cart flow configured without disabling Shopify default</td>
+          <td><span class="tag yellow">High</span> Double emails, or notification off but app flow also missing</td>
+        </tr>
+        <tr>
+          <td>Customer account welcome</td>
+          <td>CRM app installation</td>
+          <td><span class="tag blue">Medium</span> New account registration silent</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to audit all notification statuses</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Notifications</li>
+    <li>Scroll through the full list of notification types — look for any labeled "Disabled"</li>
+    <li>Click each critical notification (Order confirmation, Shipping confirmation, Refund) to verify it is enabled and the template has no errors</li>
+    <li>Place a test order using a Shopify test payment gateway to trigger real notification sends — verify the emails arrive</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Use "Send test notification" Carefully</div>
+    The "Send test notification" button in Admin → Settings → Notifications sends a preview using sample data. It does not use the same delivery path as a real order. A test notification can succeed even when real order notifications are disabled or broken. Always verify with a real test order to be certain.
+  </div>
+
+  <h2>Failure Mode 5: Third-Party Email Apps Override Notifications — Disabling the App Doesn't Restore Defaults</h2>
+
+  <p>Email marketing apps — Klaviyo, Omnisend, Drip, OrderlyEmails, AfterShip — work by registering Shopify webhooks for order events. When an order is created, the webhook fires and the app sends its own branded email instead of (or in addition to) Shopify's default notification. The critical issue: when you uninstall the app, the webhook is removed but Shopify's default notifications are not automatically re-enabled.</p>
+
+  <h3>What each app-type does to your notification flow</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>App Type</th>
+          <th>What It Does</th>
+          <th>What Happens on Uninstall</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Klaviyo, Omnisend (marketing platforms)</td>
+          <td>Registers order webhooks, sends own emails; may or may not disable Shopify defaults</td>
+          <td>Webhooks removed, but if Shopify defaults were disabled during install they stay disabled</td>
+        </tr>
+        <tr>
+          <td>OrderlyEmails, Spently (template designers)</td>
+          <td>Replaces Shopify notification template HTML with custom-designed templates via the app</td>
+          <td>Custom HTML may remain in the template even after uninstall — app doesn't revert template content</td>
+        </tr>
+        <tr>
+          <td>ShipStation, ShipBob (fulfillment apps)</td>
+          <td>Disables Shopify's shipping confirmation notification and sends its own</td>
+          <td>Shopify shipping confirmation remains disabled — must manually re-enable</td>
+        </tr>
+        <tr>
+          <td>Returns management apps (Loop, Happy Returns)</td>
+          <td>Adds return portal links to order notification templates or takes over return emails</td>
+          <td>Template modifications may persist — check template HTML for orphaned app code</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Recovery steps after uninstalling an email override app</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Notifications</li>
+    <li>Check each critical notification for "Disabled" status — manually enable any that were turned off</li>
+    <li>Open each enabled template and review the HTML — look for app-specific code, broken links to app CDN assets, or references to app variables that no longer resolve</li>
+    <li>For any template with orphaned app code: click "Revert to default" to restore Shopify's clean template</li>
+    <li>Re-apply your brand customizations (logo, colors, footer links) to the reverted templates</li>
+    <li>Send a test order to verify delivery</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Klaviyo-Specific: Check Flow Active Status</div>
+    If you uninstall Klaviyo but your Klaviyo account still exists with active flows, and if Shopify still has a Klaviyo webhook registered (check Admin → Settings → Notifications → Webhooks), Klaviyo may still be attempting to send emails for your orders — unsuccessfully, since the store is disconnected. This results in zero emails going out. After uninstalling Klaviyo, verify at Admin → Settings → Notifications that no Klaviyo webhooks remain registered, and that Shopify's default order confirmation is enabled.
+  </div>
+
+  <h2>Failure Mode 6: SPF/DKIM Misconfiguration Routes Notification Emails to Spam or Promotions</h2>
+
+  <p>The symptom: customers report not receiving order confirmation or shipping emails. The emails are being sent by Shopify — but they are landing in the spam folder, the Gmail Promotions tab, or being outright rejected by the receiving mail server. The cause is email authentication failure at the DNS level.</p>
+
+  <h3>How Shopify sends notification emails</h3>
+
+  <p>By default, Shopify sends notification emails from <code>noreply@shopify.com</code> (or a subdomain on Shopify's infrastructure) on behalf of your store. These have Shopify's SPF and DKIM already configured — they generally land in inbox without DNS setup from the merchant.</p>
+
+  <p>If you changed the notification sender address to a custom email (e.g., <code>orders@yourbrand.com</code> at Admin → Settings → Notifications → Sender email), Shopify sends from that address — but your domain's DNS must now authorize Shopify as a sender. Without this authorization, receiving mail servers see the email as spoofed and filter it.</p>
+
+  <h3>Required DNS records for custom sender email</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Record Type</th>
+          <th>What to Add</th>
+          <th>Why It Matters</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SPF (TXT record)</td>
+          <td>Add <code>include:shops.shopify.com</code> to your domain's SPF record</td>
+          <td>Authorizes Shopify's mail servers to send email from your domain</td>
+        </tr>
+        <tr>
+          <td>DKIM (CNAME records)</td>
+          <td>Add Shopify's two DKIM CNAME records (found in Admin → Settings → Notifications → Sender email section)</td>
+          <td>Cryptographically signs outgoing emails to prove authenticity</td>
+        </tr>
+        <tr>
+          <td>DMARC (TXT record)</td>
+          <td>Start with <code>v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com</code></td>
+          <td>Specifies handling policy for failed authentication; <code>p=reject</code> without SPF/DKIM aligned will reject all your notification emails</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-title">Never Use Gmail/Yahoo as Notification Sender Address</div>
+    If your Shopify notification sender email is <code>yourstore@gmail.com</code> or <code>yourstore@yahoo.com</code>, all your notification emails will either be rejected or marked as spam. Google and Yahoo enforce strict DMARC policies (<code>p=reject</code>) — they will not allow Shopify to send email from a Gmail or Yahoo address. Use a custom domain email address (<code>orders@yourbrand.com</code>) as the sender instead.
+  </div>
+
+  <h3>Diagnosing deliverability failures</h3>
+
+  <ol class="steps">
+    <li>Place a test order with an email address you control — check spam folder first, then check Gmail Promotions tab</li>
+    <li>If the email arrived in spam: check email headers (in Gmail: three-dot menu → Show original) — look for "SPF: FAIL" or "DKIM: FAIL" in the Authentication-Results header</li>
+    <li>Use MXToolbox SPF checker (<code>mxtoolbox.com/spf.aspx</code>) with your sending domain to verify the SPF record includes <code>include:shops.shopify.com</code></li>
+    <li>Use MXToolbox DKIM checker with selector <code>shopify1._domainkey</code> and your domain to verify DKIM is configured</li>
+    <li>Add missing records in your domain's DNS provider (Cloudflare, GoDaddy, Namecheap, etc.) — DNS propagation takes 15 minutes to 48 hours</li>
+  </ol>
+
+  <h2>Failure Mode 7: Storefront Theme Changes Have No Effect on Notification Email Templates</h2>
+
+  <p>Shopify's storefront theme (Dawn, Prestige, Impulse, etc.) and notification email templates share nothing — they are completely separate systems. Theme file changes, theme customizations, and <code>checkout.liquid</code> modifications have zero effect on any notification email template.</p>
+
+  <h3>Why the systems are completely separate</h3>
+
+  <p>The storefront theme lives in your theme's file system (accessible at Online Store → Themes → Edit code). Notification email templates live at Admin → Settings → Notifications and are stored in a completely separate Shopify admin data store. The two systems do not share CSS, Liquid files, assets, or configuration. A change to <code>templates/index.liquid</code> in your theme will never appear in an email. A change to the Order confirmation email template will never change anything on your storefront.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>What You Changed</th>
+          <th>Affects Storefront</th>
+          <th>Affects Notification Emails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Theme Liquid files (templates/, sections/, snippets/)</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag red">Never</span></td>
+        </tr>
+        <tr>
+          <td>Theme CSS / JavaScript</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag red">Never</span></td>
+        </tr>
+        <tr>
+          <td>checkout.liquid</td>
+          <td><span class="tag green">Checkout only</span></td>
+          <td><span class="tag red">Never</span></td>
+        </tr>
+        <tr>
+          <td>Admin → Settings → Notifications templates</td>
+          <td><span class="tag red">Never</span></td>
+          <td><span class="tag green">Yes</span></td>
+        </tr>
+        <tr>
+          <td>Admin → Settings → Notifications → Email customization (logo, colors)</td>
+          <td><span class="tag red">Never</span></td>
+          <td><span class="tag green">Yes, if template references the variables</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>If you need a consistent visual identity between your storefront and notification emails, you must manually replicate the relevant design choices (colors, fonts, logo) into the notification templates using Liquid variables and inline CSS. Notification emails do not support external stylesheets — all CSS must be inline or in a <code>&lt;style&gt;</code> block within the template, and many email clients strip <code>&lt;style&gt;</code> blocks entirely. Use inline styles for maximum compatibility.</p>
+
+  <h2>Failure Mode 8: "Send Test Notification" Works But Customers Don't Receive Real Order Emails</h2>
+
+  <p>The most confusing scenario: you click "Send test notification" in Admin, the test email arrives in your inbox immediately, you confirm the template looks correct — but real customers placing orders never receive emails. The test notification and the real order notification use different code paths.</p>
+
+  <h3>Why test notifications and real order notifications behave differently</h3>
+
+  <p>The "Send test notification" button generates a preview using static sample data and sends it through Shopify's immediate notification preview pipeline. It bypasses the event queue that processes real order events. Real order notifications go through Shopify's background job system: the order event fires a webhook, the webhook enqueues a background job, the job renders the template with real order data, and the email is sent through Shopify's transactional email infrastructure. If the background job system has an issue, or if the specific notification is disabled for the real event trigger (but the test uses a different trigger path), test and real can diverge.</p>
+
+  <h3>Conditions where test succeeds but real fails</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Condition</th>
+          <th>Test Result</th>
+          <th>Real Order Result</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Notification disabled via third-party app webhook override</td>
+          <td><span class="tag green">Test sends</span></td>
+          <td><span class="tag red">No email</span></td>
+          <td>Check if third-party app webhook is registered; re-enable notification or configure app correctly</td>
+        </tr>
+        <tr>
+          <td>Liquid variable renders fine with test data but breaks with real order data</td>
+          <td><span class="tag green">Test renders</span></td>
+          <td><span class="tag red">Plain text fallback</span></td>
+          <td>Identify variables that are null/missing for some real orders (e.g., missing customer.first_name for guest checkouts)</td>
+        </tr>
+        <tr>
+          <td>Custom sender domain failing SPF/DKIM</td>
+          <td><span class="tag yellow">Test sends from Shopify default</span></td>
+          <td><span class="tag red">Rejected or spam</span></td>
+          <td>Configure SPF/DKIM for custom sender domain (see Failure Mode 6)</td>
+        </tr>
+        <tr>
+          <td>Guest checkout order — customer object has fewer fields</td>
+          <td><span class="tag green">Test uses full customer object</span></td>
+          <td><span class="tag red">Liquid error on guest order</span></td>
+          <td>Wrap customer-specific Liquid in <code>{% if customer %}</code> guard blocks</td>
+        </tr>
+        <tr>
+          <td>POS order — different order origin properties</td>
+          <td><span class="tag green">Test uses online order data shape</span></td>
+          <td><span class="tag red">Missing properties for POS order type</span></td>
+          <td>Test with a real POS order; guard POS-incompatible variables</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to verify real order notification delivery</h3>
+
+  <ol class="steps">
+    <li>Use Shopify's test payment gateway (Bogus Gateway) to place a real test order with a real email address you control</li>
+    <li>Check your inbox — including spam — for the order confirmation within 5 minutes</li>
+    <li>If it doesn't arrive: go to Admin → Orders → select the test order → scroll to Timeline → look for "Order confirmation sent to [email]" — if this line is missing, the notification was not sent at all</li>
+    <li>If the timeline shows "sent" but email hasn't arrived: deliverability issue (check spam, verify SPF/DKIM)</li>
+    <li>If the timeline does not show the notification as sent: notification is disabled or a webhook is intercepting the event</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Order Timeline Is Your Ground Truth</div>
+    Admin → Orders → [any order] → Timeline shows exactly which notifications were sent, to which email address, and at what time. If a notification should have fired but the timeline shows nothing, the notification was not sent by Shopify. If the timeline shows it was sent but the customer didn't receive it, the issue is deliverability. These are two different problems with different fixes.
+  </div>
+
+  <div class="cta-block">
+    <h2>Is Your Shopify Checkout Delivering Notifications Reliably?</h2>
+    <p>CheckPulse monitors your checkout flow end-to-end — catching broken notifications, failed payment gateways, and silent email failures before your customers notice them.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run a Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Quick-Reference Diagnostic Table</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Fix to Try</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Email arrives as plain text with no formatting</td>
+          <td>Liquid syntax error in template</td>
+          <td>Admin → Notifications → edit template → Preview → fix error shown</td>
+        </tr>
+        <tr>
+          <td>No logo in email despite uploading one</td>
+          <td>Brand settings not auto-injected; template has hardcoded old URL</td>
+          <td>Edit template to use <code>{{ shop.email_logo_url }}</code>; also upload logo in Notifications → Email customization</td>
+        </tr>
+        <tr>
+          <td>Customers not receiving order confirmation at all</td>
+          <td>Notification disabled (by app or accident) OR deliverability failure</td>
+          <td>Check notification enabled status; check order Timeline for "sent" entry; check spam folder</td>
+        </tr>
+        <tr>
+          <td>Emails going to spam or Promotions</td>
+          <td>SPF/DKIM not configured for custom sender domain</td>
+          <td>Add <code>include:shops.shopify.com</code> to SPF; add Shopify DKIM CNAME records; never use Gmail address as sender</td>
+        </tr>
+        <tr>
+          <td>Double emails after app install</td>
+          <td>App sending its own email + Shopify default both active</td>
+          <td>Disable Shopify's native notification for that event type when using app; or disable app's flow</td>
+        </tr>
+        <tr>
+          <td>No emails after uninstalling email app</td>
+          <td>App disabled Shopify defaults during install; not restored on uninstall</td>
+          <td>Manually re-enable all critical notifications; check for orphaned app code in templates</td>
+        </tr>
+        <tr>
+          <td>Test email works but real orders don't get emails</td>
+          <td>Webhook override OR Liquid error on specific order type (guest, POS)</td>
+          <td>Place a real test order; check order Timeline; guard customer variables in template</td>
+        </tr>
+        <tr>
+          <td>Email template changes not appearing in marketing emails</td>
+          <td>Edited notification template instead of Shopify Email / Klaviyo template</td>
+          <td>Transactional and marketing are separate — edit in the correct system for each</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Related Shopify Notification Email Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email Not Working</a>
+      <p>Specifically the order confirmation notification — triggers, timing, Liquid variables, and resend options.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Cart Recovery Not Working</a>
+      <p>Abandoned checkout notification not firing — 10-hour delay, Klaviyo conflict, enabling in admin.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <p>Order events not triggering webhooks — app integrations, endpoint failures, retry behavior.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <p>Order confirmation page pixels and Google/Meta conversion events not firing correctly.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <p>Post-purchase page customization, additional scripts, and order status page issues.</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <p>Multi-currency checkout failures — display-only apps vs Shopify Markets, exchange rate issues.</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-checkout-discount-not-working">Discount Not Working</a>
+      <a href="./shopify-checkout-shipping-not-working">Shipping Not Working</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay / Google Pay Not Showing</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-tax-calculation-wrong">Tax Calculation Wrong</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation</a>
+      <a href="./shopify-checkout-extensibility-migration-not-working">Checkout Extensibility Migration</a>
+      <a href="./shopify-checkout-payment-plan-not-available">Payment Plan Not Available</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="./shopify-checkout-notification-email-customization-not-working">Notification Email Customization</a>
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

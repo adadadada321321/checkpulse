@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Checkout Link Not Working — Expired, Broken, Invalid Checkout URLs (2026)</title>
+  <meta name="description" content="Shopify checkout link not working? Draft order links expired, cart permalinks broken, custom domain checkout URLs failing — 8 root causes for checkout links that don't load, with exact fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-link-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-link-not-working" />
+  <meta property="og:title" content="Shopify Checkout Link Not Working — 8 Root Causes &amp; Fixes" />
+  <meta property="og:description" content="Checkout link expired, draft order link invalid, cart permalink broken, custom domain checkout failing — 8 reasons Shopify checkout links stop working with diagnostic steps and fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Checkout Link Not Working — Expired, Broken, Invalid Checkout URLs",
+    "description": "Shopify checkout links stop working for eight root causes: the checkout session expired due to inactivity, a draft order link passed its expiry date, the product or variant linked in the URL was deleted or taken out of stock, a custom domain checkout misconfiguration routes the link through a broken SSL or DNS path, the link was built with mismatched store URLs mixing myshopify.com and the custom domain, the original cart session was purged after abandonment, a multi-currency or market mismatch makes the link invalid in the buyer's region, or a third-party app generated a malformed or token-expired checkout URL. This guide covers all 8 failure modes for Shopify checkout links, cart permalinks, and draft order checkout URLs.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-link-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout link say 'this link has expired' or show a blank page?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify checkout sessions expire after a period of buyer inactivity — typically 1 to 2 hours from the time the checkout was first created, though this can vary by plan and configuration. When a merchant shares a checkout.shopify.com URL directly from their browser's address bar, that URL is a live session token tied to a specific cart instance. Once the session expires, the URL no longer resolves to a valid checkout and the buyer sees an empty cart, an error page, or a redirect to the storefront. The correct way to share a cart is via a cart permalink (yourstore.com/cart/add or a variant-level cart URL) or via a draft order link from Admin, both of which create a fresh session when the buyer opens them rather than linking to an existing session."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify draft order checkout link not working?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Draft order checkout links in Shopify have two common failure modes: (1) The link has passed its expiry date — draft order checkout URLs can be configured with an expiry when the draft is created; once the expiry date passes, the link returns an 'Order not found' or 'This link is no longer valid' error. Go to Admin → Orders → Drafts, find the draft, and create a new invoice link to send a fresh URL to the buyer. (2) The draft order was completed or cancelled — once a draft order converts to a paid order or is manually cancelled, its checkout URL becomes invalid. Buyers who still have the old link will see an error. Always send the buyer a new link from the active draft order rather than re-forwarding an old email."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify cart permalink link show an empty cart?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify cart permalink (a URL that pre-fills the cart with specific items) stops working when the product or variant referenced in the URL is deleted, unpublished, archived, or sold out with inventory tracking enabled. The permalink format is yourstore.com/cart/VARIANT_ID:QUANTITY — if the variant ID no longer exists or the variant is unavailable, Shopify silently ignores the add-to-cart instruction and loads an empty cart. To fix this: verify that the variant ID in your link matches an active, published, in-stock product variant in your catalog. If the product was replaced with a new one, update the permalink to reference the new variant ID."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does my Shopify checkout URL work on my domain but not on checkout.shopify.com?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify routes checkout through checkout.shopify.com by default but allows merchants to configure a custom checkout domain (e.g. checkout.yourdomain.com). If you have configured a custom checkout domain and there is a misconfiguration — incorrect CNAME record, SSL certificate not provisioned, or the domain was recently changed — checkout links built using the custom domain will fail while links through checkout.shopify.com may still work (or vice versa). Go to Admin → Settings → Domains → check your checkout domain configuration. Ensure the CNAME record points to shops.myshopify.com, that the SSL certificate is active (not expired or pending), and that the custom checkout domain matches what Shopify expects. If in doubt, temporarily revert to the default checkout.shopify.com domain while troubleshooting."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Checkout Link Not Working
+  </div>
+  <h1>Shopify <em>Checkout Link Not Working</em> — Expired, Broken &amp; Invalid Checkout URLs (2026)</h1>
+  <p class="hero-sub">Checkout link expired, draft order link showing "order not found", cart permalink loading empty, custom domain checkout URL broken — here are all 8 failure modes for Shopify checkout links that stop working, with diagnostic steps and exact fixes for each type.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Session Expired · Draft Link Expired · Variant Deleted · Custom Domain · URL Mismatch · Purged Cart · Market Mismatch · App-Generated Link</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify merchants share checkout links in a variety of ways: pasting a live checkout URL into an email or chat, sending draft order invoice links to wholesale or B2B customers, embedding cart permalink URLs in marketing campaigns, and using apps that generate checkout links automatically. Each of these link types has different expiry behavior, different failure modes, and different fixes when the link stops working.</p>
+
+  <p>When a Shopify checkout link doesn't work, buyers typically see one of three things: a blank or empty cart, an error page saying "link expired" or "order not found", or a redirect back to the store homepage with no explanation. None of these outcomes communicate what went wrong — and none of them reach your admin as an error log. The failures are silent from the merchant's perspective.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">First: Identify Which Type of Checkout Link You're Using</div>
+    Shopify has four distinct types of checkout links, each with different behavior: (1) <strong>Live session checkout URLs</strong> — the <code>checkout.shopify.com/...</code> URL copied from your browser during an active checkout session. These are session-specific and expire. (2) <strong>Draft order checkout links</strong> — generated from Admin → Orders → Drafts → Send Invoice. These have configurable expiry. (3) <strong>Cart permalink URLs</strong> — <code>yourstore.com/cart/VARIANT_ID:QTY</code> format that adds items to a fresh cart. These don't expire but depend on variant availability. (4) <strong>App-generated checkout links</strong> — URLs created by third-party apps using Shopify's Cart or Checkout API. These have their own expiry and validity rules depending on the app. Identifying which type you're using determines which failure mode and fix applies.
+  </div>
+
+  <h2>Failure Mode 1: Checkout Session Link Expired</h2>
+
+  <p>The most common reason a Shopify checkout link "doesn't work" is that the URL being shared is a live session checkout URL — the address from the browser's address bar during an active checkout — rather than a shareable cart link. Shopify checkout sessions are tied to a specific browser session and expire after a period of inactivity. When the session expires, the URL becomes invalid.</p>
+
+  <h3>How checkout session expiry works</h3>
+
+  <ul>
+    <li><strong>Checkout sessions are not persistent links:</strong> The URL at <code>checkout.shopify.com/SHOP/checkouts/TOKEN</code> is a session token that represents a specific checkout instance. It is not a shareable cart permalink. Once the session expires or the original browser session is closed, the URL no longer points to a valid checkout.</li>
+    <li><strong>Default session window is approximately 1–2 hours:</strong> Shopify's default checkout session lifetime is short relative to typical e-commerce session windows. Sessions do not stay active indefinitely in the background — inactivity causes expiry. Sessions may also expire sooner if the cart contents become invalid (e.g., a product goes out of stock).</li>
+    <li><strong>Sharing from the address bar is the root cause:</strong> Merchants and sales teams who manually copy a checkout URL from their browser and paste it into an email, WhatsApp, or CRM system are sharing a session-specific URL. The buyer receives a link that may have already expired by the time they open it.</li>
+    <li><strong>Expired session shows empty cart or error:</strong> When a buyer opens an expired checkout session URL, Shopify may redirect them to an empty cart page, the store homepage, or a generic error page. The behavior varies by theme and Shopify version.</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">Never Share Checkout Session URLs Directly — They Expire</div>
+    The URL in your browser's address bar during checkout (e.g. <code>checkout.shopify.com/...</code>) is a session token, not a shareable link. If you paste this URL into an email or message for a buyer, it will almost certainly be expired by the time they click it. Instead, use cart permalink URLs (<code>yourstore.com/cart/VARIANT_ID:QTY</code>) or draft order invoice links from Admin → Orders → Drafts for any checkout link that needs to be shared.
+  </div>
+
+  <h3>How to create shareable checkout links correctly</h3>
+
+  <ol class="steps">
+    <li><strong>For cart pre-filling:</strong> Use a cart permalink URL in the format <code>https://yourstore.myshopify.com/cart/VARIANT_ID:QUANTITY</code> or with your custom domain <code>https://yourstore.com/cart/VARIANT_ID:QUANTITY</code>. These create a fresh cart session every time they are opened and do not expire as long as the product remains available.</li>
+    <li><strong>For multi-item carts:</strong> Use the format <code>/cart/VARIANT_ID1:QTY1,VARIANT_ID2:QTY2</code> to pre-fill a cart with multiple items. You can also append discount codes with <code>?discount=CODE</code>.</li>
+    <li><strong>For individual customer orders:</strong> Use Admin → Orders → Drafts → Create Draft → add items → Send Invoice. This generates a draft order checkout link with the buyer's details pre-filled.</li>
+    <li><strong>For app-generated links:</strong> Most cart/checkout link generator apps create persistent cart links using the Storefront API's <code>checkoutCreate</code> mutation, which has its own session window — verify the app's link expiry settings.</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Finding Your Variant IDs for Cart Permalinks</div>
+    To build a cart permalink, you need the variant ID for each product. Find it in Admin → Products → select a product → click a variant → the variant ID appears in the URL bar as the number after <code>/variants/</code>. For stores using the Storefront API, variant IDs in URLs use the base number (e.g., <code>12345678901234</code>), not the gid format.
+  </div>
+
+  <h2>Failure Mode 2: Draft Order Checkout Link Expired</h2>
+
+  <p>Draft order checkout links are the correct way to send a specific buyer a pre-filled, personalized checkout. But draft order links have their own expiry mechanism — once the link expires, buyers see an "order not found" or "this link is no longer valid" error, and there is no automatic re-send from Shopify.</p>
+
+  <h3>How draft order link expiry works</h3>
+
+  <ul>
+    <li><strong>Expiry is set when the invoice is sent:</strong> When you send a draft order invoice from Admin → Orders → Drafts → Send Invoice, Shopify generates a checkout URL that includes the draft order token. This link remains valid until the draft order is completed, cancelled, or the configured expiry date passes.</li>
+    <li><strong>Default expiry behavior depends on Shopify plan and configuration:</strong> By default, draft order links do not have a hard expiry date set by Shopify — they remain valid as long as the draft order is open. However, some third-party apps or custom integrations set an expiry when creating draft orders programmatically via the Admin API. If the link was created with an <code>invoice_url</code> that includes a time-limited token, it will expire.</li>
+    <li><strong>Link becomes invalid when the draft is completed or cancelled:</strong> Once a buyer completes payment via the draft order link (converting it to an order) or a merchant manually marks the draft as complete or cancels it, the checkout URL is invalidated. Buyers who click an old link to a completed draft see an error.</li>
+    <li><strong>Re-sending the invoice generates a new link:</strong> If a buyer reports that their draft order link is not working, go to Admin → Orders → Drafts → find the draft order → click "Send Invoice" again. This generates a fresh checkout URL and sends a new email to the buyer.</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Draft Order State</th>
+          <th>Checkout Link Valid?</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Draft — Open</td>
+          <td><span class="tag green">Yes (link works)</span></td>
+          <td>Send invoice link to buyer; link is valid</td>
+        </tr>
+        <tr>
+          <td>Draft — Completed (payment received)</td>
+          <td><span class="tag red">No — link invalid</span></td>
+          <td>Order is paid; link no longer needed</td>
+        </tr>
+        <tr>
+          <td>Draft — Cancelled</td>
+          <td><span class="tag red">No — link invalid</span></td>
+          <td>Reopen draft or create a new one</td>
+        </tr>
+        <tr>
+          <td>Draft — Open but app-set expiry passed</td>
+          <td><span class="tag red">No — token expired</span></td>
+          <td>Send invoice again from Admin to generate fresh link</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Buyers Often Save Draft Order Emails and Click Them Later</div>
+    B2B and wholesale buyers frequently save draft order invoice emails to reference later. If a buyer marks a draft order email as unread and returns to it weeks later — after the draft was completed or cancelled — they will click a broken link. Communicate clearly in draft order emails that the link is time-sensitive, or set up a process to notify buyers when a draft is about to be cancelled so they can use the link first.
+  </div>
+
+  <h2>Failure Mode 3: Product or Variant Deleted After Link Was Created</h2>
+
+  <p>Cart permalink URLs reference specific Shopify variant IDs. If the product or variant referenced in the URL is deleted, archived, unpublished, or sold out after the link was created, the permalink will load an empty cart rather than the expected pre-filled cart. This failure is particularly common in marketing campaigns where links are embedded in emails or ads that run over a period of time.</p>
+
+  <h3>How variant deletion breaks cart links</h3>
+
+  <ul>
+    <li><strong>Shopify silently ignores invalid variant IDs in cart URLs:</strong> When a buyer opens a cart permalink that references a deleted or unavailable variant, Shopify does not show an error. It simply ignores the add-to-cart instruction and loads an empty cart. Buyers see a cart with no items and have no idea what went wrong.</li>
+    <li><strong>Product archived or unpublished = same effect as deleted for cart links:</strong> Archiving a product or unpublishing it from the Online Store removes it from cart permalink availability. A link to an archived product's variant ID loads an empty cart, even though the product still exists in Admin.</li>
+    <li><strong>Variant sold out with inventory tracking enabled:</strong> If inventory tracking is enabled and the variant reaches zero stock, Shopify may prevent it from being added to a cart via permalink depending on your "Continue selling when out of stock" setting. With this setting off, a zero-stock variant cannot be added via cart permalink.</li>
+    <li><strong>Product replaced or remade with new variant IDs:</strong> When merchants delete and recreate a product (rather than editing it in place), the new variants get new IDs. Old cart permalink links referencing the original variant IDs break immediately. This is common after a product catalog migration or a theme rebuild that also recreated products.</li>
+  </ul>
+
+  <h3>How to diagnose and fix broken cart permalink links</h3>
+
+  <ol class="steps">
+    <li>Take the variant ID from your cart permalink URL and search for it in Admin → Products → use the URL format <code>admin.shopify.com/store/YOURSTORE/products?query=VARIANT_ID</code> to verify the variant still exists and is active</li>
+    <li>Confirm the product is published to the Online Store channel (Admin → Products → select product → check Sales channels)</li>
+    <li>Check that "Track quantity" is enabled and stock is above zero, or that "Continue selling when out of stock" is enabled if you sell pre-orders</li>
+    <li>If the variant was replaced, update all campaign URLs, email templates, and landing pages that contain the old variant ID with the new one</li>
+    <li>For marketing campaigns running over time (email sequences, retargeting ads), use product page URLs rather than cart permalinks where possible — product pages dynamically reflect current variant availability rather than linking to a specific variant state</li>
+  </ol>
+
+  <div class="cta-box">
+    <h2>Are Your Checkout Links Breaking Silently?</h2>
+    <p>Broken cart permalink links load empty carts — no error, no alert, no admin log. CheckPulse monitors your checkout flow end-to-end and alerts you when cart loading, payment rendering, or checkout completion fails, before buyers abandon without telling you.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check →</a>
+  </div>
+
+  <h2>Failure Mode 4: Custom Domain Checkout Misconfiguration</h2>
+
+  <p>Shopify allows merchants to configure a custom checkout domain so that the checkout experience uses their own domain (e.g., <code>checkout.mybrand.com</code>) instead of the default <code>checkout.shopify.com</code>. When this custom domain is misconfigured — incorrect DNS records, expired SSL certificate, wrong CNAME target — checkout links built using that domain fail while the underlying checkout itself may still work through the default Shopify domain.</p>
+
+  <h3>Custom checkout domain requirements</h3>
+
+  <ul>
+    <li><strong>CNAME record must point to the correct Shopify target:</strong> The CNAME for your custom checkout subdomain (e.g., <code>checkout.yourdomain.com</code>) must point to <code>shops.myshopify.com</code>. If the CNAME was set up correctly at first but the DNS record was accidentally modified or deleted later, checkout links using the custom domain will fail to resolve.</li>
+    <li><strong>SSL certificate must be valid and current:</strong> Shopify provisions an SSL certificate for your custom checkout domain. If this certificate expires or fails to renew (which can happen if the CNAME record is temporarily removed or if Shopify's certificate renewal process hits a DNS propagation issue), buyers will see an SSL error when opening checkout links that use the custom domain.</li>
+    <li><strong>Custom domain must match exactly what Shopify has on file:</strong> If you change your primary store domain or checkout subdomain in Shopify settings, existing checkout links that reference the old domain will break. Always update checkout link sources (email templates, marketing links, app configurations) when changing your checkout domain.</li>
+    <li><strong>Only Shopify Plus stores support custom checkout domains:</strong> Standard Shopify plans do not support custom checkout domains. If you are on a standard plan, all checkout links use <code>checkout.shopify.com</code> and custom domain checkout configuration is not available — any attempt to configure it will not take effect.</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checkout Domain Issue</th>
+          <th>Symptom</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CNAME record missing or incorrect</td>
+          <td>Checkout link fails to load (DNS error)</td>
+          <td><span class="tag blue">Re-add CNAME: checkout.yourdomain.com → shops.myshopify.com</span></td>
+        </tr>
+        <tr>
+          <td>SSL certificate expired</td>
+          <td>Browser shows SSL/certificate error</td>
+          <td><span class="tag blue">Remove and re-add custom checkout domain in Shopify Admin to trigger re-provisioning</span></td>
+        </tr>
+        <tr>
+          <td>Domain changed but links not updated</td>
+          <td>Links show 404 or redirect to wrong page</td>
+          <td><span class="tag yellow">Update all checkout link sources with the new domain</span></td>
+        </tr>
+        <tr>
+          <td>Custom domain attempted on non-Plus plan</td>
+          <td>Feature not available; links use default domain</td>
+          <td><span class="tag yellow">Use checkout.shopify.com links on standard plans</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to verify custom checkout domain health</h3>
+
+  <ol class="steps">
+    <li>Go to Admin → Settings → Domains → check your checkout domain is listed and shows "Connected" with a green indicator</li>
+    <li>Open a test checkout link using the custom domain URL in an incognito browser window and verify it loads without SSL errors</li>
+    <li>Run a DNS lookup for your checkout subdomain (e.g., <code>dig checkout.yourdomain.com CNAME</code>) to confirm the CNAME resolves to <code>shops.myshopify.com</code></li>
+    <li>Check SSL certificate validity at <code>https://checkout.yourdomain.com</code> — the padlock icon in the browser should show a valid, Shopify-provisioned certificate</li>
+    <li>If the SSL shows as expired, remove the custom checkout domain from Shopify Admin → Domains, wait 5 minutes, re-add it, and allow up to 24 hours for Shopify to re-provision the certificate</li>
+  </ol>
+
+  <h2>Failure Mode 5: Mismatched Store URL in the Checkout Link</h2>
+
+  <p>Shopify stores have multiple URL formats for the same checkout: the <code>myshopify.com</code> URL, the custom domain URL, and the <code>checkout.shopify.com</code> URL. Checkout links built using one URL format may not work correctly when the store's primary URL has changed, or when links are shared that mix these formats inconsistently.</p>
+
+  <h3>How URL mismatches break checkout links</h3>
+
+  <ul>
+    <li><strong>Cart permalink URLs are domain-specific:</strong> A cart permalink built with <code>yourstore.myshopify.com/cart/...</code> and a cart permalink built with <code>yourdomain.com/cart/...</code> both work if both domains are configured — but links shared using the <code>myshopify.com</code> format may behave differently from links using the custom domain, particularly for stores with market-specific redirects or localization rules.</li>
+    <li><strong>Checkout URLs are checkout-subdomain-specific:</strong> A checkout URL of <code>checkout.shopify.com/SHOP/checkouts/TOKEN</code> (the default) is different from <code>checkout.yourdomain.com/SHOP/checkouts/TOKEN</code> (custom domain). These cannot be swapped — a checkout session started on the default domain's checkout cannot be resumed via the custom checkout domain URL.</li>
+    <li><strong>Storefront URL changes break embedded links:</strong> If a merchant changes their primary custom domain (e.g., from <code>shop.mystore.com</code> to <code>mystore.com</code>), old cart permalink links using the previous domain will fail. Shopify does not automatically redirect <code>/cart/...</code> paths from old domains to new ones — only the root domain redirect may be configured.</li>
+    <li><strong>International market URL structures add complexity:</strong> For stores using Shopify Markets with market-specific subfolders (e.g., <code>yourdomain.com/en-us/cart/...</code> vs. <code>yourdomain.com/cart/...</code>), a cart permalink without the market subfolder may add items to the wrong market's cart or fail to add them at all if the market-specific URL structure is enforced.</li>
+  </ul>
+
+  <div class="callout warning">
+    <div class="callout-title">Use Relative URLs in Templates Instead of Hardcoded Domains</div>
+    Email templates, app configurations, and marketing platforms that build cart links often hardcode a specific domain. When your store domain changes, every hardcoded link breaks. Where possible, use relative cart URLs (/cart/VARIANT_ID:QTY) in Shopify email notification templates — Shopify automatically resolves these to the correct absolute URL for the buyer's session and store domain.
+  </div>
+
+  <h2>Failure Mode 6: Abandoned Cart Session Purged</h2>
+
+  <p>Some merchants and third-party tools share the checkout URL from an actively abandoned cart rather than generating a fresh cart permalink. Shopify does retain abandoned checkout sessions for a period, and the Abandoned Checkouts feature in Admin can show these sessions — but the checkout URLs associated with abandoned carts have their own validity window and will eventually be purged.</p>
+
+  <h3>How purged checkout sessions manifest</h3>
+
+  <ul>
+    <li><strong>Abandoned checkout URLs from Admin → Orders → Abandoned checkouts:</strong> The checkout URLs listed in your abandoned checkouts report are live session URLs that were created when a buyer began checkout. These URLs are valid for recovering the abandoned checkout if the buyer returns within the recovery window, but they are not permanent links — Shopify purges the underlying session data after it ages out.</li>
+    <li><strong>Recovery email checkout links stop working after the session ages out:</strong> Abandoned cart recovery emails sent by Shopify or by third-party apps (Klaviyo, Omnisend, Postscript) include checkout URLs that point to the buyer's abandoned session. If the buyer opens this email days or weeks after the session was purged, the link will no longer work. The recovery email should ideally be sent within the first 24 hours of abandonment to maximize the chance the session is still valid.</li>
+    <li><strong>Product changes during the abandoned period can also break recovery links:</strong> Even within the recovery window, if an item in the abandoned cart is deleted or goes out of stock, the checkout session may become invalid — the buyer opens the link and finds either an error or a checkout with some items removed.</li>
+  </ul>
+
+  <ol class="steps">
+    <li>For abandoned cart recovery, send the first recovery email within 1–4 hours of abandonment to maximize session validity</li>
+    <li>Do not rely on checkout session URLs from the Admin's abandoned checkouts list as long-term links — they age out</li>
+    <li>For customers who report broken recovery links, manually create a new draft order (Admin → Orders → Create Order → add items → Send Invoice) to create a fresh, valid checkout link for the specific buyer</li>
+    <li>Configure your email marketing platform to include a "start a new cart" link alongside the recovery link so buyers have a fallback if the session URL is expired</li>
+  </ol>
+
+  <div class="cta-box">
+    <h2>Checkout Link Monitoring for Shopify</h2>
+    <p>CheckPulse runs synthetic checkout flows continuously and verifies that your checkout loads, accepts items, and completes. When any step breaks — including link routing and session handling — you get an alert before your buyers notice.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Start Monitoring Free →</a>
+  </div>
+
+  <h2>Failure Mode 7: Multi-Currency or Market Mismatch</h2>
+
+  <p>Shopify Markets allows stores to sell to international customers with localized currencies, languages, and pricing. Cart permalink links and checkout URLs are tied to specific market contexts. A checkout link generated in one market context (e.g., a USD checkout) may not function correctly when opened by a buyer in a different market (e.g., the EU market with EUR pricing), especially on stores with market-specific URL structures or pricing rules enforced at checkout.</p>
+
+  <h3>How market context affects checkout links</h3>
+
+  <ul>
+    <li><strong>Cart permalinks and market-specific currency:</strong> When a buyer opens a cart permalink URL, Shopify assigns their cart to a market based on their geolocation or the URL's market subfolder. If a cart link was built for a USD market and a buyer in the EU opens it, Shopify may convert the cart to the EU market context — which can change pricing, shipping availability, and payment method options. In some cases, market-specific required fields or restrictions cause the checkout to stall.</li>
+    <li><strong>Market-specific URL structures enforce market context:</strong> Stores using Shopify Markets with subfolder routing (e.g., <code>/en-us/</code>, <code>/en-gb/</code>) need cart links that include the correct subfolder. A cart link without a market subfolder may route buyers to the store's default market, potentially with wrong pricing or availability for their location.</li>
+    <li><strong>Currency mismatch at checkout:</strong> If a merchant shares a checkout URL that was initiated in one currency (e.g., GBP) and the buyer's session resolves to a different currency (e.g., USD), Shopify may convert the order currency — which can cause discrepancies between the price the buyer expected (from a quote or email) and the price at checkout.</li>
+    <li><strong>Duties and taxes applied differently by market:</strong> A checkout link created without a specific market context may have duties or taxes calculated differently depending on where the buyer is located when they open it, causing the checkout total to differ from what was quoted.</li>
+  </ul>
+
+  <div class="callout info">
+    <div class="callout-title">Use Market-Specific Cart Links for International Campaigns</div>
+    For marketing campaigns targeting specific international markets, build cart permalinks that include the market subfolder if your store uses subfolder-based market routing: <code>yourdomain.com/en-gb/cart/VARIANT_ID:QTY</code> for the UK market. This ensures the buyer opens the cart in the correct market context with the correct currency and pricing from the first click.
+  </div>
+
+  <h2>Failure Mode 8: App-Generated Checkout Link Malformed or Token Expired</h2>
+
+  <p>A growing number of Shopify merchants use third-party apps to generate checkout links automatically — cart builder apps, headless checkout solutions, quote-to-order apps, and custom flow builders. These apps generate checkout links via Shopify's Storefront API or Admin API. When the app has a bug, misconfiguration, or integration failure, the generated links can be malformed, contain expired tokens, or reference checkout sessions that were never properly created.</p>
+
+  <h3>How app-generated checkout links fail</h3>
+
+  <ul>
+    <li><strong>Storefront API checkout token expired:</strong> Apps that use Shopify's Storefront API <code>checkoutCreate</code> mutation generate checkout tokens that have a validity window (typically 24 hours after creation if untouched). If the app generates a checkout link in advance (e.g., pre-generates links during a daily job) and the buyer receives the link hours or days later, the checkout token may be expired by the time they use it.</li>
+    <li><strong>App using deprecated Checkout API endpoints:</strong> Shopify deprecated its Checkout API in favor of the Cart API and Storefront API for generating checkout links. Apps that still use the deprecated Checkout API endpoints may generate URLs that redirect to error pages or no longer function as expected.</li>
+    <li><strong>Malformed URL generated by the app:</strong> Bugs in the app's link generation logic can produce checkout URLs with incorrect encoding, missing parameters, or wrong store identifiers. These links fail immediately when opened — they don't expire, they were never valid to begin with.</li>
+    <li><strong>App authentication token expired — app loses API access:</strong> Third-party apps access Shopify via OAuth tokens. If an app's OAuth token expires (due to re-installation requirements, API version migrations, or the merchant's Shopify plan change), the app loses the ability to create valid checkout sessions via the API. It may continue generating checkout links but they will be invalid because the underlying API calls are failing.</li>
+    <li><strong>Cart API vs. Checkout URL mismatch:</strong> Apps using the Cart API (for storefront cart manipulation) and apps using the Checkout API (for creating checkout sessions) produce different URL formats. Mixing these formats — or generating a cart permalink from Cart API data when a Checkout URL was expected — produces a link that doesn't route to the intended checkout state.</li>
+  </ul>
+
+  <h3>How to diagnose app-generated link failures</h3>
+
+  <ol class="steps">
+    <li>Test a manually-created cart permalink (<code>yourstore.com/cart/VARIANT_ID:QTY</code>) for the same items to confirm the underlying checkout works — if the manual link works but the app link doesn't, the issue is the app's link generation, not the checkout itself</li>
+    <li>Check the app's admin dashboard or logs for API errors — look for OAuth token errors, rate limit errors, or API version deprecation warnings</li>
+    <li>Reinstall the app if the app's OAuth token may be expired — the reinstallation flow re-authorizes the app and issues a fresh OAuth token</li>
+    <li>Contact the app's support team with the specific malformed URL pattern — most link generation bugs have been seen before by the app developer and have a known fix</li>
+    <li>Check the Shopify App Store listing's recent reviews for reports of similar broken link issues — other merchants may have reported the same problem</li>
+    <li>Verify that the app is not using a deprecated API version (Admin → Apps → find the app → check the API version in its settings or documentation) — apps using API versions that Shopify has sunset may experience unpredictable failures</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">App-Generated Link Failures Can Affect Large Volumes of Links Simultaneously</div>
+    Unlike a single expired session link, an app-generated link failure can break every checkout link the app produces at once — if the app's OAuth token expires or its API integration breaks, all new links it generates become invalid simultaneously. This is particularly high-risk for apps that send automated checkout links via email sequences or SMS campaigns. Monitoring your checkout link success rate (separate from your order conversion rate) is the only way to detect this class of failure before it affects large numbers of buyers.
+  </div>
+
+  <h2>Quick Diagnostic: Which Failure Mode Do You Have?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Check</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Checkout link loads empty cart, no items</td>
+          <td><span class="tag yellow">Session expired or variant deleted</span></td>
+          <td><span class="tag blue">Use a cart permalink instead of session URL; verify variant ID</span></td>
+        </tr>
+        <tr>
+          <td>Draft order link shows "order not found"</td>
+          <td><span class="tag red">Draft completed, cancelled, or link expired</span></td>
+          <td><span class="tag blue">Admin → Orders → Drafts → Send Invoice again for a fresh link</span></td>
+        </tr>
+        <tr>
+          <td>Cart permalink worked before, now loads empty</td>
+          <td><span class="tag red">Product/variant deleted, archived, or OOS</span></td>
+          <td><span class="tag blue">Verify variant ID still exists and is published/in stock</span></td>
+        </tr>
+        <tr>
+          <td>Checkout link shows SSL error</td>
+          <td><span class="tag red">Custom checkout domain SSL expired</span></td>
+          <td><span class="tag blue">Remove and re-add custom checkout domain in Admin → Settings → Domains</span></td>
+        </tr>
+        <tr>
+          <td>Checkout link works for you, fails for buyer in another country</td>
+          <td><span class="tag yellow">Market or currency mismatch</span></td>
+          <td><span class="tag blue">Use market-specific cart links with the correct subfolder</span></td>
+        </tr>
+        <tr>
+          <td>Abandoned cart recovery link doesn't work</td>
+          <td><span class="tag yellow">Session purged after recovery window</span></td>
+          <td><span class="tag blue">Create a fresh draft order link for the buyer; send recovery emails within 1–4 hours</span></td>
+        </tr>
+        <tr>
+          <td>App-generated links all fail at once</td>
+          <td><span class="tag red">App OAuth token expired or API deprecation</span></td>
+          <td><span class="tag blue">Reinstall app; check app for API errors; verify API version</span></td>
+        </tr>
+        <tr>
+          <td>Checkout link has no issues but redirects to homepage</td>
+          <td><span class="tag yellow">URL mismatch — wrong domain in link</span></td>
+          <td><span class="tag blue">Verify link domain matches active store domain in Admin → Settings → Domains</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your buyers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-checkout-page-not-loading">Page Not Loading</a>
+      <a href="./shopify-checkout-discount-not-working">Discount Not Working</a>
+      <a href="./shopify-checkout-shipping-not-working">Shipping Not Working</a>
+      <a href="./shopify-checkout-payment-not-working">Payment Not Working</a>
+      <a href="./shopify-checkout-tax-not-calculated">Tax Not Calculated</a>
+      <a href="./shopify-checkout-address-validation-error">Address Validation Error</a>
+      <a href="./shopify-checkout-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="./shopify-checkout-google-pay-not-working">Google Pay Not Working</a>
+      <a href="./shopify-paypal-checkout-not-working">PayPal Not Working</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="./shopify-checkout-redirect-not-working">Redirect Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="./shopify-checkout-notification-email-customization-not-working">Notification Email Customization</a>
+      <a href="./shopify-checkout-functions-not-working">Functions Not Working</a>
+      <a href="./shopify-checkout-extensibility-migration-not-working">Checkout Extensibility Migration</a>
+      <a href="./shopify-checkout-payment-plan-not-available">Payment Plan Not Available</a>
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-wrong-price">Wrong Price at Checkout</a>
+      <a href="./shopify-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="./shopify-checkout-stuck-processing">Checkout Stuck on Processing</a>
+      <a href="./shopify-checkout-buy-now-pay-later-not-working">Buy Now Pay Later Not Working</a>
+      <a href="./shopify-checkout-link-not-working">Checkout Link Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

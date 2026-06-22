@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Shipping Not Showing at Checkout — 8 Failure Modes Explained (2026)</title>
+  <meta name="description" content="Shopify shipping not showing at checkout? No shipping options, carrier rates missing, shipping section blank, rates disappeared after app install. 8 root causes with exact fixes — zone config, carrier-calculated plan limits, weight conditions, app timeouts, digital product toggle." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-not-showing" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-not-showing" />
+  <meta property="og:title" content="Shopify Shipping Not Showing at Checkout — 8 Causes Explained" />
+  <meta property="og:description" content="No shipping rates at Shopify checkout? Zone not covering buyer's country, carrier-calculated plan restriction, weight conditions not met, app rate fetch timeout. 8 failure modes explained with exact fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Shipping Not Showing at Checkout — 8 Failure Modes Explained",
+    "description": "Shopify shipping rates not appearing at checkout fall into eight distinct categories: no shipping zone covering the buyer's address, carrier-calculated shipping unavailable on the current plan, weight or price conditions the cart does not satisfy, local delivery replacing shipping options, no fallback paid rate when free-shipping threshold is not met, the product's physical product toggle disabled, a third-party shipping app failing to return rates, and conflicting shipping profiles that produce zero matching rates.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-checkout-shipping-not-showing",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-22",
+    "dateModified": "2026-06-22"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why are no shipping options showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When no shipping options appear at Shopify checkout, the most common cause is that no shipping zone covers the buyer's delivery address. Shopify only shows shipping rates for zones that match the buyer's country and region. Go to Admin → Settings → Shipping and delivery → Manage (next to your shipping profile) and verify there is a zone that includes the buyer's country. If the buyer's country is not in any zone, no rates appear. Other causes include: all your shipping rates have minimum weight or order value conditions the current cart does not meet, your plan does not include carrier-calculated rates but you configured real-time carrier rates, or a shipping app that was providing rates has been uninstalled or disconnected."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Shopify shipping rates disappear after I installed a shipping app?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shipping apps that provide carrier-calculated rates (ShipStation, EasyPost, ShipBob, Shippo, etc.) replace your manual rates for the zones they manage. If the app fails to return rates — due to an API timeout, an expired API key, a product with no weight set, or the app being uninstalled without restoring manual rates — those zones show zero shipping options. Diagnosis: go to Admin → Settings → Shipping and delivery → Manage your shipping profile → look for zones that show '0 rates' or zones with only app-based rates. Fix: either reconnect the app and ensure all products have weights set, or add manual fallback rates to cover the period when the app is unavailable."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify show no shipping options for international customers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "International customers see no shipping options when your shipping profile has no zone covering their country. Shopify's default General shipping profile starts with no international zones — you must explicitly add zones for each country or region you ship to. Go to Admin → Settings → Shipping and delivery → Manage → Add zone → select the countries. Also check if you are using Shopify Markets: each market can have its own shipping profile assignment, and a market without a dedicated shipping profile inherits the default, which may not have international zones configured. Additionally, verify that your international zones have at least one rate that does not have unfulfillable conditions (such as a minimum weight higher than your lightest product)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my carrier-calculated shipping not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Carrier-calculated shipping rates (from UPS, FedEx, USPS, Canada Post, etc.) require Shopify's 'Third-party calculated shipping rates' feature, which is only available on the Shopify plan and above (not on Basic), or on any plan if you subscribe annually. On the Basic monthly plan, carrier-calculated rates are a paid add-on. If you configured carrier-calculated rates but are on Basic monthly, those rates appear in your settings but are never shown to buyers. Fix: upgrade your Shopify plan to Shopify or higher, switch to annual billing on your current plan, or replace carrier-calculated rates with manual flat rates as a temporary workaround."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #8888aa;
+      --success: #4caf82;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10,10,15,0.95); backdrop-filter: blur(8px); z-index: 100; }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    .hero { max-width: 860px; margin: 0 auto; padding: 4rem 2rem 2rem; }
+    .breadcrumb { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .breadcrumb a { color: var(--muted); }
+    .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.25; margin-bottom: 1rem; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 680px; margin-bottom: 2rem; }
+    .meta-row { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+    .meta-row span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .content { max-width: 860px; margin: 0 auto; padding: 1rem 2rem 4rem; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin: 1.8rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1rem; color: #cccce0; }
+    ul, ol { margin: 0.5rem 0 1rem 1.4rem; color: #cccce0; }
+    li { margin-bottom: 0.4rem; }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.45em; font-size: 0.88em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; }
+    pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; overflow-x: auto; font-size: 0.85em; font-family: 'SF Mono', 'Fira Mono', monospace; color: #c8b3ff; line-height: 1.6; }
+
+    .callout { border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; border-left: 4px solid; }
+    .callout.tip { background: rgba(108,99,255,0.08); border-color: var(--accent); }
+    .callout.warning { background: rgba(245,158,11,0.08); border-color: var(--warning); }
+    .callout.danger { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+    .callout.success { background: rgba(76,175,130,0.08); border-color: var(--success); }
+    .callout-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+    .callout.tip .callout-title { color: var(--accent); }
+    .callout.warning .callout-title { color: var(--warning); }
+    .callout.danger .callout-title { color: var(--danger); }
+    .callout.success .callout-title { color: var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1.5rem 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: #cccce0; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .tag { display: inline-block; padding: 0.15em 0.55em; border-radius: 4px; font-size: 0.78rem; font-weight: 600; }
+    .tag.red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .tag.green { background: rgba(76,175,130,0.15); color: #4caf82; }
+    .tag.yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .tag.blue { background: rgba(108,99,255,0.15); color: #9c8fff; }
+
+    .steps { counter-reset: step; list-style: none; margin: 0.5rem 0 1rem 0; }
+    .steps li { counter-increment: step; display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+    .steps li::before { content: counter(step); min-width: 1.6rem; height: 1.6rem; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 0.15rem; }
+
+    .cta-block { background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1)); border: 1px solid rgba(108,99,255,0.3); border-radius: 14px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-block h2 { border: none; margin-top: 0; padding-top: 0; }
+    .cta-block p { max-width: 520px; margin: 0.5rem auto 1.5rem; }
+    .btn { display: inline-block; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); margin-left: 0.8rem; }
+
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .related-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem; transition: border-color 0.15s; }
+    .related-card:hover { border-color: var(--accent); }
+    .related-card a { color: var(--text); font-weight: 600; font-size: 0.92rem; }
+    .related-card p { font-size: 0.82rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      .hero, .content { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Shipping Not Showing
+  </div>
+  <h1>Shopify <em>Shipping Not Showing</em> at Checkout — 8 Failure Modes Explained</h1>
+  <p class="hero-sub">No shipping options at Shopify checkout? Shipping section completely blank? Carrier rates disappeared after an app install? Rates showing for some products but not others? Here are all 8 root causes for Shopify shipping not appearing at checkout — with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shipping Zones · Carrier Rates · Plan Limits · Weight Conditions · Shipping Apps · Digital Products · Shipping Profiles</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>When Shopify checkout shows no shipping options, the buyer cannot proceed past the shipping step — checkout is broken. Unlike payment failures, which often produce an error message, a missing shipping section shows the buyer either a blank area where rates should appear or a persistent loading spinner. There is no error code, no alert in Shopify Admin, and no notification sent to the merchant.</p>
+
+  <p>The critical detail: Shopify calculates shipping rates at the moment the buyer enters their delivery address. If zero rates match — from any combination of zone, conditions, plan restrictions, or app failures — the "Continue to payment" button stays greyed out and the buyer is stuck. Because each buyer's address is different, a shipping failure may affect buyers in one country but not another, or buyers with low-value carts but not high-value carts, making it nearly impossible to detect without monitoring.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">How Shopify Selects Which Shipping Rates to Show</div>
+    Shopify evaluates rates in this order: (1) Find all shipping profiles that contain the products in the cart. (2) For each profile, find zones that include the buyer's delivery country and state/province. (3) For each matching zone, filter rates by their conditions (minimum/maximum weight, minimum/maximum order value). (4) If any rates use carrier-calculated pricing, fetch real-time quotes from carriers. (5) Show all rates that pass every filter.<br><br>
+    A failure at any step produces zero results and a blank shipping section. Most merchants only discover the failure when a customer reports it — by which time revenue has already been lost.
+  </div>
+
+  <h2>Failure Mode 1: No Shipping Zone Covers the Buyer's Address</h2>
+
+  <p>The most common reason Shopify shows no shipping options is that no shipping zone has been configured for the buyer's country — or the buyer's country is in a zone but the specific state or province is not covered. Shopify does not automatically create zones; every country you ship to must be explicitly added to at least one zone in at least one shipping profile.</p>
+
+  <h3>How to check your zone coverage</h3>
+
+  <ol class="steps">
+    <li>Admin → Settings → Shipping and delivery</li>
+    <li>Under "Shipping" → click "Manage rates" (next to your General shipping profile)</li>
+    <li>Review every zone listed — verify the buyer's country appears in at least one zone</li>
+    <li>Click on a zone to expand it — check that it has at least one rate with no unfulfillable condition</li>
+    <li>If the buyer's country is missing: click "Create zone" → add the country → add at least one rate to the new zone</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Zone Configuration Issue</th>
+          <th>Where It Appears</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Buyer's country not in any zone</td>
+          <td>Zone list in shipping profile — country absent</td>
+          <td><span class="tag yellow">Create a zone including the country</span></td>
+        </tr>
+        <tr>
+          <td>Zone exists but has zero rates</td>
+          <td>Zone shows "0 rates" in the profile view</td>
+          <td><span class="tag yellow">Add at least one rate to the zone</span></td>
+        </tr>
+        <tr>
+          <td>Zone covers country but all rates have conditions the cart fails</td>
+          <td>Zone has rates but none match — see Failure Mode 3</td>
+          <td><span class="tag yellow">Add an unconditional fallback rate</span></td>
+        </tr>
+        <tr>
+          <td>Country in "Rest of world" zone that was deleted</td>
+          <td>"Rest of world" zone absent from profile</td>
+          <td><span class="tag yellow">Re-add "Rest of world" zone or add specific country zones</span></td>
+        </tr>
+        <tr>
+          <td>Shipping profile accidentally missing the product</td>
+          <td>Product uses a custom profile with different zones</td>
+          <td><span class="tag blue">Check Admin → Products → [product] → Shipping → which profile</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Each Shipping Profile Is Independent</div>
+    If your store has custom shipping profiles (for oversized items, hazardous materials, or specific brands), those profiles maintain their own zone lists independently of the General profile. A product assigned to a custom profile must have zones configured in that custom profile — the General profile zones do not apply. To check: Admin → Settings → Shipping and delivery → scroll down to see all profiles. Each product can be in only one profile at a time.
+  </div>
+
+  <h2>Failure Mode 2: Carrier-Calculated Shipping Not Available on Current Plan</h2>
+
+  <p>Real-time carrier-calculated rates (live quotes from UPS, FedEx, USPS, DHL, Canada Post, etc.) are a premium Shopify feature that is not included on all plans. If you configured carrier-calculated rates in your shipping settings but your plan does not support them, those rates appear in your Admin but are never shown to buyers — resulting in a blank shipping section.</p>
+
+  <h3>Plan availability for carrier-calculated rates</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Shopify Plan</th>
+          <th>Carrier-Calculated Rates</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Basic (monthly billing)</td>
+          <td><span class="tag red">Not included</span></td>
+          <td>Requires paid add-on ($20/month)</td>
+        </tr>
+        <tr>
+          <td>Basic (annual billing)</td>
+          <td><span class="tag green">Included</span></td>
+          <td>Annual billing unlocks carrier rates on Basic</td>
+        </tr>
+        <tr>
+          <td>Shopify plan</td>
+          <td><span class="tag green">Included</span></td>
+          <td>Both monthly and annual</td>
+        </tr>
+        <tr>
+          <td>Advanced and Plus</td>
+          <td><span class="tag green">Included</span></td>
+          <td>All billing cycles</td>
+        </tr>
+        <tr>
+          <td>Starter plan</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Starter plan does not support custom shipping</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to confirm carrier-calculated rates are working</h3>
+
+  <ol class="steps">
+    <li>Admin → Settings → Shipping and delivery → Manage rates</li>
+    <li>Click into a zone that should show carrier rates</li>
+    <li>Look for rates listed as "UPS", "FedEx", "USPS", or your carrier name</li>
+    <li>If you see a yellow warning banner saying "Upgrade your plan to use carrier-calculated rates" — your plan does not support them</li>
+    <li>Fix option A: Upgrade to Shopify plan or switch to annual billing</li>
+    <li>Fix option B: Delete the carrier-calculated rates and add manual flat rates as a temporary workaround</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Silent Failure — No Error Shown to Buyer</div>
+    When carrier-calculated rates are configured but unavailable on your plan, Shopify does not show buyers an error. The shipping section either stays blank or shows a spinning loader that never resolves. The buyer cannot proceed to payment. This is one of the most common causes of complete shipping section absence on newly created stores that configured carrier rates before verifying plan eligibility.
+  </div>
+
+  <h2>Failure Mode 3: Weight or Price Conditions the Cart Does Not Satisfy</h2>
+
+  <p>Every shipping rate in Shopify can have optional conditions: a minimum order weight, maximum order weight, minimum order value, or maximum order value. If every rate in a zone has at least one condition the buyer's cart does not meet, zero rates appear — even though the zone is configured correctly and the buyer's address is covered.</p>
+
+  <h3>Common condition mismatches</h3>
+
+  <ul>
+    <li><strong>Free shipping rate with minimum order value:</strong> You set up "Free Standard Shipping (orders over $75)" but no paid shipping rate. Buyers with a $60 cart see no shipping options — not even a paid rate — because the only rate available requires $75+.</li>
+    <li><strong>All rates have minimum weight and products have no weight set:</strong> Rates configured with minimum weight conditions (e.g., "Economy Shipping — minimum 0.5 kg") will not appear for products where the weight field is blank (defaults to 0). Shopify treats weight = 0 as a cart weight of 0, which fails the minimum weight condition.</li>
+    <li><strong>Weight-based tiers with gap:</strong> You have "Standard (0–5 kg)" and "Freight (over 20 kg)" but no rate covering 5–20 kg. A 10 kg cart sees no options because it falls in the gap.</li>
+    <li><strong>Maximum order value that excludes high-value orders:</strong> A rate limited to "orders under $500" combined with no other rate means buyers with a $600 order see no shipping.</li>
+  </ul>
+
+  <h3>How to audit rate conditions</h3>
+
+  <ol class="steps">
+    <li>Admin → Settings → Shipping and delivery → Manage rates</li>
+    <li>Click on a zone → click on each rate to see its conditions</li>
+    <li>Note any minimum/maximum weight or price conditions</li>
+    <li>Test your checkout with a cart that does NOT meet these conditions — confirm no rates appear</li>
+    <li>Add an unconditional fallback rate (e.g., "Standard Shipping — $X, no conditions") to ensure every cart has at least one option</li>
+  </ol>
+
+  <pre>
+# Quick weight audit — check all products have a weight set:
+# Admin → Products → use the bulk editor to view and edit weights
+# Filter: Products where weight = 0 or weight is blank
+# Set a weight for every physical product
+# Even 0.01 kg is better than blank if you use weight-based shipping
+
+# Rate condition best practice:
+# Always have ONE unconditional rate (no min/max weight, no min/max price)
+# This is your safety net — it catches every cart that falls through condition gaps
+  </pre>
+
+  <div class="callout success">
+    <div class="callout-title">The Fallback Rate Rule</div>
+    Best practice: every shipping zone should have at least one rate with no conditions attached. This fallback rate appears for any cart in that zone regardless of weight or value. If you want to incentivize higher-value orders with free shipping, keep your conditional "Free Shipping over $X" rate AND a paid fallback rate. Remove the fallback only when you are certain every possible cart will qualify for another rate.
+  </div>
+
+  <h2>Failure Mode 4: Product Not Marked as a Physical Product</h2>
+
+  <p>Shopify only calculates shipping for products marked as physical products requiring shipping. If the "This is a physical product" checkbox is unchecked on a product — which is the default for digital products and services — Shopify treats it as a non-shippable item. A cart containing only non-shippable products shows no shipping section at checkout at all.</p>
+
+  <h3>When this happens</h3>
+
+  <ul>
+    <li><strong>Bulk import toggled the flag off:</strong> A CSV product import that didn't include the <code>Requires Shipping</code> column defaults to "no shipping required" for all imported products.</li>
+    <li><strong>App created the product without the flag:</strong> Some product creation apps, dropshipping apps, or print-on-demand apps create products without setting the requires-shipping flag.</li>
+    <li><strong>Digital-physical hybrid cart:</strong> A cart with one digital product and one physical product only shows shipping for the physical product's weight and shipping profile. If the only product in the cart is digital, no shipping section appears.</li>
+    <li><strong>Product duplicated from a digital product:</strong> Duplicating a digital product in Shopify copies the product type and the requires-shipping = false setting.</li>
+  </ul>
+
+  <h3>How to check and fix</h3>
+
+  <ol class="steps">
+    <li>Admin → Products → click the product in question</li>
+    <li>Scroll to the "Shipping" section on the product page</li>
+    <li>Check the "This is a physical product" checkbox — if unchecked, shipping is suppressed</li>
+    <li>Check it on and save the product</li>
+    <li>Also verify the weight field is filled in — a physical product with weight = 0 may still fail weight-based rate conditions</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Bulk Check for Non-Shippable Products</div>
+    To audit all products at once: Admin → Products → Export → All products as CSV. Open the CSV and filter the <code>Variant Requires Shipping</code> column for "FALSE". Any product variant showing FALSE will not trigger shipping at checkout. Update those rows to "TRUE" and re-import, or fix them individually in the Admin.
+  </div>
+
+  <h2>Failure Mode 5: Third-Party Shipping App Failing to Return Rates</h2>
+
+  <p>Shipping apps that provide carrier-calculated rates (EasyPost, ShipStation, Shippo, ShipBob, Australia Post, etc.) connect to Shopify as "carrier service" integrations. When a buyer enters their address, Shopify makes a real-time API call to the app asking for available rates. If the app's API is down, times out, or returns an error, Shopify receives zero rates from the app — and if no manual backup rates exist, the shipping section is blank.</p>
+
+  <h3>Root causes of shipping app rate fetch failures</h3>
+
+  <ul>
+    <li><strong>App API key expired or revoked:</strong> Many shipping apps use API keys tied to the merchant's account in the carrier platform. If the API key is rotated, deleted, or the carrier account subscription lapses, the app's rate fetch returns authentication errors and Shopify gets zero rates.</li>
+    <li><strong>Product has no weight or dimensions set:</strong> Carrier-calculated rates require product weight (and sometimes dimensions) to compute rates. If any product in the cart has a blank weight field, the API request to the carrier may fail validation and return no rates, or return an error that Shopify interprets as zero available rates.</li>
+    <li><strong>App was uninstalled without removing carrier service:</strong> If a shipping app is uninstalled from Shopify, it should remove its carrier service registration. In some cases the registration persists as a ghost — Shopify still tries to fetch rates from the uninstalled app, the request fails, and no rates appear. Fix: Admin → Settings → Shipping → check for carrier services from apps that are no longer installed.</li>
+    <li><strong>Rate fetch timeout:</strong> Shopify waits up to 10 seconds for carrier rate responses. If the app's server takes longer, Shopify times out and shows zero rates. This typically affects stores during peak traffic periods when carrier API servers are under load.</li>
+    <li><strong>Origin address not configured in shipping app:</strong> Many shipping apps require you to set your warehouse/origin address in their own settings (separate from Shopify's store address). Without an origin address, the distance-based rate calculation fails.</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>App Failure Type</th>
+          <th>Symptom at Checkout</th>
+          <th>Diagnosis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Expired API credentials</td>
+          <td>Shipping blank for all carts since credentials expired</td>
+          <td>Log into carrier app → check API key status</td>
+        </tr>
+        <tr>
+          <td>Missing product weight</td>
+          <td>Shipping blank only for specific products</td>
+          <td>Test with a product that has weight set; check Admin → Products → weight field</td>
+        </tr>
+        <tr>
+          <td>Ghost carrier service registration</td>
+          <td>Rates blank despite having manual rates in zone</td>
+          <td>Admin → Settings → Shipping → look for defunct app carrier services</td>
+        </tr>
+        <tr>
+          <td>Rate fetch timeout</td>
+          <td>Shipping spinner appears then disappears — intermittent</td>
+          <td>Test at different times; check app's status page for outages</td>
+        </tr>
+        <tr>
+          <td>Origin address missing in app</td>
+          <td>All carrier rates fail across all zones</td>
+          <td>Open the shipping app → settings → warehouse/origin address</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-title">Always Configure Manual Fallback Rates Alongside App Rates</div>
+    Shipping apps have outages, rate limits, and maintenance windows. If your store's shipping depends entirely on an app to provide rates, any app disruption makes your entire checkout inaccessible. Add manual flat-rate or free-shipping rates in your zones as fallbacks. These appear when the app fails to return rates, keeping checkout functional during app downtime.
+  </div>
+
+  <h2>Failure Mode 6: Local Delivery or Local Pickup Replacing Shipping</h2>
+
+  <p>Shopify has three fulfillment types: shipping, local delivery, and local pickup. When local delivery or pickup is configured for a location, Shopify may show those options instead of — or in addition to — standard shipping rates. In some configurations, a buyer who enters an address near your store location sees only local delivery options, with no standard shipping options visible even though standard shipping is available.</p>
+
+  <h3>How local delivery suppresses shipping options</h3>
+
+  <ul>
+    <li><strong>Shopify determines the buyer's proximity based on their delivery address postal code.</strong> If the postal code falls within your local delivery radius, Shopify presents local delivery rates and may hide standard shipping depending on your settings.</li>
+    <li><strong>Local pickup shows "Pick up at [location]" as the only option</strong> when the store has only one location configured as a pickup location and the buyer's product is assigned to that location's inventory.</li>
+    <li><strong>The issue becomes a failure when local delivery is configured but not actually offered</strong> — for example, a store that activated local delivery accidentally or as a test and never set up delivery rates. The buyer in the local radius sees "Local delivery" as their only option but no standard shipping rates, and local delivery rates may also be unconfigured.</li>
+  </ul>
+
+  <h3>How to check local delivery configuration</h3>
+
+  <ol class="steps">
+    <li>Admin → Settings → Shipping and delivery → scroll to "Local delivery"</li>
+    <li>Check which locations have local delivery enabled</li>
+    <li>For each location with local delivery: verify the delivery radius and rates are intentional</li>
+    <li>If local delivery was enabled accidentally: toggle it off to restore standard shipping visibility for buyers in that radius</li>
+    <li>If you want both options: local delivery and standard shipping can coexist — but the local delivery location must have rates configured, and the shipping profile must have a zone covering the buyer's region</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Local Pickup Requires Inventory at the Pickup Location</div>
+    Local pickup only appears as an option if the products in the buyer's cart have inventory at the pickup location. If you moved inventory or adjusted location assignments and local pickup stopped showing (or started incorrectly suppressing shipping), check: Admin → Products → [product] → Inventory → confirm which locations hold stock for this product.
+  </div>
+
+  <h2>Failure Mode 7: Conflicting Shipping Profiles Producing Zero Matches</h2>
+
+  <p>When a buyer's cart contains products from multiple shipping profiles, Shopify calculates shipping by taking the intersection — it only shows rates that are available across all profiles for the buyer's zone. If two profiles have no overlapping rates for the buyer's zone, the result is zero shipping options displayed at checkout. This is a particularly tricky failure because each individual profile works fine when tested with products from that profile alone.</p>
+
+  <h3>How to reproduce and diagnose</h3>
+
+  <ol class="steps">
+    <li>Identify which products belong to which shipping profile: Admin → Settings → Shipping and delivery → scroll down — each profile lists its assigned products</li>
+    <li>Test checkout with only products from Profile A → verify shipping shows correctly</li>
+    <li>Test checkout with only products from Profile B → verify shipping shows correctly</li>
+    <li>Test checkout with products from both Profile A and Profile B together → if shipping disappears, you have a profile conflict</li>
+    <li>Fix: ensure both profiles have at least one overlapping rate for every zone where buyers might have multi-profile carts — or add the same fallback rate to both profiles</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Profile Conflict Scenario</th>
+          <th>Result at Checkout</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Profile A has "Domestic US" zone, Profile B has "US + Canada" zone</td>
+          <td>Works for US-only carts; blank for Canada if Profile A missing Canada zone</td>
+          <td>Add Canada zone to Profile A or consolidate profiles</td>
+        </tr>
+        <tr>
+          <td>Profile A has free shipping, Profile B has weight-based rates only</td>
+          <td>Free shipping disappears when Profile B product added to cart</td>
+          <td>Add an unconditional rate to Profile B</td>
+        </tr>
+        <tr>
+          <td>Custom profile product added to cart by app without profile assignment</td>
+          <td>New product defaults to General profile — may differ from cart's custom profiles</td>
+          <td>Explicitly assign app-created products to correct shipping profile</td>
+        </tr>
+        <tr>
+          <td>Dropshipping profile has overseas origin, General profile has domestic rates only</td>
+          <td>Mixed cart fails for all international zones</td>
+          <td>Add international rates to General profile or separate the profiles more carefully</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Mixed-Profile Carts Are the Hardest Failures to Detect</div>
+    Profile conflict failures are invisible during normal testing because most merchants test with one product at a time. The failure only appears when a buyer adds products from two different profiles in the same cart — which is a normal buying behavior. Monitoring tools that simulate full checkout flows are the only reliable way to catch profile conflicts in production.
+  </div>
+
+  <h2>Failure Mode 8: Shopify Markets Shipping Configuration Mismatch</h2>
+
+  <p>Shopify Markets (for international selling) allows you to configure different pricing, currencies, and — critically — different shipping profiles per market. A shipping failure specific to buyers in one country or currency zone is often caused by a market that has no shipping profile assigned, or a market assigned to a profile that has no rates covering that market's countries.</p>
+
+  <h3>How Markets affect shipping rate display</h3>
+
+  <ul>
+    <li><strong>Each market can override shipping settings:</strong> In Admin → Settings → Markets → [market] → Shipping, you can assign a specific shipping profile to buyers in that market. If the assigned profile has no zone for that country, buyers in that market see no rates.</li>
+    <li><strong>New markets default to the General profile:</strong> When you create a new market (for example, "Southeast Asia"), it inherits the General shipping profile. If your General profile only has zones for US, UK, and EU, all Southeast Asian buyers see no shipping options until you add zones or assign a different profile.</li>
+    <li><strong>Currency-specific markets with different minimum order thresholds:</strong> Free shipping conditions set in USD may not translate correctly to markets priced in other currencies, causing conditional rates to fail for buyers in those markets.</li>
+  </ul>
+
+  <ol class="steps">
+    <li>Admin → Settings → Markets → click the market where buyers report no shipping</li>
+    <li>Scroll to "Shipping" within the market settings</li>
+    <li>Verify which shipping profile is assigned to this market</li>
+    <li>Open that profile → verify there is a zone covering the market's countries with at least one active rate</li>
+    <li>If the market uses a different currency: test checkout in that currency to verify price-based conditions (free shipping thresholds) work correctly after currency conversion</li>
+  </ol>
+
+  <div class="callout success">
+    <div class="callout-title">Test Each Market Independently</div>
+    When diagnosing international shipping failures, always simulate checkout from the buyer's country using the correct currency. Shopify's checkout preview tool (Admin → Online store → Themes → Preview) combined with a VPN to the buyer's country is the most reliable diagnostic method. A shipping rate that shows correctly in USD on US checkout may not appear for a buyer in Japan using JPY if JPY is not in your carrier's accepted currency list.
+  </div>
+
+  <div class="cta-block">
+    <h2>Detect Shipping Failures Before Your Customers Do</h2>
+    <p>Shipping not showing at checkout blocks every purchase — and there is no alert in Shopify Admin when it happens. CheckPulse runs a 4-step checkout simulation every 30 minutes, including the shipping step, and alerts you immediately if no shipping options appear.</p>
+    <a href="/checkpulse/free-check" class="btn btn-primary">Run Free Checkout Check →</a>
+    <a href="/checkpulse/#pricing" class="btn btn-secondary">See Monitoring Plans</a>
+  </div>
+
+  <h2>Quick Diagnostic: Which Shipping Failure Mode Am I Facing?</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Step</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No shipping options for buyers in one specific country</td>
+          <td>No shipping zone covering that country</td>
+          <td>Admin → Settings → Shipping → Manage → check zone list for that country</td>
+        </tr>
+        <tr>
+          <td>No shipping options for all buyers on all carts</td>
+          <td>All zones have zero rates, or carrier-calculated rates on wrong plan</td>
+          <td>Check each zone for "0 rates"; check plan eligibility for carrier-calculated rates</td>
+        </tr>
+        <tr>
+          <td>Shipping blank for low-value carts but shows for high-value carts</td>
+          <td>Free shipping rate with minimum order threshold — no fallback paid rate</td>
+          <td>Add an unconditional flat-rate option to every zone</td>
+        </tr>
+        <tr>
+          <td>Shipping blank for one product category but shows for others</td>
+          <td>Product not marked as physical, or product in a profile with missing zones</td>
+          <td>Check product's "This is a physical product" flag and shipping profile assignment</td>
+        </tr>
+        <tr>
+          <td>Shipping was showing yesterday, gone today</td>
+          <td>Shipping app API failure or key expiry; or zone was accidentally deleted</td>
+          <td>Check shipping app for errors; verify zones still exist in shipping profile</td>
+        </tr>
+        <tr>
+          <td>Shipping disappears when two specific product types are in cart together</td>
+          <td>Conflicting shipping profiles with no overlapping rates</td>
+          <td>Test each product in isolation vs. together; check profile intersection</td>
+        </tr>
+        <tr>
+          <td>Shipping shows "local delivery" only — no standard shipping</td>
+          <td>Local delivery enabled for buyer's postal code zone</td>
+          <td>Admin → Settings → Shipping → Local delivery → review delivery zones</td>
+        </tr>
+        <tr>
+          <td>International customers only — no shipping shown</td>
+          <td>Shopify Markets misconfiguration or missing international zone in profile</td>
+          <td>Admin → Settings → Markets → check market's assigned shipping profile and zones</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Related Checkout Issues</h2>
+
+  <div class="related-grid">
+    <div class="related-card">
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options at Checkout</a>
+      <p>Broader guide to missing shipping options including address validation and carrier conflicts</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <p>Shipping price cached, wrong rate shown, rate doesn't change when cart changes</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <p>Free shipping discount not appearing even when order meets the threshold</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-tax-not-calculating">Tax Not Calculating</a>
+      <p>Tax amount missing, wrong tax rate, tax not showing at checkout</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <p>Cross-border payments, currency conversion, international card declines</p>
+    </div>
+    <div class="related-card">
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <p>In-store pickup option not showing, inventory not available at pickup location</p>
+    </div>
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch silent failures before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Checkout Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="./shopify-payment-failed">Payment Failed</a>
+      <a href="./shopify-payments-suspended">Payments Suspended</a>
+      <a href="./shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="./shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay &amp; Google Pay</a>
+      <a href="./shopify-checkout-discount-code-not-working">Discount Code Not Working</a>
+      <a href="./shopify-checkout-shipping-not-showing">Shipping Not Showing</a>
+      <a href="./shopify-checkout-address-validation-failed">Address Validation Failed</a>
+      <a href="./shopify-checkout-inventory-error">Inventory Error</a>
+      <a href="./shopify-checkout-tax-not-calculating">Tax Not Calculating</a>
+      <a href="./shopify-checkout-paypal-not-working">PayPal Not Working</a>
+      <a href="./shopify-checkout-not-loading">Checkout Not Loading</a>
+      <a href="./shopify-checkout-slow">Checkout Slow</a>
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-checkout-session-expired">Session Expired</a>
+      <a href="./shopify-checkout-redirect-loop">Redirect Loop</a>
+      <a href="./shopify-checkout-app-conflict">App Conflict</a>
+      <a href="./shopify-checkout-currency-error">Currency Error</a>
+      <a href="./shopify-checkout-button-not-working">Checkout Button Not Working</a>
+      <a href="./shopify-checkout-custom-domain-redirect">Custom Domain Redirect</a>
+      <a href="./shopify-checkout-no-payment-methods">No Payment Methods</a>
+      <a href="./shopify-checkout-no-shipping-options">No Shipping Options</a>
+      <a href="./shopify-checkout-payment-error">Payment Error</a>
+      <a href="./shopify-checkout-inventory-reservation-not-working">Inventory Reservation Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="./shopify-checkout-notification-email-customization-not-working">Notification Email Customization</a>
+      <a href="./shopify-checkout-functions-not-working">Functions Not Working</a>
+      <a href="./shopify-checkout-extensibility-migration-not-working">Checkout Extensibility Migration</a>
+      <a href="./shopify-checkout-payment-plan-not-available">Payment Plan Not Available</a>
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-address-not-saving">Address Not Saving</a>
+      <a href="./shopify-checkout-free-shipping-not-applying">Free Shipping Not Applying</a>
+      <a href="./shopify-checkout-cart-not-persisting">Cart Not Persisting</a>
+      <a href="./shopify-checkout-returns-exchange-not-working">Returns &amp; Exchange Not Working</a>
+      <a href="./shopify-checkout-minimum-order-not-working">Minimum Order Not Working</a>
+      <a href="./shopify-checkout-post-purchase-upsell-not-working">Post-Purchase Upsell Not Working</a>
+      <a href="./shopify-checkout-local-pickup-not-working">Local Pickup Not Working</a>
+      <a href="./shopify-checkout-tip-not-working">Tip Not Working</a>
+      <a href="./shopify-checkout-order-notes-not-saving">Order Notes Not Saving</a>
+      <a href="./shopify-checkout-draft-order-not-working">Draft Order Not Working</a>
+      <a href="./shopify-checkout-reorder-not-working">Reorder Not Working</a>
+      <a href="./shopify-checkout-custom-fields-not-working">Custom Fields Not Working</a>
+      <a href="./shopify-checkout-stock-sync-not-working">Stock Sync Not Working</a>
+      <a href="./shopify-checkout-gift-wrapping-not-working">Gift Wrapping Not Working</a>
+      <a href="./shopify-checkout-charity-donation-not-working">Charity Donation Not Working</a>
+      <a href="./shopify-checkout-price-rules-not-working">Price Rules Not Working</a>
+      <a href="./shopify-checkout-thank-you-page-not-working">Thank You Page Not Working</a>
+      <a href="./shopify-checkout-digital-wallet-setup-not-working">Digital Wallet Setup Not Working</a>
+      <a href="./shopify-checkout-payment-retry-not-working">Payment Retry Not Working</a>
+      <a href="./shopify-checkout-express-checkout-not-working">Express Checkout Not Working</a>
+      <a href="./shopify-checkout-payment-declined-but-money-taken">Payment Declined But Money Taken</a>
+      <a href="./shopify-checkout-one-click-purchase-not-working">One-Click Purchase Not Working</a>
+      <a href="./shopify-checkout-gift-card-balance-not-showing">Gift Card Balance Not Showing</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="#">Privacy</a>
+      <a href="mailto:demiranil666@gmail.com?subject=CheckPulse%20question">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

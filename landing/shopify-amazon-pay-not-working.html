@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Amazon Pay Not Working — Button Not Showing, Checkout Failing (2026)</title>
+  <meta name="description" content="Shopify Amazon Pay not working? Button not showing, checkout failing, credentials error — 8 root causes for Amazon Pay failures on Shopify with diagnostic steps and fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-amazon-pay-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-amazon-pay-not-working" />
+  <meta property="og:title" content="Shopify Amazon Pay Not Working — 8 Root Causes &amp; Fixes" />
+  <meta property="og:description" content="Amazon Pay button not showing, checkout failing, credentials expired — 8 failure modes for Amazon Pay on Shopify with exact diagnostic steps and fixes." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Amazon Pay Not Working — Button Not Showing, Checkout Failing",
+    "description": "Amazon Pay failures on Shopify have eight root causes: app not installed or credentials not connected; Amazon Pay not available in the buyer's country; buyer's Amazon account has no valid payment method; theme or app JavaScript blocking the Amazon Pay button widget; merchant's Amazon Seller Central account under review; European SCA authentication loop; API credential rotation failure; and sandbox vs. live mode mismatch. This guide covers all 8 failure modes with diagnostic steps and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-amazon-pay-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Amazon Pay button not showing on my Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Amazon Pay button not appearing at Shopify checkout is caused by one of several issues: (1) The Amazon Pay app is not installed from the Shopify App Store, or it is installed but the merchant ID and credential keys from Amazon Seller Central have not been entered. (2) Amazon Pay is not available in the buyer's country — it operates in the US, UK, Germany, France, Italy, Spain, Luxembourg, Cyprus, and Japan; buyers geolocated outside these markets will not see the button. (3) The merchant's theme has a Content Security Policy (CSP) or custom JavaScript that blocks the Amazon Pay widget script from loading. (4) A checkout extension or third-party app is hiding or overriding the payment section where Amazon Pay renders. To diagnose: open browser DevTools → Network tab → reload the checkout page → search for 'static-fe.payments-amazon.com' to confirm whether the Amazon Pay script is loading at all."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Amazon Pay checkout fail after the buyer selects their Amazon account?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Amazon Pay checkout failing after a buyer selects their Amazon account has four common causes: (1) The buyer's Amazon account has no valid default payment method — their credit or debit card expired or was removed, and Amazon Pay cannot process without a valid card on file. The buyer sees an error on Amazon's authentication screen and cannot complete the payment. (2) The buyer's Amazon account billing address does not match a valid shipping region for the Shopify store — Amazon Pay passes the Amazon account address to Shopify and if it falls outside the store's shipping zones, the checkout cannot complete shipping selection. (3) In the EU/UK, Amazon Pay triggers a Strong Customer Authentication (SCA) challenge — if the buyer's bank does not complete the authentication step (closes the popup, bank app times out), the payment fails. (4) The merchant's Amazon Pay credentials have expired or been revoked — the connection between Shopify and Amazon Seller Central broke and all payments fail at the authentication handshake."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Amazon Pay showing in test mode but not for real buyers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Amazon Pay appearing in test/sandbox mode but not for live buyers is caused by a sandbox vs. live credential mismatch in the Amazon Pay app configuration. Amazon Pay provides two separate sets of credentials: sandbox credentials for testing and live credentials for production. If the Amazon Pay Shopify app is configured with sandbox credentials, it will work in sandbox mode (using Amazon's test account login) but real buyers with live Amazon accounts will be unable to authenticate. Go to the Amazon Pay app settings in your Shopify Admin and verify that the Merchant ID, Public Key ID, and Private Key are the production (live) credentials from your Amazon Seller Central account, not the sandbox credentials. The sandbox and live environments use different Merchant IDs and key pairs."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Amazon Pay was working and suddenly stopped — what happened?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Amazon Pay suddenly stopping after previously working is typically caused by: (1) Amazon Seller Central account compliance review — Amazon periodically reviews merchant accounts and may place them under review or suspend selling privileges while a compliance check is underway; during this time, Amazon Pay is also suspended even though the reason is on the Amazon Seller side. (2) API private key rotation — Amazon Pay's RSA private keys have a validity period; if the key was rotated in Amazon Seller Central but not updated in the Shopify Amazon Pay app, all new payments fail with an authentication error. (3) A Shopify app or theme update introduced a JavaScript conflict that blocks the Amazon Pay widget script. Check: Admin → Apps → Amazon Pay → verify credentials are still valid; check Amazon Seller Central → Amazon Pay → Integration → Integration Central for any alerts."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Amazon Pay Not Working
+  </div>
+  <h1>Shopify <em>Amazon Pay Not Working</em> — Button Not Showing, Checkout Failing (2026)</h1>
+  <p class="hero-sub">Amazon Pay button not appearing at checkout, authentication failing after Amazon login, credentials error, or payment declining silently — here are all 8 failure modes for Amazon Pay breaking on Shopify, with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>App Not Connected · Region Unavailable · No Valid Payment Method · Script Conflict · Account Review · SCA Failure · Key Rotation · Sandbox Mismatch</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Amazon Pay lets buyers check out on Shopify stores using the payment methods and shipping addresses already saved in their Amazon account — without entering credit card details. With over 300 million Amazon account holders in the US alone, it is one of the highest-trust payment options a Shopify merchant can offer, particularly for buyers who are hesitant to enter card details on an unfamiliar store.</p>
+
+  <p>When Amazon Pay stops working, the failure is almost always invisible. The button simply doesn't render, or the checkout silently fails after the buyer authenticates with their Amazon account. There is no prominent error in the Shopify Admin, no alert email, and often no error visible to the buyer. Revenue leaves through a door that was never visibly open.</p>
+
+  <p>Amazon Pay failures on Shopify fall into eight distinct categories, each with a different root cause and fix. This guide covers all eight.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Quick Diagnostic: Where Is the Failure Happening?</div>
+    Before reading every section, narrow the failure to one of three stages: (1) <strong>Button not showing at all</strong> — the Amazon Pay button never appears on the checkout page. This points to Failure Modes 1, 2, or 4. (2) <strong>Button shows, authentication fails</strong> — the buyer clicks the Amazon Pay button, the Amazon sign-in window opens, but authentication fails or the buyer is returned to checkout without completing payment. This points to Failure Modes 3, 6, or 7. (3) <strong>Authentication succeeds but checkout fails</strong> — the buyer logs into Amazon, selects an address and payment method, but Shopify checkout cannot complete. This points to Failure Modes 5 or 8.
+  </div>
+
+  <h2>Failure Mode 1: Amazon Pay App Not Installed or Credentials Not Connected</h2>
+
+  <p>Amazon Pay on Shopify requires a dedicated app integration — it does not come bundled with Shopify Payments or any other default Shopify configuration. Merchants who assume Amazon Pay is available automatically, or who installed the app but did not complete the credential connection, will not see the Amazon Pay button at checkout.</p>
+
+  <h3>Two-step setup that merchants commonly leave incomplete</h3>
+
+  <p>Setting up Amazon Pay on Shopify requires two separate systems to be configured correctly:</p>
+
+  <ul>
+    <li><strong>Step 1 — Install the Amazon Pay app from the Shopify App Store:</strong> Search for "Amazon Pay" in the Shopify App Store and install the official Amazon Pay app. Installation alone does not activate Amazon Pay at checkout — this is only the first step.</li>
+    <li><strong>Step 2 — Connect Amazon Seller Central credentials:</strong> After installing the app, you must enter your Amazon Pay merchant credentials: Merchant ID, Public Key ID, and Private Key. These credentials are generated in your Amazon Seller Central account under Account &amp; Settings → Amazon Pay → Integration → Integration Central. Without these credentials, the app is installed but Amazon Pay is not functional.</li>
+  </ul>
+
+  <h3>How to verify the connection is complete</h3>
+
+  <ol class="steps">
+    <li>Go to Shopify Admin → Apps → Amazon Pay → open the app settings</li>
+    <li>Confirm that a Merchant ID, Public Key ID, and Private Key are present — not blank fields</li>
+    <li>Confirm the environment toggle is set to "Production" (not "Sandbox") for live transactions</li>
+    <li>Run a test checkout in incognito — the Amazon Pay button should appear at the payment step between the express checkout buttons and the standard card form</li>
+    <li>If the button does not appear, open browser DevTools → Console — look for errors mentioning "Amazon" or "OffAmazonPayments" that indicate a script loading failure</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Reinstalling the App Clears Your Credentials</div>
+    If you uninstall and reinstall the Amazon Pay Shopify app — often done when troubleshooting — the credential fields are cleared. You must re-enter the Merchant ID, Public Key ID, and Private Key from Amazon Seller Central after reinstalling. This is a common cause of Amazon Pay "suddenly stopping" after a troubleshooting session.
+  </div>
+
+  <h2>Failure Mode 2: Amazon Pay Not Available in the Buyer's Country</h2>
+
+  <p>Amazon Pay is a geographically restricted payment method. It operates in a specific list of countries, and buyers geolocated outside these countries will not see the Amazon Pay button at checkout — regardless of how the merchant has configured it. The button is suppressed server-side before it is rendered, so there is no visible indication that it was excluded.</p>
+
+  <h3>Countries where Amazon Pay is available to buyers</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Region</th>
+          <th>Countries</th>
+          <th>Amazon Pay Available?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>North America</td>
+          <td>United States, Canada (limited)</td>
+          <td><span class="tag green">Yes (US primary)</span></td>
+        </tr>
+        <tr>
+          <td>Europe</td>
+          <td>UK, Germany, France, Italy, Spain, Luxembourg, Cyprus, Belgium, Sweden, Netherlands, Portugal, Hungary</td>
+          <td><span class="tag green">Yes</span></td>
+        </tr>
+        <tr>
+          <td>Asia Pacific</td>
+          <td>Japan</td>
+          <td><span class="tag green">Yes</span></td>
+        </tr>
+        <tr>
+          <td>Latin America</td>
+          <td>All countries</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>Middle East &amp; Africa</td>
+          <td>All countries</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>South &amp; Southeast Asia</td>
+          <td>All countries (including India)</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td>Australia &amp; Oceania</td>
+          <td>All countries</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Note that availability is based on the <strong>buyer's</strong> geolocated country, not the merchant's store country. A US-based merchant selling to buyers in India will not show Amazon Pay to those buyers. A UK merchant with Amazon Pay enabled will show it to German buyers but not to Australian buyers.</p>
+
+  <div class="callout info">
+    <div class="callout-title">Merchant Region Also Determines Which Amazon Pay Integration to Use</div>
+    Amazon Pay has separate regional integrations: Amazon Pay US, Amazon Pay Europe, and Amazon Pay Japan. A US merchant who wants to accept Amazon Pay from European buyers must have Amazon Pay Europe credentials configured — the US credentials do not automatically cover European buyers. Most Shopify merchants only configure one regional integration and are surprised when international buyers can't use Amazon Pay.
+  </div>
+
+  <h3>Diagnosing geographic availability issues</h3>
+
+  <ol class="steps">
+    <li>If your primary buyer base is outside the supported regions, Amazon Pay is not a viable option and the button will never appear for those buyers</li>
+    <li>If you have international buyers across multiple regions, check whether you have the correct Amazon Pay regional integration for each market (US, EU, JP)</li>
+    <li>Test checkout using a VPN set to the buyer's expected country — if the button appears with the VPN on, geographic restriction is confirmed</li>
+    <li>For buyers in unsupported regions, ensure your checkout prominently offers other familiar payment options so buyers are not stranded at checkout</li>
+  </ol>
+
+  <h2>Failure Mode 3: Buyer's Amazon Account Has No Valid Payment Method</h2>
+
+  <p>Amazon Pay passes through the payment method stored in the buyer's Amazon account — it does not accept new card entries during the Amazon Pay flow. If the buyer's Amazon account has an expired default payment method, a declined card, or no payment method at all, the Amazon Pay checkout will fail at the payment authorization step. The buyer typically sees an error on Amazon's authentication screen rather than on your Shopify checkout, making it hard for merchants to diagnose.</p>
+
+  <h3>What triggers buyer-side payment failures</h3>
+
+  <ul>
+    <li><strong>Expired credit or debit card:</strong> The most common cause. The buyer's default Amazon payment method is a card that has since expired. Amazon Pay cannot process a payment on an expired card — the buyer must update their Amazon account payment method before completing the checkout.</li>
+    <li><strong>Card declined by issuing bank:</strong> Even with a valid card, the buyer's issuing bank may decline the transaction for insufficient funds, daily spending limits, or fraud detection. The decline happens within the Amazon Pay flow and the buyer sees an Amazon-side error message.</li>
+    <li><strong>No default payment method set:</strong> Buyers who have multiple cards on their Amazon account but haven't set a default, or who recently removed all payment methods, cannot complete an Amazon Pay checkout without first adding a valid payment method in their Amazon account settings.</li>
+    <li><strong>Amazon gift card balance only:</strong> Amazon Pay cannot use Amazon gift card balance as a payment method on third-party merchant checkouts (only on Amazon.com itself). Buyers who rely on gift card balance for purchases will find Amazon Pay unavailable.</li>
+    <li><strong>Prepaid card or virtual card rejected:</strong> Some Amazon Pay regional integrations do not accept prepaid cards or single-use virtual cards. Buyers using these card types may see a decline even with a valid balance.</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">The Error Appears on Amazon's Screen, Not Your Checkout</div>
+    When a buyer's Amazon account payment method is the problem, the error shows inside Amazon's authentication popup — not on your Shopify checkout page. The buyer sees "Payment cannot be completed" on Amazon's side and returns to your checkout without explanation. From the merchant's perspective, it looks like the buyer abandoned at the payment step. This makes buyer-side payment failures invisible in standard checkout analytics.
+  </div>
+
+  <h3>What merchants can do</h3>
+
+  <ol class="steps">
+    <li>Ensure your checkout has a clear fallback after the Amazon Pay flow — a "Pay with card instead" option prominently visible so buyers who fail Amazon Pay aren't stranded</li>
+    <li>If buyers report Amazon Pay not working, ask them to check their Amazon account payment methods at amazon.com/your-account — expired or missing payment methods are the fix</li>
+    <li>Consider adding a note near the Amazon Pay button: "Uses the payment method saved in your Amazon account" — this primes buyers to know their Amazon account must have a valid card</li>
+  </ol>
+
+  <h2>Failure Mode 4: Theme or App JavaScript Blocking the Amazon Pay Button Widget</h2>
+
+  <p>The Amazon Pay button is loaded by a JavaScript widget that must be fetched from Amazon's CDN (<code>static-fe.payments-amazon.com</code>). If anything in your Shopify theme, checkout customizations, or installed apps blocks this script from loading — or introduces a JavaScript error that prevents the widget from initializing — the button will not appear at checkout without any visible error for the buyer.</p>
+
+  <h3>Common sources of Amazon Pay script conflicts</h3>
+
+  <ul>
+    <li><strong>Content Security Policy (CSP) blocking Amazon's CDN:</strong> If your Shopify theme or a security app has set a Content Security Policy header that does not include <code>static-fe.payments-amazon.com</code>, <code>payments-amazon.com</code>, and <code>amazon.com</code> in the allowed script sources, the browser will block the Amazon Pay widget from loading. This appears in browser DevTools as a CSP violation error, not as an Amazon Pay error.</li>
+    <li><strong>Theme JavaScript error cascading:</strong> A JavaScript error thrown by theme code or a third-party app script that runs before the payment step renders can prevent the Amazon Pay widget initialization from completing. The widget code never finishes executing and the button never appears.</li>
+    <li><strong>Checkout UI extension hiding the payment section:</strong> Extensions that modify or conditionally hide sections of the payment step can suppress Amazon Pay's rendering position in the checkout UI.</li>
+    <li><strong>Ad blocker or browser extension (for testing):</strong> Privacy-focused browser extensions (uBlock Origin, Brave Shield, Ghostery) often block Amazon tracking scripts, including the Amazon Pay widget. This is a testing environment issue — real buyers are less likely to have these extensions but it affects merchant testing and creates false "not working" diagnoses.</li>
+    <li><strong>Script load order race condition:</strong> Some themes load their own payment customization scripts in a sequence that conflicts with Amazon Pay's initialization timing. The widget attempts to initialize before the DOM element it targets is available.</li>
+  </ul>
+
+  <h3>How to isolate a script conflict</h3>
+
+  <ol class="steps">
+    <li>Open browser DevTools → Console on the checkout payment step — look for errors mentioning "Content Security Policy", "Refused to load script", "OffAmazonPayments", or "amazon"</li>
+    <li>Open DevTools → Network tab → filter by "amazon" — confirm that the Amazon Pay JavaScript file is being fetched and returns a 200 status, not a CSP block or 404</li>
+    <li>Test checkout in a fresh private/incognito window with all browser extensions disabled — if Amazon Pay appears, the block is a browser extension, not a site-level issue</li>
+    <li>Temporarily switch to Shopify's default Dawn theme and test — if Amazon Pay appears with the default theme, the conflict is in your custom theme's JavaScript or CSS</li>
+    <li>Go to Admin → Settings → Checkout → Customize → disable all active checkout extensions → retest — if Amazon Pay appears, an extension is the conflict source</li>
+    <li>If CSP is the issue, update your CSP header to include <code>script-src *.amazon.com *.payments-amazon.com</code> and <code>connect-src *.amazon.com *.payments-amazon.com</code></li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Test Without Extensions in an Incognito Window First</div>
+    Before diving into theme or app debugging, always test Amazon Pay in a fresh incognito window with browser extensions disabled. Most "Amazon Pay not working" reports from merchants during testing turn out to be ad blocker interference. If it works in incognito, the issue is a browser extension on your testing device, not a real site-level problem.
+  </div>
+
+  <h2>Failure Mode 5: Merchant's Amazon Seller Central Account Under Review</h2>
+
+  <p>Amazon Pay is tied to the merchant's Amazon Seller Central account. When Amazon places a Seller Central account under review, suspends selling privileges, or flags it for compliance, Amazon Pay is suspended at the same time — even if the reason has nothing to do with payment processing. All Amazon Pay transactions fail during the review period, and there is no notification sent to the Shopify store — the button may still appear but payments will be declined.</p>
+
+  <h3>What triggers an Amazon Seller Central review that affects Amazon Pay</h3>
+
+  <ul>
+    <li><strong>Compliance document request:</strong> Amazon periodically requests business verification documents (business registration, bank statements, identity documents). Until documents are submitted and approved, some account functions including Amazon Pay may be restricted.</li>
+    <li><strong>High dispute or chargeback rate:</strong> If Amazon Pay transactions are generating an above-average rate of buyer disputes or chargebacks, Amazon's risk team may suspend Amazon Pay access while investigating.</li>
+    <li><strong>Category approval required:</strong> If your store sells products in a restricted category (supplements, electronics, etc.) and you haven't obtained the required Amazon category approval, Amazon Pay may be restricted for transactions in those categories.</li>
+    <li><strong>Bank account or tax information change:</strong> Updating payout bank account details or tax identification in Seller Central can trigger a verification hold that temporarily affects Amazon Pay payouts and sometimes payment acceptance.</li>
+    <li><strong>General account health issues:</strong> Policy violations, negative feedback thresholds, or order defect rate issues in the Seller Central account can escalate to Amazon Pay suspension.</li>
+  </ul>
+
+  <h3>How to check Seller Central account status</h3>
+
+  <ol class="steps">
+    <li>Log in to Amazon Seller Central → Account Health — look for any alerts, action required notices, or restriction banners</li>
+    <li>Go to Seller Central → Amazon Pay → Payment Processing → check for any suspension or review notices specific to Amazon Pay</li>
+    <li>Check your registered email for Amazon compliance request messages — these often arrive with a deadline and go unnoticed in general email</li>
+    <li>Go to Seller Central → Settings → Account Info → confirm bank account and tax details are complete and verified</li>
+    <li>If under review, respond to any Amazon requests as quickly as possible — reviews that require document submission will not resolve automatically</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Amazon Pay Can Fail Silently While the Button Still Shows</div>
+    When a merchant's Seller Central account is under review, the Amazon Pay button may still render at checkout — giving buyers the impression they can pay. Buyers click the button, authenticate with Amazon, select a payment method, return to checkout, and then receive a generic payment failure message. The button appearing does not confirm that Amazon Pay is operational. Monitor actual payment success rate, not just button render rate.
+  </div>
+
+  <h2>Failure Mode 6: European SCA Authentication Failure</h2>
+
+  <p>Strong Customer Authentication (SCA) is a regulatory requirement for electronic payments in the European Economic Area and the United Kingdom. When a buyer in these regions uses Amazon Pay, the transaction must pass a two-factor authentication step — typically a one-time passcode sent to the buyer's phone or authentication via a banking app. If this step fails, times out, or is blocked, the Amazon Pay transaction is declined and the buyer is returned to checkout without a completed payment.</p>
+
+  <h3>How SCA failures manifest in Amazon Pay checkout</h3>
+
+  <ul>
+    <li><strong>Buyer closes the authentication popup:</strong> Amazon Pay opens a popup for the buyer to authenticate with their Amazon account. If the buyer or their browser closes this popup (due to popup blockers, accidental closure, or slow connection), the SCA flow is interrupted and the transaction fails.</li>
+    <li><strong>Bank authentication app timeout:</strong> The buyer's bank sends a push notification to their banking app for SCA approval. If the buyer doesn't respond within the bank's timeout window (often 5–10 minutes), the transaction is declined. Buyers often don't realize the bank app needs their action.</li>
+    <li><strong>SCA popup blocked by browser:</strong> Strict browser popup blockers can prevent the Amazon Pay SCA window from opening at all. The buyer clicks "Pay with Amazon" but nothing happens — the popup is blocked before it loads.</li>
+    <li><strong>Bank does not support 3DS2:</strong> Older issuing banks that haven't implemented 3D Secure 2 may fail the SCA challenge. Amazon Pay may decline the transaction rather than fall back to a less secure authentication path, depending on the transaction risk level.</li>
+  </ul>
+
+  <div class="callout info">
+    <div class="callout-title">SCA Failures Are More Common on Mobile</div>
+    SCA popup handling is significantly worse on mobile browsers, particularly Safari on iOS. Popups are often blocked by default, and even when allowed, the back-navigation behavior can break the return flow to Shopify checkout after Amazon authentication. If Amazon Pay failures are concentrated on mobile buyers in the EU/UK, SCA popup handling is the likely cause. Consider prominently surfacing alternative SCA-compliant payment methods for mobile users in these regions.
+  </div>
+
+  <h3>Reducing SCA failure rate for Amazon Pay</h3>
+
+  <ol class="steps">
+    <li>Add a note or tooltip near the Amazon Pay button on European storefronts: "You may be asked to verify your identity with your bank — have your phone ready"</li>
+    <li>Ensure the checkout page does not have aggressive popup blocking scripts or browser policies that would prevent the Amazon Pay authentication window from opening</li>
+    <li>Test Amazon Pay checkout specifically from a browser in EU/UK mode to confirm the SCA flow completes end-to-end</li>
+    <li>Monitor your Amazon Pay transaction failure reports in Seller Central → Amazon Pay → Reports → Transaction Reports — filter for EU/UK transactions and check the decline reason codes</li>
+  </ol>
+
+  <h2>Failure Mode 7: Amazon Pay API Private Key Rotation or Expiry</h2>
+
+  <p>Amazon Pay's modern integration uses RSA public/private key pairs for authentication between your Shopify store (via the Amazon Pay app) and Amazon's payment processing API. These private keys are generated in Amazon Seller Central and entered into the Amazon Pay Shopify app settings. If the private key is rotated in Amazon Seller Central but not updated in the Shopify app, all new Amazon Pay transactions will fail with an authentication error — while the button continues to render normally.</p>
+
+  <h3>Why key rotation causes failures</h3>
+
+  <ul>
+    <li><strong>Manual key rotation:</strong> If you or another admin rotated the Amazon Pay key in Seller Central (for security reasons or as part of a periodic rotation policy) but forgot to update the private key in the Shopify Amazon Pay app settings, every new transaction will fail — the Shopify app sends requests signed with an old key that Amazon no longer trusts.</li>
+    <li><strong>Key compromised and revoked:</strong> If Amazon detected potential unauthorized use of a key and automatically revoked it, all transactions signed with that key will fail immediately. Amazon will send an email notification, but it's easily missed.</li>
+    <li><strong>Key pair from wrong integration environment:</strong> Amazon Pay generates separate key pairs for sandbox and production environments. Using a sandbox key pair in a production configuration (or vice versa) causes all transactions to fail. This is a setup error that surfaces as a key authentication failure.</li>
+    <li><strong>Public Key ID mismatch:</strong> The Amazon Pay app requires both a Public Key ID (a string identifier, not the key itself) and the Private Key. If either value is from a different key pair, authentication fails. Copy-paste errors when entering these values are a common cause.</li>
+  </ul>
+
+  <h3>How to verify and fix key configuration</h3>
+
+  <ol class="steps">
+    <li>Go to Amazon Seller Central → Account &amp; Settings → Amazon Pay → Integration → Integration Central</li>
+    <li>Under "Keys", check the status of your production keys — confirm the key pair is active and not revoked</li>
+    <li>Note the Public Key ID for your active production key — it should match exactly what is entered in the Shopify Amazon Pay app</li>
+    <li>Download the private key file from Seller Central (this is only available when the key is created; you cannot re-download it later)</li>
+    <li>If you cannot find the private key file for the current active Public Key ID, you must create a new key pair in Seller Central and update the Shopify app with the new credentials</li>
+    <li>After updating credentials in the Shopify app, run a test transaction in incognito to confirm the authentication is working</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Private Keys Cannot Be Re-Downloaded After Creation</div>
+    Amazon Pay private keys can only be downloaded at the moment they are created in Seller Central. If you lose the private key file, you cannot retrieve it — you must create a new key pair and update all integrations with the new credentials. Store the private key file in a secure, backed-up location (a password manager or secrets vault) immediately after creating it.
+  </div>
+
+  <div class="cta-box">
+    <h2>Is Amazon Pay Failing Silently on Your Store?</h2>
+    <p>Amazon Pay failures are invisible — the button renders, buyers click it, and payments fail without a trace in your admin. CheckPulse monitors your full checkout flow step-by-step and alerts you when payment methods fail to process — before buyers abandon and don't come back.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check →</a>
+  </div>
+
+  <h2>Failure Mode 8: Sandbox vs. Live Mode Mismatch</h2>
+
+  <p>The Amazon Pay Shopify app has two operating modes: Sandbox and Production. Sandbox mode uses Amazon's test account system — merchants can test the full checkout flow without processing real payments by logging in with special Amazon sandbox test accounts. If the app is accidentally left in Sandbox mode (or switched to Sandbox during troubleshooting and not switched back), real buyers with live Amazon accounts will be unable to authenticate and all live transactions will fail.</p>
+
+  <h3>How sandbox/live mismatch happens</h3>
+
+  <ul>
+    <li><strong>Left in sandbox after testing:</strong> Merchants who tested Amazon Pay during setup and forgot to switch from Sandbox to Production mode. The checkout works perfectly in their own testing (using Amazon's sandbox test accounts) but fails for all real buyers.</li>
+    <li><strong>Switched to sandbox for debugging and not switched back:</strong> When troubleshooting an Amazon Pay issue, merchants sometimes switch to Sandbox mode to isolate problems. If they resolve the issue and forget to return to Production mode, live buyer transactions fail.</li>
+    <li><strong>Production credentials entered in sandbox fields:</strong> If the correct production credentials are entered but into the sandbox credential fields (or vice versa), the authentication will fail because the credentials don't match the environment they are being used in.</li>
+  </ul>
+
+  <h3>How to confirm and fix environment mismatch</h3>
+
+  <ol class="steps">
+    <li>Go to Shopify Admin → Apps → Amazon Pay → open the app configuration</li>
+    <li>Find the environment toggle — it should be set to "Production" (not "Sandbox" or "Test") for all live transactions</li>
+    <li>Confirm the Merchant ID, Public Key ID, and Private Key correspond to your production Amazon Seller Central account, not sandbox credentials</li>
+    <li>Production Merchant IDs typically start with <code>A</code> followed by a long alphanumeric string; sandbox Merchant IDs look similar but are associated with Amazon's sandbox environment</li>
+    <li>Switch to Production mode and run a test with a real Amazon account in an incognito window to confirm live transactions work</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Sandbox Mode Looks Completely Functional When You Test It</div>
+    The critical trap with sandbox/live mismatch: when you test Amazon Pay in Sandbox mode using Amazon's test credentials, everything works perfectly. The button appears, the Amazon sign-in popup opens, and the payment completes in your Shopify admin as a test order. The checkout is technically functional — just not for real buyers with real Amazon accounts. Sandbox mode failure only becomes visible when real buyers report that the Amazon Pay button doesn't work or their Amazon login fails.
+  </div>
+
+  <h2>Quick Diagnosis Table</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Most Likely Cause</th>
+          <th>First Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Button never appears at all</td>
+          <td><span class="tag red">App not connected or CSP block</span></td>
+          <td><span class="tag blue">Check app credentials; check DevTools console for CSP errors</span></td>
+        </tr>
+        <tr>
+          <td>Button shows but Amazon login fails</td>
+          <td><span class="tag red">Sandbox/live mismatch or expired key</span></td>
+          <td><span class="tag blue">Confirm Production mode; verify key credentials in Seller Central</span></td>
+        </tr>
+        <tr>
+          <td>Amazon login succeeds but checkout fails</td>
+          <td><span class="tag yellow">Buyer's payment method invalid</span></td>
+          <td><span class="tag blue">Ask buyer to update Amazon account payment methods</span></td>
+        </tr>
+        <tr>
+          <td>Button not showing for some buyers (not all)</td>
+          <td><span class="tag yellow">Geographic restriction</span></td>
+          <td><span class="tag blue">Confirm buyer's country is in the supported list; check regional integration</span></td>
+        </tr>
+        <tr>
+          <td>Was working, suddenly stopped working</td>
+          <td><span class="tag red">Seller Central account review or key revoked</span></td>
+          <td><span class="tag blue">Check Amazon Seller Central Account Health and Integration Central for alerts</span></td>
+        </tr>
+        <tr>
+          <td>EU/UK buyers failing, US buyers fine</td>
+          <td><span class="tag yellow">SCA authentication failure</span></td>
+          <td><span class="tag blue">Test SCA flow from EU IP; check popup blocking; review Amazon Pay transaction decline codes</span></td>
+        </tr>
+        <tr>
+          <td>Button appears after clearing extensions</td>
+          <td><span class="tag yellow">App or theme JS conflict</span></td>
+          <td><span class="tag blue">Disable extensions one by one; check DevTools console for JS errors</span></td>
+        </tr>
+        <tr>
+          <td>Works in merchant test, fails for buyers</td>
+          <td><span class="tag red">Sandbox mode still active</span></td>
+          <td><span class="tag blue">Switch Amazon Pay app to Production; update to live credentials</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Amazon Pay vs. Shopify Payments: What Merchants Often Confuse</h2>
+
+  <p>Amazon Pay is not related to Shopify Payments. They are completely separate payment systems that can coexist on the same Shopify checkout. Amazon Pay can be used alongside Shopify Payments, alongside a third-party gateway like Stripe, or alongside any other payment configuration. Amazon Pay appears as an express payment button (in the same row as Shop Pay, Apple Pay, and Google Pay) above the standard payment form — it is not affected by which primary gateway you use for standard credit card payments.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>Amazon Pay</th>
+          <th>Shopify Payments</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Requires Shopify Payments?</td>
+          <td><span class="tag green">No — works with any gateway</span></td>
+          <td>N/A</td>
+        </tr>
+        <tr>
+          <td>Setup</td>
+          <td>Standalone app + Amazon Seller Central credentials</td>
+          <td>Built into Shopify Admin</td>
+        </tr>
+        <tr>
+          <td>Buyer experience</td>
+          <td>Express button → Amazon login → select saved address and card</td>
+          <td>Standard card form + accelerated checkout options</td>
+        </tr>
+        <tr>
+          <td>Payout</td>
+          <td>Amazon Pay deposits to your bank account on Amazon's schedule</td>
+          <td>Shopify deposits on their payout schedule</td>
+        </tr>
+        <tr>
+          <td>Dispute handling</td>
+          <td>Amazon A-to-Z Guarantee applies — Amazon mediates disputes</td>
+          <td>Standard card chargeback process</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Amazon Pay Comes with Amazon's Buyer Trust — and Amazon's Dispute Rules</div>
+    Offering Amazon Pay gives buyers Amazon's familiar trust signals and the comfort of using a payment method they know. However, it also means Amazon's A-to-Z Guarantee applies to these transactions. Buyers who are dissatisfied can open an A-to-Z claim with Amazon rather than going through your store's return process. Amazon Pay merchants should be aware of this dispute pathway and ensure their customer service processes account for Amazon-mediated claims.
+  </div>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your buyers do.</div>
+    <div class="footer-links">
+      <a href="./shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="./shopify-checkout-page-not-loading">Page Not Loading</a>
+      <a href="./shopify-checkout-discount-not-working">Discount Not Working</a>
+      <a href="./shopify-checkout-shipping-not-working">Shipping Not Working</a>
+      <a href="./shopify-checkout-payment-not-working">Payment Not Working</a>
+      <a href="./shopify-checkout-tax-not-calculated">Tax Not Calculated</a>
+      <a href="./shopify-checkout-address-validation-error">Address Validation Error</a>
+      <a href="./shopify-checkout-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="./shopify-checkout-google-pay-not-working">Google Pay Not Working</a>
+      <a href="./shopify-checkout-paypal-not-working">PayPal Not Working</a>
+      <a href="./shopify-checkout-login-not-working">Login Not Working</a>
+      <a href="./shopify-checkout-redirect-not-working">Redirect Not Working</a>
+      <a href="./shopify-checkout-conversion-tracking-not-working">Conversion Tracking Not Working</a>
+      <a href="./shopify-checkout-international-payment-failed">International Payment Failed</a>
+      <a href="./shopify-checkout-currency-converter-not-working">Currency Converter Not Working</a>
+      <a href="./shopify-checkout-notification-email-customization-not-working">Notification Email Customization</a>
+      <a href="./shopify-checkout-functions-not-working">Functions Not Working</a>
+      <a href="./shopify-checkout-extensibility-migration-not-working">Checkout Extensibility Migration</a>
+      <a href="./shopify-checkout-payment-plan-not-available">Payment Plan Not Available</a>
+      <a href="./shopify-checkout-order-confirmation-email-not-working">Order Confirmation Email</a>
+      <a href="./shopify-checkout-abandoned-recovery-not-working">Abandoned Recovery Not Working</a>
+      <a href="./shopify-checkout-webhook-not-firing">Webhook Not Firing</a>
+      <a href="./shopify-checkout-black-friday">Black Friday Checkout</a>
+      <a href="./shopify-checkout-speed-test">Checkout Speed Test</a>
+      <a href="./shopify-checkout-app-audit">App Audit</a>
+      <a href="./shopify-checkout-mobile">Mobile Checkout</a>
+      <a href="./shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="./shopify-checkout-abandoned">Checkout Abandonment</a>
+      <a href="./shopify-checkout-international">International Checkout</a>
+      <a href="./shopify-checkout-agencies">Agency Checkout Testing</a>
+      <a href="./shopify-checkout-subscriptions">Subscription Checkout</a>
+      <a href="./shopify-b2b-checkout-not-working">B2B Checkout</a>
+      <a href="./shopify-checkout-localization-error">Localization Error</a>
+      <a href="./shopify-checkout-cro">Checkout CRO</a>
+      <a href="./shopify-checkout-ab-testing">A/B Testing</a>
+      <a href="./shopify-checkout-trust-signals">Trust Signals</a>
+      <a href="./shopify-checkout-guest-checkout">Guest Checkout</a>
+      <a href="./shopify-checkout-one-page">One-Page Checkout</a>
+      <a href="./shopify-checkout-upsells">Checkout Upsells</a>
+      <a href="./shopify-checkout-payment-methods">Payment Methods</a>
+      <a href="./shopify-checkout-extensions">Checkout Extensions</a>
+      <a href="./shopify-checkout-order-confirmation">Order Confirmation</a>
+      <a href="./shopify-checkout-fraud-prevention">Fraud Prevention</a>
+      <a href="./shopify-checkout-digital-products">Digital Products</a>
+      <a href="./shopify-checkout-gift-orders">Gift Orders</a>
+      <a href="./shopify-checkout-returns-refunds">Returns &amp; Refunds</a>
+      <a href="./shopify-checkout-subscription-renewals">Subscription Renewals</a>
+      <a href="./shopify-checkout-loyalty-rewards">Loyalty Rewards</a>
+      <a href="./shopify-checkout-pre-order">Pre-Order</a>
+      <a href="./shopify-checkout-flash-sale">Flash Sale</a>
+      <a href="./shopify-checkout-bundle-kit">Bundle &amp; Kit</a>
+      <a href="./shopify-checkout-gift-card-loyalty-stacking">Gift Card + Loyalty Stacking</a>
+      <a href="./shopify-checkout-store-credit">Store Credit</a>
+      <a href="./shopify-checkout-affiliate-referral-code">Affiliate &amp; Referral Code</a>
+      <a href="./shopify-checkout-warranty-protection-plan">Warranty &amp; Protection Plan</a>
+      <a href="./shopify-checkout-age-verification">Age Verification</a>
+      <a href="./shopify-checkout-product-customization">Product Customization</a>
+      <a href="./shopify-checkout-digital-gift-cards">Digital Gift Cards</a>
+      <a href="./shopify-checkout-event-tickets">Event Tickets</a>
+      <a href="./shopify-checkout-memberships">Memberships</a>
+      <a href="./shopify-checkout-recurring-donations">Recurring Donations</a>
+      <a href="./shopify-checkout-b2b-net-terms">B2B Net Terms</a>
+      <a href="./shopify-checkout-local-payment-methods">Local Payment Methods</a>
+      <a href="./shopify-checkout-vat-exemption">VAT Exemption</a>
+      <a href="./shopify-checkout-split-payment">Split Payment</a>
+      <a href="./shopify-checkout-pos-not-syncing">POS Not Syncing</a>
+      <a href="./shopify-checkout-phone-number-not-working">Phone Number Not Working</a>
+      <a href="./shopify-checkout-address-autocomplete-not-working">Address Autocomplete Not Working</a>
+      <a href="./shopify-checkout-email-not-working">Email Not Working</a>
+      <a href="./shopify-checkout-payment-link-not-working">Payment Link Not Working</a>
+      <a href="./shopify-checkout-customer-account-required">Customer Account Required</a>
+      <a href="./shopify-checkout-postal-code-not-working">Postal Code Not Working</a>
+      <a href="./shopify-checkout-shipping-rate-not-updating">Shipping Rate Not Updating</a>
+      <a href="./shopify-checkout-coupon-vs-automatic-discount-conflict">Coupon vs Automatic Discount Conflict</a>
+      <a href="./shopify-checkout-billing-address-not-matching">Billing Address Not Matching</a>
+      <a href="./shopify-checkout-quantity-limit-not-working">Quantity Limit Not Working</a>
+      <a href="./shopify-checkout-payment-capture-timing">Payment Capture Timing</a>
+      <a href="./shopify-checkout-metafield-not-saving">Metafield Not Saving</a>
+      <a href="./shopify-checkout-discount-stacking-not-working">Discount Stacking Not Working</a>
+      <a href="./shopify-checkout-one-page-not-working">One-Page Checkout Not Working</a>
+      <a href="./shopify-checkout-order-editing-not-working">Order Editing Not Working</a>
+      <a href="./shopify-checkout-custom-domain-ssl-error">Custom Domain SSL Error</a>
+      <a href="./shopify-checkout-wrong-price">Wrong Price at Checkout</a>
+      <a href="./shopify-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="./shopify-checkout-stuck-processing">Checkout Stuck on Processing</a>
+      <a href="./shopify-checkout-buy-now-pay-later-not-working">Buy Now Pay Later Not Working</a>
+      <a href="./shopify-checkout-link-not-working">Checkout Link Not Working</a>
+      <a href="./shopify-amazon-pay-not-working">Amazon Pay Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Shopify checkout monitoring for merchants who can't afford downtime.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify PayPal Not Working — Payments Failing, Account Limits, Sandbox Mode, Pending Orders (2026)</title>
+  <meta name="description" content="Shopify PayPal not working? Payment failing, pending, account limited, or stuck in sandbox mode — 8 root causes with exact diagnostic steps and fixes, including PayPal email mismatch, account verification, dispute holds, and IPN vs webhook migration." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-paypal-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-paypal-not-working" />
+  <meta property="og:title" content="Shopify PayPal Not Working — Payments Failing, Account Limits, Sandbox Mode, Pending Orders (2026)" />
+  <meta property="og:description" content="PayPal failing on Shopify at the processing level has 8 distinct causes: sandbox credentials in live store, PayPal email mismatch breaking the connection, unverified or limited PayPal account, IPN-to-webhook migration gap causing order sync failure, payments stuck as Pending due to eCheck or payment review holds, dispute rate triggering PayPal restrictions, product category restrictions, and PayPal receiving limit reached. Each fails differently — here's how to diagnose and fix each one." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify PayPal Not Working — Payments Failing, Account Limits, Sandbox Mode, Pending Orders",
+    "description": "Shopify PayPal not working at the processing level has eight root causes: (1) sandbox/test credentials left active in a live store — real payments never process; (2) PayPal email mismatch between the account connected to Shopify and the actual PayPal business account; (3) unverified PayPal account hitting a receiving limit; (4) PayPal account under limitation requiring documentation; (5) IPN-to-webhook migration gap causing orders paid in PayPal to never sync back to Shopify; (6) PayPal payment stuck as Pending due to eCheck or payment review hold; (7) high dispute or chargeback rate triggering PayPal processing restrictions; (8) product category or country restrictions blocking PayPal processing. This guide covers all 8 failure modes with diagnosis and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-paypal-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is PayPal not working on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify PayPal not working is caused by one of eight processing-level issues: (1) sandbox or test-mode credentials are active on a live store — real customer payments are silently rejected because they route to PayPal's sandbox environment instead of live; (2) the PayPal email address connected to Shopify doesn't match the email on your actual PayPal business account — payments fail or route to the wrong account; (3) your PayPal account is unverified and has hit PayPal's receiving limit — typically $500 in an unverified state; (4) your PayPal account is under a limitation requiring identity or bank documentation to lift; (5) you migrated from PayPal IPN to webhooks but the Shopify connection still references old IPN endpoints — orders pay successfully in PayPal but never confirm in Shopify; (6) a PayPal payment is stuck in Pending status because the customer used eCheck (bank transfer) which takes 3–5 business days to clear; (7) your PayPal account's dispute or chargeback rate has crossed a threshold that triggered PayPal's risk review and processing restrictions; or (8) your products fall into a restricted category that PayPal won't process (firearms, pharmaceuticals, gambling, etc.)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does PayPal payment show as Pending in Shopify and never complete?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PayPal payments showing as Pending in Shopify and never completing have two main causes. The first and most common is eCheck payment: the customer paid via PayPal using a bank account (not a card), which initiates a PayPal eCheck. eChecks take 3–7 business days to clear. During this window, the Shopify order shows as Payment Pending and you should not ship. Once the eCheck clears, PayPal sends a payment completion notification and Shopify automatically marks the order as paid. The second cause is PayPal's payment review hold: PayPal's risk system occasionally flags transactions for manual review, placing the payment in a temporary hold. These usually resolve within 24–72 hours. Check your PayPal account directly at paypal.com — if the payment shows there but with a 'Payment under review' or 'eCheck' status, it's a timing issue. If the payment doesn't appear in your PayPal account at all, there's a different underlying problem (IPN failure, email mismatch, or account issue)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify PayPal in sandbox mode?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify PayPal sandbox mode is active when the PayPal credentials configured in your Shopify payment settings are sandbox API keys or a sandbox PayPal account email, rather than live production credentials. This happens most often when a developer set up PayPal for testing and never switched to live credentials before the store launched, or when a store migration copied settings from a staging environment. In sandbox mode, real customer payments either fail silently (customers get a PayPal error) or appear to go through to customers but route to PayPal's sandbox environment where no real money moves. To fix: go to Shopify Admin → Settings → Payments → PayPal → scroll to credentials → replace sandbox email/API keys with your live PayPal business account credentials and save."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does PayPal account limited mean for my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A PayPal account limitation means PayPal has temporarily restricted your account's ability to send, receive, or withdraw money pending review. Limitations are triggered by: identity verification requirements (PayPal needs your date of birth, SSN last 4, or business documents), receiving a high number of chargeback or dispute claims, unusual account activity, or compliance requirements for your business type. When your PayPal account is limited, PayPal payments on your Shopify store may fail completely — customers get a 'We can't complete your payment' error — or payments may process but funds go directly into a held reserve balance you can't withdraw. To resolve a limitation, log into your PayPal account at paypal.com and complete the steps listed under 'Resolve limitations' in your account dashboard. Resolution typically takes 1–5 business days depending on what documentation is requested."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is PayPal processing payments but orders not appearing in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PayPal payments processing successfully but orders not appearing in Shopify is almost always caused by a broken payment notification connection between PayPal and Shopify. The two possible causes: (1) IPN (Instant Payment Notification) failure — the old notification system PayPal used to notify Shopify of completed payments. If your IPN URL in PayPal is misconfigured, blocked, or pointing to an old Shopify URL, PayPal completes the payment but Shopify never receives the confirmation. Go to PayPal → Account Settings → Notifications → Instant payment notifications and verify the URL matches your Shopify store's PayPal IPN endpoint. (2) Webhook failure — newer PayPal integrations use webhooks instead of IPN. If the webhook endpoint in PayPal's Developer Dashboard is unreachable or misconfigured, the same silent failure occurs. Check both systems if you've recently migrated or updated your Shopify PayPal integration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know if my Shopify PayPal account email is wrong?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To check if PayPal email mismatch is causing payment failures on Shopify: go to Shopify Admin → Settings → Payments and note the email address listed for your PayPal integration. Then log into paypal.com and confirm your PayPal business account email exactly matches. Common mismatch scenarios: the PayPal account uses a business email like payments@yourbrand.com but Shopify is connected with your personal email; or someone changed the PayPal account's primary email after the Shopify integration was set up. An email mismatch causes PayPal to reject the merchant session — payments either fail immediately at checkout or route to the wrong PayPal account entirely. Fix: go to Shopify Admin → Settings → Payments → PayPal → Edit and update the email to exactly match your current PayPal business account email. You may need to disconnect and reconnect PayPal."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → PayPal Not Working
+  </div>
+  <h1>Shopify <em>PayPal Not Working</em> — Payments Failing, Account Limits, Sandbox Mode, Pending Orders (2026)</h1>
+  <p class="hero-sub">PayPal processing failing on your Shopify store — payments declined, stuck as Pending, account limited, or sandbox credentials active on a live store — here are all 8 PayPal failure modes at the processing level, with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Sandbox Mode · Email Mismatch · Account Verification · Account Limits · IPN/Webhooks · Pending Payments · Disputes · Product Restrictions</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Shopify PayPal failures split into two categories that require completely different diagnoses. The first category is <em>checkout-level failures</em>: the PayPal button doesn't appear, the popup closes immediately, PayPal works on desktop but fails on mobile. The second category — covered here — is <em>processing-level failures</em>: PayPal appears and the customer attempts to pay, but the payment fails, gets stuck, routes incorrectly, or doesn't sync back to Shopify.</p>
+
+  <p>Processing-level PayPal failures are harder to diagnose because many are invisible to both the merchant and the customer. The customer may receive a confusing PayPal error message with no merchant-facing detail. The merchant sees an abandoned checkout or a stuck Pending order with no clear error code. The failure could be in PayPal's account configuration, credential setup, notification pipeline, or account health — and identifying which requires working through each failure mode systematically.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Quick Check: PayPal Account Health + Credentials</div>
+    Before anything else, do two checks: (1) <strong>Log into paypal.com directly</strong> and verify your account shows no red banners, limitation notices, or required actions on the dashboard — these will explain most processing failures immediately. (2) <strong>In Shopify Admin → Settings → Payments</strong>, verify the PayPal email address exactly matches your PayPal business account's primary email. An email mismatch of even one character silently breaks the payment connection. If both checks pass and PayPal still fails, work through the failure modes below.
+  </div>
+
+  <h2>Failure Mode 1: Sandbox / Test Credentials Active on a Live Store</h2>
+
+  <p>The most damaging PayPal configuration error is having sandbox (test mode) credentials active while real customers are attempting to pay. When sandbox credentials are in place, real payment attempts either silently fail (customers see a generic PayPal error) or appear to complete from the customer's perspective but route to PayPal's sandbox environment where no real money moves — leaving merchants with zero revenue and zero indication that anything is wrong.</p>
+
+  <p>This happens most often in three scenarios: a developer set up PayPal using sandbox credentials during development and the store launched without switching to live credentials; a store migration copied settings from a staging environment; or an admin disconnected and reconnected PayPal using a sandbox PayPal account email instead of the live business account. Sandbox email addresses typically end in <code>@personal.example.com</code> or similar test addresses, but developers sometimes create sandbox accounts using real-looking emails that are easy to mistake for live credentials.</p>
+
+  <h3>How to verify and switch from sandbox to live PayPal</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments → PayPal</strong></li>
+    <li>Check the email address — if it ends in any sandbox-style domain or you don't recognize it as your real PayPal account, it's wrong</li>
+    <li>Look for any <strong>"Sandbox" or "Test Mode"</strong> label near the PayPal integration</li>
+    <li>If using PayPal Express Checkout as an alternative provider: click <strong>Edit</strong> and verify no sandbox API credentials are present (sandbox Client ID begins with <code>A…</code> but sandbox test credentials are distinctly different from live)</li>
+    <li>Log into <strong>developer.paypal.com</strong> → My Apps & Credentials — if the API keys in Shopify match the sandbox section rather than the Live section, switch them</li>
+    <li>Remove sandbox credentials entirely, enter your live PayPal business account credentials, save, and process a real $1 test transaction to confirm payments route to your actual PayPal account</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Sandbox Mode Revenue Loss Is Silent and Complete</div>
+    A store running with sandbox PayPal credentials loses 100% of PayPal revenue without any visible error in Shopify reporting. Customers who attempt to pay via PayPal either fail and abandon, or believe they paid successfully while no money moves. If you recently launched, migrated, or reconnected PayPal and revenue looks lower than expected, verify live credentials immediately. Check your actual PayPal account at paypal.com for any real payments — the absence of payments confirms sandbox mode.
+  </div>
+
+  <h2>Failure Mode 2: PayPal Email Mismatch</h2>
+
+  <p>PayPal's connection to Shopify is identity-verified by email address. The email configured in Shopify's PayPal settings must exactly match the primary email on your PayPal business account — including capitalization in some cases. When there's a mismatch, PayPal either rejects the merchant identity verification during the payment session (payments fail immediately with a generic error) or routes payments to a different PayPal account altogether if someone else happens to own the mismatched email address.</p>
+
+  <p>Email mismatches accumulate silently in several ways: your primary PayPal email changed after the Shopify integration was set up and you didn't update Shopify; the integration was set up using a personal PayPal email instead of the business account email; or the PayPal account primary email was updated in PayPal's settings (perhaps to a company domain email) without updating the corresponding setting in Shopify.</p>
+
+  <h3>Diagnosing and fixing PayPal email mismatch</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>paypal.com → Settings → Account → Email</strong> and copy your exact primary email address</li>
+    <li>Go to <strong>Shopify Admin → Settings → Payments → PayPal</strong> and compare the email configured there</li>
+    <li>If they don't match exactly, click <strong>Edit</strong> and update the Shopify PayPal email to match your PayPal primary email</li>
+    <li>If your PayPal account has multiple emails (primary + secondary), ensure Shopify has the <em>primary</em> email — secondary emails may not work for merchant identification</li>
+    <li>After updating, save and immediately place a test order to verify payments route correctly to your PayPal account</li>
+    <li>Check your PayPal account for the test payment — it should appear within seconds of the transaction completing</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Payments Routing to a Stranger's PayPal Account</div>
+    In rare cases, a mismatched PayPal email that happens to belong to another PayPal user will successfully route payments — but to that other user's account, not yours. If customers are completing PayPal payments (they have receipts from PayPal) but you're not seeing the funds, email mismatch routing to another account is possible. Contact PayPal support immediately with transaction IDs from the customer receipts to trace where payments went.
+  </div>
+
+  <h2>Failure Mode 3: Unverified PayPal Account — Receiving Limit Reached</h2>
+
+  <p>PayPal allows unverified accounts to receive payments up to a specific limit — typically around $500 cumulative — before requiring identity verification. Once this limit is reached, all incoming PayPal payments are blocked until the account is verified. Merchants who set up PayPal quickly to start testing or to capture early sales frequently hit this limit without realizing verification was required.</p>
+
+  <p>An unverified PayPal account receiving limit creates a pattern that looks like PayPal suddenly stopped working: everything was fine for early orders, then payments started failing across the board. Customers see a PayPal error. The merchant gets no deposits. The specific error message in PayPal is typically about the receiving limit rather than a general processing failure, but this detail often doesn't surface in Shopify's checkout error display.</p>
+
+  <h3>How to verify your PayPal account and lift the receiving limit</h3>
+
+  <ol class="steps">
+    <li>Log into <strong>paypal.com</strong> and check your account status at the top of the dashboard — an unverified account with a limit reached will show a prominent notification</li>
+    <li>Click <strong>Get Verified</strong> or <strong>Verify your account</strong> from the dashboard banner</li>
+    <li>For a <strong>Personal PayPal account</strong>: link and confirm a bank account or provide a debit card</li>
+    <li>For a <strong>Business PayPal account</strong>: provide business information including legal business name, EIN (US), or business registration details depending on your country</li>
+    <li>PayPal verifies linked bank accounts by sending two small micro-deposits (usually within 1–2 business days) that you confirm in your PayPal settings</li>
+    <li>Once verified, the receiving limit is lifted and payments resume immediately — no changes needed in Shopify</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Business Accounts vs Personal Accounts for Shopify</div>
+    PayPal recommends using a <strong>PayPal Business account</strong> for Shopify stores, not a Personal account. Business accounts have higher receiving limits, access to Seller Protection for more transaction types, and better dispute management tools. If your Shopify store is connected to a Personal PayPal account, you will hit lower receiving limits faster and have less protection during disputes. You can upgrade a Personal account to Business directly in PayPal settings without creating a new account.
+  </div>
+
+  <h2>Failure Mode 4: PayPal Account Under Limitation (Documentation Required)</h2>
+
+  <p>A PayPal account limitation is different from an unverified receiving limit — it's an active restriction placed by PayPal's risk or compliance team requiring merchant action before payments can resume. Limitations are triggered by: high dispute or chargeback rates; suspicious account activity or unusual transaction patterns; selling in restricted or high-risk product categories; new account starting to process significant volume quickly; or regulatory compliance requirements in specific countries.</p>
+
+  <p>When your PayPal account is limited, incoming payments may fail entirely, be held in a pending reserve, or be accepted but immediately blocked from withdrawal. The limitation itself is visible in your PayPal account at paypal.com — you cannot resolve it from within Shopify. The Shopify admin will typically show no useful error; customers see a generic PayPal payment failure.</p>
+
+  <h3>Steps to resolve a PayPal account limitation</h3>
+
+  <ol class="steps">
+    <li>Log into <strong>paypal.com → Account → Resolution Center</strong> or check for a limitation notification on your account dashboard</li>
+    <li>Click <strong>Resolve</strong> next to the limitation — PayPal lists exactly what documents or actions are required</li>
+    <li>Common documentation requests: government-issued ID or passport; bank account statement; business registration certificate; proof of address; invoices or shipment records for recent transactions</li>
+    <li>Upload the requested documents through the PayPal Resolution Center — do not email them</li>
+    <li>After submitting, PayPal typically reviews within <strong>3–5 business days</strong> for standard limitations, or up to 72 hours for urgent cases if you contact PayPal support directly</li>
+    <li>While a limitation is active, offer customers alternative payment methods — credit card via Shopify Payments, Shop Pay, or other gateways — so sales don't stop entirely</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Limitation Type</th>
+          <th>Common Trigger</th>
+          <th>Resolution Path</th>
+          <th>Typical Timeframe</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Identity verification</td>
+          <td>Account not fully verified for business use</td>
+          <td>Upload government ID + proof of address</td>
+          <td>1–3 business days</td>
+        </tr>
+        <tr>
+          <td>Business documentation</td>
+          <td>Volume increased beyond personal account thresholds</td>
+          <td>Business registration + bank statement</td>
+          <td>3–5 business days</td>
+        </tr>
+        <tr>
+          <td>Transaction review</td>
+          <td>Unusual spike in transactions or ticket size</td>
+          <td>Provide invoices, tracking numbers for recent orders</td>
+          <td>3–7 business days</td>
+        </tr>
+        <tr>
+          <td>Dispute rate limitation</td>
+          <td>Dispute rate exceeded PayPal's 3% threshold</td>
+          <td>Reduce disputes; may require reserves agreement</td>
+          <td>Ongoing — depends on dispute rate improvement</td>
+        </tr>
+        <tr>
+          <td>Regulatory compliance</td>
+          <td>Country or product category requirements</td>
+          <td>Varies by country; may require legal entity change</td>
+          <td>5–15 business days</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 5: IPN-to-Webhook Migration Gap — Orders Not Syncing to Shopify</h2>
+
+  <p>PayPal has two systems for notifying merchants when payments complete: the older Instant Payment Notification (IPN) system and the newer Webhooks system. Shopify's PayPal integration has used both at different times, and the migration between them is a common source of silent failures where PayPal payments complete successfully but Shopify never receives the confirmation — leaving orders stuck as Payment Pending indefinitely.</p>
+
+  <p>The gap occurs when: your PayPal account still has an IPN listener URL configured in PayPal settings pointing to an old or deleted Shopify store URL; you migrated from one Shopify store to another and the PayPal IPN URL was never updated; or Shopify migrated your integration to webhooks but your PayPal account settings still route notifications to an IPN endpoint that no longer receives them. The pattern is unmistakable: the payment appears in your PayPal account, the customer has a PayPal receipt, but the Shopify order shows as Payment Pending indefinitely.</p>
+
+  <h3>Checking and fixing the IPN/webhook notification gap</h3>
+
+  <ol class="steps">
+    <li>Log into <strong>paypal.com → Account Settings → Notifications</strong></li>
+    <li>Click <strong>Instant payment notifications</strong> — check if there's an IPN URL configured and whether it matches your current Shopify store URL</li>
+    <li>The correct Shopify IPN endpoint format is: <code>https://[your-store].myshopify.com/</code> — but newer integrations use webhooks instead</li>
+    <li>In <strong>Shopify Admin → Settings → Payments → PayPal → Edit</strong>: disconnect PayPal entirely and reconnect using the OAuth flow — this resets the notification endpoint to the current correct URL</li>
+    <li>After reconnecting, place a test order via PayPal and verify the Shopify order transitions from Pending to Paid within a few minutes of PayPal payment completion</li>
+    <li>If orders continue sticking at Pending after reconnection, check PayPal's webhook logs: <strong>developer.paypal.com → My Apps → Webhooks → Event Log</strong> for any delivery failures</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">IPN Failure = Silent Revenue + Manual Order Confusion</div>
+    An IPN or webhook failure doesn't lose the payment — the money reaches your PayPal account. But the Shopify order never gets marked as paid, so it won't appear in your fulfillment queue. Customers get a PayPal confirmation but no Shopify order confirmation email. If you're seeing a pattern of customers emailing "I paid via PayPal but got no confirmation," IPN/webhook failure is the most likely cause. Check all open Payment Pending orders in Shopify Admin → Orders → filter by payment status "Pending."
+  </div>
+
+  <h2>Failure Mode 6: Payment Stuck as Pending — eCheck or Payment Review Hold</h2>
+
+  <p>PayPal payments showing as Pending in Shopify and never converting to Paid have two distinct causes that require different handling. The first is an eCheck payment: the customer funded their PayPal payment using a US bank account (ACH bank transfer) rather than a card or PayPal balance. eCheck payments take 3–7 business days to clear. The second is a PayPal payment review hold: PayPal's risk system flagged the transaction for manual review, placing it in a temporary hold that resolves within 24–72 hours in most cases.</p>
+
+  <p>Both pending types are legitimate payments that will eventually clear — but they require different merchant responses. For eCheck: do not ship until the payment clears; Shopify will automatically mark the order as paid when PayPal sends the eCheck clearance notification. For payment review holds: the payment may or may not clear depending on whether PayPal's review approves it; some review holds are released to the customer rather than completing to the merchant.</p>
+
+  <h3>Identifying your pending payment type</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Pending Type</th>
+          <th>How to Identify</th>
+          <th>What to Do</th>
+          <th>Expected Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>eCheck (bank transfer)</td>
+          <td>PayPal transaction shows "eCheck" as funding source; status "Pending - echeck"</td>
+          <td>Wait — do not ship. Order auto-confirms when check clears</td>
+          <td>3–7 business days</td>
+        </tr>
+        <tr>
+          <td>Payment review</td>
+          <td>PayPal transaction shows "Payment under review" or "Pending - review"</td>
+          <td>No action required from merchant; PayPal resolves internally</td>
+          <td>24–72 hours typically</td>
+        </tr>
+        <tr>
+          <td>Unilateral payment</td>
+          <td>Payment sent to an email not registered as a PayPal account</td>
+          <td>Claim payment in PayPal or register the email address</td>
+          <td>Immediately after claiming</td>
+        </tr>
+        <tr>
+          <td>Authorization hold</td>
+          <td>Payment authorized but not captured; shows "Pending - authorization"</td>
+          <td>Capture payment in PayPal before authorization expires (3–29 days)</td>
+          <td>Manual action required</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">Blocking eCheck at Checkout</div>
+    If eCheck delays are causing fulfillment complications, you can disable eCheck as a PayPal funding source. Log into <strong>paypal.com → Account Settings → Payment Preferences → Block Payments</strong> and configure Block unconfirmed payments — this prevents eCheck payments from completing at your store. Customers with only a bank-funded PayPal account will be unable to pay via PayPal, but card-funded PayPal payments will still work. Weigh the lost sales against the operational friction before enabling this.
+  </div>
+
+  <h2>Failure Mode 7: High Dispute Rate Triggering PayPal Processing Restrictions</h2>
+
+  <p>PayPal monitors dispute and chargeback rates continuously. When a merchant's dispute rate crosses PayPal's threshold — typically around 3% of transactions in a rolling 30-day period — PayPal can automatically apply account restrictions ranging from increased rolling reserves to partial payment holds to full processing suspension. These restrictions happen automatically and are often discovered by the merchant only when payments start failing.</p>
+
+  <p>A dispute-triggered restriction is different from a standard account limitation. With a dispute restriction, payments may still process (the button works, customers can pay) but funds go directly into a rolling reserve instead of your available balance. Or processing may be partially blocked — high-value transactions fail while smaller ones succeed. PayPal's dispute dashboard at paypal.com shows your current dispute rate and any active reserves.</p>
+
+  <h3>Managing dispute-related PayPal restrictions</h3>
+
+  <ol class="steps">
+    <li>Log into <strong>paypal.com → Activity → Disputes</strong> and review your open and recently closed disputes</li>
+    <li>Check <strong>PayPal Merchant Health</strong> or <strong>Seller Performance</strong> for your current dispute rate percentage</li>
+    <li>If you have a rolling reserve: go to <strong>Account → Money → Reserves</strong> to see the reserve percentage and release schedule</li>
+    <li>To reduce disputes: respond to all open disputes within 10 business days (PayPal automatically finds for the buyer if you don't respond); add tracking numbers to all shipped PayPal orders — Seller Protection requires tracking; and improve your return/refund policy to reduce buyer escalations</li>
+    <li>Contact PayPal Merchant Support directly if your dispute rate has already improved — PayPal may be willing to reduce a rolling reserve before the standard release schedule if your current rate demonstrates improvement</li>
+    <li>Review your recent transactions for any abnormal pattern: a batch of fraudulent orders, a single product with high return rate, or a shipping carrier with high lost-package rates can spike disputes suddenly</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Adding Tracking Numbers Protects Against Disputes</div>
+    PayPal's Seller Protection covers "Item Not Received" disputes only when you provide a valid tracking number that shows delivery. Adding tracking numbers to your PayPal transactions is one of the highest-ROI actions to reduce disputes — and PayPal's purchase protection terms give buyers a weaker claim when tracking confirms delivery. Use Shopify's automatic PayPal tracking sync: Admin → Settings → Shipping and delivery → Carrier accounts — or a Shopify app that syncs fulfillment tracking to PayPal automatically.
+  </div>
+
+  <h2>Failure Mode 8: Product Category or Country Restriction</h2>
+
+  <p>PayPal maintains a list of prohibited and restricted items that cannot be sold using PayPal as a payment method. If your products fall into a restricted category, PayPal may silently decline transactions at the payment processing level — the PayPal button appears and the customer initiates payment, but PayPal's backend rejects the transaction. The customer sees a generic error; the merchant sees no useful information about why PayPal failed specifically for those items.</p>
+
+  <p>Product restrictions are most common for: firearms, ammunition, and weapons accessories; pharmaceutical and health products (prescription drugs, certain supplements); adult content; gambling or lottery products; items in legal gray areas by jurisdiction; and tobacco products. Geographic restrictions apply when your store is based in a country where PayPal has limited or no operations, or when buyers are in countries PayPal restricts from receiving payments.</p>
+
+  <h3>PayPal's restricted and prohibited items for Shopify merchants</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>PayPal Policy</th>
+          <th>Shopify Alternative</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Firearms &amp; accessories</td>
+          <td>Prohibited in most cases; FFL transfers may apply</td>
+          <td>Specialized firearms payment processors (Gun.deals integrations)</td>
+        </tr>
+        <tr>
+          <td>Prescription pharmaceuticals</td>
+          <td>Prohibited without specific license approval</td>
+          <td>Healthcare-specific processors with pharmacy licensing</td>
+        </tr>
+        <tr>
+          <td>Adult / explicit content</td>
+          <td>Prohibited on standard PayPal</td>
+          <td>Age-verified payment processors supporting adult content</td>
+        </tr>
+        <tr>
+          <td>Tobacco &amp; vaping</td>
+          <td>Restricted in US; prohibited in some jurisdictions</td>
+          <td>Tobacco-specialized processors or Shopify Payments</td>
+        </tr>
+        <tr>
+          <td>Dietary supplements</td>
+          <td>Allowed but high scrutiny; claims-based restrictions</td>
+          <td>Shopify Payments or specialized nutraceutical processors</td>
+        </tr>
+        <tr>
+          <td>Gambling / lottery</td>
+          <td>Prohibited in most jurisdictions</td>
+          <td>Licensed gambling payment processors by jurisdiction</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">PayPal Can Retroactively Terminate Accounts for Restricted Items</div>
+    PayPal can close a merchant account and permanently hold funds (up to 180 days) if they determine restricted items were sold through PayPal, even if those sales occurred months earlier. This isn't a hypothetical risk — it's documented in PayPal's Acceptable Use Policy. If your products are in a restricted category and you're using PayPal, review PayPal's current policy carefully. Switching to a more product-appropriate payment processor proactively avoids the risk of account closure with frozen funds.
+  </div>
+
+  <h2>PayPal Processing Diagnostic Checklist</h2>
+
+  <p>Use this checklist when PayPal is failing at the processing level on your Shopify store:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>How to Verify</th>
+          <th>If It Fails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Live credentials active (not sandbox)</td>
+          <td>Admin → Settings → Payments → PayPal — confirm live email/keys</td>
+          <td>Replace sandbox credentials with live PayPal business account credentials</td>
+        </tr>
+        <tr>
+          <td>PayPal email matches account</td>
+          <td>Compare Shopify PayPal email to paypal.com primary email exactly</td>
+          <td>Update Shopify PayPal email to match current PayPal primary email</td>
+        </tr>
+        <tr>
+          <td>PayPal account verified</td>
+          <td>paypal.com dashboard — check for verification status banner</td>
+          <td>Complete identity verification; link bank account for business use</td>
+        </tr>
+        <tr>
+          <td>No active account limitation</td>
+          <td>paypal.com → Resolution Center — check for open limitations</td>
+          <td>Upload requested documentation via Resolution Center</td>
+        </tr>
+        <tr>
+          <td>IPN/webhook delivering correctly</td>
+          <td>Place test PayPal order; verify Shopify order moves from Pending to Paid</td>
+          <td>Disconnect and reconnect PayPal in Shopify; check IPN URL in PayPal settings</td>
+        </tr>
+        <tr>
+          <td>Pending orders are eCheck or review</td>
+          <td>Check pending order's PayPal transaction funding source</td>
+          <td>Wait for eCheck clearance (3–7 days); review holds resolve within 72 hours</td>
+        </tr>
+        <tr>
+          <td>Dispute rate under threshold</td>
+          <td>paypal.com → Activity → Disputes → dispute rate percentage</td>
+          <td>Respond to open disputes; add tracking; review high-return products</td>
+        </tr>
+        <tr>
+          <td>Products not in restricted category</td>
+          <td>Review PayPal Acceptable Use Policy for your product category</td>
+          <td>Switch to an appropriate processor for restricted product categories</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>PayPal vs Shopify Payments vs Stripe on Shopify</h2>
+
+  <p>PayPal, Shopify Payments, and Stripe serve different customer segments on Shopify stores. Understanding the difference helps diagnose which payment method issues are affecting which customers:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Method</th>
+          <th>Customer Profile</th>
+          <th>Setup Requirement</th>
+          <th>Processing Complexity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>PayPal</td>
+          <td>Customers who prefer PayPal account / don't want to enter card numbers</td>
+          <td>PayPal business account; email match; verification</td>
+          <td>High — IPN/webhook sync, account health dependencies</td>
+        </tr>
+        <tr>
+          <td>Shopify Payments</td>
+          <td>Any customer with a card; Shop Pay users</td>
+          <td>Shopify Payments activation; identity verification</td>
+          <td>Medium — handled by Shopify but subject to Shopify Payments terms</td>
+        </tr>
+        <tr>
+          <td>Stripe (3rd party)</td>
+          <td>Card-paying customers; developer-customized checkout</td>
+          <td>Stripe account; Shopify transaction fee applies</td>
+          <td>Medium — Stripe handles complexity; Shopify adds transaction fee</td>
+        </tr>
+        <tr>
+          <td>PayPal Express Checkout</td>
+          <td>PayPal users on any device; one-click for repeat PayPal customers</td>
+          <td>Same as PayPal; separate app or gateway configuration</td>
+          <td>High — all same processing failure modes plus popup/redirect complexity</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Is PayPal one piece of a larger checkout failure?</h2>
+    <p>Processing failures don't always surface as errors — a broken IPN, a pending payment, or a sandbox credential issue can silently drain PayPal revenue while everything else looks fine. CheckPulse runs a full checkout simulation every 30 minutes and alerts you the moment any payment path stops working.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Why are PayPal payments suddenly failing on my Shopify store?</h3>
+  <p>Sudden PayPal payment failures on a previously working Shopify store are most commonly caused by one of three things: your PayPal account has been placed under a limitation (check paypal.com dashboard for a red banner); the IPN or webhook connection between PayPal and Shopify broke (check if Pending orders are stuck by looking in Shopify Admin → Orders → filter by payment status Pending); or your PayPal account's receiving limit was reached if the account is unverified. Log into paypal.com first — the account dashboard will show any active limitations, required actions, or verification steps needed before payments can resume.</p>
+
+  <h3>How do I stop PayPal orders from getting stuck as Pending in Shopify?</h3>
+  <p>PayPal orders stuck as Pending in Shopify are caused by either eCheck payments (waiting for bank clearance, normal) or a broken notification connection (IPN/webhook failure, abnormal). To distinguish: log into paypal.com and check the transaction — if it shows "eCheck" as the funding source, it will auto-clear in 3–7 days with no action needed. If it shows the payment as Completed in PayPal but Shopify still shows Pending, the IPN/webhook connection is broken. Fix: disconnect and reconnect PayPal in Shopify Admin → Settings → Payments to reset the notification endpoint.</p>
+
+  <h3>Can I use PayPal on Shopify if I sell regulated products?</h3>
+  <p>It depends on the product category. PayPal's Acceptable Use Policy prohibits certain categories including adult content, many firearms products, prescription pharmaceuticals, and gambling. If you're selling in a restricted category, PayPal may silently decline transactions, restrict your account, or terminate the account retroactively. For regulated or high-risk product categories, use a payment processor specifically built for that industry — these processors have appropriate compliance frameworks and won't freeze funds if your category is outside their standard terms. Continue using PayPal only for product categories that are clearly allowed under PayPal's current policy.</p>
+
+  <h3>Why does my PayPal account have a rolling reserve on my Shopify store?</h3>
+  <p>PayPal applies rolling reserves when a merchant account shows elevated risk signals: high dispute or chargeback rate; new business with rapid payment volume growth; selling in a higher-risk product category; or a history of PayPal policy violations. A rolling reserve holds a percentage of each sale (commonly 5–10%) for 90–180 days before releasing it. Rolling reserves don't block payments — customers can still pay via PayPal — but your available PayPal balance will be lower than your gross sales because a portion is withheld. To reduce or remove a reserve, maintain a low dispute rate for several consecutive months and contact PayPal Merchant Support to request a reserve review.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payments-not-working">Payments Not Working</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+      <a href="/checkpulse/shopify-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="/checkpulse/shopify-checkout-paypal-not-working">PayPal Checkout Issues</a>
+      <a href="/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+      <a href="/checkpulse/shopify-klarna-not-working">Klarna Not Working</a>
+      <a href="/checkpulse/shopify-shop-pay-not-working">Shop Pay Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

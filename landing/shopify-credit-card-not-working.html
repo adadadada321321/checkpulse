@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Credit Card Not Working — Declined, Not Accepted, Card Errors (2026)</title>
+  <meta name="description" content="Shopify credit card not working or getting declined at checkout? 8 root causes — AVS mismatch, CVV failure, card type not enabled, Radar block, expired card, issuer decline, 3D Secure, transaction limits — with exact diagnosis and fixes for each." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-credit-card-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-credit-card-not-working" />
+  <meta property="og:title" content="Shopify Credit Card Not Working — Declined, Not Accepted, Card Errors (2026)" />
+  <meta property="og:description" content="Credit card declines on Shopify split into two buckets: merchant-configurable issues (card type not enabled, Radar/AVS/CVV rules blocking legitimate orders, Shopify Payments fraud threshold too aggressive) and issuer-side issues (bank decline, expired card, insufficient funds, 3D Secure failure, daily limit). Here are all 8 failure modes with diagnosis steps and what you can actually fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Credit Card Not Working — Declined, Not Accepted, Card Errors at Checkout",
+    "description": "Shopify credit card failures at checkout have eight root causes, split into merchant-configurable issues and issuer-side issues. Merchant-configurable: (1) card type not enabled in Shopify Payments — Amex, Discover, or UnionPay payments silently fail if not activated; (2) AVS mismatch triggering a Radar fraud block — billing address validation too strict; (3) CVV rule too aggressive in Shopify Payments fraud settings — legitimate CVV entries being blocked; (4) Shopify Fraud Analysis score blocking an order marked high risk. Issuer-side: (5) expired card — customer needs to update payment method; (6) bank decline (do not honor, insufficient funds) — issuer-side rejection the merchant cannot override; (7) 3D Secure authentication abandoned or failed — SCA challenge not completed; (8) card transaction or daily limit exceeded — high-AOV orders hitting bank-imposed limits. Each failure type requires a different fix strategy.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-credit-card-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify store not accepting credit cards?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify not accepting credit cards is caused by one of eight failure types: (1) the card type is not enabled in your Shopify Payments settings — American Express, Discover, or UnionPay cards are off by default and must be manually activated; (2) the billing address entered at checkout fails AVS (Address Verification) and Shopify Payments' Radar fraud rules block the transaction; (3) the CVV code fails validation because the customer entered it wrong or Shopify's CVV rule is rejecting cards without a CVV match; (4) Shopify's Fraud Analysis scored the order as high risk and blocked it; (5) the customer's card is expired; (6) the customer's bank declined the card (insufficient funds, do-not-honor, or flagged activity); (7) the customer didn't complete the 3D Secure authentication challenge their bank required; or (8) the transaction exceeded the customer's daily spending or single-transaction card limit. The first four are merchant-configurable; the last four are issuer-side and require the customer to resolve or use a different card."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Amex or Discover not working on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "American Express and Discover cards failing on a Shopify store is almost always because those card types are not enabled in Shopify Payments. By default, Shopify Payments accepts Visa and Mastercard. To accept Amex and Discover, go to Shopify Admin → Settings → Payments → Shopify Payments → Manage → scroll to Card types and enable American Express and Discover separately. Each card type may have different processing rates. After enabling them, run a test transaction with an Amex or Discover card to confirm they process. Note that Amex and Discover have slightly different fraud rules and chargeback processes than Visa/Mastercard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Shopify declining legitimate credit cards?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify declining legitimate credit cards is most often caused by overly aggressive fraud settings in Shopify Payments. The two most common false-positive decline triggers are: (1) AVS mismatch — the billing address the customer entered at checkout doesn't exactly match what's on file with their bank. This commonly happens when customers use abbreviations ('St' vs 'Street'), move addresses and forget to update their bank, or have international billing addresses formatted differently. If your Shopify Payments Fraud settings have 'Cancel order if billing address does not match' enabled, this blocks legitimate customers. (2) CVV block — Shopify Payments can be configured to cancel orders where CVV doesn't match. Occasionally card issuers return 'CVV not provided' even for legitimate transactions. To reduce false positives: go to Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention and review which rules are set to 'Cancel order' vs 'Flag order for review'."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does it mean when a customer's credit card is declined on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer's credit card is declined on Shopify, the decline comes from one of three places. The card network (Visa, Mastercard) or card issuer (customer's bank) declines for reasons like insufficient funds, expired card, do-not-honor flag, suspected fraud, or exceeding a spending limit — these declines return a numeric decline code in Shopify's order details. Shopify Payments' own fraud layer (Radar) declines for AVS mismatch, CVV failure, or a high fraud risk score — these appear as Shopify-side declines with a 'High risk' or 'Fraud' indicator on the order. The payment gateway (if using a third-party processor instead of Shopify Payments) declines based on its own rules. To see the decline reason, go to Shopify Admin → Orders → click the order → look for the payment status and any fraud or decline notes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does a credit card keep getting declined on Shopify even though it's valid?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A valid credit card repeatedly declined on Shopify usually points to one of these causes: the billing address has an AVS mismatch with the bank's records (customer moved or uses a different address format); the card's bank requires 3D Secure authentication but the customer is closing the popup or not receiving the OTP; Shopify's fraud score is marking the order high risk for other signals (new email, international IP, forwarding address, etc.); or the card has a per-transaction limit lower than the order total. For repeated declines of a specific card: review the order in Shopify Admin and check the fraud analysis section for what signals triggered the block. If it's AVS-related, ask the customer to re-enter their billing address exactly as it appears on their bank statement. If it's fraud score, manually review the order before authorizing it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I fix a Shopify credit card decline caused by AVS mismatch?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To fix Shopify credit card declines caused by AVS mismatch, you have two options. Option 1 (customer-facing fix): ask the customer to re-enter their billing address exactly as it appears on their bank or card statement — including apartment numbers, floor numbers, and whether the street is abbreviated (Ave vs Avenue, St vs Street). International customers sometimes have address formats that don't map well to US-style fields; they may need to experiment with how they enter their postal code or address line. Option 2 (merchant configuration fix): go to Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention and change the AVS rule from 'Cancel order' to 'Flag order for review'. This stops automatic cancellations and lets you manually review and approve legitimate orders where AVS fails. For high-volume stores, accepting AVS mismatches with manual review is often better than losing the sale, especially for international customers."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Credit Card Not Working
+  </div>
+  <h1>Shopify <em>Credit Card Not Working</em> — Declined, Not Accepted, Card Errors (2026)</h1>
+  <p class="hero-sub">Credit card declining on your Shopify store? Some declines are merchant-configurable — card type not enabled, Radar AVS or CVV rules too aggressive, fraud score blocking legitimate orders. Others are issuer-side — expired card, insufficient funds, bank security block, 3D Secure failure. Here are all 8 failure modes with exact diagnosis steps and what you can actually fix.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Card Type Not Enabled · AVS Mismatch · CVV Failure · Radar Block · Expired Card · Bank Decline · 3D Secure · Transaction Limits</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Credit card failures on Shopify split into two fundamentally different categories. The first is <em>merchant-configurable declines</em>: the card itself is perfectly valid and the customer has money, but Shopify's payment settings, fraud rules, or card type configuration are blocking the transaction. These you can fix. The second is <em>issuer-side declines</em>: Shopify's systems are working correctly, but the customer's bank or card network is rejecting the transaction for a reason outside your control.</p>
+
+  <p>The diagnostic starting point is the order record in Shopify Admin. When a credit card payment fails, Shopify records the failure reason on the order. Go to <strong>Shopify Admin → Orders</strong>, find the failed attempt (even declined orders may appear as abandoned checkouts or draft orders), and look for the payment status, fraud analysis section, and any decline codes. The decline reason tells you immediately which category you're dealing with.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">First Check: Shopify Payments Fraud Settings</div>
+    Most merchant-configurable credit card declines are controlled in one place: <strong>Shopify Admin → Settings → Payments → Shopify Payments → Manage → Fraud prevention</strong>. Check whether AVS and CVV rules are set to "Cancel order" (automatic decline) vs "Flag order for review" (manual review). If you're seeing legitimate customers declined, changing these from cancel to flag is the fastest fix. Do this before investigating individual failure modes.
+  </div>
+
+  <h2>Failure Mode 1: Card Type Not Enabled in Shopify Payments</h2>
+
+  <p>Shopify Payments enables Visa and Mastercard by default. American Express, Discover, and UnionPay must be activated separately in your Shopify Payments settings. If these card types aren't enabled, customers holding Amex, Discover, or UnionPay cards receive a checkout error — the card entry form accepts their number but the payment fails silently or shows a "card not supported" message. This is one of the most common and easily missed causes of credit card failures on new stores.</p>
+
+  <p>Amex is particularly significant: in the United States, 20–30% of consumer spending is on American Express cards. If your store is losing Amex customers because the card type isn't enabled, you're losing a meaningful segment of sales with no error visible on the merchant side — just a high checkout abandonment rate from Amex cardholders.</p>
+
+  <h3>How to enable American Express, Discover, and UnionPay</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments</strong></li>
+    <li>Under Shopify Payments, click <strong>Manage</strong></li>
+    <li>Scroll to the <strong>Card types</strong> section</li>
+    <li>Enable <strong>American Express</strong> and <strong>Discover</strong> if they're not already checked</li>
+    <li>For international stores selling to China: enable <strong>UnionPay</strong> under the card types section</li>
+    <li>Save changes and test with an Amex card number (use Shopify's test card numbers in test mode to verify)</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Amex Processing Rates Are Higher — But Worth It</div>
+    American Express charges merchants a slightly higher processing fee than Visa or Mastercard — typically 2.9%–3.5% depending on your Shopify plan and country, vs 2.4%–2.9% for Visa/Mastercard. This is why some merchants disable Amex. However, Amex cardholders tend to have higher average order values and lower chargeback rates. For most stores, enabling Amex increases net revenue despite the higher fee. Only disable Amex if your margins cannot absorb the rate difference on typical orders.
+  </div>
+
+  <h2>Failure Mode 2: AVS Mismatch Triggering a Radar Block</h2>
+
+  <p>AVS (Address Verification Service) compares the billing address a customer enters at checkout against the address on file with their card issuer. When they don't match, the card network returns an AVS mismatch result. Shopify Payments' fraud prevention rules can be configured to automatically cancel orders with an AVS mismatch — and this is enabled by default on many stores.</p>
+
+  <p>AVS mismatches affect legitimate customers constantly: the customer moved and hasn't updated their bank address; they're using a work shipping address with a home billing address they mistype; international addresses format differently than US AVS expects; apartment numbers get dropped; "Street" vs "St" differs. An aggressive AVS cancel rule silently blocks real paying customers while showing them a generic "payment declined" error with no explanation of what went wrong or how to fix it.</p>
+
+  <h3>Diagnosing AVS declines and adjusting Radar rules</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Orders</strong> and look for any recently declined orders or orders marked with a fraud indicator</li>
+    <li>Click an affected order and check the <strong>Fraud analysis</strong> section — look for "AVS street mismatch" or "AVS zip mismatch" indicators</li>
+    <li>Go to <strong>Shopify Admin → Settings → Payments → Shopify Payments → Manage → Fraud prevention</strong></li>
+    <li>Find the <strong>AVS street address check</strong> and <strong>AVS postal/zip code check</strong> rules</li>
+    <li>Change both rules from <strong>"Cancel order"</strong> to <strong>"Flag order for review"</strong> — this stops automatic cancellations while still alerting you to potential fraud</li>
+    <li>For orders flagged for AVS mismatch: manually review the order for other fraud signals. If the order looks legitimate (matching IP country, reasonable customer details, prior purchase history), approve it manually in Shopify Admin</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>AVS Response Code</th>
+          <th>Meaning</th>
+          <th>Merchant Action</th>
+          <th>Fraud Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>Y</code> — Full match</td>
+          <td>Address and ZIP both match exactly</td>
+          <td>Proceed — strong match</td>
+          <td><span class="tag green">Low</span></td>
+        </tr>
+        <tr>
+          <td><code>Z</code> — ZIP match only</td>
+          <td>ZIP matches; street address doesn't</td>
+          <td>Review other fraud signals</td>
+          <td><span class="tag yellow">Medium</span></td>
+        </tr>
+        <tr>
+          <td><code>A</code> — Address match only</td>
+          <td>Street matches; ZIP doesn't</td>
+          <td>Review other fraud signals</td>
+          <td><span class="tag yellow">Medium</span></td>
+        </tr>
+        <tr>
+          <td><code>N</code> — No match</td>
+          <td>Neither address nor ZIP matches</td>
+          <td>Flag for review; don't auto-cancel</td>
+          <td><span class="tag red">Higher</span></td>
+        </tr>
+        <tr>
+          <td><code>U</code> — Unavailable</td>
+          <td>Card issuer doesn't support AVS (common internationally)</td>
+          <td>Proceed — not a fraud signal</td>
+          <td><span class="tag green">Low</span></td>
+        </tr>
+        <tr>
+          <td><code>G</code> — International</td>
+          <td>Card issued outside US/Canada</td>
+          <td>Proceed — not a fraud signal</td>
+          <td><span class="tag green">Low</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">International Customers Always Return AVS U or G</div>
+    AVS was designed for US and Canadian cards. International customers — with UK, EU, Australian, Asian cards — will almost always return AVS code <code>U</code> (unavailable) or <code>G</code> (international/global). If your Shopify Payments fraud rule is set to cancel orders on AVS mismatch, you are blocking 100% of your international credit card customers. This is a common silent revenue leak for stores with any international traffic. Set AVS rules to "Flag for review" rather than "Cancel order."
+  </div>
+
+  <h2>Failure Mode 3: CVV Failure Blocking the Transaction</h2>
+
+  <p>CVV (Card Verification Value) is the 3-digit code on the back of Visa and Mastercard cards, or 4-digit code on the front of Amex cards. Shopify Payments checks CVV against the card issuer's records. When CVV fails, it means the customer either entered the wrong security code, or — less commonly — the card issuer returned an unexpected CVV result that Shopify's fraud rules interpret as a mismatch.</p>
+
+  <p>Most CVV failures are genuine customer input errors — a typo in the 3-digit field, auto-fill populating the wrong value, or the customer using a virtual card number that doesn't carry a CVV. However, CVV failures are also used to automatically cancel orders in some Shopify Payments configurations, which can block legitimate transactions when the card issuer doesn't support CVV verification or returns a "not provided" response.</p>
+
+  <h3>Diagnosing and handling CVV failures</h3>
+
+  <ol class="steps">
+    <li>Check the failed order in <strong>Shopify Admin → Orders → Fraud analysis</strong> for "CVV mismatch" or "CVV check failed" indicators</li>
+    <li>If you see CVV failures frequently across multiple customers: go to <strong>Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention</strong> and check the <strong>CVV check</strong> rule setting</li>
+    <li>Change the CVV rule from <strong>"Cancel order"</strong> to <strong>"Flag order for review"</strong> if you're seeing legitimate orders blocked</li>
+    <li>For individual customer CVV issues: ask the customer to re-enter their card number and CVV manually (not via auto-fill) — auto-fill can populate an old CVV from a replaced card</li>
+    <li>If the customer uses a <strong>virtual card number</strong> (from a bank app or privacy service like Privacy.com): virtual cards sometimes don't carry a valid CVV for the underlying account — the customer needs to use the physical card or a different payment method</li>
+    <li>Corporate credit cards and purchasing cards sometimes return "CVV not verified" rather than a match/mismatch — this is normal behavior for some B2B cards and shouldn't be treated as fraud</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Never Log or Store CVV Values</div>
+    CVV codes must never be stored, logged, or transmitted after authorization — this is a PCI DSS requirement. Do not add any logging or analytics that captures the CVV field value. Shopify Payments handles CVV verification internally and only returns a pass/fail result to your store. If you're using a custom checkout or headless architecture, verify that no CVV values are being persisted anywhere in your stack.
+  </div>
+
+  <h2>Failure Mode 4: Shopify Fraud Analysis Score Blocking the Order</h2>
+
+  <p>Shopify Payments includes a built-in fraud analysis system that scores every order for risk. High-risk orders can be automatically cancelled before payment completes. The fraud score is calculated from dozens of signals: IP address location vs billing address country, email domain age, browser fingerprint, order velocity from the same IP, whether the shipping and billing addresses match, and more. When multiple signals align negatively, a legitimate customer can get blocked even with a perfectly valid card.</p>
+
+  <p>The most common false-positive fraud block scenarios: a customer using a VPN or corporate proxy appears to be in a different country than their billing address; a new customer making a first purchase with an email on a free provider (Gmail, Yahoo) combined with expedited shipping gets a high risk score; or a customer making an unusually large order compared to your store average gets flagged even though they're genuine. Each of these is a business decision about how aggressively to screen versus how many real customers to block.</p>
+
+  <h3>Reviewing and managing high-risk order blocks</h3>
+
+  <ol class="steps">
+    <li>When Shopify cancels or flags an order for fraud, go to <strong>Shopify Admin → Orders</strong> and click the flagged order</li>
+    <li>Review the <strong>Fraud analysis</strong> section — Shopify shows which specific signals contributed to the high-risk assessment (e.g., "IP address not in same country as billing address," "Multiple orders from this IP")</li>
+    <li>Evaluate whether the signals indicate actual fraud risk or a false positive: does the customer email look real? Is the billing address in a country that matches typical fraud patterns or just a VPN user?</li>
+    <li>If you believe the order is legitimate: click <strong>Accept risk and process</strong> in the order — this manually overrides the fraud block and processes the payment</li>
+    <li>If you're unsure: contact the customer by email to confirm order details before accepting — a real customer will respond; a fraudster will not</li>
+    <li>To reduce false positives systematically: go to <strong>Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention</strong> and adjust which signals trigger automatic cancellation vs. flagging for review</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Shopify Fraud Protection vs. Shopify Protect</div>
+    There are two different fraud tools in Shopify: the built-in Fraud Analysis (available to all merchants) and <strong>Shopify Protect</strong> (previously called Shopify Fraud Protection — a paid add-on that covers chargeback losses on approved orders). The built-in Fraud Analysis flags risk but doesn't reimburse chargebacks. Shopify Protect guarantees reimbursement for orders it approves. If you're manually approving flagged orders, you're accepting the chargeback risk yourself. Evaluate whether Shopify Protect's coverage makes sense for your order volume and average order value.
+  </div>
+
+  <h2>Failure Mode 5: Expired Card</h2>
+
+  <p>An expired credit card is one of the most self-explanatory declines but also one of the most frustrating for customers — especially when they don't realize their card has expired. Shopify's checkout validates the expiry date at entry (the form won't accept a date in the past), but expiry happens between when a customer last saved their card details and the current purchase. Customers with saved payment methods in Shop Pay or a logged-in account may have an expired card stored without realizing it.</p>
+
+  <p>Expired card declines are also common during the transition months of January and February when many cards expire at December 31 or January 31 of the prior year and replacement cards have been mailed but not activated or updated. Merchants selling subscription products or running saved-card recurring charges will see an uptick in expired card failures during these months.</p>
+
+  <h3>Handling expired card failures at checkout</h3>
+
+  <ol class="steps">
+    <li>An expired card decline shows in Shopify Admin with decline code <code>54</code> (expired card) or the message "Your card has expired" — this is a customer-side issue, not a merchant configuration problem</li>
+    <li>If a customer contacts you about a payment failure: advise them to check their card expiry date and use a current card or an alternative payment method</li>
+    <li>For customers using <strong>Shop Pay</strong> with a saved card: they need to log into their Shop Pay account and update their payment method to their new card before checkout</li>
+    <li>For <strong>subscription merchants</strong> running recurring charges: implement a dunning flow that emails customers when their card is about to expire or when a charge fails due to expiry — most subscription apps (Recharge, Bold Subscriptions) have dunning features built in</li>
+    <li>Consider adding <strong>Apple Pay, Google Pay, or Shop Pay</strong> as alternative payment methods — wallet-based payments auto-update when the underlying card is renewed and eliminate expired card failures entirely</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Digital Wallets Eliminate Expired Card Problems</div>
+    When a customer pays via Apple Pay, Google Pay, or Shop Pay, their underlying card details are stored in the wallet — and when the bank issues a new card, the wallet is automatically updated by the bank. The customer doesn't need to re-enter anything. For stores with high repeat-purchase rates or subscription products, getting customers to use digital wallet payments instead of manual card entry effectively eliminates expired card failures in your payment stack.
+  </div>
+
+  <h2>Failure Mode 6: Bank-Side Decline (Do Not Honor, Insufficient Funds)</h2>
+
+  <p>Some credit card declines originate at the card issuer — the customer's bank — and have nothing to do with your Shopify configuration. These bank-side declines are outside merchant control. The two most common types are "insufficient funds" (the card doesn't have enough available credit or the account is maxed out) and "do not honor" (a generic issuer decline that covers everything from fraud prevention to account flags to the bank's own risk policies).</p>
+
+  <p>Bank-side declines are often temporary. A "do not honor" on the first attempt might succeed on a retry because the bank's fraud system flagged an unusual transaction that the customer can verify. Banks also frequently block the first international transaction until the customer calls to confirm — this is common for purchases from stores in other countries. As a merchant, you cannot override a bank-side decline; the customer must resolve it with their issuing bank.</p>
+
+  <h3>Common bank-side decline codes and what to tell customers</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Decline Code</th>
+          <th>Meaning</th>
+          <th>What to Tell the Customer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>05</code> — Do Not Honor</td>
+          <td>Generic bank decline; most common code</td>
+          <td>Try again in a few minutes; if it repeats, contact your bank or use a different card</td>
+        </tr>
+        <tr>
+          <td><code>51</code> — Insufficient Funds</td>
+          <td>Not enough available credit or funds</td>
+          <td>Use a card with available credit or a different payment method</td>
+        </tr>
+        <tr>
+          <td><code>14</code> — Invalid Card Number</td>
+          <td>Card number entered incorrectly</td>
+          <td>Re-enter the card number carefully; check for typos</td>
+        </tr>
+        <tr>
+          <td><code>54</code> — Expired Card</td>
+          <td>Card past its expiry date</td>
+          <td>Use your current card; check the expiry date on your card</td>
+        </tr>
+        <tr>
+          <td><code>41</code> / <code>43</code> — Lost / Stolen Card</td>
+          <td>Card reported to bank as lost or stolen</td>
+          <td>Contact your card issuer — this card cannot be used</td>
+        </tr>
+        <tr>
+          <td><code>61</code> — Exceeds Withdrawal Limit</td>
+          <td>Transaction exceeds card's daily limit</td>
+          <td>Split payment across multiple methods or contact bank to raise limit</td>
+        </tr>
+        <tr>
+          <td><code>65</code> — Activity Limit Exceeded</td>
+          <td>Too many transactions in a period</td>
+          <td>Wait and retry; or use a different card</td>
+        </tr>
+        <tr>
+          <td><code>57</code> — Service Not Permitted</td>
+          <td>Card type not authorized for this transaction type or merchant category</td>
+          <td>Use a different card — this card's account settings restrict this purchase type</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Show Customers Specific Guidance, Not Just "Try Again"</div>
+    Shopify's default decline message "Your card was declined" gives customers no actionable information. Consider adding a checkout error message or post-decline email that tells customers specifically: "Your card was declined by your bank. Please try a different card, check that your card is not expired, or contact your bank if the problem persists. You can also complete your purchase with PayPal, Apple Pay, or Google Pay." A useful error message recovers sales; a generic one sends customers to a competitor.
+  </div>
+
+  <h2>Failure Mode 7: 3D Secure Authentication Abandoned or Failed</h2>
+
+  <p>3D Secure (3DS) is an additional authentication layer that some card issuers require for online transactions. After the customer enters their card details, they're redirected to a bank authentication page or shown a popup asking them to verify their identity — through an SMS one-time password, a bank app approval, or a security question. If the customer closes this popup, doesn't receive the OTP, or takes too long to complete it, the transaction fails with a 3DS authentication failure.</p>
+
+  <p>3DS failures are increasing in frequency as regulatory requirements like PSD2 (Europe) and SCA (Strong Customer Authentication) push more banks to require step-up authentication. The failure can occur because: the customer received no OTP (SMS issues); the customer's browser blocked the popup; the authentication timed out (typically 10–15 minutes); or the customer simply wasn't expecting the extra step and closed it thinking it was an error.</p>
+
+  <h3>Reducing 3DS abandonment at checkout</h3>
+
+  <ol class="steps">
+    <li>A 3DS failure appears in Shopify Admin as "Authentication required" or "3D Secure authentication failed" in the order's payment status</li>
+    <li>For customers who abandoned 3DS: send an abandoned checkout recovery email explaining what happened — "Your bank required an extra verification step during checkout. Please try again — you'll see a screen from your bank asking you to confirm the payment." Many customers will complete the purchase on retry once they know to expect the 3DS step</li>
+    <li>Ensure your checkout's Content Security Policy (CSP) headers don't block 3DS redirect domains — some custom themes or security apps block the bank authentication popup iframe</li>
+    <li>If your store uses Shopify Plus checkout customization: verify that no <code>frame-src</code> or <code>child-src</code> CSP directives are blocking <code>*.visa.com</code>, <code>*.mastercard.com</code>, or card issuer domains</li>
+    <li>For European stores: 3DS is required under PSD2/SCA for most transactions — this isn't optional and 3DS failure recovery is critical for EU conversion rates</li>
+    <li>Apple Pay and Google Pay bypass 3DS entirely — they use device-level biometric authentication (Face ID, Touch ID) which satisfies SCA requirements without the friction of a separate bank popup</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Apple Pay and Google Pay Eliminate 3DS Friction</div>
+    Wallet-based payments (Apple Pay, Google Pay, Shop Pay) authenticate using the device's biometric system — Face ID or Touch ID. This satisfies Strong Customer Authentication requirements without requiring a separate OTP or bank redirect. For stores with high rates of 3DS-related abandonment, prominently offering Apple Pay and Google Pay (especially on mobile where biometric authentication is seamless) directly reduces abandonment from authentication friction.
+  </div>
+
+  <h2>Failure Mode 8: Card Transaction or Daily Limit Exceeded</h2>
+
+  <p>Card issuers impose per-transaction and daily spending limits on credit cards — limits the cardholder may not know exist until a transaction fails. These limits are especially relevant for high-average-order-value stores: electronics, furniture, luxury goods, or anything with orders over $500–$2,000. A customer's card might work perfectly for a $50 purchase but fail at $1,500 because it hits the card's single-transaction limit.</p>
+
+  <p>Business credit cards often have the opposite problem: very high limits, but restricted merchant category codes (MCC). A corporate card might decline purchases at merchants coded as "Entertainment" even though the actual item is a legitimate business purchase — the card's expense policy blocks the MCC, not the card itself. This is outside merchant control but worth knowing to guide customers toward an alternative payment method.</p>
+
+  <h3>Helping customers work around transaction limits</h3>
+
+  <ol class="steps">
+    <li>A transaction limit decline shows as decline code <code>61</code> (exceeds withdrawal limit) or <code>65</code> (activity limit exceeded) in Shopify order details</li>
+    <li>Advise the customer to contact their bank to raise their per-transaction or daily limit — most banks can do this immediately over phone or app for cardholders with good account standing</li>
+    <li>Offer <strong>split payment options</strong> if your store supports them — some customers can use two cards to split a high-value order</li>
+    <li>For high-AOV stores: enable <strong>buy now, pay later</strong> options (Klarna, Afterpay, Affirm) — these route through the BNPL provider rather than the customer's card limit directly, effectively bypassing per-transaction limits for qualifying customers</li>
+    <li>Bank wire transfer or direct bank debit (ACH) may be worth enabling for very large B2B orders — customers with high-value purchases often prefer or require this for corporate procurement</li>
+    <li>Ensure your checkout clearly shows multiple payment methods so customers who hit a card limit can immediately switch to PayPal, Apple Pay, or another method without abandoning</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Display Multiple Payment Options Prominently</div>
+    For orders over $500, showing only a card entry form creates unnecessary friction and abandonment when cards hit limits or require 3DS. Display Apple Pay, Google Pay, PayPal, and BNPL options alongside card entry. Customers who hit a card limit should see an alternative immediately rather than having to hunt for it. Shopify's express checkout buttons (Apple Pay, Google Pay) appear automatically at the top of checkout — ensure they're not hidden by theme customizations.
+  </div>
+
+  <h2>Credit Card Decline Diagnostic Checklist</h2>
+
+  <p>Use this checklist when customers report credit card failures on your Shopify store:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>How to Verify</th>
+          <th>If It Fails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Card types enabled (Amex, Discover)</td>
+          <td>Admin → Payments → Shopify Payments → Manage → Card types</td>
+          <td>Enable the card type; process a test transaction</td>
+        </tr>
+        <tr>
+          <td>AVS rule set to "Flag" not "Cancel"</td>
+          <td>Admin → Payments → Shopify Payments → Fraud prevention → AVS check</td>
+          <td>Change from Cancel to Flag for review</td>
+        </tr>
+        <tr>
+          <td>CVV rule set to "Flag" not "Cancel"</td>
+          <td>Admin → Payments → Shopify Payments → Fraud prevention → CVV check</td>
+          <td>Change from Cancel to Flag for review</td>
+        </tr>
+        <tr>
+          <td>High-risk fraud blocks are manual review, not auto-cancel</td>
+          <td>Check recent flagged orders for false positive patterns</td>
+          <td>Adjust fraud rules; manually review and approve legitimate orders</td>
+        </tr>
+        <tr>
+          <td>Declined order has a visible decline code</td>
+          <td>Admin → Orders → click order → payment status + fraud analysis</td>
+          <td>Use the decline code table above to identify the cause</td>
+        </tr>
+        <tr>
+          <td>Customer's card is not expired</td>
+          <td>Decline code 54 or customer reports expiry issue</td>
+          <td>Advise customer to update card or use digital wallet</td>
+        </tr>
+        <tr>
+          <td>3DS popup not being blocked by theme or CSP</td>
+          <td>Test a 3DS-required card in test mode; check browser console for errors</td>
+          <td>Review CSP headers; ensure 3DS redirect domains are not blocked</td>
+        </tr>
+        <tr>
+          <td>Alternative payment methods visible at checkout</td>
+          <td>View checkout as a customer — are Apple Pay, PayPal, BNPL options displayed?</td>
+          <td>Enable and surface additional payment methods; verify express buttons show</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Merchant-Configurable vs. Issuer-Side Declines: At a Glance</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Decline Type</th>
+          <th>Who Caused It</th>
+          <th>Merchant Can Fix?</th>
+          <th>Fix Location</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Card type not enabled</td>
+          <td>Merchant settings</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Shopify Payments card types</td>
+        </tr>
+        <tr>
+          <td>AVS mismatch block</td>
+          <td>Merchant fraud rules</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Shopify Payments fraud prevention</td>
+        </tr>
+        <tr>
+          <td>CVV block</td>
+          <td>Merchant fraud rules</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Shopify Payments fraud prevention</td>
+        </tr>
+        <tr>
+          <td>Fraud score auto-cancel</td>
+          <td>Merchant fraud rules</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Fraud prevention settings + manual review</td>
+        </tr>
+        <tr>
+          <td>Expired card</td>
+          <td>Customer's card</td>
+          <td><span class="tag yellow">Partially</span></td>
+          <td>Customer updates card; offer digital wallets</td>
+        </tr>
+        <tr>
+          <td>Bank decline (do not honor)</td>
+          <td>Card issuer</td>
+          <td><span class="tag red">No</span></td>
+          <td>Customer calls bank; offer alternative methods</td>
+        </tr>
+        <tr>
+          <td>3D Secure failure</td>
+          <td>Customer action / browser</td>
+          <td><span class="tag yellow">Partially</span></td>
+          <td>Recovery email; check CSP headers</td>
+        </tr>
+        <tr>
+          <td>Transaction limit</td>
+          <td>Card issuer limits</td>
+          <td><span class="tag yellow">Partially</span></td>
+          <td>Offer BNPL, split payment, or bank transfer</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Are credit card failures costing you sales right now?</h2>
+    <p>A misconfigured AVS rule, a disabled Amex, or a 3DS popup being silently blocked could be declining real customers with real money. CheckPulse runs a full checkout simulation every 30 minutes and alerts you the moment any card type or payment path stops working.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Why is my Shopify store not accepting Amex or Discover cards?</h3>
+  <p>American Express and Discover are not enabled by default in Shopify Payments. To accept them, go to Shopify Admin → Settings → Payments → Shopify Payments → Manage → Card types and enable American Express and Discover separately. Amex is particularly important if a significant portion of your customers are US-based — approximately 20–30% of US consumer credit spending is on American Express cards. After enabling, test with a real Amex card to confirm it processes.</p>
+
+  <h3>Why does Shopify keep declining legitimate customer credit cards?</h3>
+  <p>Shopify declining legitimate cards is almost always caused by fraud prevention settings that are too aggressive. The most common culprits: AVS (address verification) rule set to automatically cancel orders when billing address doesn't match — this blocks international customers and anyone who has moved. And CVV rules set to cancel on mismatch — some card types and corporate cards don't return a CVV match result even when the code is correct. Go to Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention and change both AVS and CVV rules from "Cancel order" to "Flag order for review." You'll still be alerted to potential fraud but won't lose legitimate sales to automatic cancellations.</p>
+
+  <h3>What do I do when a customer's credit card keeps getting declined on Shopify?</h3>
+  <p>When a specific customer's card keeps failing: first, check the order's fraud analysis in Shopify Admin for what triggered the decline. If it's AVS or CVV related, the customer can retry entering their billing address exactly as it appears on their bank statement. If it's a bank-side decline (codes 05, 51, 57), the customer needs to contact their card issuer or use a different payment method — you cannot override an issuer decline from the merchant side. Offer the customer alternative methods: PayPal, Apple Pay, Google Pay, or a buy now pay later option. A customer who wants to buy but can't use their card will convert if you make an alternative path easy.</p>
+
+  <h3>Why does a credit card work on other sites but fail on my Shopify store?</h3>
+  <p>A card working on other sites but failing specifically on your Shopify store points to your store's fraud prevention configuration, not the card itself. The most likely cause: your AVS or CVV fraud rules are configured more strictly than other merchants. Other merchants may accept AVS mismatches while yours cancels them. Check Shopify Admin → Settings → Payments → Shopify Payments → Fraud prevention and review what rules are set to "Cancel order" — loosen these to "Flag for review" and see if that specific card type of failure resolves.</p>
+
+  <h3>Can I see why a credit card was declined on my Shopify store?</h3>
+  <p>Yes — go to Shopify Admin → Orders, find the order or abandoned checkout, click it, and look at the payment status section and fraud analysis section. Shopify shows the decline type (AVS mismatch, CVV check failed, fraud score, or a bank decline code like "05" or "51"). The fraud analysis section shows which specific signals contributed to a high-risk assessment. Bank decline codes map to specific issuer reasons — see the decline code table in this guide for what each code means and how to advise the customer.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-checkout-3d-secure-failed">3D Secure Failed</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+      <a href="/checkpulse/shopify-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="/checkpulse/shopify-paypal-not-working">PayPal Not Working</a>
+      <a href="/checkpulse/shopify-shop-pay-not-working">Shop Pay Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

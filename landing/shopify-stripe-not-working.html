@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Stripe Not Working — Payments Failing, Not Processing, Charges Missing (2026)</title>
+  <meta name="description" content="Shopify Stripe not working? Payments declining, charges not appearing, or connection broken — 8 root causes with exact diagnostic steps and fixes, including API key issues, test mode, Radar rules, SCA failures, and webhook problems." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-stripe-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-stripe-not-working" />
+  <meta property="og:title" content="Shopify Stripe Not Working — Payments Failing, Not Processing, Charges Missing (2026)" />
+  <meta property="og:description" content="Stripe payment failures on Shopify have 8 distinct causes: wrong or expired API keys, Stripe account in test mode, Stripe account restricted, Radar fraud rules blocking legitimate cards, SCA/3DS failures for EU customers, webhook misconfiguration, currency mismatch, and Shopify transaction fees misconfigured. Each fails differently and requires different diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Stripe Not Working — Payments Failing, Not Processing, Charges Missing",
+    "description": "Stripe failing on Shopify has eight root causes: wrong or expired API keys (test vs live mismatch, rotated keys); Stripe account still in test mode so real charges never process; Stripe account restricted or paused by compliance review; Stripe Radar fraud rules silently declining legitimate customer cards; SCA/3DS authentication failures blocking EU customers; Stripe webhook endpoint misconfigured so refunds, disputes, and order updates break; store currency not supported by the Stripe account; or Shopify transaction fees not understood causing revenue to differ from expectations. This guide explains all 8 failure modes with diagnostic steps and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-stripe-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Stripe not working on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Stripe not working on Shopify has eight possible causes. The most common is API key misconfiguration — your Shopify store is connected to Stripe using API keys, and if those keys are wrong, expired, or from Stripe's test environment instead of live environment, payments will fail silently or not process at all. The second most common cause is Stripe's account still being in test mode — all charges appear successful in Shopify but no real money is collected. Other causes include Stripe Radar fraud rules blocking legitimate cards, SCA/3DS authentication failures for European customers, Stripe account restrictions from compliance review, webhook endpoint misconfiguration causing refunds and order updates to break, or a currency mismatch between your Shopify store and your Stripe account's supported currencies."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why are Shopify Stripe charges not appearing in my Stripe dashboard?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Stripe charges not appearing in your Stripe dashboard almost always means one of three things: (1) Your Shopify store is connected with test API keys instead of live keys — test charges appear in Stripe's test mode dashboard, not the live dashboard. Switch to 'View test data' in your Stripe dashboard to find them, then reconnect Shopify with your live publishable and secret keys. (2) The Stripe connection in Shopify is broken — go to Admin → Settings → Payments → Third-party payment providers, check if Stripe shows as active, and reconnect if needed. (3) Charges are failing before reaching Stripe — Shopify is declining the payment at the checkout level before it reaches Stripe's payment processing. Check your Shopify admin Orders section for any failed payment attempts."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Shopify charge extra fees when using Stripe?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify charges transaction fees (0.5% on Advanced, 1% on Shopify plan, 2% on Basic) when you use any third-party payment gateway including Stripe, instead of Shopify Payments. These fees are in addition to Stripe's own processing fees (typically 2.9% + 30¢ per transaction). Using Stripe on a Basic Shopify plan therefore costs 2% (Shopify fee) + 2.9% + 30¢ (Stripe fee) = 4.9% + 30¢ total per transaction. Shopify Payments (powered by Stripe on the backend for US merchants) eliminates the Shopify transaction fee. If your revenue appears lower than expected, check whether Shopify transaction fees are being deducted. To eliminate them, switch to Shopify Payments — though this requires meeting Shopify Payments eligibility criteria for your country and business type."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Stripe declining cards that should be valid on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Valid cards being declined by Stripe on Shopify is almost always caused by Stripe Radar — Stripe's built-in fraud detection system that evaluates every transaction. Stripe Radar blocks transactions that match fraud risk signals, and these blocks happen silently from the customer's perspective (they see a generic 'card declined' message). Common Radar triggers include: cards from high-risk countries, mismatched billing address and card country, cards that have been used for chargebacks elsewhere in the Stripe network, VPN or proxy usage during checkout, and velocity patterns (same card used many times rapidly). Go to your Stripe dashboard → Radar → Reviews and look for blocked transactions. You can add exceptions for legitimate customers by adjusting Radar rules, but be careful — loosening Radar rules increases your fraud risk."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why do European customers get an authentication error at Shopify checkout with Stripe?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "European customers getting authentication errors at Shopify checkout when paying with Stripe is caused by Strong Customer Authentication (SCA) requirements under EU/UK PSD2 regulations. SCA requires that cards issued in the EU/EEA and UK go through 3D Secure (3DS) authentication before payment is authorized — the customer must approve the transaction via their bank's app or SMS. If Stripe's 3DS handling is not properly configured in Shopify, or if the customer's bank requires 3DS but the checkout flow doesn't support it, the payment fails. Ensure your Shopify theme supports Stripe's 3DS redirect flow. EU customers who see 'authentication required' or 'payment failed' without completing a bank verification step are hitting this issue. Stripe handles 3DS automatically for most cases, but broken checkout integrations or outdated Stripe.js versions can interrupt the 3DS flow."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Stripe Not Working
+  </div>
+  <h1>Shopify <em>Stripe Not Working</em> — Payments Failing, Not Processing, Charges Missing (2026)</h1>
+  <p class="hero-sub">Stripe payments declining at checkout, charges not appearing in your Stripe dashboard, or the Stripe connection silently broken — here are all 8 failure modes for Stripe breaking on Shopify, with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>API Keys · Test Mode · Account Restricted · Radar Rules · SCA/3DS · Webhooks · Currency Mismatch · Transaction Fees</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Stripe is the most popular third-party payment gateway on Shopify, but its integration is more complex than native Shopify Payments. Where Shopify Payments is a first-party integration that Shopify manages end-to-end, Stripe on Shopify is a third-party gateway connected via API keys — which means more configuration points, more places to silently break, and a harder path to diagnosing what went wrong when payments fail.</p>
+
+  <p>Stripe failures on Shopify fall into two categories: connection failures (the gateway can't process any payments) and transaction failures (the connection works but specific payments are declined). Both fail without clear error messages — the customer sees a generic "payment failed" or simply gets no confirmation, and the merchant sees an incomplete order with no explanation of why Stripe rejected it.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Quick Check: Test Mode vs Live Mode</div>
+    The single fastest diagnostic: go to your <strong>Stripe dashboard → top-right toggle → check if "Test mode" is active</strong>. If you see "Test mode" highlighted in orange, your Stripe account is in test mode. Charges processed in test mode appear only in Stripe's test data view and collect no real money — even though they show as successful in Shopify's order system. This is the most common reason "Stripe is working but I'm not getting paid."
+  </div>
+
+  <h2>Failure Mode 1: Wrong or Expired API Keys (Test Keys in Production)</h2>
+
+  <p>Shopify connects to Stripe using two API keys: a publishable key (used in the browser to tokenize card data) and a secret key (used server-side to create charges). Both keys exist in two versions — test keys (prefixed <code>pk_test_</code> and <code>sk_test_</code>) and live keys (prefixed <code>pk_live_</code> and <code>sk_live_</code>). Using test keys in a live Shopify store is the most common Stripe configuration error.</p>
+
+  <p>Keys can also become invalid if you rotate them in Stripe (which Stripe recommends periodically for security). If you generate new API keys in Stripe without updating them in Shopify, the connection breaks immediately and all payments fail with a generic authentication error.</p>
+
+  <h3>How to verify and fix your API keys</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments → Third-party payment providers</strong></li>
+    <li>Find Stripe in your active payment providers and click <strong>Edit</strong></li>
+    <li>Note whether the publishable key shown starts with <code>pk_test_</code> (wrong) or <code>pk_live_</code> (correct)</li>
+    <li>Go to your <strong>Stripe Dashboard → Developers → API keys</strong></li>
+    <li>Copy the live publishable key and live secret key (click "Reveal test key" → switch to live first if needed)</li>
+    <li>Paste both live keys back into Shopify's Stripe payment provider settings and save</li>
+    <li>Test with a real card for a small amount to confirm live charges process correctly</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Never Share Your Secret Key</div>
+    Your Stripe secret key (<code>sk_live_...</code>) gives full API access to your Stripe account including the ability to issue refunds, create charges, and modify your account. It belongs only in Shopify's payment settings server-side — never in your theme code, never in a JavaScript file, never in a public GitHub repo. If you accidentally expose your secret key, go to Stripe Dashboard → Developers → API keys and roll (rotate) it immediately.
+  </div>
+
+  <h2>Failure Mode 2: Stripe Account Still in Test Mode</h2>
+
+  <p>Stripe accounts start in test mode when created. In test mode, every Stripe API call processes successfully from a technical standpoint — Shopify creates orders, sends confirmation emails, and marks payments as paid. But no actual money moves. Test charges are fake. If you set up Stripe in test mode and forgot to activate your live account, you may have processed dozens of "orders" that collected zero revenue.</p>
+
+  <p>This is the most financially damaging failure mode because it produces no error signals — everything looks normal. Customers receive order confirmations. Shopify shows paid orders. The only indication is that your Stripe dashboard shows $0 in live revenue, or that your bank account receives no deposits.</p>
+
+  <h3>How to activate your Stripe account for live payments</h3>
+
+  <ol class="steps">
+    <li>Log into your <strong>Stripe Dashboard</strong></li>
+    <li>Look for the banner "Activate your account" or the orange "Test mode" toggle in the top right</li>
+    <li>Click <strong>Activate account</strong> and complete Stripe's verification process</li>
+    <li>Provide: business type, business address, business description, bank account details, and identity verification (SSN last 4 for US individuals, or company registration details for businesses)</li>
+    <li>Once activated, Stripe generates your live API keys</li>
+    <li>Replace your test keys in Shopify with the live keys (see Failure Mode 1 above)</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">What to Do About Past Test-Mode Orders</div>
+    If you've been in test mode and collected "orders" that weren't actually charged, you have two options: (1) manually contact those customers to collect payment through another method, or (2) fulfill orders for existing customers as a goodwill gesture and ensure your store is properly set up going forward. Shopify will not automatically re-charge customers for orders processed with test API keys — each affected customer would need to re-purchase or be invoiced separately.
+  </div>
+
+  <h2>Failure Mode 3: Stripe Account Restricted or Paused</h2>
+
+  <p>Stripe monitors accounts for compliance, fraud signals, and regulatory requirements. If Stripe flags your account — due to an unusually high dispute rate, suspicious transaction patterns, an identity verification request you haven't completed, or operating in a restricted business category — your account enters a restricted state where new charges are declined or payouts are paused.</p>
+
+  <p>Unlike test mode, restricted mode usually produces actual error messages at checkout ("Your payment could not be processed"). But the error looks identical to a card decline, making it hard to distinguish from a customer card issue. The definitive indicator is that every payment fails, not just some.</p>
+
+  <h3>Stripe account restriction patterns and symptoms</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Restriction Type</th>
+          <th>Symptom</th>
+          <th>Where to Check</th>
+          <th>Resolution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Identity verification required</td>
+          <td>Charges process but payouts blocked</td>
+          <td>Stripe Dashboard → Home → Action required banner</td>
+          <td>Complete verification — submit ID and business docs</td>
+        </tr>
+        <tr>
+          <td>High dispute rate (&gt;1%)</td>
+          <td>New charges may be declined; account under review</td>
+          <td>Stripe Dashboard → Radar → Disputes</td>
+          <td>Respond to open disputes; implement fraud prevention</td>
+        </tr>
+        <tr>
+          <td>Restricted business category</td>
+          <td>Account suspended; all charges fail</td>
+          <td>Email from Stripe + Dashboard → Account → Settings</td>
+          <td>Contact Stripe support; may require different processor</td>
+        </tr>
+        <tr>
+          <td>Terms of Service violation</td>
+          <td>Account closed; funds held 90 days</td>
+          <td>Email from Stripe with ToS violation details</td>
+          <td>Contact Stripe; appeal if wrongful; migrate to alternative</td>
+        </tr>
+        <tr>
+          <td>Unusual transaction patterns</td>
+          <td>Individual charges flagged; manual review triggered</td>
+          <td>Stripe Dashboard → Radar → Reviews</td>
+          <td>Resolve reviews; adjust Radar rules; contact support</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Stripe vs Shopify Payments for High-Risk Categories</div>
+    If your business is in a category Stripe considers elevated-risk (supplements, CBD, adult content, firearms accessories, high-ticket items), Stripe may restrict or close your account without warning. Consider whether Shopify Payments (which has its own similar restrictions but a different enforcement threshold) or a specialized high-risk payment processor is a better fit for your business before building on Stripe.
+  </div>
+
+  <h2>Failure Mode 4: Stripe Radar Blocking Legitimate Cards</h2>
+
+  <p>Stripe Radar is Stripe's machine-learning fraud detection system that evaluates every transaction before it's authorized. Radar uses signals from across the Stripe network — not just your store — to identify potentially fraudulent transactions. A card that seems valid and belongs to a real customer can be blocked by Radar if it matches patterns associated with fraud on other Stripe merchants.</p>
+
+  <p>Radar blocks are invisible to merchants at first glance. The customer sees "Your card was declined" — the same message they'd get for an insufficient funds error. But the decline code in your Stripe dashboard tells a different story: codes like <code>card_declined</code> with a reason of <code>fraudulent</code>, or transactions appearing in your Radar → Reviews queue, indicate Radar intervention rather than a bank-level decline.</p>
+
+  <h3>Common Radar block triggers</h3>
+
+  <ul>
+    <li><strong>Card previously used in fraud:</strong> Cards that have been used fraudulently on other Stripe merchants are flagged network-wide. A legitimate customer using a card that was previously compromised (without their knowledge) may be blocked.</li>
+    <li><strong>Billing/shipping address mismatch:</strong> When billing address doesn't match the card's registered address, Radar elevates the risk score. Customers entering a work address or a new address they haven't registered with their bank are common victims.</li>
+    <li><strong>VPN or proxy usage:</strong> Customers using VPNs (common for privacy-conscious shoppers) may be blocked if their apparent IP country doesn't match their card's issuing country.</li>
+    <li><strong>Velocity rules:</strong> Multiple purchases in a short time from the same IP, same card, or same email — even by a legitimate customer making bulk purchases — can trigger velocity-based blocks.</li>
+    <li><strong>High-risk country IP:</strong> IP addresses from countries Radar considers elevated-risk may be blocked even for legitimate transactions originating there.</li>
+    <li><strong>New card or card bin:</strong> Cards from newly issued bins or prepaid card bins trigger higher risk scores by default.</li>
+  </ul>
+
+  <h3>Diagnosing Radar blocks</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Stripe Dashboard → Radar → Reviews</strong> — transactions that Radar flagged for manual review appear here</li>
+    <li>Go to <strong>Stripe Dashboard → Payments</strong> and filter for "Failed" — click any failed payment to see the decline code and decline reason</li>
+    <li>Look for decline reason <code>fraudulent</code> or <code>card_velocity_exceeded</code> — these are Radar, not bank, blocks</li>
+    <li>If a legitimate customer is being blocked, you can <strong>allowlist</strong> their email or card in Radar → Rules → Allowlist</li>
+    <li>For systematic issues, review your Radar rules in <strong>Radar → Rules</strong> and consider relaxing rules that produce false positives — but do this carefully, as loosening rules increases fraud exposure</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Do Not Disable Radar to Fix Decline Rates</div>
+    Disabling or significantly loosening Stripe Radar to improve authorization rates is a risky tradeoff. Radar blocking 2–3% of legitimate transactions may seem costly, but removing those blocks typically results in a proportionally larger increase in fraudulent transactions, chargebacks, and the elevated dispute rate that triggers Stripe account restrictions. Fix specific false-positive patterns with targeted allowlisting, not blanket rule disabling.
+  </div>
+
+  <h2>Failure Mode 5: SCA / 3D Secure Authentication Failures for EU Customers</h2>
+
+  <p>The EU's Payment Services Directive 2 (PSD2) and the UK's equivalent regulation require Strong Customer Authentication (SCA) for most online card payments from EU/EEA and UK cardholders. SCA is implemented via 3D Secure (3DS) — an additional authentication step where the customer approves the payment through their bank's app or via SMS OTP before the charge is authorized.</p>
+
+  <p>Stripe handles 3DS automatically for most SCA-required transactions. However, if your Shopify store's checkout integration is using an outdated Stripe.js version, or if your checkout theme has JavaScript that conflicts with Stripe's 3DS redirect flow, European customers will hit authentication errors and fail to complete payment. From the customer's side, this appears as the payment being declined after they've entered their card details.</p>
+
+  <h3>SCA failure patterns by symptom</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symptom</th>
+          <th>Likely Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>EU customers declined, US customers fine</td>
+          <td>SCA/3DS flow not completing correctly</td>
+          <td>Ensure Stripe integration uses latest Stripe.js; check for JS conflicts in theme</td>
+        </tr>
+        <tr>
+          <td>"Authentication required" error at checkout</td>
+          <td>3DS triggered but redirect not initiated</td>
+          <td>Update Stripe app or reconnect; contact Shopify support for Stripe integration version</td>
+        </tr>
+        <tr>
+          <td>Payment shows as pending then fails</td>
+          <td>3DS popup blocked by browser or popup blocker</td>
+          <td>Advise customers to disable popup blockers; Stripe's hosted 3DS page is a redirect, not a popup, but some integrations use iframes</td>
+        </tr>
+        <tr>
+          <td>Works in Stripe test mode (test 3DS cards) but fails live</td>
+          <td>Bank not enrolled in 3DS or using older 3DS 1.0</td>
+          <td>Stripe handles 3DS version negotiation — contact Stripe support if specific bank's cards consistently fail</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>SCA exemptions Stripe can apply</h3>
+
+  <p>Not every EU transaction requires 3DS — Stripe can request SCA exemptions for low-value transactions (under €30), merchant-initiated transactions (subscriptions), and transactions where the risk score is very low. These exemptions reduce checkout friction for EU customers without compromising compliance. Review your Stripe Dashboard → Settings → Radar to ensure exemption settings are configured appropriately for your transaction mix.</p>
+
+  <h2>Failure Mode 6: Stripe Webhook Endpoint Misconfigured</h2>
+
+  <p>Webhooks are HTTP callbacks that Stripe sends to your Shopify store to notify it about payment events: successful charges, refund completions, dispute notifications, and subscription updates. If the Stripe webhook endpoint in your Shopify store is misconfigured, outdated, or returning errors, these events never reach Shopify — which means refunds don't process correctly, disputes create orphaned charges, and order status updates break.</p>
+
+  <p>Webhook failures don't prevent initial payment processing — the charge succeeds at Stripe's end. The failure appears later: refunds initiated in Shopify don't reach Stripe, or vice versa; Stripe dispute alerts never arrive in Shopify admin; or subscription renewal payments don't update Shopify order status.</p>
+
+  <h3>How to verify and fix Stripe webhooks</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Stripe Dashboard → Developers → Webhooks</strong></li>
+    <li>Find the endpoint registered for your Shopify store (it will be a Shopify URL like <code>https://your-store.myshopify.com/stripe/webhooks</code> or similar)</li>
+    <li>Click on the endpoint and review the <strong>Recent deliveries</strong> section — look for failed deliveries (red) and their HTTP response codes</li>
+    <li>Common failure codes: <code>401</code> (authentication failed — webhook secret mismatch), <code>404</code> (endpoint not found — URL changed), <code>500</code> (Shopify processing error)</li>
+    <li>If using Shopify's native Stripe integration (through Shopify's app store), remove and reinstall the Stripe payment provider to reset the webhook registration</li>
+    <li>If using a custom integration, update the webhook secret in both Stripe and your integration code</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Stripe Webhook Signing Secrets vs API Keys</div>
+    Stripe webhooks use a separate signing secret (prefixed <code>whsec_</code>) that is different from your API secret key. The signing secret lets your integration verify that incoming webhook requests genuinely come from Stripe, not from a malicious third party. If you rotate your API keys, the webhook signing secret remains valid unless you explicitly rotate it. Conversely, rotating the webhook signing secret doesn't invalidate your API keys. Check both independently when debugging webhook failures.
+  </div>
+
+  <h2>Failure Mode 7: Store Currency Not Supported by Stripe Account</h2>
+
+  <p>Stripe supports over 135 currencies for payment processing, but your specific Stripe account has a settlement currency based on your country and banking setup. When your Shopify store's currency doesn't align with what Stripe can process for your account, charges fail or are automatically converted — sometimes at unfavorable rates that erode margins without explanation.</p>
+
+  <p>The most common scenario: a merchant in the UK sets up a Shopify store with USD as the display currency to target US customers, but their Stripe account settles in GBP. Currency conversion happens at Stripe's exchange rate (which includes a 2% conversion fee on top of Stripe's standard processing rate), and the merchant is surprised that their effective processing cost is much higher than expected.</p>
+
+  <h3>Stripe currency support by account type</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Stripe Account Country</th>
+          <th>Default Settlement Currency</th>
+          <th>Multi-Currency Payouts Available</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>United States</td>
+          <td>USD</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>Can add bank accounts in other currencies for multi-currency settlement</td>
+        </tr>
+        <tr>
+          <td>United Kingdom</td>
+          <td>GBP</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>EUR, USD payouts available with additional bank accounts</td>
+        </tr>
+        <tr>
+          <td>European Union</td>
+          <td>EUR</td>
+          <td><span class="tag green">Yes</span></td>
+          <td>SEPA bank accounts supported; non-EUR currencies converted</td>
+        </tr>
+        <tr>
+          <td>Australia</td>
+          <td>AUD</td>
+          <td><span class="tag yellow">Limited</span></td>
+          <td>USD and EUR charges processed but converted to AUD for settlement</td>
+        </tr>
+        <tr>
+          <td>Canada</td>
+          <td>CAD</td>
+          <td><span class="tag yellow">Limited</span></td>
+          <td>USD charges settled in USD with USD bank account; others converted</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>When currency causes payment failures (not just conversion)</h3>
+
+  <p>Some currencies that Stripe lists as "supported" are only available for payment acceptance, not settlement. If your Shopify store presents prices in a currency that Stripe cannot process for your specific account and country combination, charges will fail at the gateway level — not just incur a conversion fee. To verify: go to Stripe Dashboard → Settings → Bank accounts and currencies and confirm that the currencies your Shopify store uses are listed as processable.</p>
+
+  <h2>Failure Mode 8: Shopify Transaction Fees Making Revenue Disappear</h2>
+
+  <p>This isn't a payment failure in the traditional sense — payments process correctly. But many Shopify merchants using Stripe report that their revenue is "lower than expected" or that charges on the Stripe dashboard don't match payouts to their bank. The culprit is almost always Shopify's transaction fee, which is charged on top of Stripe's processing fee when Stripe is used as a third-party gateway instead of Shopify Payments.</p>
+
+  <p>Shopify deducts its transaction fee from your payout before the money reaches your bank. This deduction doesn't appear on your Stripe dashboard (which shows the full charge amount minus Stripe's fee), but it does reduce your actual payout. The effective total cost per transaction is Stripe's fee plus Shopify's fee — which can reach 4.9% + 30¢ on the Basic Shopify plan.</p>
+
+  <h3>Transaction fee comparison: Stripe vs Shopify Payments</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Shopify Plan</th>
+          <th>Shopify Transaction Fee (Stripe)</th>
+          <th>Stripe Processing Fee</th>
+          <th>Total Per Transaction</th>
+          <th>Shopify Payments Fee</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Basic</td>
+          <td>2%</td>
+          <td>2.9% + 30¢</td>
+          <td><strong>4.9% + 30¢</strong></td>
+          <td>2.9% + 30¢ (no extra)</td>
+        </tr>
+        <tr>
+          <td>Shopify</td>
+          <td>1%</td>
+          <td>2.9% + 30¢</td>
+          <td><strong>3.9% + 30¢</strong></td>
+          <td>2.6% + 30¢ (no extra)</td>
+        </tr>
+        <tr>
+          <td>Advanced</td>
+          <td>0.5%</td>
+          <td>2.9% + 30¢</td>
+          <td><strong>3.4% + 30¢</strong></td>
+          <td>2.4% + 30¢ (no extra)</td>
+        </tr>
+        <tr>
+          <td>Plus</td>
+          <td>0.15%</td>
+          <td>2.9% + 30¢</td>
+          <td><strong>3.05% + 30¢</strong></td>
+          <td>2.15% + 30¢ (no extra)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">When to Use Stripe vs Shopify Payments</div>
+    Use Shopify Payments if it's available in your country and your business type qualifies — it eliminates Shopify's transaction fee and integrates more deeply (instant payouts, Shop Pay, Afterpay, Buy now pay later). Use Stripe when Shopify Payments isn't available in your country, when you need Stripe-specific features (Connect for marketplace payouts, Billing for subscriptions, advanced Radar rules), or when you have existing Stripe infrastructure you're integrating with Shopify.
+  </div>
+
+  <h2>Stripe Diagnostic Checklist</h2>
+
+  <p>Use this checklist when Stripe payments are failing on Shopify. Work through it in order — each item eliminates an entire class of failures.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Check</th>
+          <th>Where</th>
+          <th>What to Look For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Test vs Live mode</td>
+          <td>Stripe Dashboard → top-right toggle</td>
+          <td>Must be in Live mode for real charges</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>API key type</td>
+          <td>Shopify Admin → Payments → Stripe → Edit</td>
+          <td>Keys must start with <code>pk_live_</code> and <code>sk_live_</code></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Account activation status</td>
+          <td>Stripe Dashboard → Home</td>
+          <td>No "Activate your account" banner; no action required alerts</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Account restrictions</td>
+          <td>Stripe Dashboard → Settings → Account → Capabilities</td>
+          <td>Card payments capability must be "Active" (green)</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Recent failed charges</td>
+          <td>Stripe Dashboard → Payments → Filter: Failed</td>
+          <td>Check decline codes — distinguish bank decline vs Radar vs account restriction</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Radar reviews queue</td>
+          <td>Stripe Dashboard → Radar → Reviews</td>
+          <td>Look for legitimate transactions flagged for review</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Webhook deliveries</td>
+          <td>Stripe Dashboard → Developers → Webhooks → Recent deliveries</td>
+          <td>No failed (red) deliveries in the last 24 hours</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Currency support</td>
+          <td>Stripe Dashboard → Settings → Bank accounts and currencies</td>
+          <td>Store's presentment currency is listed as supported</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Stripe-Specific Error Codes and What They Mean</h2>
+
+  <p>When a Stripe charge fails, the API returns a decline code that identifies the specific reason. These codes appear in your Stripe dashboard under the failed payment and are more informative than the generic error message shown to the customer. Here are the most common codes Shopify merchants encounter:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Decline Code</th>
+          <th>Meaning</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>card_declined</code></td>
+          <td>Bank declined the charge (generic)</td>
+          <td>Customer should contact their bank; try again or use different card</td>
+        </tr>
+        <tr>
+          <td><code>insufficient_funds</code></td>
+          <td>Card has insufficient balance</td>
+          <td>Customer needs to add funds or use different card</td>
+        </tr>
+        <tr>
+          <td><code>authentication_required</code></td>
+          <td>3DS/SCA required by card issuer</td>
+          <td>Ensure checkout flow supports 3DS redirect; check Stripe.js version</td>
+        </tr>
+        <tr>
+          <td><code>fraudulent</code></td>
+          <td>Stripe Radar blocked as likely fraud</td>
+          <td>Review in Stripe Radar; allowlist if legitimate customer</td>
+        </tr>
+        <tr>
+          <td><code>card_velocity_exceeded</code></td>
+          <td>Too many charges in short timeframe</td>
+          <td>Adjust Radar velocity rules; customer may need to wait</td>
+        </tr>
+        <tr>
+          <td><code>do_not_honor</code></td>
+          <td>Bank declined without specific reason</td>
+          <td>Customer should call their bank; try again later</td>
+        </tr>
+        <tr>
+          <td><code>expired_card</code></td>
+          <td>Card expiration date passed</td>
+          <td>Customer needs to update card details or use a new card</td>
+        </tr>
+        <tr>
+          <td><code>incorrect_cvc</code></td>
+          <td>Wrong CVV/CVC entered</td>
+          <td>Customer should re-enter card details carefully</td>
+        </tr>
+        <tr>
+          <td><code>invalid_account</code></td>
+          <td>Stripe account issue (restricted or closed)</td>
+          <td>Check Stripe dashboard for account status alerts immediately</td>
+        </tr>
+        <tr>
+          <td><code>testmode_charges_only</code></td>
+          <td>Account or API key is in test mode</td>
+          <td>Activate Stripe account and switch to live API keys</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Monitor Your Shopify Checkout Automatically</h2>
+    <p>Stripe payment failures, gateway connection breaks, and checkout errors often go undetected for hours or days. CheckPulse runs automated checkout monitoring every 15 minutes and alerts you by email the moment something breaks — before customers start abandoning carts and leaving negative reviews.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run a Free Checkout Check →</a>
+  </div>
+
+  <h2>Stripe vs Shopify Payments: Which Should You Use?</h2>
+
+  <p>Many of the failure modes above (API key confusion, test/live mode, webhook maintenance) are consequences of using Stripe as a third-party gateway instead of Shopify's native payment solution. Whether Stripe is the right choice depends on your specific needs:</p>
+
+  <h3>Use Shopify Payments if:</h3>
+
+  <ul>
+    <li>Your country supports Shopify Payments (US, UK, Canada, Australia, many EU countries)</li>
+    <li>Your business type is eligible (Shopify Payments excludes certain high-risk categories)</li>
+    <li>You want BNPL options (Afterpay, Klarna, Shop Pay Installments) natively</li>
+    <li>You want to avoid Shopify transaction fees</li>
+    <li>You don't need Stripe-specific features like Connect or complex subscription billing</li>
+  </ul>
+
+  <h3>Use Stripe directly if:</h3>
+
+  <ul>
+    <li>Shopify Payments isn't available in your country</li>
+    <li>Your business category is rejected by Shopify Payments but accepted by Stripe</li>
+    <li>You're building a marketplace and need Stripe Connect for split payouts</li>
+    <li>You need Stripe's advanced subscription billing (Stripe Billing)</li>
+    <li>You have existing Stripe infrastructure (e.g., a SaaS product) that needs to integrate with your Shopify store</li>
+    <li>You need Stripe's more granular Radar rule customization for high-volume fraud management</li>
+  </ul>
+
+  <p>Note that Shopify Payments uses Stripe as its underlying processor in the US — so the fraud protection and card network relationships are the same. The difference is integration depth, fee structure, and feature access.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — catch failures before customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-payments-suspended">Payments Suspended</a>
+      <a href="/checkpulse/shopify-checkout-paypal-not-working">PayPal Not Working</a>
+      <a href="/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+      <a href="/checkpulse/shopify-klarna-not-working">Klarna Not Working</a>
+      <a href="/checkpulse/shopify-checkout-google-pay-not-working">Google Pay Not Working</a>
+      <a href="/checkpulse/shopify-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>

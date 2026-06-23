@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Apple Pay Not Working — Payments Failing, Declining, Authentication Errors (2026)</title>
+  <meta name="description" content="Shopify Apple Pay not working? Payment failing, declining at checkout, or Face ID authentication errors — 8 root causes with exact diagnostic steps and fixes, including domain verification, Safari-only requirement, wallet setup, and bank-level declines." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-apple-pay-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-apple-pay-not-working" />
+  <meta property="og:title" content="Shopify Apple Pay Not Working — Payments Failing, Declining, Authentication Errors (2026)" />
+  <meta property="og:description" content="Apple Pay appearing at Shopify checkout but failing to process has 8 distinct causes: Safari-only browser lock, missing cards in Apple Wallet, Face ID / Touch ID auth failures, domain verification issues for custom domains, bank-level Apple Pay declines, SCA failures for EU cards, Shopify Payments suspension, and Apple Pay session timeouts. Each fails differently and requires different diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Apple Pay Not Working — Payments Failing, Declining, Authentication Errors",
+    "description": "Apple Pay not working on Shopify has eight root causes: wrong browser (Apple Pay is Safari-only on Apple devices); no valid card in Apple Wallet; Face ID or Touch ID authentication failure during the Apple Pay sheet; domain verification misconfiguration breaking Apple Pay on custom checkout domains; bank-level declines specific to Apple Pay tokens (not the card itself); SCA/3DS failures for EU Apple Pay cardholders; Shopify Payments suspended or under review, which disables Apple Pay entirely; or Apple Pay session expiring before authentication completes. This guide covers all 8 failure modes with exact diagnosis and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-apple-pay-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Apple Pay not working on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay not working on Shopify is most commonly caused by one of eight issues: (1) using any browser other than Safari — Apple Pay is exclusively available in Safari on iPhone, iPad, and Mac, and will not appear or work in Chrome, Firefox, Edge, or any other browser regardless of device; (2) no valid, active card saved in Apple Wallet on the device being used; (3) Face ID or Touch ID authentication failing during the Apple Pay sheet — biometrics must be enrolled and functional; (4) domain verification issues on custom checkout domains or headless Shopify setups where Apple's merchant identity verification hasn't been completed; (5) bank-level declines where the issuing bank's Apple Pay integration rejects the tokenized payment even though the physical card would work; (6) SCA/3DS failures for EU and UK cardholders whose banks require additional authentication; (7) Shopify Payments being suspended or under compliance review, which immediately disables all Apple Pay processing; or (8) the Apple Pay payment session timing out due to network delays or slow checkout loading."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Apple Pay appear but then fail at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay appearing at checkout but failing during payment processing is different from Apple Pay not showing at all. The button appears because the browser (Safari) and device (Apple) are correct and the device has a card in Apple Wallet — those eligibility checks pass. The failure happens during the payment authorization step. Common causes: (1) the issuing bank declines Apple Pay tokens specifically — some banks have intermittent issues authorizing Apple Pay tokenized payments even when the card itself is fine; (2) Face ID or Touch ID authentication is not completing — the user needs to try again or re-enroll biometrics; (3) the Apple Pay merchant session has expired — this happens when checkout loading is slow and the browser's 30-second Apple Pay session window closes before the payment sheet loads; (4) the store's checkout domain doesn't match the Apple Pay domain registration, causing a merchant validation failure behind the scenes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Apple Pay work for some customers but not others on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay working for some customers but not others on the same Shopify store points to a customer-side eligibility issue rather than a store configuration problem. The most common patterns: Apple Pay works for iPhone/Safari users but not Android or desktop Chrome users (expected — Apple Pay is Safari-only, Android users need Google Pay); Apple Pay works for US cardholders but not EU cardholders (SCA/3DS authentication requirements differ by region); Apple Pay works for some bank cards but not others (specific issuing banks have Apple Pay integration issues or decline Apple Pay tokens at higher rates); or Apple Pay works in Safari desktop but not in Safari iOS (device has no card set up in Apple Wallet). If Apple Pay is consistently failing for everyone, suspect store-level issues like Shopify Payments suspension or domain verification problems."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Apple Pay work on Shopify without Shopify Payments?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Apple Pay at Shopify checkout requires Shopify Payments as your active payment provider. If you use a third-party gateway (Stripe direct, PayPal, Authorize.net, etc.) as your primary payment method, Apple Pay is unavailable. Apple Pay also becomes unavailable if Shopify Payments is suspended, placed under review, or deactivated for any reason — even temporarily. The Apple Pay button disappears from checkout the moment Shopify Payments is not in an active, healthy state. There is no workaround: Apple Pay on Shopify is architecturally tied to Shopify Payments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Apple Pay fail for EU customers on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Apple Pay failures specifically affecting EU and UK customers on Shopify are almost always caused by Strong Customer Authentication (SCA) requirements under PSD2. When an EU/UK card issuer requires 3D Secure (3DS) authentication, the Apple Pay flow must complete an inline 3DS step before the payment is authorized. Apple Pay handles 3DS differently than standard card payments — instead of redirecting to a bank page, the bank sends a push notification to the customer's banking app. If the bank's 3DS implementation is incomplete or incompatible with Apple Pay's inline authentication flow, the payment fails. Symptoms: the Apple Pay sheet completes (Face ID/Touch ID confirms), but the payment returns an authorization failure. The customer may or may not receive a push notification from their bank. Fix: advise affected EU customers to contact their bank to confirm Apple Pay is enabled on their card and that their bank's 3DS is current. Shopify Payments and Apple handle the technical authentication flow — merchant-side there's no configuration change available."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I test Apple Pay on my Shopify store?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To test Apple Pay on Shopify you need: (1) a real Apple device (iPhone, iPad, or Mac) — Apple Pay cannot be tested in simulators or non-Apple hardware; (2) Safari browser — not Chrome or Firefox; (3) at least one real card added to Apple Wallet on that device — Face ID, Touch ID, or passcode must be configured; (4) Shopify Payments active on your store (not in test mode restriction — see below). For test mode: Shopify Payments test mode allows Apple Pay transactions to be submitted, but Apple's side still requires a real Apple Wallet card — there are no 'test Apple Pay cards' at the Apple layer. The test card details (like 1 for success, 2 for decline) apply to the Shopify Payments simulation, but you still tap Face ID/Touch ID with a real card to initiate the Apple Pay token. If you want to test without a real card purchase, use Shopify's bogus gateway and pay by entering a test card number directly — this bypasses Apple Pay entirely."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Apple Pay Not Working
+  </div>
+  <h1>Shopify <em>Apple Pay Not Working</em> — Payments Failing, Declining, Authentication Errors (2026)</h1>
+  <p class="hero-sub">Apple Pay appearing at Shopify checkout but payment failing, declining, or getting stuck at Face ID authentication — here are all 8 failure modes for Apple Pay breaking on Shopify, with exact diagnostic steps and fixes for each.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Safari-Only · Wallet Setup · Face ID/Touch ID · Domain Verification · Bank Declines · SCA/EU · Shopify Payments · Session Timeout</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Apple Pay on Shopify has two distinct failure categories that merchants and customers often confuse: Apple Pay <em>not showing</em> (the button is absent entirely) and Apple Pay <em>not working</em> (the button appears, the payment sheet opens, but the payment fails). This guide covers the second category — cases where Apple Pay is visible and the customer attempts to pay, but the transaction fails, declines, or gets stuck.</p>
+
+  <p>Apple Pay failures that happen after the button appears are harder to diagnose because there is no error message that explains what specifically went wrong. The customer sees a generic "payment not completed" message. The merchant sees an abandoned checkout with no payment record. The failure could be in the customer's device, their bank, Apple's payment network, or Shopify's checkout configuration — and all four failure points look identical from the outside.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Quick Check: Safari + Apple Wallet</div>
+    The two fastest diagnostics before anything else: (1) <strong>confirm the customer is using Safari</strong> — Apple Pay does not work in Chrome, Firefox, or any non-Safari browser on any device, including iPhone; (2) <strong>confirm the customer has a valid, unexpired card in Apple Wallet</strong> on the specific device they're using. A card expired last month or removed from Wallet will cause the Apple Pay sheet to fail even though the button appears. If both checks pass and Apple Pay still fails, work through the failure modes below.
+  </div>
+
+  <h2>Failure Mode 1: Wrong Browser — Apple Pay is Safari-Only</h2>
+
+  <p>Apple Pay at Shopify checkout requires Safari. Not Chrome on iOS. Not Firefox. Not Edge. Not the in-app browser inside a shopping app. Only Safari. This restriction comes from Apple — the Payment Request API with Apple Pay support is only available in Apple's own browser engine (WebKit), regardless of operating system.</p>
+
+  <p>On iPhone and iPad, all browsers — Chrome, Firefox, Edge, Brave — are legally required by Apple to use WebKit as their rendering engine. Despite using WebKit underneath, Chrome on iOS does not expose Apple Pay through the Payment Request API. Only Safari on iOS exposes it. On Mac, Chrome uses its own Blink engine and also cannot access Apple Pay. The Safari requirement is absolute.</p>
+
+  <h3>Browser compatibility for Apple Pay on Shopify</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Browser</th>
+          <th>Device</th>
+          <th>Apple Pay</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Safari</td>
+          <td>iPhone / iPad</td>
+          <td><span class="tag green">Works</span></td>
+          <td>Apple Pay fully supported</td>
+        </tr>
+        <tr>
+          <td>Safari</td>
+          <td>Mac</td>
+          <td><span class="tag green">Works</span></td>
+          <td>Apple Pay supported with Touch ID or linked iPhone</td>
+        </tr>
+        <tr>
+          <td>Chrome</td>
+          <td>iPhone / iPad</td>
+          <td><span class="tag red">No</span></td>
+          <td>WebKit required but Chrome does not expose Apple Pay API</td>
+        </tr>
+        <tr>
+          <td>Chrome</td>
+          <td>Mac</td>
+          <td><span class="tag red">No</span></td>
+          <td>Chrome uses Blink engine; no Apple Pay access</td>
+        </tr>
+        <tr>
+          <td>Firefox</td>
+          <td>Any</td>
+          <td><span class="tag red">No</span></td>
+          <td>No Apple Pay support in any Firefox version</td>
+        </tr>
+        <tr>
+          <td>Chrome</td>
+          <td>Android</td>
+          <td><span class="tag red">No</span></td>
+          <td>Android cannot use Apple Pay (Google Pay instead)</td>
+        </tr>
+        <tr>
+          <td>In-app browser</td>
+          <td>iPhone</td>
+          <td><span class="tag yellow">Maybe</span></td>
+          <td>Depends on whether app uses Safari's WKWebView with Apple Pay support enabled</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">What to Tell Customers Who Can't Use Apple Pay</div>
+    Customers using Chrome or Firefox on their iPhone expecting Apple Pay to work will be confused — the button may appear in Safari but not in Chrome, or they may not know which browser they're in. When customers report Apple Pay not working, ask: "Are you using Safari?" If they say "I'm on my iPhone" without specifying the browser, they might be in Chrome (which pre-installs on many devices). Direct them to open Safari and retry.
+  </div>
+
+  <h2>Failure Mode 2: No Valid Card in Apple Wallet</h2>
+
+  <p>Apple Pay requires at least one active, unexpired payment card enrolled in Apple Wallet on the specific device being used. The Apple Pay button appears at Shopify checkout when Safari detects the device is Apple Pay-capable (based on device type and OS version) — but the capability check does not verify whether a specific card is actually enrolled and valid. When the customer taps the Apple Pay button and the payment sheet opens, if Apple Wallet has no usable card, the sheet either shows an error or shows no card options.</p>
+
+  <p>This failure mode is especially common when: a card expired and was removed from Wallet; the customer recently got a new device and hasn't transferred their Wallet cards; the customer is trying Apple Pay for the first time and hasn't added any cards; or a card was removed by the bank (banks can remotely remove cards from Apple Wallet after account closures or fraud events).</p>
+
+  <h3>How to verify and resolve Apple Wallet card issues</h3>
+
+  <ol class="steps">
+    <li>Open the <strong>Wallet app</strong> on the device and confirm at least one card is shown</li>
+    <li>Tap the card and verify it is not expired and shows as <strong>Active</strong></li>
+    <li>If the card shows as <strong>Suspended</strong> or <strong>Removed</strong>, contact the issuing bank to re-add it to Apple Pay</li>
+    <li>If Wallet is empty, add a card via <strong>Settings → Wallet &amp; Apple Pay → Add Card</strong></li>
+    <li>Ensure the card being added is from a bank that supports Apple Pay (most major banks do; community banks and credit unions may not)</li>
+    <li>After adding a new card, a bank verification step is required (SMS code or bank app approval) before the card becomes active for Apple Pay</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">New Device = Empty Wallet Until Manually Restored</div>
+    When a customer gets a new iPhone and restores from a backup, Apple does not automatically restore Apple Wallet cards for security reasons. Each card must be re-added manually and re-verified with the issuing bank. Customers who just switched phones commonly encounter Apple Pay failures that resolve the moment they re-add their cards to the new device's Wallet.
+  </div>
+
+  <h2>Failure Mode 3: Face ID / Touch ID Authentication Failure</h2>
+
+  <p>After the Apple Pay sheet appears and the customer selects a card, Apple requires biometric authentication to authorize the payment — Face ID on modern iPhones and iPads, Touch ID on older devices and most Macs, or the device passcode as a fallback. If authentication fails, the payment cannot complete. This is Apple's security requirement and cannot be bypassed or configured by merchants.</p>
+
+  <p>Face ID and Touch ID failures during Apple Pay are more common than merchants expect, especially in retail or mobile shopping environments: Face ID fails when the customer is wearing a mask, sunglasses, or is in bright sunlight that washes out the Face ID camera; Touch ID fails when the customer's fingers are wet, dirty, or calloused; Touch ID also fails if the Home button is damaged or the sensor has debris on it.</p>
+
+  <h3>Authentication failure patterns and workarounds</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Authentication Issue</th>
+          <th>Symptom</th>
+          <th>Customer Workaround</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Face ID fails (mask, glasses)</td>
+          <td>Apple Pay sheet shows "Try again" or falls back to passcode</td>
+          <td>Enter device passcode as fallback; Face ID offers passcode after 1–2 failures</td>
+        </tr>
+        <tr>
+          <td>Touch ID sensor dirty or wet</td>
+          <td>Fingerprint not recognized, "Try another finger" shown</td>
+          <td>Dry finger and sensor; try enrolled alternate finger; use passcode</td>
+        </tr>
+        <tr>
+          <td>Face ID / Touch ID not enrolled</td>
+          <td>Apple Pay sheet requires passcode every time (no biometric option)</td>
+          <td>Enroll biometrics via Settings → Face ID &amp; Passcode; payment still works via passcode</td>
+        </tr>
+        <tr>
+          <td>5 consecutive Face ID failures</td>
+          <td>Face ID locked; passcode required to unlock and reenable</td>
+          <td>Enter passcode to unlock; Face ID reactivates after successful passcode entry</td>
+        </tr>
+        <tr>
+          <td>Mac Touch ID sensor damaged</td>
+          <td>Touch ID consistently fails; no fallback to iPhone prompt</td>
+          <td>Use linked iPhone: double-click iPhone side button to authenticate Mac Apple Pay payment</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <div class="callout-title">Passcode Is Always Available as a Fallback</div>
+    Apple Pay always allows the device passcode as an authentication fallback, even if Face ID or Touch ID fails multiple times. When a customer's biometric authentication is failing, advise them to wait for the "Enter Passcode" prompt (which appears after 2–3 biometric failures) or to double-click the side button (iPhone) or home button (older devices) to manually trigger the Apple Pay sheet and then choose passcode authentication.
+  </div>
+
+  <h2>Failure Mode 4: Domain Verification Not Configured (Custom Checkout Domains)</h2>
+
+  <p>Apple Pay requires that the domain serving the checkout page has been verified with Apple as an authorized Apple Pay merchant. For standard Shopify stores using Shopify's default checkout domain (<code>checkout.shopify.com</code> or your myshopify.com subdomain), Shopify handles domain verification automatically. For Shopify Plus stores using a custom checkout domain, headless Shopify setups, or stores with embedded checkout on a separate domain, domain verification must be explicitly configured.</p>
+
+  <p>When domain verification is missing, the Apple Pay merchant validation step fails silently. The Apple Pay button may still appear (because the button appears based on browser/device eligibility), but when the customer selects Apple Pay, the payment sheet either shows an error or closes immediately after opening. No error message explains that merchant domain verification failed — it looks identical to a generic payment failure.</p>
+
+  <h3>Apple Pay domain verification for Shopify</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments → Shopify Payments → Manage</strong></li>
+    <li>Scroll to the <strong>Apple Pay</strong> section and look for domain verification status</li>
+    <li>For Shopify Plus with a custom checkout domain, verify the domain is listed under Apple Pay's approved domains in your Shopify admin</li>
+    <li>For headless setups, you must host Apple's domain verification file (<code>.well-known/apple-developer-merchantid-domain-association</code>) at the root of every domain that serves Apple Pay checkout</li>
+    <li>Download the verification file from Apple Pay → Domain and Association File in your Shopify Payments settings</li>
+    <li>Upload the file to <code>https://yourdomain.com/.well-known/apple-developer-merchantid-domain-association</code> (no file extension, exact path required)</li>
+    <li>Verify the file is accessible by opening the URL in a browser — it should return a text response</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">Domain Verification Breaks on Domain Changes</div>
+    If you change your Shopify store's primary domain, add a new custom domain, or migrate to a headless architecture, Apple Pay domain verification must be re-done for every new domain. Apple Pay merchant validation is domain-specific — verification for <code>shop.yourbrand.com</code> does not extend to <code>checkout.yourbrand.com</code>. This is a common silent breakage after site migrations that can leave Apple Pay broken for weeks before anyone notices.
+  </div>
+
+  <h2>Failure Mode 5: Bank-Level Apple Pay Decline</h2>
+
+  <p>Apple Pay payments can be declined by the issuing bank even when the same card would work if entered as a standard card number at checkout. This happens because Apple Pay sends a payment token — a cryptographic representation of the card — not the card number itself. Some banks' authorization systems handle Apple Pay tokens differently than standard card payments, and may apply additional decline rules, velocity limits, or security flags to tokenized payments.</p>
+
+  <p>Bank-level Apple Pay declines are frustrating because they're invisible to merchants and to Shopify — all the merchant sees is a failed Apple Pay transaction with no decline code. The customer may not receive any notification from their bank explaining why the payment failed. The pattern to look for: the same card works when entered manually at checkout but fails specifically via Apple Pay.</p>
+
+  <h3>Diagnosing bank-level Apple Pay declines</h3>
+
+  <ol class="steps">
+    <li>Ask the customer to try paying with the same card entered directly (not via Apple Pay) — if it succeeds, the issue is specifically with the Apple Pay token, not the card</li>
+    <li>Ask the customer to check if their bank app shows any notification about the Apple Pay payment attempt — some banks block Apple Pay for "new device" or "new merchant" scenarios and send alerts</li>
+    <li>Ask the customer to contact their bank and ask them to verify Apple Pay is enabled on the card and that the bank's Apple Pay authorization is functioning</li>
+    <li>Suggest the customer try a different card in their Apple Wallet if they have one — bank-level issues are card-issuer specific</li>
+    <li>As a merchant, check your Shopify Payments transaction log for any decline codes on the failed Apple Pay attempts — some decline codes are passed through from the bank</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Decline Pattern</th>
+          <th>Likely Cause</th>
+          <th>Who to Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apple Pay fails, same card works manually</td>
+          <td>Bank-specific Apple Pay token handling issue</td>
+          <td>Customer's bank — ask to verify Apple Pay authorization</td>
+        </tr>
+        <tr>
+          <td>Apple Pay fails on first attempt, succeeds on retry</td>
+          <td>Bank's fraud system flagged unfamiliar merchant; customer approved it in bank app</td>
+          <td>Customer — instruct them to check bank notifications after first attempt</td>
+        </tr>
+        <tr>
+          <td>Apple Pay fails on new device after phone replacement</td>
+          <td>Bank's "new device" security flag for Apple Pay token on unrecognized device</td>
+          <td>Customer's bank — verify device token; may need to re-authenticate Apple Pay for that card</td>
+        </tr>
+        <tr>
+          <td>Apple Pay works at other stores but not yours</td>
+          <td>Merchant category code (MCC) restriction or velocity limit at bank</td>
+          <td>Customer's bank — ask about MCC restrictions on their Apple Pay card</td>
+        </tr>
+        <tr>
+          <td>Apple Pay consistently fails for one card, works for others</td>
+          <td>Card-level Apple Pay issue at the issuing bank</td>
+          <td>Customer — try another card; contact bank about Apple Pay for that specific card</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Failure Mode 6: SCA / 3DS Failures for EU and UK Cardholders</h2>
+
+  <p>European and UK customers paying via Apple Pay on Shopify are subject to Strong Customer Authentication (SCA) requirements under PSD2 regulation. When Apple Pay is used with an EU/UK card that requires 3D Secure authentication, the bank must verify the transaction via their banking app (a push notification that the customer approves) before the payment is authorized. This is an inline process within the Apple Pay flow — no browser redirect is required.</p>
+
+  <p>Apple Pay SCA failures happen when: the customer's banking app doesn't support inline Apple Pay 3DS; the bank push notification for approval isn't sent or isn't received; the customer dismisses the bank approval notification before approving; or the bank's Apple Pay 3DS implementation has a technical issue. The failure appears as the Apple Pay sheet completing (Face ID/Touch ID confirms) but the payment returning a failure.</p>
+
+  <h3>How EU Apple Pay 3DS works and where it breaks</h3>
+
+  <p>Unlike browser-based 3DS (which redirects customers to a bank authentication page), Apple Pay uses Device Binding for 3DS authentication. The Apple Pay sheet handles authentication silently — the bank may send a push notification to the customer's banking app requesting approval, and once the customer approves in the app, the Apple Pay transaction completes. This process can fail at several points:</p>
+
+  <ul>
+    <li><strong>Bank app not installed:</strong> If the customer doesn't have their bank's app installed, the push notification for Apple Pay 3DS approval can't be received</li>
+    <li><strong>Push notifications disabled for bank app:</strong> If the customer has disabled push notifications for their banking app, the approval request is never delivered</li>
+    <li><strong>Bank not enrolled in Apple Pay 3DS:</strong> Smaller EU banks may support Apple Pay but not have their 3DS implementation fully connected to Apple's token service</li>
+    <li><strong>Bank's 3DS system is experiencing issues:</strong> Bank-side technical problems intermittently fail Apple Pay 3DS for all customers of that bank</li>
+  </ul>
+
+  <div class="callout info">
+    <div class="callout-title">EU Customers: Check Your Banking App After Apple Pay Fails</div>
+    When EU customers report Apple Pay declining after completing Face ID/Touch ID, advise them to immediately check their banking app for a pending payment approval notification. If one exists and they approve it, they can retry the Apple Pay payment — some banks hold the authorization pending approval for 30–60 seconds. If no notification appears, the bank's Apple Pay 3DS connection is the issue and the customer should contact their bank.
+  </div>
+
+  <h2>Failure Mode 7: Shopify Payments Suspended or Under Review</h2>
+
+  <p>Apple Pay at Shopify checkout is architecturally dependent on Shopify Payments being in an active, healthy state. If Shopify Payments is suspended, placed under compliance review, or has a flag requiring merchant action, Apple Pay stops working immediately — even if the Apple Pay button briefly appears on screen before the suspension's effect propagates.</p>
+
+  <p>Shopify Payments suspensions can be triggered by: an unusually high dispute/chargeback rate; identity or business verification requests that haven't been completed; selling products in restricted categories; unusual transaction patterns that Shopify's risk system flagged; or regulatory requirements specific to the merchant's country. During a suspension, all Shopify Payments features are disabled — including Apple Pay, Google Pay, and Shop Pay.</p>
+
+  <h3>How to check if Shopify Payments is causing Apple Pay failure</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments</strong></li>
+    <li>Check if Shopify Payments shows as <strong>Active</strong> or shows a warning banner about suspension or required action</li>
+    <li>Check your email for any communications from Shopify requesting verification documents or flagging account issues</li>
+    <li>Go to <strong>Shopify Admin → Finance → Payouts</strong> — if payouts are paused or there's a hold notification, Shopify Payments is under review</li>
+    <li>If suspended, follow Shopify's verification instructions to restore your account — timelines vary but typically 1–5 business days for identity verification requests</li>
+    <li>While Shopify Payments is suspended, Apple Pay and other express checkout buttons will be unavailable; customers can still pay by entering card numbers directly if you've enabled manual card entry fallback</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Shopify Payments Suspension Hides Apple Pay Immediately</div>
+    Unlike some payment provider issues that take time to propagate, a Shopify Payments suspension disables Apple Pay immediately and completely. If Apple Pay suddenly stops working for all customers simultaneously — not just some — check your Shopify Payments status first before investigating device or browser issues. A suspension or compliance hold affects 100% of Apple Pay transactions at once.
+  </div>
+
+  <h2>Failure Mode 8: Apple Pay Session Timeout</h2>
+
+  <p>Apple Pay payment sessions have a browser-enforced timeout — typically 30 seconds from when the Apple Pay sheet is initiated to when the payment must be authorized. If Shopify's checkout page loads slowly, or if there's network latency between when the customer clicks Apple Pay and when the payment processes, the session can expire before authentication completes. An expired session appears as the Apple Pay sheet closing suddenly or showing a "Payment not completed" message without any specific reason.</p>
+
+  <p>Session timeouts are more common on: slower internet connections (mobile data vs. WiFi); mobile devices where JavaScript execution is slower; checkout pages with heavy JavaScript from apps, analytics, or marketing tools that delay the Apple Pay session initialization; or when the merchant's Shopify store is experiencing high traffic and checkout APIs respond slowly.</p>
+
+  <h3>Diagnosing and reducing Apple Pay session timeouts</h3>
+
+  <ol class="steps">
+    <li>Check if Apple Pay failures correlate with slow checkout load times — open your checkout in a mobile browser and time how long it takes to load the Apple Pay button</li>
+    <li>Go to <strong>Shopify Admin → Online Store → Speed</strong> and check your store's speed score — checkout-impacting apps may be slowing down the session initialization</li>
+    <li>Review <strong>Shopify Admin → Apps</strong> for any checkout extensions or scripts that may be running heavy JavaScript at checkout load</li>
+    <li>Check if Apple Pay works faster on WiFi vs. mobile data — if it works on WiFi and fails on mobile data, network latency is the primary cause</li>
+    <li>If using custom checkout JavaScript or a checkout.liquid customization (Shopify Plus), audit for any synchronous operations or heavy libraries that delay checkout script execution</li>
+    <li>For Shopify Plus stores: contact Shopify Plus support to review your checkout for performance issues — their support team can identify checkout extension conflicts</li>
+  </ol>
+
+  <div class="callout tip">
+    <div class="callout-title">Apple Pay Session Timeouts and Retry Success</div>
+    A reliable indicator that session timeout is the cause: Apple Pay fails on the first attempt but succeeds immediately on retry without any changes. On retry, the page is already loaded (cached), so the Apple Pay session initializes faster and completes within the 30-second window. If customers report "it works the second time but not the first," session timeout or slow initial page load is almost certainly the cause.
+  </div>
+
+  <h2>Apple Pay Diagnostic Checklist</h2>
+
+  <p>Use this checklist when a customer reports Apple Pay not working on your Shopify store:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Check</th>
+          <th>How to Verify</th>
+          <th>If It Fails</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Browser is Safari</td>
+          <td>Ask customer which browser they're using</td>
+          <td>Direct customer to Safari; Apple Pay is Safari-only</td>
+        </tr>
+        <tr>
+          <td>Device is Apple (iPhone, iPad, or Mac)</td>
+          <td>Ask customer what device they're on</td>
+          <td>Android users need Google Pay; non-Apple hardware cannot use Apple Pay</td>
+        </tr>
+        <tr>
+          <td>Card exists in Apple Wallet</td>
+          <td>Customer opens Wallet app and confirms active card</td>
+          <td>Add card to Wallet; verify card is active at bank</td>
+        </tr>
+        <tr>
+          <td>Face ID / Touch ID works</td>
+          <td>Customer tests Face ID or Touch ID in Settings</td>
+          <td>Re-enroll biometrics or use passcode fallback</td>
+        </tr>
+        <tr>
+          <td>Shopify Payments is active</td>
+          <td>Admin → Settings → Payments — no warning banners</td>
+          <td>Resolve Shopify Payments suspension or verification hold</td>
+        </tr>
+        <tr>
+          <td>Domain verification current</td>
+          <td>Admin → Settings → Payments → Shopify Payments → Apple Pay</td>
+          <td>Re-run domain verification; upload verification file for custom domains</td>
+        </tr>
+        <tr>
+          <td>Card works manually</td>
+          <td>Customer pays using card number directly at checkout</td>
+          <td>If manual works but Apple Pay fails, issue is bank-level Apple Pay token handling</td>
+        </tr>
+        <tr>
+          <td>Retry succeeds</td>
+          <td>Ask customer to try Apple Pay again immediately</td>
+          <td>If retry succeeds, likely session timeout on first load — review checkout performance</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Apple Pay vs Google Pay vs Shop Pay on Shopify</h2>
+
+  <p>Apple Pay, Google Pay, and Shop Pay all appear in Shopify's express checkout row but have fundamentally different availability constraints. Understanding which button a customer expects to see vs. what's actually available prevents misdiagnosis:</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Express Method</th>
+          <th>Browser Required</th>
+          <th>Device Required</th>
+          <th>Account Required</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apple Pay</td>
+          <td>Safari only</td>
+          <td>Apple (iPhone, iPad, Mac)</td>
+          <td>Card in Apple Wallet</td>
+        </tr>
+        <tr>
+          <td>Google Pay</td>
+          <td>Chrome (primarily)</td>
+          <td>Android or desktop</td>
+          <td>Card saved in Google Pay</td>
+        </tr>
+        <tr>
+          <td>Shop Pay</td>
+          <td>Any browser</td>
+          <td>Any device</td>
+          <td>Shop Pay account with saved payment</td>
+        </tr>
+        <tr>
+          <td>PayPal Express</td>
+          <td>Any browser</td>
+          <td>Any device</td>
+          <td>PayPal account (separate Shopify app required)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Is Apple Pay just one piece of your checkout problem?</h2>
+    <p>Silent checkout failures go beyond Apple Pay — the payment methods layer, checkout session initialization, and cart validation can all break without any visible error. CheckPulse runs a full 4-step checkout simulation every 30 minutes and alerts you the moment any step fails.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Why does Apple Pay show on my Shopify store but not process payments?</h3>
+  <p>Apple Pay showing but not processing is different from Apple Pay not appearing. The button shows because browser eligibility (Safari on Apple device) checks pass. Processing fails for other reasons: no active card in Wallet, Face ID/Touch ID failure, bank-level decline of the Apple Pay token, domain verification mismatch, or Shopify Payments suspended. The most common cause for the button appearing but payment failing is the customer's Face ID/Touch ID not completing correctly — advise them to wait for the passcode fallback option after 2–3 biometric attempts.</p>
+
+  <h3>Can I use Apple Pay on Shopify with a third-party payment processor?</h3>
+  <p>No. Apple Pay at Shopify checkout is exclusively available when Shopify Payments is your active payment provider. Third-party gateways (Stripe, PayPal, Authorize.net) do not enable Apple Pay through Shopify's native express checkout. Some third-party processors offer their own Apple Pay integration through Shopify apps, but those display differently and are not Shopify's native express checkout buttons.</p>
+
+  <h3>Why did Apple Pay stop working after my Shopify store migration?</h3>
+  <p>If you migrated your Shopify store — new domain, new Shopify account, or headless architecture switch — Apple Pay domain verification is the most common cause of post-migration failures. Apple Pay merchant identity is verified per-domain. Your new domain needs to complete domain verification separately, including hosting Apple's verification file at the exact path Apple requires. Go to Shopify Admin → Settings → Payments → Shopify Payments → Apple Pay to re-run domain registration for your new domain.</p>
+
+  <h3>Is Apple Pay working slower than normal card checkout on Shopify?</h3>
+  <p>Apple Pay should be faster than card entry because it skips manual card number entry. If Apple Pay feels slower or is timing out, the delay is almost always in checkout page initialization speed — heavy JavaScript from apps, checkout extensions, or analytics tools. Apple's payment session must be initialized within the checkout page load. Apps that run synchronously during checkout load delay Apple Pay session initialization. Audit and reduce checkout JavaScript load to improve Apple Pay speed.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payments-not-working">Payments Not Working</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+      <a href="/checkpulse/shopify-checkout-apple-pay-google-pay-not-showing">Apple Pay Not Showing</a>
+      <a href="/checkpulse/shopify-klarna-not-working">Klarna Not Working</a>
+      <a href="/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+      <a href="/checkpulse/shopify-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="/checkpulse/shopify-checkout-paypal-not-working">PayPal Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

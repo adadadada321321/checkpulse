@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Bank Transfer Not Working — ACH, Pay by Bank, Manual Transfer Errors (2026)</title>
+  <meta name="description" content="Shopify bank transfer or ACH payment not working? 8 failure modes — ACH not enabled, Plaid verification failed, micro-deposit not confirmed, ACH return codes (R01 R02 R07), manual transfer stuck, processing delays — with exact fixes." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-bank-transfer-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-bank-transfer-not-working" />
+  <meta property="og:title" content="Shopify Bank Transfer Not Working — ACH, Pay by Bank, Manual Transfer Errors (2026)" />
+  <meta property="og:description" content="Bank transfer and ACH payments on Shopify fail in ways that are completely different from card payments — they involve a separate setup, bank verification, and 2–5 day settlement windows. 8 failure modes: ACH not enabled, Plaid bank connection failed, micro-deposit not confirmed, insufficient funds return (R01), account closed or invalid (R02–R04), authorization revoked (R07/R10), manual bank transfer order stuck, and ACH processing delay causing order hold." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Bank Transfer Not Working — ACH, Pay by Bank, Manual Transfer Errors",
+    "description": "Bank transfer and ACH payments on Shopify have eight distinct failure modes that differ completely from card payment failures. (1) ACH not enabled — Shopify Payments does not include ACH by default; merchants must activate it via Stripe Financial Connections or a dedicated ACH payment app. (2) Plaid bank connection failed — the Plaid (or equivalent) bank verification link errors out, times out, or the customer's bank is not on the supported list. (3) Micro-deposit verification not completed — some ACH setups send two small test deposits that the customer must verify before the account is approved for ACH; failing to complete this step blocks all ACH payments from that account. (4) ACH return R01 (insufficient funds) — the customer's bank account lacked the funds when the ACH pull was attempted 1–3 days after checkout. (5) ACH return R02/R03/R04 — account closed, no account found, or invalid account number — the bank account details were wrong or the account was closed between checkout and settlement. (6) ACH return R07/R10 — authorization revoked or customer advised — the customer disputed or cancelled the ACH debit with their bank. (7) Manual bank transfer order stuck — the merchant enabled bank transfer as a manual payment method, the customer initiated a wire or ACH, but the funds have not arrived and the order is stuck in payment pending. (8) ACH processing delay — the customer expected instant payment but ACH takes 2–5 business days; orders can be held, partially fulfilled, or cancelled if the merchant's fulfillment rules don't account for ACH timing.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-bank-transfer-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is bank transfer not showing as a payment option on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Bank transfer (ACH) is not a default payment method in Shopify Payments. To offer it, you need to either activate it through Shopify Payments (requires Stripe Financial Connections integration, available on certain Shopify plans) or install a third-party ACH payment app from the Shopify App Store (Stripe ACH, Dwolla, GoCardless). If no bank transfer option appears at checkout, the merchant has not enabled it. Shopify's built-in 'Manual payment methods' section in Settings → Payments can also be used to list bank transfer as an option — but this version requires the customer to wire money independently and the merchant to manually mark the order as paid after confirming receipt."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did my Shopify ACH payment fail after checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ACH payments on Shopify can fail after checkout (sometimes days later) due to ACH return codes from the customer's bank. Common reasons: insufficient funds in the bank account at the time the ACH pull was attempted (return code R01); the bank account was closed or had an incorrect account number (R02, R03, R04); the customer contacted their bank and revoked the ACH authorization (R07, R10); or the routing number was incorrect. Because ACH settles over 2–5 business days rather than instantly, the failure arrives long after the customer completed checkout — the order may have already been fulfilled before the payment return arrives."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Plaid and why is it blocking my bank transfer on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plaid is a bank connectivity service that many Shopify ACH integrations use to verify that a customer owns and has access to a bank account before initiating an ACH payment. When you choose 'Pay by bank account' at Shopify checkout, Plaid opens a window where you log in to your bank. If Plaid fails to connect (your bank is not on Plaid's supported list, the bank's website is down, or you're using a business account that Plaid's consumer flow doesn't support), the bank verification step fails and you cannot proceed with ACH payment. Alternatives if Plaid fails: use micro-deposit verification (takes 1–2 days), use a debit card instead of bank ACH, or ask the merchant if they support manual bank transfer (wire or ACH with manual routing/account number entry)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does a Shopify bank transfer take to process?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ACH bank transfers on Shopify take 2–5 business days to settle, depending on the payment provider and the ACH network used. Standard ACH (next-day or 2-day ACH) takes 1–3 business days from when the customer authorizes payment. Same-day ACH (if the provider supports it) settles within 1 business day. Wire transfers initiated manually by the customer take 1–2 business days domestically and 3–5 days internationally. The Shopify order typically shows as 'Payment pending' until the ACH settles — most merchants hold fulfillment until payment clears, though some fulfill immediately on authorization. Weekends and bank holidays do not count as business days, so a Friday ACH authorization may not settle until Tuesday or Wednesday."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify bank transfer order stuck as pending payment?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify bank transfer order stuck as 'Pending payment' means one of: (1) the merchant is using a manual bank transfer (wire/ACH) and is waiting for the funds to arrive in their account before manually marking the order paid — this is normal and the customer needs to actually initiate the bank transfer; (2) the ACH authorization was submitted but settlement hasn't cleared yet (normal 2–5 business day window); (3) the ACH transfer was returned (failed) and the merchant has not yet updated the order status. For manual bank transfers: the customer must send the wire or ACH to the bank details shown in the order confirmation email. The order will only be processed after the merchant confirms receipt of funds and manually marks the order as paid in Shopify Admin."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does ACH return code R01 mean on a Shopify order?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ACH return code R01 means 'Insufficient Funds' — the customer's bank account did not have enough funds to cover the ACH debit when it was attempted by the payment processor. Unlike a card payment that fails instantly at checkout, an R01 return can arrive 2–3 business days after the customer completed their Shopify order. By this time, the order may already be fulfilled. The customer needs to either add funds to their bank account and re-authorize the ACH, or pay by a different method. Shopify merchants should have a policy for handling ACH returns — typically holding fulfillment until ACH settles, and having a clear payment failure email that goes out when an R01 (or any return code) is received."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Bank Transfer Not Working
+  </div>
+  <h1>Shopify <em>Bank Transfer Not Working</em> — ACH, Pay by Bank, Manual Transfer Errors (2026)</h1>
+  <p class="hero-sub">ACH or bank transfer payment failing on Shopify? Bank transfer failures are unlike card failures — they involve bank verification steps, ACH return codes that arrive days after checkout, and settlement delays that leave orders stuck. 8 failure modes: ACH not enabled, Plaid bank connection failed, micro-deposit not confirmed, ACH insufficient funds (R01), account closed or invalid (R02–R04), authorization revoked (R07/R10), manual transfer stuck pending, and ACH processing delay.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>ACH · Plaid · Micro-deposit · R01 · R02 · R07 · Manual Transfer · Processing Delay</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Bank transfer and ACH (Automated Clearing House) payments on Shopify work fundamentally differently from card payments. When a card payment fails, it fails instantly at checkout. When a bank transfer or ACH payment fails, it may fail during the bank verification step, or it may succeed at checkout and fail days later — as an "ACH return" — by which time the order may already be shipped. Understanding where in the process the failure occurred is the first step to resolving it.</p>
+
+  <p>There are also two completely different implementations of "bank transfer" on Shopify that are often confused. The first is ACH Direct Debit — where the customer connects their bank account digitally (via Plaid or Stripe Financial Connections) and authorizes a pull payment. The second is a manual bank transfer — where the merchant provides their bank account details and the customer initiates a wire or ACH push from their own bank. These two methods fail in completely different ways, and the fix for one rarely applies to the other.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">First: Identify Which Type of Bank Transfer Is Failing</div>
+    The two scenarios require completely different troubleshooting. (A) <strong>ACH Direct Debit</strong>: the customer chose "Pay by bank account" at checkout, was redirected to connect their bank via Plaid or a similar service, and something failed in that flow. (B) <strong>Manual Bank Transfer</strong>: the customer chose a manual payment option, received bank details in an order confirmation email, and either hasn't sent the money yet or the wire/ACH hasn't arrived. Identify which scenario applies before diving into the fixes below.
+  </div>
+
+  <h2>Failure Mode 1: ACH / Bank Transfer Not Enabled as a Payment Method</h2>
+
+  <p>Bank transfer (ACH) is not enabled by default in Shopify Payments. Unlike credit cards, debit cards, and digital wallets which activate automatically when you set up Shopify Payments, ACH requires explicit activation. Many merchants who want to offer ACH don't realize it needs a separate setup step — and customers who look for a "pay by bank account" option find none.</p>
+
+  <p>For customers: if no bank transfer or ACH option appears at Shopify checkout, the merchant hasn't enabled it. You cannot use bank transfer on a store that hasn't configured it — you'll need to pay by card, PayPal, or another available method. For merchants: enabling ACH can meaningfully improve conversion for high-AOV orders (B2B, furniture, electronics) because bank account payments avoid credit card declines and have lower processing fees.</p>
+
+  <h3>How merchants enable ACH / bank transfer on Shopify</h3>
+
+  <ol class="steps">
+    <li><strong>Via Shopify Payments (US merchants):</strong> Go to Shopify Admin → Settings → Payments → Shopify Payments → Manage. Look for "Bank account payments" or "ACH Direct Debit" — this is powered by Stripe Financial Connections. It is available on certain Shopify plans and may require KYC verification</li>
+    <li><strong>Via Stripe app:</strong> If you use Stripe as your payment provider (not Shopify Payments), enable ACH in your Stripe Dashboard → Payment methods → ACH Direct Debit. Shopify will pass the bank account authorization to Stripe</li>
+    <li><strong>Via third-party ACH app:</strong> Install a dedicated ACH payment app from the Shopify App Store — options include GoCardless (UK/EU/US), Dwolla, or Chargehive. These add bank transfer as a checkout option independently of Shopify Payments</li>
+    <li><strong>Via manual payment methods:</strong> Shopify Admin → Settings → Payments → Manual payment methods → Add manual payment method → "Bank transfer" or "Wire transfer." This adds a payment option that shows bank details but requires the customer to initiate the payment themselves and the merchant to mark the order paid manually</li>
+    <li>After enabling, test the payment method with a real bank account before announcing it to customers</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">ACH is Only Available in Certain Countries</div>
+    Shopify Payments ACH Direct Debit is available for US merchants collecting from US bank accounts. For UK merchants, BACS/Direct Debit is the equivalent (available via GoCardless or Stripe). For EU merchants, SEPA Direct Debit is available via Stripe or Mollie. For AU merchants, BECS Direct Debit via Stripe. Bank transfer as a payment method is highly region-specific — the provider and setup vary by the merchant's country and the customer's bank country. Manual bank transfer (wire/ACH push) works internationally but requires the merchant to maintain foreign currency bank accounts and manually reconcile.
+  </div>
+
+  <h2>Failure Mode 2: Plaid Bank Connection Failed</h2>
+
+  <p>Most ACH Direct Debit implementations on Shopify use Plaid (or Stripe Financial Connections, which uses a similar flow) to verify that the customer owns and can access the bank account before initiating the ACH pull. When the customer selects "Pay by bank account" at checkout, a Plaid window opens where they log in to their bank. This verification step fails for several distinct reasons — and each requires a different fix.</p>
+
+  <p>Plaid supports thousands of banks but not every bank. Smaller credit unions, regional banks, and international banks may not be on Plaid's supported institution list. Business bank accounts may not work with Plaid's consumer authentication flow. Multi-factor authentication issues at the bank — expired MFA codes, unsupported MFA types — can also block the connection.</p>
+
+  <h3>Diagnosing and fixing Plaid connection failures</h3>
+
+  <ol class="steps">
+    <li><strong>Bank not supported:</strong> If Plaid returns "Your bank is not supported" or the bank doesn't appear in the search, the institution is not in Plaid's network. Solution: use micro-deposit verification if available (slower but doesn't require Plaid login), or pay by debit card instead</li>
+    <li><strong>Login credentials not accepted:</strong> Plaid uses the customer's online banking login. If the customer has recently changed their password, uses a passkey instead of a password, or has MFA configured in a way Plaid doesn't support (hardware key, specific authenticator apps), login will fail. Solution: use the bank's web app to confirm login works, then retry Plaid — or switch to micro-deposit verification</li>
+    <li><strong>Business account vs personal account:</strong> Plaid's standard consumer flow authenticates personal bank accounts. Business checking accounts from some banks (Chase Business, BofA Business) authenticate through a different portal. If the Plaid login fails for a business account, look for a "Link with account numbers" option in the Plaid flow — this allows manual entry of routing/account numbers instead of OAuth login</li>
+    <li><strong>Bank website down or slow:</strong> Plaid connects to the bank's website in real time. If the bank is having an outage or their authentication endpoint is slow, Plaid may time out. Retry during off-peak hours, or switch to manual account number entry if available</li>
+    <li><strong>Plaid session expired:</strong> The Plaid connection window has a time limit. If the customer leaves the window open too long, the session expires and must be restarted. Close the Plaid window, return to checkout, and initiate the bank connection again</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Plaid Doesn't Support All Banks — Always Offer a Fallback</div>
+    As a merchant, if you enable ACH Direct Debit via Plaid, ensure your checkout also shows alternative payment methods (card, PayPal) prominently. A customer whose bank isn't on Plaid's supported list will abandon if ACH is their only option. The Plaid integration should be additive — an additional payment path — not the only path. Stripe Financial Connections (used when Shopify Payments handles ACH) has a broader bank coverage than standalone Plaid and also supports manual account number entry as a fallback.
+  </div>
+
+  <h2>Failure Mode 3: Micro-Deposit Verification Not Completed</h2>
+
+  <p>Some ACH setups — particularly when the customer enters routing and account numbers manually instead of using Plaid OAuth — require micro-deposit verification before the account can be used for payment. The payment processor sends two small deposits (typically less than $1 each) to the bank account. The customer must log in to their bank, find the two deposit amounts, and enter them on the merchant's site to verify they own the account. Until this step is completed, the ACH payment is blocked.</p>
+
+  <p>Micro-deposit verification takes 1–3 business days and is a significant friction point. Customers who didn't receive the micro-deposit email, forgot to complete verification, or couldn't find the amounts in their account register come back to checkout expecting to pay and find their payment blocked. Shopify orders placed with an unverified ACH account are typically held as pending until verification completes.</p>
+
+  <h3>Completing or troubleshooting micro-deposit verification</h3>
+
+  <ol class="steps">
+    <li>Check the email address used at checkout for a verification email from the payment provider (Stripe, Plaid, or the ACH app used by the merchant) — this email contains instructions and a link to enter the deposit amounts</li>
+    <li>Log in to your bank account 1–3 business days after initiating the payment and look for two small deposits (e.g., $0.32 and $0.45) labeled with the payment processor's name (Stripe, Plaid, ACSS, or the ACH provider)</li>
+    <li>Return to the merchant's verification page (link in the email) or the merchant's checkout and enter the two exact deposit amounts. They must match precisely — the amounts are not rounded</li>
+    <li>If the micro-deposits haven't appeared after 3 business days: check that the routing number and account number entered were correct. Incorrect numbers cause the micro-deposits to fail silently. Contact the merchant to reset the verification and re-enter correct bank details</li>
+    <li>If verification times out (typically 7–10 days): the deposit amounts expire and the process must restart. Contact the merchant — they may need to cancel the pending order and create a new one with verified payment</li>
+    <li>Once verification is complete, the ACH payment initiates and settles within 2–5 business days. The order will show payment confirmed once the ACH clears</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Micro-Deposits Are Slow but Work for Any Bank</div>
+    Micro-deposit verification is slower than Plaid OAuth but works for any bank account, including credit union accounts, business accounts, and banks not supported by Plaid. If Plaid connection fails and the merchant supports manual account number entry with micro-deposit verification, this is the most reliable fallback — it just requires the customer to wait 1–3 business days before payment can process. Communicate this clearly at checkout so customers understand the order is held pending verification, not cancelled.
+  </div>
+
+  <h2>Failure Mode 4: ACH Return Code R01 — Insufficient Funds</h2>
+
+  <p>ACH return code <code>R01</code> (Insufficient Funds) is the most common ACH failure on Shopify — and the most damaging because it arrives <em>after</em> the order is placed. When a customer authorizes an ACH pull at checkout, the payment processor submits a debit to the customer's bank 1–2 business days later. If the bank account balance is insufficient at that point, the bank returns the transaction with code <code>R01</code>. The customer's checkout completed successfully but the order now has no payment.</p>
+
+  <p>This is fundamentally different from a card payment insufficient funds failure, which happens at checkout instantly. With ACH, the merchant may have already started fulfillment — especially for digital goods or merchants who fulfill on authorization rather than on settlement. The fraud risk is also higher: a customer with insufficient funds could intentionally use ACH to get goods before the payment fails.</p>
+
+  <h3>Handling R01 returns as a merchant</h3>
+
+  <ol class="steps">
+    <li>Shopify Admin → Orders → find the affected order. Payment status will show "Failed" or "Returned" if the ACH provider has updated Shopify. Some ACH apps require logging into the provider dashboard to see return codes</li>
+    <li>Send an automated payment failure email to the customer immediately when an R01 return is detected. Include: what happened, a payment link to complete payment by card, and a deadline before the order is cancelled</li>
+    <li>For high-risk ACH orders: consider holding fulfillment until ACH clears (not just authorization). Fulfilling on ACH authorization introduces R01 risk — the goods ship and the payment returns. Fulfilling on settlement (2–5 days later) eliminates R01 fulfillment risk but delays shipping</li>
+    <li>Most ACH providers allow one re-presentment on R01 — you can attempt to debit the account again after the customer confirms they've added funds. Check your ACH provider's rules on re-presentment before attempting</li>
+    <li>Set a payment retry deadline: if the customer does not pay by card or the ACH re-presentment does not clear within X days, cancel the order and release inventory</li>
+    <li>Customers with R01 returns: check your bank account balance before authorizing an ACH payment, or use a credit card if your account balance might be low at the time the ACH pull is attempted (1–3 days after checkout)</li>
+  </ol>
+
+  <div class="callout danger">
+    <div class="callout-title">R01 Returns on Fulfilled Orders Are the Biggest ACH Risk</div>
+    A card payment that fails at checkout prevents fulfillment entirely. An ACH return that arrives 3 days after checkout may arrive after you've already shipped the order. The only defenses: (1) hold fulfillment until ACH settles, not just on authorization; (2) use ACH risk scoring to identify high-risk orders before fulfilling; (3) require verified bank accounts (micro-deposit or Plaid verification) to reduce fraud risk. ACH is excellent for B2B high-AOV orders with established customers — it is riskier for anonymous consumer transactions.
+  </div>
+
+  <h2>Failure Mode 5: ACH Return Codes R02, R03, R04 — Closed or Invalid Account</h2>
+
+  <p>ACH return codes <code>R02</code>, <code>R03</code>, and <code>R04</code> indicate that the bank account details are wrong or the account no longer exists. <code>R02</code> means "Account Closed" — the customer's bank account was closed between checkout and the ACH attempt. <code>R03</code> means "No Account / Unable to Locate Account" — the routing number and account number combination doesn't match any account at that bank. <code>R04</code> means "Invalid Account Number" — the account number format is wrong for that routing number.</p>
+
+  <p>These returns are common when customers use Plaid to connect an old savings account they recently closed, when they enter routing and account numbers incorrectly, or when they have multiple accounts at the same bank and accidentally connect the closed one. Unlike R01, these failures cannot be resolved with a re-presentment — the account itself is the problem.</p>
+
+  <h3>Resolving R02/R03/R04 account errors</h3>
+
+  <ol class="steps">
+    <li>When you receive an R02/R03/R04 return, contact the customer immediately with a clear explanation: "The bank account linked to your order is closed or invalid. Please pay by card or provide a new bank account."</li>
+    <li>Provide a payment link in the contact email so the customer can complete payment via card without needing to re-checkout</li>
+    <li>For customers: if you get an R02/R03/R04 notification, verify that the bank account you connected is still open and that you entered the correct routing number (9 digits) and account number. If you used Plaid, the linked account may be a closed secondary account — disconnect and re-link with your current primary account</li>
+    <li>Routing number vs account number confusion is common: the routing number is 9 digits at the bottom-left of a check; the account number is to its right (typically 10–12 digits). Transposing these produces R04 errors</li>
+    <li>If Plaid was used to connect the account: the Plaid connection was valid at the time of linking but the account may have been closed after. Ask the customer to re-authorize with a currently open account</li>
+    <li>R02/R03/R04 returns are final — the payment will not be retried. Cancel the order or hold it pending new payment, and notify the customer with a clear deadline</li>
+  </ol>
+
+  <h2>Failure Mode 6: ACH Return Codes R07, R10 — Authorization Revoked</h2>
+
+  <p>ACH return code <code>R07</code> means "Authorization Revoked by Customer" — the customer contacted their bank and told them to stop or reverse the ACH debit. <code>R10</code> means "Customer Advises Not Authorized" — the customer told their bank they never authorized the ACH debit. Both are the ACH equivalent of a chargeback, and both are serious because they indicate the customer is actively disputing the payment.</p>
+
+  <p>R07 and R10 returns are more common with merchants who use ACH for subscription renewals, where a customer who cancelled a subscription but was still charged calls their bank to reverse the charge. They also occur when customers are confused about why they were charged — they don't recognize the merchant name on their bank statement and dispute the charge as unauthorized.</p>
+
+  <h3>Handling R07/R10 authorization revocations</h3>
+
+  <ol class="steps">
+    <li>An R07 or R10 means the customer has explicitly disputed the ACH. Unlike R01, you cannot re-present — the authorization has been revoked and attempting to re-debit the account will result in further returns and possible penalties from the ACH network</li>
+    <li>Contact the customer immediately to understand why they revoked the authorization. Sometimes it's a misunderstanding (didn't recognize the merchant name on the statement); sometimes it's a legitimate complaint (unauthorized renewal charge)</li>
+    <li>Review whether the ACH authorization was properly documented. ACH regulations require a signed authorization (can be electronic) from the customer that specifies the amount, frequency, and bank details. If the authorization documentation is missing or inadequate, you have limited recourse</li>
+    <li>If the customer ordered goods that were shipped: pursue the unpaid order through normal collections channels (invoice, collections). The ACH dispute does not change the customer's legal obligation to pay for goods received — but recovering via ACH is no longer an option</li>
+    <li>For subscription merchants: a high rate of R07/R10 returns is a signal that customers don't feel in control of their subscription. Improve cancellation flow accessibility and send renewal reminder emails 3–7 days before each billing to reduce disputes</li>
+    <li>Excessive R07/R10 rates can result in your ACH processor terminating your account or placing limits on ACH processing. Monitor your return rate and address root causes (unclear billing descriptor, surprise renewals, hard-to-cancel subscriptions) before they accumulate</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Use Descriptive ACH Billing Descriptors to Prevent R10 Returns</div>
+    Many R10 "Customer Advises Not Authorized" returns occur simply because the customer doesn't recognize the ACH charge on their bank statement. Banks display the merchant's ACH company name (not the Shopify store name) on the statement — and this is often a legal entity name, a payment processor name, or an abbreviated name that customers don't connect to their purchase. Configure your ACH company name and billing descriptor to be recognizable: use your store's brand name, not your LLC name. Include a support email in the ACH descriptor if your provider allows it. A customer who can identify who charged them calls your support line first; a customer who doesn't recognize the charge calls their bank first.
+  </div>
+
+  <h2>Failure Mode 7: Manual Bank Transfer Order Stuck as Pending Payment</h2>
+
+  <p>When a merchant configures bank transfer as a manual payment method in Shopify (Settings → Payments → Manual payment methods), the checkout process works very differently from card or ACH Direct Debit. At checkout, the customer selects "Bank transfer" and sees the merchant's bank details (account number, routing number, and payment reference). The order is placed with status "Payment pending" — but no money has moved yet. The customer must go to their own bank and initiate the transfer.</p>
+
+  <p>This is the most common source of "bank transfer not working" issues: the customer placed the order, saw the order confirmation email with bank details, and either didn't understand they needed to initiate a separate transfer, couldn't find the bank details in the email, or initiated the transfer to the wrong account or with the wrong reference number. The merchant sees a "Payment pending" order and doesn't know if the money is coming.</p>
+
+  <h3>Resolving stuck manual bank transfer orders</h3>
+
+  <ol class="steps">
+    <li><strong>For customers:</strong> After placing a bank transfer order on Shopify, check your order confirmation email for the merchant's bank details (account number, sort code or routing number, and a payment reference — usually the order number). You must go to your bank and send the payment manually. The order will NOT process automatically — no money moves until you initiate the transfer</li>
+    <li>When sending the transfer: use the exact payment reference provided (usually the Shopify order number). This is how the merchant matches your payment to your order. Using the wrong reference delays order processing</li>
+    <li>Allow 1–3 business days for domestic bank transfers and 3–5 business days for international wires to arrive. The merchant will manually mark the order paid after confirming receipt</li>
+    <li><strong>For merchants:</strong> Set up automated reminder emails for pending bank transfer orders. If an order is still pending after 3 business days, email the customer with the bank details again and ask them to confirm the transfer was sent</li>
+    <li>Set a payment deadline in your manual payment terms (e.g., "Payment must be received within 5 business days"). After the deadline, cancel the order and release inventory</li>
+    <li>When a bank transfer arrives: match the payment reference to the Shopify order number, then go to Shopify Admin → Orders → [Order] → Mark as paid. This changes the order status and triggers fulfillment</li>
+    <li>International wire transfers often arrive with bank fees deducted. If the received amount is slightly less than the order total, decide in advance whether you will absorb the fee difference or contact the customer for the shortfall</li>
+  </ol>
+
+  <div class="callout info">
+    <div class="callout-title">Order Confirmation Email Must Include Complete Bank Details</div>
+    The order confirmation email for a manual bank transfer is the most critical piece of communication in the entire flow. It must include: the merchant's bank name, account name (as it appears on the bank account), account number, routing number (US) or sort code (UK) or IBAN + BIC/SWIFT (international), and a unique payment reference (the Shopify order number or a custom reference). If any of these details are missing, the customer cannot send the transfer correctly. Customize the Shopify order confirmation email for bank transfer orders (or send a separate payment instructions email) to ensure all required details are present.
+  </div>
+
+  <h2>Failure Mode 8: ACH Processing Delay — Orders Held or Cancelled</h2>
+
+  <p>ACH is not an instant payment. Standard ACH takes 2–5 business days from authorization to settlement — the point at which the merchant can actually use the funds. During this window, the Shopify order typically shows "Payment pending" or similar, and the merchant's policy on fulfillment during this window determines what the customer experiences.</p>
+
+  <p>Processing delay issues arise when customers expect instant confirmation (they're used to card payments), when merchants auto-cancel orders after a short pending window, or when same-day fulfillment is configured and the ACH hasn't settled yet. B2B merchants who use ACH for large-value invoices face a related issue: net-30 payment terms and ACH settlement timing create complex reconciliation challenges in Shopify.</p>
+
+  <h3>Managing ACH processing delays</h3>
+
+  <ol class="steps">
+    <li>Set clear expectations at checkout: "Payment by bank account takes 2–5 business days to settle. Your order will ship after payment clears." Display this in the checkout summary and in the order confirmation email</li>
+    <li>Configure your fulfillment flow to hold ACH orders until settlement — not just authorization. In Shopify, this means not using automatic fulfillment for ACH orders, or using an app that triggers fulfillment only after confirmed ACH settlement</li>
+    <li>Same-day ACH is available from some providers (Stripe, for example) for an additional fee. If instant-or-same-day fulfillment is critical for your business model, consider requiring same-day ACH or routing to a provider that offers it</li>
+    <li>If your store has a short auto-cancel window for unpaid orders (e.g., "Cancel after 1 day if unpaid"), ACH orders will be cancelled before they can settle. Extend the auto-cancel window for ACH orders to at least 7 business days to allow for normal ACH timing plus potential R01 returns</li>
+    <li>Weekend and holiday rules: ACH does not process on federal bank holidays or weekends. A Friday ACH authorization may not settle until Tuesday (3 calendar days = 1 business day). Ensure your fulfillment rules account for this — a Friday order may not ship until mid-week</li>
+    <li>For B2B merchants: use Shopify's draft order + payment link workflow for ACH invoices, or integrate with an accounting system (QuickBooks, Xero) that handles ACH reconciliation. Native Shopify orders with ACH do not automatically reconcile with accounts payable/receivable systems</li>
+  </ol>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ACH Type</th>
+          <th>Typical Settlement Time</th>
+          <th>Cut-off Time</th>
+          <th>Weekend / Holiday</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Standard ACH (Nacha)</td>
+          <td>1–2 business days</td>
+          <td>5:30 PM ET</td>
+          <td>Does not process</td>
+        </tr>
+        <tr>
+          <td>Same-Day ACH</td>
+          <td>Same business day</td>
+          <td>2:45 PM ET (last batch)</td>
+          <td>Does not process</td>
+        </tr>
+        <tr>
+          <td>Stripe ACH (Financial Connections)</td>
+          <td>2–5 business days</td>
+          <td>Per Stripe's batch schedule</td>
+          <td>Adds to settlement time</td>
+        </tr>
+        <tr>
+          <td>Domestic wire transfer</td>
+          <td>Same day (if before cut-off) to next business day</td>
+          <td>Varies by bank (typically 4–5 PM)</td>
+          <td>Does not process</td>
+        </tr>
+        <tr>
+          <td>International wire (SWIFT)</td>
+          <td>3–5 business days</td>
+          <td>Varies by correspondent bank</td>
+          <td>Adds to settlement time</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>ACH Return Code Quick Reference</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Meaning</th>
+          <th>Who Can Fix</th>
+          <th>Re-presentable?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>R01</code></td>
+          <td>Insufficient funds</td>
+          <td>Customer (add funds)</td>
+          <td><span class="tag yellow">Once</span></td>
+        </tr>
+        <tr>
+          <td><code>R02</code></td>
+          <td>Account closed</td>
+          <td>Customer (use different account)</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R03</code></td>
+          <td>No account / unable to locate</td>
+          <td>Customer (verify routing + account)</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R04</code></td>
+          <td>Invalid account number</td>
+          <td>Customer (re-enter account details)</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R05</code></td>
+          <td>Unauthorized debit (corporate account)</td>
+          <td>Verify authorization, contact customer</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R07</code></td>
+          <td>Authorization revoked by customer</td>
+          <td>Contact customer, invoice separately</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R08</code></td>
+          <td>Payment stopped (stop payment order)</td>
+          <td>Contact customer re: stop payment</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R09</code></td>
+          <td>Uncollected funds</td>
+          <td>Customer (wait for deposited funds to clear)</td>
+          <td><span class="tag yellow">Once</span></td>
+        </tr>
+        <tr>
+          <td><code>R10</code></td>
+          <td>Customer advises not authorized</td>
+          <td>Verify authorization documentation</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R16</code></td>
+          <td>Account frozen</td>
+          <td>Customer must contact their bank</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R20</code></td>
+          <td>Non-transaction account (savings account)</td>
+          <td>Customer (use checking account)</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+        <tr>
+          <td><code>R29</code></td>
+          <td>Corporate customer advises not authorized</td>
+          <td>Verify B2B authorization documents</td>
+          <td><span class="tag red">No</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>ACH vs Card vs Manual Wire: Which Payment Method for Which Situation</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Method</th>
+          <th>Settlement Speed</th>
+          <th>Risk of Post-Checkout Failure</th>
+          <th>Best For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Credit / debit card</td>
+          <td><span class="tag green">Instant auth</span></td>
+          <td><span class="tag green">Low (captured at checkout)</span></td>
+          <td>Consumer B2C, any order size</td>
+        </tr>
+        <tr>
+          <td>ACH Direct Debit (Plaid / Stripe)</td>
+          <td><span class="tag yellow">2–5 business days</span></td>
+          <td><span class="tag yellow">Medium (R01 returns possible)</span></td>
+          <td>High-AOV, B2C with verified accounts, subscriptions</td>
+        </tr>
+        <tr>
+          <td>Same-Day ACH</td>
+          <td><span class="tag green">Same business day</span></td>
+          <td><span class="tag yellow">Medium</span></td>
+          <td>Urgent orders where card isn't available</td>
+        </tr>
+        <tr>
+          <td>Manual bank transfer (wire)</td>
+          <td><span class="tag red">1–5+ business days</span></td>
+          <td><span class="tag red">High (customer may not send)</span></td>
+          <td>B2B invoicing, very large orders, international</td>
+        </tr>
+        <tr>
+          <td>PayPal (bank-funded)</td>
+          <td><span class="tag green">Instant (PayPal absorbs risk)</span></td>
+          <td><span class="tag green">Low (merchant paid instantly)</span></td>
+          <td>Customers who prefer not to enter card details</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Is a payment method silently failing in your Shopify checkout right now?</h2>
+    <p>ACH setup errors, Plaid connection breaks, and bank transfer misconfigurations can leave a payment method broken without any alert. CheckPulse simulates a full 4-step checkout every 30 minutes and alerts you the moment any payment path — including bank transfer configuration — fails.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Why is bank transfer not showing as a payment option on Shopify?</h3>
+  <p>Bank transfer (ACH) is not enabled by default on Shopify — it requires separate activation. To add it, go to Shopify Admin → Settings → Payments. If you're using Shopify Payments, look for "Bank account payments" under the payment methods settings. If it's not there, install a third-party ACH app (GoCardless, Dwolla, Stripe ACH) from the Shopify App Store. Alternatively, add it as a manual payment method (Settings → Payments → Manual payment methods → Add) — this shows your bank details at checkout but requires the customer to initiate the transfer themselves.</p>
+
+  <h3>Why did my Shopify bank transfer / ACH payment fail after checkout?</h3>
+  <p>ACH payments can fail after checkout because ACH isn't instant — the payment processor submits the debit to the customer's bank 1–2 business days after checkout, and the bank may return it. Common ACH return codes: R01 (insufficient funds), R02 (account closed), R03 (account not found), R04 (invalid account number), R07 (authorization revoked). The order completed at checkout but the money never arrived. Merchants should hold fulfillment for ACH orders until settlement clears (2–5 business days) to avoid shipping goods that don't get paid for.</p>
+
+  <h3>What is Plaid and why is it blocking my bank payment on Shopify?</h3>
+  <p>Plaid is a bank connectivity service that verifies you own a bank account by having you log in to your bank within a secure flow. Many Shopify ACH integrations use Plaid to verify bank accounts instantly rather than waiting 1–3 days for micro-deposit verification. Plaid can fail if your bank isn't in its supported network, if your banking app uses an MFA method Plaid doesn't support, or if your bank's website is experiencing an outage. If Plaid fails: look for a "Link with account numbers" option in the Plaid window (allows manual entry of routing/account numbers), or pay by card or PayPal instead.</p>
+
+  <h3>My Shopify order is stuck as "pending payment" after a bank transfer — what do I do?</h3>
+  <p>A Shopify order stuck as "pending payment" after selecting bank transfer usually means one of two things: (1) you chose manual bank transfer and haven't sent the money yet — check your order confirmation email for the merchant's bank details and initiate the payment from your bank; or (2) you completed an ACH Direct Debit authorization and the payment is still in the 2–5 business day settlement window — wait for it to clear. If the order is still pending after 7 days, contact the merchant — they can check whether the ACH was returned and help you complete payment by an alternative method.</p>
+
+  <h3>How long does a Shopify bank transfer take?</h3>
+  <p>ACH Direct Debit on Shopify takes 2–5 business days from authorization to settlement. Same-Day ACH (if your provider supports it) settles the same business day if submitted before the afternoon cut-off. Manual domestic wire transfers typically arrive in 1–2 business days. International wire (SWIFT) takes 3–5 business days. Weekends and bank holidays do not count as business days and add to the settlement time. Until settlement clears, the Shopify order shows as "payment pending" and most merchants hold fulfillment.</p>
+
+  <h3>Why was my ACH authorization revoked (R07 or R10 return code)?</h3>
+  <p>An R07 or R10 ACH return means the customer contacted their bank and told them to stop or dispute the ACH debit. R07 ("Authorization Revoked") typically means the customer called their bank and asked to stop a future or recurring ACH. R10 ("Customer Advises Not Authorized") means the customer told their bank they never authorized the charge — common when customers don't recognize the merchant name on their bank statement (the ACH billing descriptor). Both are ACH disputes and cannot be re-presented. Merchants should contact the customer to resolve the issue and, if goods were shipped, pursue payment through invoicing rather than ACH retry.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payment-failed">Payment Failed</a>
+      <a href="/checkpulse/shopify-credit-card-not-working">Credit Card Not Working</a>
+      <a href="/checkpulse/shopify-debit-card-not-working">Debit Card Not Working</a>
+      <a href="/checkpulse/shopify-virtual-card-not-working">Virtual Card Not Working</a>
+      <a href="/checkpulse/shopify-checkout-not-accepting-payment">Not Accepting Payment</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+      <a href="/checkpulse/shopify-paypal-not-working">PayPal Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

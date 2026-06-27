@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Splitit Not Working — Not Showing, Hold Declined, Order Not Created (2026)</title>
+  <meta name="description" content="Shopify Splitit not working? Splitit not showing at checkout, authorization hold declined, card not eligible, order not created after approval, or installment charge failed — 8 root causes with exact fixes for merchants and customers." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-splitit-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-splitit-not-working" />
+  <meta property="og:title" content="Shopify Splitit Not Working — Not Showing, Hold Declined, Order Not Created (2026)" />
+  <meta property="og:description" content="Splitit on Shopify has 8 distinct failure modes: not appearing at checkout, authorization hold declined by the customer's bank, card ineligible (debit, prepaid, or insufficient available credit), cart amount changed after hold was placed, order not created in Shopify after Splitit approval, a scheduled installment charge failing, 3DS authentication failure during plan setup, and refund or cancellation issues. Each fails differently and requires different diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Splitit Not Working — Not Showing, Hold Declined, Order Not Created",
+    "description": "Splitit not working on Shopify has eight root causes: Splitit not installed or configured in the Shopify store; the customer's card being ineligible (debit card, prepaid card, or Amex in unsupported markets) or having insufficient available credit to cover the full authorization hold; the customer's bank declining the authorization hold for the full purchase amount even though available credit exists; the cart total changing after the hold was placed causing an amount mismatch; no Shopify order being created after Splitit approval due to a webhook or redirect failure; a scheduled monthly installment charge failing because the card expired, was canceled, or the bank declined the recurring charge; 3DS or SCA authentication failing during the plan setup flow; and refund or plan cancellation not releasing the authorization hold correctly. This guide covers all 8 failure modes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-splitit-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-27",
+    "dateModified": "2026-06-27"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Splitit not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Splitit not showing at Shopify checkout is almost always a configuration issue, not a Splitit outage. Splitit is a third-party app on Shopify — it is not built into Shopify Payments. The most common reasons it disappears: (1) the Splitit app was not installed from the Shopify App Store, or was installed but not activated in payment settings; (2) the Splitit app is installed but the live API credentials (not sandbox/test credentials) have not been entered — Splitit will silently hide if sandbox mode is active; (3) the cart total is below Splitit's minimum order threshold (typically $36 USD); (4) the customer is browsing from an unsupported country — Splitit is primarily available in the US, UK, Canada, Australia, and select European markets; (5) a theme conflict is hiding the Splitit payment widget — test in a second browser or incognito to rule out theme or extension conflicts. Check all five before assuming a technical failure."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the Splitit authorization hold being declined?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Splitit works by placing an authorization hold on the customer's existing Visa or Mastercard for the full purchase amount at checkout, then charging installments monthly against that hold. This means the customer's card must have the full order total available as unused credit — not just the first installment. If the hold is declined, the most common reasons are: (1) the customer's available credit is lower than the total order amount even though they have a sufficient credit limit overall — existing charges, pending transactions, or a high balance can reduce available credit below what Splitit needs; (2) the customer's bank blocks large-amount authorization holds it doesn't recognize as a standard retail charge — some banks treat a large hold from a payment processor (not the merchant directly) as suspicious; (3) the card was recently used for another large Splitit plan and the existing hold reduces available credit for the new transaction. The customer should contact their bank to whitelist Splitit or temporarily increase their available credit."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What cards does Splitit accept on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Splitit only works with existing Visa and Mastercard credit cards. It does not accept debit cards, prepaid cards, or virtual cards — because Splitit's model requires placing and maintaining an authorization hold for months, which debit and prepaid cards do not support reliably. American Express support varies by market and merchant configuration. If a customer tries to use a debit card, a prepaid Visa, or a Visa gift card, Splitit will decline at the card eligibility check before any hold is attempted. Customers often don't realize their Visa or Mastercard is a debit card (sometimes labeled 'Visa Debit' on the physical card) — this is a very common support issue. There is no workaround for ineligible card types; the customer must use a qualifying credit card."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "The customer completed Splitit checkout but no Shopify order was created — what happened?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is a webhook or redirect failure. After Splitit completes the authorization hold and plan setup, it sends a webhook or redirect to Shopify to create the order. If this step fails — due to a network timeout, Shopify webhook backlog, or a misconfigured Splitit webhook URL in Shopify — no order appears in Shopify Admin even though the customer's credit card has a hold placed on it. The hold is real and the customer may think the purchase completed. To investigate: check Shopify Admin → Settings → Notifications → Webhooks for recent failures; check the Splitit merchant dashboard for the transaction status; if the hold exists but no order was created, contact Splitit merchant support. Critical: do not ask the customer to retry without first voiding the existing hold through Splitit's merchant portal — a second attempt will create a second hold on the customer's card."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did a Splitit installment charge fail after the Shopify order was placed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Splitit charges installments monthly by capturing against the authorization hold placed at checkout. An installment can fail for several reasons: (1) the card used at checkout expired — if the customer's Visa or Mastercard expired during the installment plan, Splitit cannot capture the next payment and the hold becomes invalid; (2) the customer canceled or replaced the card — a lost/stolen card replacement creates a new card number, breaking the existing hold; (3) the customer's bank closed or blocked the card; (4) the authorization hold itself expired — most banks honor holds for 30–180 days, but some expire sooner. If a hold expires before the plan is complete, Splitit must attempt to place a new hold for the remaining balance, which can fail. As a merchant, Splitit pays you the full order amount at checkout or shortly after — installment failures are a collections matter between Splitit and the customer, not your store. Contact Splitit merchant support if you see a payment reversal."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Splitit failing during the 3DS or authentication step?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When Splitit places the authorization hold at checkout, the customer's bank may trigger 3DS (3D Secure) authentication — particularly in Europe under PSD2/SCA regulations. This additional authentication step can fail for several reasons: (1) the customer's phone is unavailable to receive the bank's SMS OTP; (2) the bank's authentication app is outdated or not configured; (3) the customer dismissed the 3DS prompt before completing it; (4) the bank timed out the 3DS challenge. If 3DS fails, the authorization hold is rejected and Splitit cannot set up the installment plan. The customer needs to retry with their bank's authenticator ready, or contact their bank to understand why the 3DS challenge failed. Merchants in non-SCA markets (US, Canada, Australia) see this less frequently, but it can still occur when the card-issuing bank is European."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do refunds and cancellations work for Splitit orders on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Refunds for Splitit orders initiated through Shopify Admin flow to Splitit, which then releases the corresponding portion of the authorization hold and reverses any captured installments. For a full refund, Splitit terminates the installment plan entirely and releases the full hold. For a partial refund, Splitit adjusts the remaining plan. Processing time is typically 5–10 business days for the hold release to appear on the customer's card statement — banks can take additional time to reflect this. Two common issues: (1) the refund is processed in Shopify but Splitit doesn't receive it — check webhook connectivity between Shopify and Splitit before escalating; (2) the authorization hold remains after a full refund — this is a bank processing delay, not a Splitit error, but customers may panic seeing the hold on their statement. Always initiate refunds through Shopify Admin, not Splitit's merchant portal, to keep records in sync."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does the cart amount change cause Splitit to fail?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer enters the Splitit checkout flow, Splitit captures the cart total and sets up the authorization hold for that specific amount. If the cart total changes between when the customer initiated Splitit checkout and when the hold is placed — due to shipping recalculation, a discount code applied, or taxes adjusting — Splitit may reject the session because the hold amount no longer matches the cart. This is rare but occurs with dynamic shipping rates or cart-level discount apps that modify the price during checkout. The solution is to restart checkout after the cart is finalized. Merchants can reduce this by ensuring all discounts and shipping rates are calculated before the customer reaches the payment step."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .info-box strong { color: #60a5fa; }
+
+    .splitit-unique {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(79,70,229,0.06));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .splitit-unique h3 { font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .splitit-unique p { font-size: 14px; color: #999; line-height: 1.65; margin-bottom: 10px; }
+    .splitit-unique p:last-child { margin-bottom: 0; }
+    .splitit-unique strong { color: #c4b5fd; }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #161616;
+      border: 1px solid #222;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+    }
+    .compare-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e1e1e;
+      color: #999;
+      vertical-align: top;
+    }
+    .compare-table tr:nth-child(even) td { background: #121212; }
+    .compare-table td:first-child { color: #ccc; font-weight: 600; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    Splitit Not Working
+  </div>
+  <h1>Shopify Splitit Not Working — Not Showing, Hold Declined, Order Not Created</h1>
+  <div class="hero-meta">Updated June 2026 · 8 failure modes · Merchants &amp; customers</div>
+  <p class="hero-lead">Splitit is fundamentally different from every other BNPL on Shopify — it uses your customer's existing Visa or Mastercard credit card with no new credit check. That unique model creates failure modes that don't exist with Afterpay, Klarna, or Affirm: authorization holds being blocked by banks, debit cards silently ineligible, and holds expiring during long installment plans. This guide covers all 8 failure modes with exact fixes.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is your Splitit option missing for all customers?</strong> A 4-step checkout diagnostic catches configuration failures before your customers do.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- SPLITIT UNIQUE MODEL -->
+  <div class="splitit-unique">
+    <h3>Why Splitit Fails Differently From Every Other BNPL</h3>
+    <p><strong>Splitit doesn't issue new credit.</strong> It places an authorization hold on the customer's existing Visa or Mastercard for the full purchase amount, then captures each installment monthly. No credit check, no application — but the customer must have the full order total available as unused credit on their card.</p>
+    <p><strong>This creates unique failure modes:</strong> debit cards and prepaid cards are completely ineligible (holds don't work), the customer's bank can block an unfamiliar large-amount hold, the hold can expire before the plan ends, and a card replacement mid-plan breaks all future installments.</p>
+    <p><strong>As a merchant, you're paid at checkout</strong> (or shortly after) — Splitit absorbs the installment risk. Failed later installments don't affect your revenue, but they can trigger plan terminations that look like order cancellations in your dashboard.</p>
+  </div>
+
+  <div class="toc">
+    <h2>8 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#not-showing">Splitit not showing at checkout</a></li>
+      <li><a href="#hold-declined">Authorization hold declined by bank</a></li>
+      <li><a href="#card-ineligible">Card not eligible — debit, prepaid, or insufficient credit</a></li>
+      <li><a href="#amount-mismatch">Cart amount changed after hold was initiated</a></li>
+      <li><a href="#order-not-created">Order not created in Shopify after approval</a></li>
+      <li><a href="#installment-failed">Monthly installment charge failed</a></li>
+      <li><a href="#3ds-failure">3DS / SCA authentication failure during plan setup</a></li>
+      <li><a href="#refund-cancellation">Refund or cancellation not releasing the hold</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="not-showing">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Splitit Not Showing at Shopify Checkout</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Splitit is a third-party app — it is not built into Shopify Payments. This means it can disappear silently from checkout for configuration reasons that Shopify's built-in payment options never experience.</p>
+      <p>The most common reason Splitit vanishes: <strong>the app is installed but sandbox/test mode is still active</strong>. Splitit's integration requires switching from test API credentials to live API credentials before going live — if the merchant never completed this step, Splitit hides itself at checkout to avoid customers attempting real purchases against a test environment.</p>
+      <p>Other common causes: the Splitit app was not installed from the Shopify App Store at all (a previous developer may have removed it during a theme migration); the cart total falls below Splitit's minimum order threshold (typically $36); the customer's country is not a supported Splitit market; or a theme update broke the Splitit payment widget's rendering logic.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Diagnose</h3>
+      <ol>
+        <li><strong>Check app installation:</strong> Shopify Admin → Apps → confirm Splitit appears and is active</li>
+        <li><strong>Check API mode:</strong> In the Splitit app settings, confirm Live API credentials are entered (not sandbox/test credentials)</li>
+        <li><strong>Check payment settings:</strong> Settings → Payments → Alternative payment providers → confirm Splitit shows as active</li>
+        <li><strong>Test cart value:</strong> Add a product over $50 to the cart and test checkout — rules out minimum order threshold</li>
+        <li><strong>Test in incognito:</strong> Open a private browser window and go through checkout — rules out browser extension conflicts</li>
+        <li><strong>Check country:</strong> Splitit is primarily available in US, UK, Canada, Australia, and select EU markets — test with a supported country address</li>
+        <li><strong>Review app logs:</strong> In the Splitit merchant dashboard, check for any configuration errors or warnings</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="hold-declined">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Authorization Hold Declined by Bank</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When a customer selects Splitit at checkout, Splitit immediately attempts to place an authorization hold on their credit card for the <strong>full purchase amount</strong> — not the first installment. This is how Splitit secures all future payments without requiring a new credit check.</p>
+      <p>Banks can decline this hold even when the customer has sufficient available credit. The most common reason: the bank's fraud system sees an unusually large authorization from an unfamiliar payment processor (Splitit's processor, not the merchant), flags it as suspicious, and declines. This is especially common for first-time Splitit users and for large order amounts.</p>
+      <p>A secondary reason: the customer's <strong>available credit</strong> is lower than the purchase amount even though their credit limit is high. Existing balances, pending authorizations from other purchases, or previous Splitit plans with active holds can reduce available credit below the threshold needed for the new hold.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Check available credit:</strong> Log into your credit card's mobile app and confirm the available credit (not the credit limit) exceeds the order total</li>
+        <li><strong>Contact your bank:</strong> Call the number on the back of your card and ask them to approve a Splitit authorization — describe it as an installment payment service</li>
+        <li><strong>Try a different card:</strong> If you have a second Visa or Mastercard credit card, try it — some banks are more Splitit-friendly than others</li>
+        <li><strong>Reduce hold conflicts:</strong> If you have an existing Splitit plan on the same card, that plan's hold reduces available credit — contact Splitit to check your existing hold amount</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Merchant note:</strong> You cannot override bank hold declines. If customers report Splitit failures after selecting it, offer Afterpay or Klarna as alternatives — they don't require a full-amount hold and use their own credit assessment.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="card-ineligible">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Card Not Eligible — Debit, Prepaid, or Insufficient Credit</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Splitit only works with <strong>Visa and Mastercard credit cards</strong>. It does not support debit cards, prepaid cards, virtual cards, or gift cards — because authorization holds on these card types either don't work reliably for multi-month durations or aren't supported at all.</p>
+      <p>This causes a significant support issue: many customers have a Visa or Mastercard that says "Debit" on the front. These look identical to credit cards but are fundamentally different products. A Visa Debit card will be declined at Splitit's card eligibility check before any hold attempt. The error message customers see is often generic ("card not accepted") and doesn't explain why.</p>
+      <p>American Express cards are supported in some Splitit markets but not all. Depending on the merchant's Splitit configuration and the customer's country, Amex may or may not appear as an option.</p>
+      <p>Insufficient available credit is a related issue: even if the card is eligible (a true Visa credit card), Splitit checks that the customer has at least the full purchase amount available as unused credit. A card with a $2,000 limit but a $1,800 balance cannot support a $500 Splitit purchase because only $200 is available.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Identify the Card Type</h3>
+      <ol>
+        <li><strong>Look at the card front:</strong> Check for the word "DEBIT" or "CREDIT" printed on the card — this determines eligibility</li>
+        <li><strong>Check with your bank:</strong> Call or check online banking — some banks issue "Visa Debit" cards that look like credit cards but are debit cards</li>
+        <li><strong>Check available credit:</strong> Log into your card's app and confirm the available credit (not just the credit limit) is higher than the order total</li>
+        <li><strong>Use a qualifying card:</strong> Only Visa or Mastercard <em>credit</em> cards with sufficient available credit will work with Splitit</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="amount-mismatch">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Cart Amount Changed After Hold Was Initiated</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When a customer enters the Splitit checkout flow, Splitit locks in the cart total and begins the process of setting up the authorization hold for that specific amount. If the cart total changes between when the customer initiated Splitit and when the hold is confirmed — for any reason — the plan setup fails.</p>
+      <p>Common causes of mid-checkout amount changes: shipping rates that recalculate after the customer enters their address; discount codes applied after Splitit was selected; tax adjustments based on the shipping address; or a cart-level discount app that modifies prices during checkout.</p>
+      <p>This failure is more common on Shopify stores with complex discount logic, carrier-calculated shipping, or apps that modify cart prices dynamically. The solution is to ensure all prices are finalized before the customer reaches the payment selection step.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix for Merchants</h3>
+      <ol>
+        <li><strong>Review discount apps:</strong> Audit any Shopify apps that modify cart prices — check if they apply changes during the payment step rather than at cart view</li>
+        <li><strong>Shipping rate sequence:</strong> Ensure carrier-calculated shipping rates are presented before the customer reaches payment selection — not after</li>
+        <li><strong>Test checkout flow:</strong> Run a test order using Splitit with a cart that has a discount code and carrier shipping — observe whether the amount stays consistent</li>
+        <li><strong>Customer instructions:</strong> For customers who hit this, instruct them to refresh checkout, confirm the final total, then reselect Splitit</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="order-not-created">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>Order Not Created in Shopify After Splitit Approval</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>This is the most financially risky failure mode. The customer's card has an active authorization hold (placed by Splitit) but no order exists in Shopify Admin. The customer believes the purchase completed; the merchant sees nothing.</p>
+      <p>This happens when the webhook or redirect from Splitit back to Shopify fails after the hold is placed. The hold is real — the customer's credit card statement will show the authorization — but Shopify never received the signal to create the order. Causes include: network timeout during the webhook delivery, a misconfigured webhook endpoint in the Splitit app settings, or a Shopify platform hiccup that caused the webhook to be dropped.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Investigate</h3>
+      <ol>
+        <li><strong>Check Splitit merchant dashboard:</strong> Log in and look for the transaction — if it shows "approved" or "hold placed" on their end, the failure is in the Shopify webhook delivery</li>
+        <li><strong>Check Shopify webhooks:</strong> Admin → Settings → Notifications → Webhooks — look for recent delivery failures on the Splitit endpoint URL</li>
+        <li><strong>Contact Splitit merchant support:</strong> Provide the customer's email and approximate checkout time — they can look up the transaction and void the hold if no order should be created</li>
+        <li><strong>Do not ask customer to retry:</strong> A second attempt will place a second authorization hold on the customer's card — confirm whether the first hold exists before any retry</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Critical:</strong> Never instruct the customer to try again without first checking whether Splitit recorded the transaction. A second checkout creates a second hold, potentially tying up twice the purchase amount on the customer's card for days.
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="installment-failed">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Monthly Installment Charge Failed</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Splitit captures installments monthly by charging against the original authorization hold. The most common reason a later installment fails: <strong>the customer's card expired</strong>. If the card used at checkout has an expiration date that falls during the installment plan (e.g., a 6-month plan started on a card expiring in month 3), Splitit loses the ability to capture future installments.</p>
+      <p>A related failure: the customer <strong>replaced their card</strong> due to loss or fraud. A new card number invalidates the existing authorization hold — Splitit cannot charge a different card number than the one that approved the original hold.</p>
+      <p>Less commonly: the customer's bank reduced their credit limit, making the existing hold now exceed their available credit, causing future captures to be declined. Or the bank placed a block on the account due to suspected fraud on other transactions.</p>
+      <p>As a merchant, this typically does not affect you — Splitit pays merchants upfront or in guaranteed installments, and absorbs the customer-side collection risk. However, you may receive a notification from Splitit if they need to terminate a plan, which can look like an order reversal in your dashboard.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Log into your Splitit account:</strong> Check the plan details and whether a payment failure notification was sent</li>
+        <li><strong>Update your card in Splitit:</strong> If your card expired or was replaced, contact Splitit support to update the payment method on the existing plan</li>
+        <li><strong>Contact your bank:</strong> If the card is valid but the charge was declined, call your bank to understand why and unblock the charge</li>
+        <li><strong>Act quickly:</strong> Splitit typically allows a grace period to resolve payment failures — delayed action can result in plan cancellation</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="3ds-failure">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>3DS / SCA Authentication Failure During Plan Setup</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When Splitit initiates the authorization hold, the customer's card-issuing bank may require 3D Secure (3DS) authentication — particularly for European cards under PSD2/SCA regulations, or for any bank that has enabled 3DS for large-amount transactions.</p>
+      <p>The 3DS prompt appears as an interstitial step asking the customer to confirm via their bank's app, an SMS code, or a biometric check. This flow can fail if: the customer dismisses the prompt; the SMS OTP never arrives due to a phone carrier issue; the bank's authentication app is outdated; or the 3DS timeout is too short and the customer doesn't complete it in time.</p>
+      <p>When 3DS fails, the authorization hold is rejected and Splitit cannot complete the plan setup. The failure is indistinguishable to the customer from a card decline, but the root cause is authentication, not credit availability.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Have your phone ready:</strong> When retrying Splitit, keep your phone nearby for the bank's SMS or app notification</li>
+        <li><strong>Update your bank's app:</strong> If 3DS uses your bank's mobile app, ensure it's up to date and notifications are enabled</li>
+        <li><strong>Complete the challenge quickly:</strong> 3DS prompts expire — don't leave the browser tab during the Splitit checkout</li>
+        <li><strong>Contact your bank:</strong> Ask whether they require 3DS for Splitit transactions and whether there is a way to pre-authorize the charge</li>
+        <li><strong>Try a different card:</strong> If one card consistently fails 3DS for Splitit, try a Visa or Mastercard from a different bank</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 8 -->
+  <div class="failure" id="refund-cancellation">
+    <div class="failure-header">
+      <div class="failure-num">8</div>
+      <div>
+        <h2>Refund or Cancellation Not Releasing the Hold</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When a Splitit order is refunded or canceled through Shopify Admin, Splitit should automatically terminate the installment plan and release the authorization hold on the customer's card. The hold release typically takes 3–10 business days to appear on the customer's statement depending on the bank.</p>
+      <p>Problems occur in two scenarios: (1) the refund is processed in Shopify but not communicated to Splitit — this happens when the webhook from Shopify to Splitit fails, leaving the plan active and the hold in place even though the merchant issued the refund; (2) the hold was placed for the full purchase amount but only a partial refund was issued — Splitit will adjust the plan to reflect the partial refund, but the remaining hold stays active for the outstanding balance.</p>
+      <p>Customers often contact merchants confused about why the hold remains on their card after a refund confirmation. The hold and the refund are separate actions — the refund returns money already captured (first installment), while the hold release frees up remaining credit that was reserved but never charged.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Handle Hold Release Issues</h3>
+      <ol>
+        <li><strong>Initiate refund through Shopify Admin only:</strong> Never refund directly in Splitit's merchant portal for Shopify orders — it breaks the sync</li>
+        <li><strong>Confirm webhook delivery:</strong> After issuing the refund in Shopify, check Splitit's merchant dashboard to confirm the plan shows as terminated/refunded</li>
+        <li><strong>Wait 5–10 business days:</strong> Hold releases require bank processing time — advise customers that the hold will disappear from their statement within this window</li>
+        <li><strong>Escalate to Splitit support:</strong> If the plan still shows active in Splitit's dashboard after a Shopify refund, contact Splitit merchant support to force-terminate the plan</li>
+        <li><strong>For partial refunds:</strong> Confirm with Splitit support how the partial refund affects the remaining hold — the hold should be reduced to cover only the remaining plan balance</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <p class="section-label" style="margin-top:56px;">BNPL Comparison</p>
+  <h2 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:4px;">Splitit vs Other BNPL — Key Differences</h2>
+  <p style="font-size:14px; color:#666; margin-bottom:16px;">Understanding why Splitit fails differently from Afterpay, Klarna, Affirm, and Zip</p>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Splitit</th>
+        <th>Afterpay / Klarna</th>
+        <th>Affirm</th>
+        <th>Zip</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>How it works</td>
+        <td>Hold on existing credit card</td>
+        <td>New short-term credit line</td>
+        <td>New loan (soft credit check)</td>
+        <td>Virtual Visa card issued</td>
+      </tr>
+      <tr>
+        <td>Credit check</td>
+        <td>None — uses existing card</td>
+        <td>Soft check only</td>
+        <td>Soft check, may affect score</td>
+        <td>Risk-based (no hard pull)</td>
+      </tr>
+      <tr>
+        <td>Debit card eligible</td>
+        <td>No — credit cards only</td>
+        <td>Yes (varies by market)</td>
+        <td>N/A (loan, not card-based)</td>
+        <td>No — virtual Visa for US</td>
+      </tr>
+      <tr>
+        <td>Hold on card</td>
+        <td>Full amount held upfront</td>
+        <td>No hold — separate credit</td>
+        <td>No hold — separate loan</td>
+        <td>No hold — virtual card used</td>
+      </tr>
+      <tr>
+        <td>Shopify native</td>
+        <td>Third-party app</td>
+        <td>Native (Shopify Payments markets)</td>
+        <td>Native (Shopify Installments, US only)</td>
+        <td>Third-party app</td>
+      </tr>
+      <tr>
+        <td>Merchant paid when</td>
+        <td>At checkout (hold captured)</td>
+        <td>At checkout (Afterpay/Klarna pays)</td>
+        <td>Shortly after order (Affirm pays)</td>
+        <td>At checkout (Zip pays)</td>
+      </tr>
+      <tr>
+        <td>Failed installment risk</td>
+        <td>Merchant shielded — Splitit risk</td>
+        <td>Merchant shielded</td>
+        <td>Merchant shielded</td>
+        <td>Merchant shielded</td>
+      </tr>
+      <tr>
+        <td>Unique failure mode</td>
+        <td>Hold declined / card ineligible / hold expires</td>
+        <td>Country/cart limit / app not installed</td>
+        <td>Shopify Payments required / US only</td>
+        <td>AVS mismatch on virtual card</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- MERCHANT CHECKLIST -->
+  <p class="section-label" style="margin-top:56px;">Merchant Diagnostic Checklist</p>
+  <h2 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:12px;">Splitit Troubleshooting — 8-Step Merchant Checklist</h2>
+
+  <div class="checklist">
+    <h3>Run through this before contacting Splitit support</h3>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>App installed and active:</strong> Shopify Admin → Apps → confirm Splitit is installed and shows as active (not paused)</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Live API credentials entered:</strong> In Splitit app settings, confirm Live mode is selected and live API keys are configured — not sandbox/test credentials</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Cart minimum confirmed:</strong> Test with a cart value above $50 to rule out Splitit's minimum order threshold hiding the option</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Supported country verified:</strong> Confirm the shipping address country is a Splitit-supported market (US, UK, CA, AU, select EU)</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Webhook endpoint active:</strong> Settings → Notifications → Webhooks — confirm Splitit's webhook URL is registered and receiving without errors</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Splitit merchant dashboard checked:</strong> Log into Splitit's portal to verify transaction status — always do this before asking a customer to retry</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>No duplicate hold risk:</strong> Before any retry, confirm Splitit did not already place an authorization hold for the failed checkout</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Alternative BNPL offered:</strong> When Splitit fails due to card ineligibility or hold decline, offer Afterpay or Klarna — these don't require a full-amount hold and may succeed where Splitit didn't</p>
+    </div>
+  </div>
+
+  <div class="cta-bottom">
+    <h2>Monitor Your Checkout Before Customers Hit These Errors</h2>
+    <p>CheckPulse runs a 4-step checkout diagnostic every 15 minutes and emails you the moment something breaks — including payment method failures.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-zip-not-working">Zip Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-sezzle-not-working">Sezzle Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-affirm-not-working">Affirm Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+  </nav>
+  <p>© 2026 CheckPulse · Shopify checkout monitoring</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Affirm Not Working — Shopify Installments Not Showing, Declined, Order Not Created (2026)</title>
+  <meta name="description" content="Shopify Affirm not working? Shopify Installments not appearing at checkout, Affirm application declined, order not created after approval, or refunds not processing — 8 root causes with exact fixes including eligibility rules, cart limits, and webhook failures." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-affirm-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-affirm-not-working" />
+  <meta property="og:title" content="Shopify Affirm Not Working — Shopify Installments Not Showing, Declined, Order Not Created (2026)" />
+  <meta property="og:description" content="Affirm on Shopify (sold as Shopify Installments) has 8 distinct failure modes: not appearing due to eligibility rules, cart total outside the $50–$17,500 range, ineligible product types, Affirm application declined by credit check, order not created after Affirm approval due to webhook failure, US-only restriction for international customers, Shopify Payments required and not active, or refunds not flowing back through Affirm. Each fails differently and requires different diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Affirm Not Working — Shopify Installments Not Showing, Declined, Order Not Created",
+    "description": "Affirm not working on Shopify (sold as Shopify Installments) has eight root causes: the payment method not appearing due to eligibility requirements including US-only availability and Shopify Payments dependency; cart total below $50 or above $17,500 which makes Affirm invisible; ineligible products in cart such as gift cards, subscriptions, or digital products; Affirm's own credit system declining the customer's application; the customer completing Affirm approval but the order never appearing in Shopify admin due to webhook failure; international customers being blocked by Affirm's US-only restriction; Shopify Payments not being the active payment provider; or refunds not processing back through Affirm correctly after order cancellations. This guide covers all 8 failure modes with diagnostic steps and fixes.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-affirm-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-23",
+    "dateModified": "2026-06-23"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Affirm not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Affirm not showing at Shopify checkout (branded as Shopify Installments) is caused by eligibility requirements that must all be met simultaneously: (1) Shopify Payments must be your active payment provider — third-party gateways disable Shopify Installments entirely; (2) your store must be based in the United States — Affirm via Shopify Installments is US-only; (3) the cart total must be between $50 and $17,500 — outside this range, the option is hidden automatically; (4) the cart cannot contain ineligible products — gift cards, digital products, and subscription products block Affirm from appearing; (5) your Shopify Installments must be enabled in Admin → Settings → Payments → Shopify Payments → Manage → Installments. If all five conditions are met and Affirm still doesn't appear, Shopify Payments may be under review or your merchant account may not yet be approved for Shopify Installments (approval is separate from enabling Shopify Payments)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between Affirm and Shopify Installments?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Shopify Installments is Shopify's branded name for the buy-now-pay-later option powered by Affirm. They are the same product — when a customer selects 'Pay in installments' or 'Shopify Installments' at checkout, Affirm is processing the transaction behind the scenes. Customers may see Affirm branding inside the payment modal after selecting the option. Merchants do not install Affirm separately — Shopify Installments is enabled through the Shopify Payments settings, and Affirm handles underwriting, credit decisions, and customer repayment. Some merchants also install third-party Affirm apps from the Shopify App Store, which creates a separate Affirm integration — this can cause duplicate payment options or conflicts if not managed carefully."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Affirm approve my customer but the order never appeared in Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer completes the Affirm application, gets approved, and is redirected back to the Shopify store but no order appears in Shopify admin, this is almost always a webhook or session callback failure. During the Affirm approval flow, the customer is sent to Affirm's hosted application modal, then redirected back to Shopify's checkout to complete order creation. If the redirect fails — due to a slow network, browser tab closure, a popup blocker, or a session timeout — Shopify never receives the confirmation signal and no order is created. The customer's Affirm loan may still be created and active even though Shopify has no order. To resolve: contact Shopify Support with the customer's order attempt timestamp and their Affirm confirmation ID. Do not ask the customer to retry without confirming the original loan was cancelled first — a second attempt could create two Affirm loans."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can international customers use Affirm on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Affirm via Shopify Installments is exclusively available to customers in the United States. International customers — including Canada, UK, EU, and Australia — cannot use Affirm at Shopify checkout regardless of how the store is configured. Affirm requires a US Social Security Number (SSN) or Individual Taxpayer Identification Number (ITIN) for credit evaluation. Shopify's checkout automatically detects customer location and hides the Shopify Installments option for non-US customers. If your store serves international customers who want buy-now-pay-later options, you need to enable a separate BNPL provider that covers those regions — Klarna (EU, UK, US, Australia), Afterpay (US, UK, Australia, Canada), or regional providers."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Affirm decline my customer's application on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Affirm application declines are credit decisions made by Affirm, not by Shopify. Affirm evaluates each customer's application independently based on: credit history (via soft credit check, not hard inquiry), income and repayment capacity assessment, existing Affirm loan balance (customers with multiple open Affirm loans are more likely to be declined), SSN verification (required — customers without a valid US SSN cannot use Affirm), and the specific purchase amount and repayment terms. Merchants have no visibility into why a specific customer was declined and cannot override Affirm's credit decision. Customers who are declined can contact Affirm directly to understand their decision. As a merchant, declining Affirm rates are normal — Affirm declines a portion of applicants by design. If your decline rate seems unusually high, verify your store is not showing Affirm to ineligible customers (low cart values, digital products) which artificially inflates apparent decline rates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do refunds work for Affirm orders on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Refunding an Affirm/Shopify Installments order through Shopify automatically sends a refund notification to Affirm. Partial refunds reduce the outstanding loan balance; full refunds cancel the remaining loan and refund any payments already made by the customer to Affirm. Refunds are processed through Shopify admin just like any other order refund — go to the order, click Refund, and proceed normally. The refund to the customer's original payment method depends on Affirm's processing timeline, which is typically 3–10 business days. Common issues: refund initiated in Shopify but Affirm account not updated (usually resolves within 24 hours; contact Shopify Support if it persists beyond 5 business days); partial refund confusion (customer doesn't understand why their Affirm installment amount changed); or refund failed because the original Affirm transaction has already been fully repaid by the customer (in this case Affirm refunds back to the customer's bank account on file with Affirm)."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: #2a2a3a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; font-size: 1rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+    .nav-brand { font-weight: 800; font-size: 1.2rem; color: var(--text); }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; color: var(--muted); }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 0.45rem 1.1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    .nav-cta:hover { background: #5753d4; text-decoration: none; }
+
+    article { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .hero { margin-bottom: 3rem; }
+    .breadcrumb { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+    .breadcrumb a { color: var(--muted); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; margin-bottom: 1rem; }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub { font-size: 1.08rem; color: var(--muted); max-width: 720px; margin-bottom: 1.2rem; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+
+    .content h2 { font-size: 1.45rem; font-weight: 700; margin: 2.5rem 0 0.8rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .content h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    .content p { margin-bottom: 1rem; color: #ccccd8; }
+    .content ul, .content ol { margin: 0.8rem 0 1rem 1.5rem; }
+    .content li { margin-bottom: 0.5rem; color: #ccccd8; }
+    .content code { background: var(--surface2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.88em; color: #c4b5fd; }
+
+    ol.steps { list-style: decimal; }
+    ol.steps li { margin-bottom: 0.75rem; }
+
+    .callout { border-radius: 8px; padding: 1.1rem 1.3rem; margin: 1.5rem 0; }
+    .callout-title { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+    .callout.tip { background: #0d1f0d; border: 1px solid #1a3d1a; }
+    .callout.tip .callout-title { color: var(--green); }
+    .callout.warning { background: #1f180a; border: 1px solid #3d2f0a; }
+    .callout.warning .callout-title { color: var(--yellow); }
+    .callout.danger { background: #1f0a0a; border: 1px solid #3d1a1a; }
+    .callout.danger .callout-title { color: var(--red); }
+    .callout.info { background: #0a0f1f; border: 1px solid #1a2a3d; }
+    .callout.info .callout-title { color: var(--blue); }
+
+    .table-wrap { overflow-x: auto; margin: 1.2rem 0; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); padding: 0.7rem 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #ccccd8; }
+    tr:last-child td { border-bottom: none; }
+
+    .tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .tag.green { background: #052e16; color: var(--green); }
+    .tag.red { background: #2e0505; color: var(--red); }
+    .tag.yellow { background: #2e1f05; color: var(--yellow); }
+    .tag.blue { background: #051229; color: var(--blue); }
+
+    .cta-box { background: linear-gradient(135deg, #1a1630 0%, #0f0a24 100%); border: 1px solid var(--accent); border-radius: 12px; padding: 2rem; margin: 3rem 0; text-align: center; }
+    .cta-box h2 { border: none; font-size: 1.3rem; margin: 0 0 0.7rem; }
+    .cta-box p { color: var(--muted); margin-bottom: 1.2rem; }
+    .cta-btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.7rem 1.6rem; border-radius: 8px; font-weight: 700; font-size: 1rem; }
+    .cta-btn:hover { background: #5753d4; text-decoration: none; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; }
+    .footer-brand { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .footer-brand span { color: var(--accent); }
+    .footer-tagline { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { margin-top: 2rem; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0.8rem 1rem; }
+      .nav-links { display: none; }
+      article { padding: 1.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/checkpulse/" class="nav-brand">Check<span>Pulse</span></a>
+  <div class="nav-links">
+    <a href="/checkpulse/guide">Guide</a>
+    <a href="/checkpulse/free-check">Free Check</a>
+    <a href="/checkpulse/#pricing">Pricing</a>
+  </div>
+  <a href="/checkpulse/free-check" class="nav-cta">Run Free Check →</a>
+</nav>
+
+<article>
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="/checkpulse/">CheckPulse</a> → <a href="/checkpulse/free-check">Shopify Checkout Errors</a> → Affirm Not Working
+  </div>
+  <h1>Shopify <em>Affirm Not Working</em> — Shopify Installments Not Showing, Declined, Order Not Created (2026)</h1>
+  <p class="hero-sub">Affirm on Shopify (sold as Shopify Installments) has 8 distinct failure categories: not appearing at checkout, application declined by Affirm's credit system, orders lost after Affirm approval, US-only restrictions, and refund failures — each requires a different fix.</p>
+  <div class="meta-row">
+    <span>Updated June 2026</span>
+    <span>8 failure modes</span>
+    <span>Shopify Installments · Cart Limits · Eligibility · Affirm Credit · Webhook Failures · US-Only · Shopify Payments · Refunds</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <p>Affirm on Shopify is sold as <strong>Shopify Installments</strong> — the buy-now-pay-later option powered by Affirm behind the scenes. When merchants say "Affirm not working on Shopify," they almost always mean Shopify Installments, though some stores also install a separate Affirm app from the Shopify App Store which creates its own integration with its own failure modes.</p>
+
+  <p>Affirm failures fall into two categories: <em>not appearing</em> (the installments option is invisible at checkout) and <em>not completing</em> (the option shows, the customer starts the application, but something fails before or after Affirm approval). Both categories look the same to the customer — "pay in installments isn't working" — but the diagnosis paths are completely different.</p>
+
+  <div class="callout tip">
+    <div class="callout-title">Affirm = Shopify Installments — Key Eligibility Check First</div>
+    Before diagnosing anything else: confirm your store meets all five baseline requirements. (1) Store country: United States only. (2) Payment provider: Shopify Payments must be active — not a third-party gateway. (3) Cart total: between $50 and $17,500. (4) Product types: no gift cards, digital products, or subscriptions in cart. (5) Feature enabled: Admin → Settings → Payments → Shopify Payments → Manage → Installments toggle must be on. If any of these five are missing, Affirm will not appear regardless of any other configuration.
+  </div>
+
+  <h2>Failure Mode 1: Shopify Installments Not Appearing at Checkout</h2>
+
+  <p>The most common Affirm issue: the pay-in-installments option is simply not visible at checkout. Customers don't see it, merchants can't find it. This is almost always an eligibility failure — one or more of Shopify Installments' strict requirements are not met.</p>
+
+  <p>Unlike payment methods such as credit cards or PayPal that show broadly, Shopify Installments has a narrow eligibility window. The option is hidden automatically when any eligibility condition fails, with no error message explaining why.</p>
+
+  <h3>Shopify Installments eligibility requirements</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Requirement</th>
+          <th>Detail</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Store location</td>
+          <td>United States only</td>
+          <td><span class="tag red">Non-negotiable</span></td>
+        </tr>
+        <tr>
+          <td>Payment provider</td>
+          <td>Shopify Payments must be active</td>
+          <td><span class="tag red">Non-negotiable</span></td>
+        </tr>
+        <tr>
+          <td>Cart minimum</td>
+          <td>$50 minimum order value</td>
+          <td><span class="tag yellow">Cart-dependent</span></td>
+        </tr>
+        <tr>
+          <td>Cart maximum</td>
+          <td>$17,500 maximum order value</td>
+          <td><span class="tag yellow">Cart-dependent</span></td>
+        </tr>
+        <tr>
+          <td>Product eligibility</td>
+          <td>No gift cards, digital, or subscriptions</td>
+          <td><span class="tag yellow">Cart-dependent</span></td>
+        </tr>
+        <tr>
+          <td>Feature toggle</td>
+          <td>Installments enabled in Shopify Payments settings</td>
+          <td><span class="tag blue">Admin config</span></td>
+        </tr>
+        <tr>
+          <td>Merchant approval</td>
+          <td>Shopify must approve your account for Installments</td>
+          <td><span class="tag blue">Shopify decision</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How to enable Shopify Installments</h3>
+
+  <ol class="steps">
+    <li>Go to <strong>Shopify Admin → Settings → Payments</strong></li>
+    <li>Under Shopify Payments, click <strong>Manage</strong></li>
+    <li>Scroll to find the <strong>Installments</strong> section</li>
+    <li>Toggle it on if available. If you don't see the Installments option, your store or merchant account may not yet be approved — contact Shopify Support</li>
+    <li>Save settings and test with a cart between $50 and $17,500 containing only physical, non-subscription products</li>
+  </ol>
+
+  <div class="callout warning">
+    <div class="callout-title">Merchant Approval Is Separate From Enabling Shopify Payments</div>
+    Having Shopify Payments active does not automatically qualify you for Shopify Installments. Shopify reviews merchant accounts separately for Installments eligibility. If you don't see the Installments toggle in your Shopify Payments settings, your account hasn't been approved yet. Contact Shopify Support through your admin to request Installments access. Approval typically takes 1–5 business days.
+  </div>
+
+  <h2>Failure Mode 2: Cart Total Outside the Eligible Range ($50–$17,500)</h2>
+
+  <p>Shopify Installments has a hard minimum of $50 and a hard maximum of $17,500. Outside these bounds, the pay-in-installments option is completely hidden — no message, no explanation, just absent.</p>
+
+  <p>The $50 minimum is the most commonly hit limit. If your average order value is below $50, your customers will never see Affirm as a payment option. The $17,500 maximum is rarely reached in most stores but can affect high-ticket merchants selling furniture, electronics, or custom products.</p>
+
+  <h3>Cart total edge cases that cause invisible Affirm</h3>
+
+  <ul>
+    <li><strong>Discount codes applied</strong> — a discount code that drops the cart below $50 will hide Affirm mid-checkout. Customer adds product, sees Affirm, applies 60% off coupon, Affirm disappears</li>
+    <li><strong>Cart with mixed eligible/ineligible items</strong> — if an ineligible product (gift card, digital item) is in cart alongside eligible products, the entire cart becomes ineligible for Affirm</li>
+    <li><strong>Tip or custom fields that affect total</strong> — some stores use checkout extensions that add tips or fees. These affect the cart total calculation for Affirm eligibility</li>
+    <li><strong>Currency display</strong> — Shopify Installments applies to USD only. If you display prices in multiple currencies, the USD amount must fall within the range</li>
+  </ul>
+
+  <div class="callout info">
+    <div class="callout-title">Setting a Minimum for Your Store to Make Affirm Useful</div>
+    If most of your products are below $50, consider whether Affirm is the right BNPL for your catalog. Alternatively, use Shopify's minimum order requirements feature to set a cart minimum for your store — this ensures customers reaching checkout with Affirm visible are already above the threshold. Merchants with average order values of $100–$500 see the highest Affirm uptake because the monthly payment amounts are compelling.
+  </div>
+
+  <h2>Failure Mode 3: Ineligible Product Types in Cart</h2>
+
+  <p>Certain product types are categorically excluded from Shopify Installments, regardless of cart total or any other factor. If any of these product types exist in the cart, Affirm is hidden for the entire checkout — not just for those specific items.</p>
+
+  <h3>Product types that block Affirm</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Product Type</th>
+          <th>Why Excluded</th>
+          <th>Alternative</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shopify Gift Cards</td>
+          <td>Regulatory — BNPL financing gift cards creates compound debt risk</td>
+          <td>Standard payment methods only</td>
+        </tr>
+        <tr>
+          <td>Digital products</td>
+          <td>No physical collateral; immediate delivery creates chargeback risk</td>
+          <td>Standard payment methods only</td>
+        </tr>
+        <tr>
+          <td>Subscription products</td>
+          <td>Recurring billing conflicts with installment loan structure</td>
+          <td>Klarna, Afterpay for subscriptions (limited support)</td>
+        </tr>
+        <tr>
+          <td>Pre-orders (some cases)</td>
+          <td>Delayed fulfillment can conflict with Affirm's loan servicing timeline</td>
+          <td>Depends on your Shopify Payments account status</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The most common merchant mistake: adding a single Shopify gift card option to the cart during testing — Affirm disappears and the merchant concludes Affirm is broken, when actually the test cart contained a gift card.</p>
+
+  <h2>Failure Mode 4: Affirm Application Declined by Affirm's Credit System</h2>
+
+  <p>When a customer selects Shopify Installments at checkout, they are redirected to Affirm's application modal. Affirm evaluates the customer and issues an approval or decline decision — entirely on Affirm's side, independently of Shopify. If Affirm declines the customer, the customer is returned to Shopify checkout and must select a different payment method.</p>
+
+  <p>This failure mode is often misidentified by merchants as a "store problem" because the customer reports "Affirm didn't work." In reality, the store is functioning correctly — Affirm's underwriting rejected that specific customer.</p>
+
+  <h3>Why Affirm declines customers</h3>
+
+  <ul>
+    <li><strong>Credit history</strong> — Affirm performs a soft credit pull. Thin credit file, recent delinquencies, or poor credit score increases decline probability</li>
+    <li><strong>No valid US SSN or ITIN</strong> — Affirm requires a US Social Security Number or Individual Taxpayer Identification Number for identity and credit verification. No SSN = automatic decline</li>
+    <li><strong>Existing Affirm loan balance</strong> — customers with multiple active Affirm loans are scored as higher risk and are more likely to be declined for additional loans</li>
+    <li><strong>Income and repayment capacity</strong> — Affirm assesses ability to repay the specific loan amount at the installment cadence chosen</li>
+    <li><strong>Purchase amount relative to credit profile</strong> — a $3,000 purchase may be declined for a customer who was approved for a $500 purchase from the same store</li>
+    <li><strong>Phone number or address verification failures</strong> — Affirm's fraud checks require verifiable US contact information</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">Merchants Cannot Override Affirm Credit Decisions</div>
+    Affirm's approval/decline decision is entirely Affirm's. There is no merchant-side setting to increase approvals, no way to approve specific customers, and no way to see why a specific customer was declined. Directing a declined customer to Affirm's customer support (1-855-423-3729 or affirm.com/help) is the only path forward for that customer. Do not ask declined customers to retry immediately — the same decision will be issued again.
+  </div>
+
+  <h3>What to tell declined customers</h3>
+
+  <p>Declined customers often return to merchants frustrated. A clear response: "Affirm's lending decision was made by Affirm, not by us — we don't have access to the reasons or the ability to change the outcome. Affirm's customer support at 1-855-423-3729 can provide more information. In the meantime, we can complete your order with a credit card, debit card, PayPal, or any other payment method we accept."</p>
+
+  <h2>Failure Mode 5: Order Not Created in Shopify After Affirm Approval</h2>
+
+  <p>This is the highest-stakes Affirm failure mode: the customer completes the Affirm application, gets approved, sees a confirmation from Affirm, but returns to the Shopify store and no order appears. No order ID, no confirmation email, nothing in Shopify admin — yet Affirm may have already created the loan.</p>
+
+  <p>This happens because the Affirm approval flow works as a redirect: Shopify → Affirm modal → back to Shopify. The return redirect must complete successfully for Shopify to receive the payment confirmation and create the order. If the redirect fails mid-flight, Shopify never gets the signal.</p>
+
+  <h3>What breaks the Affirm → Shopify redirect</h3>
+
+  <ul>
+    <li><strong>Browser popup blocker</strong> — some browsers block the redirect if Affirm's modal was treated as a popup</li>
+    <li><strong>Network interruption</strong> — mobile data dropping during the redirect, especially common on 4G/5G during handoffs</li>
+    <li><strong>Customer closes the tab or browser</strong> — closing the Affirm modal before the redirect completes prevents order creation</li>
+    <li><strong>Session timeout</strong> — long Affirm applications (customer takes 10+ minutes to fill out details) can cause the Shopify checkout session to expire</li>
+    <li><strong>Third-party redirect interference</strong> — some checkout apps or fraud prevention tools intercept the return redirect from Affirm</li>
+    <li><strong>Custom domain or headless checkout</strong> — mismatched domain configurations can cause redirect failures where Affirm sends the customer to the wrong URL</li>
+  </ul>
+
+  <div class="callout danger">
+    <div class="callout-title">Do Not Ask Customers to Retry Without Checking Affirm First</div>
+    If a customer reports an Affirm approval with no Shopify order, their Affirm loan may already be active. Asking them to retry checkout could create a second Affirm loan on top of the first. Before any retry: contact Shopify Support with the incident details, and have the customer log into affirm.com to check if a loan is showing. If a loan exists with no Shopify order, Shopify Support needs to reconcile this with Affirm — do not attempt to handle it yourself.
+  </div>
+
+  <h3>Investigating and preventing redirect failures</h3>
+
+  <ol class="steps">
+    <li>Check Shopify Admin → Orders for any draft orders or incomplete orders around the timestamp</li>
+    <li>Check Shopify Admin → Analytics → Reports → Abandoned checkouts to find the specific checkout attempt</li>
+    <li>Ask the customer to check affirm.com → Account to confirm whether a loan was created</li>
+    <li>Contact Shopify Support with: order timestamp, customer email, and any Affirm loan ID the customer can provide</li>
+    <li>For prevention: audit checkout apps that run JavaScript during the checkout return flow — any app that intercepts or modifies the post-payment redirect is a candidate for causing this</li>
+  </ol>
+
+  <h2>Failure Mode 6: Affirm Not Available for International Customers</h2>
+
+  <p>Affirm via Shopify Installments is exclusively available to customers in the United States. This is a hard restriction from Affirm's operating license and credit infrastructure — Affirm requires a US Social Security Number or ITIN for identity verification and credit assessment, which international customers don't have.</p>
+
+  <p>Shopify's checkout automatically hides Shopify Installments for customers who appear to be located outside the US, based on billing address country or IP geolocation. International customers shopping at US Shopify stores simply don't see the installments option — which is correct behavior, not a bug.</p>
+
+  <h3>BNPL coverage by region</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Region</th>
+          <th>Affirm / Shopify Installments</th>
+          <th>Alternative BNPL Options</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>United States</td>
+          <td><span class="tag green">Available</span></td>
+          <td>Klarna, Afterpay, Sezzle</td>
+        </tr>
+        <tr>
+          <td>Canada</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Afterpay, Klarna (limited)</td>
+        </tr>
+        <tr>
+          <td>United Kingdom</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Klarna, Clearpay (Afterpay)</td>
+        </tr>
+        <tr>
+          <td>European Union</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Klarna (most EU countries)</td>
+        </tr>
+        <tr>
+          <td>Australia</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Afterpay, Zip (native)</td>
+        </tr>
+        <tr>
+          <td>Other regions</td>
+          <td><span class="tag red">Not available</span></td>
+          <td>Regional BNPL providers vary</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>If your Shopify store serves significant international traffic and you want BNPL available to those customers, enable Klarna or Afterpay separately — both have broader geographic coverage than Affirm.</p>
+
+  <h2>Failure Mode 7: Shopify Payments Not Active or Under Review</h2>
+
+  <p>Shopify Installments (Affirm) is architecturally dependent on Shopify Payments. This is not a soft dependency — if Shopify Payments is inactive, suspended, under compliance review, or replaced with a third-party gateway, Shopify Installments stops working immediately and completely.</p>
+
+  <p>Merchants who switch payment processors or who have their Shopify Payments account flagged for review often discover this dependency for the first time when customers report that the installments option has disappeared.</p>
+
+  <h3>Shopify Payments status effects on Affirm</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Shopify Payments Status</th>
+          <th>Effect on Affirm</th>
+          <th>Customer Experience</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Active, healthy</td>
+          <td><span class="tag green">Affirm available</span></td>
+          <td>Installments option appears normally</td>
+        </tr>
+        <tr>
+          <td>Under compliance review</td>
+          <td><span class="tag red">Affirm disabled</span></td>
+          <td>Installments option disappears silently</td>
+        </tr>
+        <tr>
+          <td>Suspended</td>
+          <td><span class="tag red">Affirm disabled</span></td>
+          <td>Installments option absent; standard card payments also affected</td>
+        </tr>
+        <tr>
+          <td>Payouts paused</td>
+          <td><span class="tag yellow">May still process</span></td>
+          <td>Affirm may still appear but Shopify Payments is restricted</td>
+        </tr>
+        <tr>
+          <td>Replaced by third-party gateway</td>
+          <td><span class="tag red">Affirm permanently disabled</span></td>
+          <td>No installments option; must re-enable Shopify Payments to restore</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>To check Shopify Payments status: Admin → Settings → Payments → look for warning banners or action-required notices. Also check Admin → Finance → Payouts — if payouts are paused or suspended, the account is under review and Affirm is disabled.</p>
+
+  <h2>Failure Mode 8: Refunds Not Processing Back Through Affirm</h2>
+
+  <p>When you refund an order paid through Shopify Installments (Affirm), the refund needs to flow back through Affirm to update the customer's loan balance. Shopify handles this automatically when you process a standard refund through the Shopify admin, but the Affirm-side processing has its own timeline and its own potential failure points.</p>
+
+  <h3>How Affirm refunds work</h3>
+
+  <ul>
+    <li><strong>Full refund</strong> — the customer's entire Affirm loan is cancelled. Any payments already made by the customer to Affirm are refunded to the payment method the customer used with Affirm (bank account or card)</li>
+    <li><strong>Partial refund</strong> — the remaining loan balance is reduced by the refund amount. Future Affirm installment payments are recalculated and reduced accordingly</li>
+    <li><strong>Refund for orders fully paid</strong> — if the customer has already paid off their entire Affirm loan before you issue the refund, Affirm refunds directly to the customer's bank account on file with Affirm — not via original payment method</li>
+  </ul>
+
+  <h3>Common refund problems and fixes</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Problem</th>
+          <th>Cause</th>
+          <th>Fix</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Refund processed in Shopify but Affirm loan not updated</td>
+          <td>Affirm processing lag (up to 10 business days)</td>
+          <td>Wait 10 business days; then contact Shopify Support with order ID</td>
+        </tr>
+        <tr>
+          <td>Customer still being charged installments after full refund</td>
+          <td>Affirm didn't receive the refund signal</td>
+          <td>Contact Shopify Support with refund timestamp and amount</td>
+        </tr>
+        <tr>
+          <td>Partial refund not reducing installment amount</td>
+          <td>Affirm loan recalculation takes 24–48 hours</td>
+          <td>Wait 48 hours; confirm with Affirm customer support if not updated</td>
+        </tr>
+        <tr>
+          <td>Refund failed in Shopify admin</td>
+          <td>Shopify Payments gateway error or account restriction</td>
+          <td>Check Shopify Payments status; contact Shopify Support</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Refund Timeline Expectation for Customers</div>
+    When a customer asks about their Affirm refund, the standard timeline is: Shopify processes the refund immediately, Affirm receives and processes within 1–5 business days, the customer's Affirm account reflects the change within 5–10 business days. If the customer has already paid off the loan, their bank account refund from Affirm can take an additional 3–5 business days after Affirm processes. Set this expectation upfront to prevent customer service escalations.
+  </div>
+
+  <h2>8-Step Affirm / Shopify Installments Diagnostic Checklist</h2>
+
+  <ol class="steps">
+    <li><strong>Confirm store location</strong> — Shopify admin: Settings → General → Store address. Must be United States</li>
+    <li><strong>Confirm Shopify Payments is active</strong> — Admin → Settings → Payments. No warning banners. Shopify Payments must be the active provider, not a third-party gateway</li>
+    <li><strong>Check Installments toggle</strong> — Admin → Settings → Payments → Shopify Payments → Manage → Installments. Must be enabled. If not visible, contact Shopify Support for approval</li>
+    <li><strong>Test with an eligible cart</strong> — physical product only, no gift cards or digital items, cart total between $50 and $17,500, no discount code applied that drops total below $50</li>
+    <li><strong>Check Shopify Payments for flags</strong> — Admin → Finance → Payouts. Any paused payouts or compliance review indicators mean Affirm is disabled</li>
+    <li><strong>Test from a US-located browser</strong> — if testing from outside the US (VPN, international office), Affirm won't appear. Test from a US IP address</li>
+    <li><strong>Check for conflicting checkout apps</strong> — if you have a third-party Affirm app installed alongside Shopify Installments, they can conflict. Disable one and test</li>
+    <li><strong>Check browser console for JavaScript errors</strong> — open browser dev tools during checkout and look for JS errors that might suppress the payment methods render</li>
+  </ol>
+
+  <h2>Affirm vs Other BNPL Options on Shopify</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Affirm (Shopify Installments)</th>
+          <th>Klarna</th>
+          <th>Afterpay</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>US availability</td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag green">Yes</span></td>
+          <td><span class="tag green">Yes</span></td>
+        </tr>
+        <tr>
+          <td>International</td>
+          <td><span class="tag red">US only</span></td>
+          <td><span class="tag green">20+ countries</span></td>
+          <td><span class="tag green">US, UK, AU, CA</span></td>
+        </tr>
+        <tr>
+          <td>Cart minimum</td>
+          <td>$50</td>
+          <td>Varies by plan</td>
+          <td>No minimum</td>
+        </tr>
+        <tr>
+          <td>Cart maximum</td>
+          <td>$17,500</td>
+          <td>Varies</td>
+          <td>Varies (credit limit)</td>
+        </tr>
+        <tr>
+          <td>Payment structure</td>
+          <td>Monthly installments (3–36 months)</td>
+          <td>Pay Later 30 days or installments</td>
+          <td>4 payments every 2 weeks</td>
+        </tr>
+        <tr>
+          <td>SSN required</td>
+          <td><span class="tag red">Yes (US SSN/ITIN)</span></td>
+          <td><span class="tag green">No</span></td>
+          <td><span class="tag green">No</span></td>
+        </tr>
+        <tr>
+          <td>Requires Shopify Payments</td>
+          <td><span class="tag red">Yes</span></td>
+          <td><span class="tag green">No (Klarna app)</span></td>
+          <td><span class="tag green">No (Afterpay app)</span></td>
+        </tr>
+        <tr>
+          <td>Interest charged</td>
+          <td>0–36% APR (credit-dependent)</td>
+          <td>0% for Pay Later; interest for financing</td>
+          <td>0% if on time</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cta-box">
+    <h2>Is Affirm just one piece of your checkout problem?</h2>
+    <p>Silent checkout failures extend beyond BNPL — payment method availability, checkout session initialization, and cart validation can all break without visible errors. CheckPulse runs a full 4-step checkout simulation every 30 minutes and alerts you the moment any step fails.</p>
+    <a href="/checkpulse/free-check" class="cta-btn">Run Free Checkout Check →</a>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <h3>Why does Affirm show for some customers but not others on my Shopify store?</h3>
+  <p>Affirm appearing for some customers but not others on the same store is almost always a customer eligibility issue rather than a store problem. Most common patterns: Affirm shows for US customers but not international customers (expected — Affirm is US-only); Affirm shows when cart is over $50 but disappears after a discount code is applied (discount drops cart below minimum); Affirm doesn't show for carts with gift cards or digital items mixed with physical products. If Affirm is consistent for all US customers with eligible carts, your store configuration is correct.</p>
+
+  <h3>Can I use Affirm with a third-party payment gateway on Shopify?</h3>
+  <p>No. Shopify Installments (Affirm's native Shopify integration) requires Shopify Payments as your active payment provider. If you use a third-party gateway such as Stripe, PayPal, or Authorize.net as your primary processor, Shopify Installments is unavailable. Some merchants install a separate Affirm app from the Shopify App Store as an alternative — this app-based integration has different requirements and uses a different checkout flow than native Shopify Installments. If you need Affirm with a third-party gateway, check Affirm's app listing in the Shopify App Store.</p>
+
+  <h3>Why did Affirm work before but suddenly stopped for all customers?</h3>
+  <p>A sudden Affirm outage for all customers simultaneously points to a store-level change rather than individual customer issues. Most likely causes: Shopify Payments was suspended or placed under compliance review (check Admin → Finance → Payouts for warnings); Shopify Payments was switched to a third-party gateway (Affirm requires Shopify Payments); the Installments toggle was accidentally disabled during a settings change; or Shopify issued an update that changed how payment methods are rendered in your theme. Check Admin → Settings → Payments first and look for any warning banners or status changes.</p>
+
+  <h3>Do I get paid immediately for Affirm orders?</h3>
+  <p>Yes. When a customer completes an Affirm purchase on your Shopify store, you receive the full purchase amount from Affirm immediately — typically within 1–3 business days, the same as other Shopify Payments transactions. Affirm takes on the credit risk and collects installment payments from the customer over time. The customer's payment schedule with Affirm (monthly installments over 3–36 months) is between Affirm and the customer — it does not affect when or how much you receive. Affirm charges a merchant fee (percentage of transaction) similar to a credit card processing fee; this is deducted before payout.</p>
+
+</div>
+</article>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">Check<span>Pulse</span></div>
+    <div class="footer-tagline">Shopify checkout monitoring — know before your customers do.</div>
+    <div class="footer-links">
+      <a href="/checkpulse/">Home</a>
+      <a href="/checkpulse/free-check">Free Check</a>
+      <a href="/checkpulse/#pricing">Pricing</a>
+      <a href="/checkpulse/guide">Guide</a>
+      <a href="/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+      <a href="/checkpulse/shopify-payments-not-working">Payments Not Working</a>
+      <a href="/checkpulse/shopify-stripe-not-working">Stripe Not Working</a>
+      <a href="/checkpulse/shopify-apple-pay-not-working">Apple Pay Not Working</a>
+      <a href="/checkpulse/shopify-klarna-not-working">Klarna Not Working</a>
+      <a href="/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+      <a href="/checkpulse/shopify-shop-pay-not-working">Shop Pay Not Working</a>
+      <a href="/checkpulse/shopify-checkout-paypal-not-working">PayPal Not Working</a>
+    </div>
+    <div class="footer-copy">© 2026 CheckPulse. Not affiliated with Shopify Inc.</div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Zip Not Working — Not Showing, Virtual Card Declined, Order Not Created (2026)</title>
+  <meta name="description" content="Shopify Zip (formerly Quadpay) not working? Zip not showing at checkout, virtual card declined, application rejected, order not created after approval, or installment payment failed — 8 root causes with exact fixes for merchants and customers." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-zip-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-zip-not-working" />
+  <meta property="og:title" content="Shopify Zip Not Working — Not Showing, Virtual Card Declined, Order Not Created (2026)" />
+  <meta property="og:description" content="Zip (formerly Quadpay) on Shopify has 8 distinct failure modes: not appearing at checkout, virtual card declined due to AVS or CVV mismatch, customer application rejected, order not created after Zip approval, installment payment failing weeks later, Zip app error preventing virtual card generation, refund not processing, and account restricted due to missed payments. Each fails differently and requires different diagnosis." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Zip Not Working — Not Showing, Virtual Card Declined, Order Not Created",
+    "description": "Zip (formerly Quadpay) not working on Shopify has eight root causes: Zip not configured or activated in Shopify's payment settings so it never appears; country or cart-value restriction (Zip is available in US, Canada, Australia, NZ, UK, and South Africa with a minimum order requirement); the virtual Visa card Zip issues being declined due to AVS mismatch, CVV failure, or BIN restrictions at the payment processor; Zip declining the customer's application due to risk assessment, new account limits, or existing overdue balances; an order never appearing in Shopify after Zip approval due to a webhook or redirect failure; a scheduled installment payment failing because the customer's linked card was declined or expired; a Zip app error preventing virtual card generation; or the customer's Zip account being frozen due to missed payments. This guide covers all 8 failure modes with diagnostic steps and fixes for both merchants and customers.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-zip-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-27",
+    "dateModified": "2026-06-27"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Zip not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zip (formerly Quadpay) not showing at Shopify checkout is caused by one of four things: (1) Zip is not activated in Shopify Admin — go to Settings → Payments → Alternative payment providers and confirm Zip is enabled; (2) the customer's country is not supported — Zip is available in US, Canada, Australia, New Zealand, UK, and South Africa only; (3) the cart total is below Zip's minimum order threshold (typically $35–$50 depending on market); (4) the Zip widget or app is misconfigured — in some integrations the Zip payment widget requires a separate installation step beyond enabling it in Shopify Payments. Check all four before assuming a technical failure."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the Zip virtual card being declined at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zip uses a virtual Visa card model in the US — when a customer is approved, Zip generates a one-time virtual card with a specific amount, CVV, and expiry. This virtual card can fail for several reasons: (1) AVS mismatch — Zip's virtual cards use Zip's own billing address for verification, not the customer's. If the merchant's payment processor requires exact AVS match, the virtual card will be declined. The customer should enter Zip's billing address (shown in the Zip app) at checkout, not their home address; (2) the virtual card amount doesn't match the cart exactly — Zip issues a card for a specific approved amount. If the cart total changes after approval (shipping recalculated, discount applied), the card may not cover the new amount; (3) the card was used or expired — Zip virtual cards are single-use and expire quickly (15–30 minutes in some cases). If the customer takes too long or refreshes the page, the card may no longer be valid."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did Zip decline my customer's application at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zip application declines are Zip's risk decisions, not Shopify's. Common reasons: the customer is new to Zip and their first-purchase limit is below the order total; the customer has an existing Zip order with an overdue payment (Zip blocks new purchases until past-due balances are cleared); Zip's risk system flagged the transaction based on the customer's device, location, or order profile; the customer's identity verification failed (Zip requires a valid government ID and phone number in some markets); or the customer is in a country Zip doesn't serve. Merchants cannot override Zip's decline decisions. Customers should open the Zip app to see the specific reason and contact Zip support directly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "The customer completed Zip checkout but no Shopify order was created — what happened?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "This is a webhook or redirect failure. After the customer completes the Zip checkout flow, Zip sends a webhook or redirect to Shopify to create the order and capture payment. If this step fails — due to a network timeout, Shopify webhook backlog, or misconfigured webhook endpoint — no order is created in Shopify even though the customer's Zip approval was completed. To investigate: check Shopify Admin → Settings → Notifications → Webhooks for recent failures; check the Zip merchant dashboard for the transaction; contact Zip merchant support with the customer's checkout timestamp. Critical: never ask the customer to restart checkout until you confirm whether Zip already recorded the transaction — a second attempt could create a duplicate installment plan."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did a Zip payment fail weeks after the Shopify order was placed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zip splits purchases into 4 equal installments over 6 weeks (every 2 weeks). The first installment (25%) is charged at checkout; the remaining three are auto-charged on a biweekly schedule. If a later installment fails, the cause is almost always: the card linked to the customer's Zip account was declined (expired, insufficient funds, or bank block on recurring charges); the customer's bank account ran out of funds on the charge date; or the customer's payment method changed but wasn't updated in Zip. As a merchant, you received the full order value from Zip at the time of the order — the failed installment is a collections matter between Zip and the customer, not your store."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do refunds work for Zip orders on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "For Zip orders, refunds initiated from Shopify Admin flow back to Zip. Zip applies the refund to the customer's outstanding installment balance first; if the refund exceeds the remaining balance, the overage is returned to the customer's original payment method (typically the card linked to their Zip account). Processing time is 5–10 business days. Partial refunds are supported. If a refund appears stuck in Shopify but no Zip refund was issued, check whether the Zip integration credentials are still valid and whether the Zip webhook endpoint is active. Do not issue refunds directly through the Zip merchant portal for Shopify orders — go through Shopify Admin to keep the records in sync."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+      line-height: 1.6;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+      line-height: 1.6;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+      margin-top: 64px;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    .comparison-table th {
+      background: #161616;
+      color: #666;
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid #222;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .comparison-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      color: #999;
+      vertical-align: top;
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table tr:hover td { background: #141414; }
+    .highlight-row td { color: #e8e8e8; }
+    .highlight-row td:first-child { font-weight: 600; }
+
+    .checklist {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      padding: 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 14px; font-weight: 700; color: #888; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .checklist-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border: 2px solid #333;
+      border-radius: 4px;
+      margin-top: 1px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(79,70,229,0.1));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 14px;
+      padding: 36px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .cta-bottom p { font-size: 14px; color: #888; margin-bottom: 24px; }
+    .cta-bottom .btn-primary { display: inline-block; padding: 12px 28px; font-size: 15px; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+    footer nav a { color: #444; }
+    footer nav a:hover { color: #888; }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.5rem; }
+      .cta-bar { flex-direction: column; }
+      .comparison-table { font-size: 12px; }
+      .comparison-table th, .comparison-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> › Shopify Zip Not Working
+  </div>
+  <h1>Shopify Zip Not Working — Not Showing, Virtual Card Declined, Order Not Created, Payment Failed (2026)</h1>
+  <div class="hero-meta">Updated June 2026 · 8 failure modes · Merchants &amp; Customers</div>
+  <p class="hero-lead">Zip (formerly Quadpay) on Shopify fails in 8 distinct ways — and the most common fix depends entirely on which failure you're hitting. This guide covers every mode: from Zip not appearing at checkout to virtual card declines, application rejections, webhook failures, installment payment failures, and frozen accounts.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is your checkout broken right now?</strong> Run a free diagnostic to identify payment failures before your customers do.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="toc">
+    <h2>8 Zip Failure Modes</h2>
+    <ol>
+      <li><a href="#not-showing">Zip not showing at checkout</a></li>
+      <li><a href="#virtual-card-declined">Virtual card declined (AVS / CVV / amount mismatch)</a></li>
+      <li><a href="#application-declined">Customer application declined by Zip</a></li>
+      <li><a href="#order-not-created">Order not created after Zip approval</a></li>
+      <li><a href="#installment-failed">Installment payment failed (2nd–4th payment)</a></li>
+      <li><a href="#app-error">Zip app error — virtual card not generated</a></li>
+      <li><a href="#refund">Refund not processing on Zip orders</a></li>
+      <li><a href="#account-frozen">Account frozen or restricted</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="not-showing">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Zip Not Showing at Shopify Checkout</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>If Zip (formerly Quadpay) is nowhere to be found on your checkout page, the cause is almost always configuration, country, or cart restrictions — not a temporary outage.</p>
+      <p>Zip availability depends on: (1) the payment method being explicitly activated in Shopify Admin, (2) the customer's country being supported, and (3) the cart meeting Zip's minimum order threshold. All three gates must pass for Zip to appear.</p>
+      <p><strong>Country availability:</strong> Zip is available in the United States, Canada, Australia, New Zealand, United Kingdom, and South Africa. Customers in all other countries will never see Zip, regardless of your configuration.</p>
+      <p><strong>Cart minimum:</strong> Zip typically requires a minimum cart value of $35–$50 USD (or equivalent). Below this threshold, Zip is hidden even if correctly configured. This threshold is set by Zip, not by Shopify, and cannot be overridden by the merchant.</p>
+    </div>
+    <div class="steps">
+      <h3>Diagnostic Steps</h3>
+      <ol>
+        <li>Go to <strong>Shopify Admin → Settings → Payments → Alternative payment providers</strong>. Confirm Zip / Zip (Quadpay) is enabled and shows as Active.</li>
+        <li>Check the customer's country. If they're outside US, CA, AU, NZ, UK, or ZA — Zip will not appear regardless of configuration.</li>
+        <li>Verify the test cart is above the minimum order value ($35–$50 USD equivalent).</li>
+        <li>If Zip uses a widget (some integrations require an additional Shopify app), check that the app is installed and the widget code is present in your theme's checkout settings.</li>
+        <li>Test in an incognito browser window to rule out browser caching or extensions hiding the payment method.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="virtual-card-declined">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Virtual Card Declined at Checkout (AVS / CVV / Amount Mismatch)</h2>
+        <span class="failure-type type-both">Merchant &amp; Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Zip's US model works differently from most BNPL providers: instead of a direct integration, Zip issues a one-time virtual Visa card to the customer after approval. The customer uses this virtual card number at checkout like any other card.</p>
+      <p>This virtual card model creates a unique set of failure modes that don't exist for BNPL providers like Afterpay or Sezzle:</p>
+      <p><strong>AVS mismatch:</strong> Zip's virtual cards use Zip's own billing address for AVS (Address Verification System) checks — not the customer's home address. If your Shopify store's payment processor requires a strict AVS match, the virtual card will be declined because the billing address the customer enters (their home) won't match what's on the card (Zip's address). The customer needs to enter the billing address shown in the Zip app, not their own home address.</p>
+      <p><strong>Amount mismatch:</strong> Zip issues the virtual card for a specific approved amount. If the cart total changes after approval — shipping recalculates, a discount code is applied, or taxes adjust — the card amount may no longer match the checkout total, causing a decline.</p>
+      <p><strong>Card expiry:</strong> Zip virtual cards expire quickly — some within 15–30 minutes. If the customer was approved but then took a long time entering their details, the card may have expired before charge.</p>
+    </div>
+    <div class="steps">
+      <h3>For Customers: How to Fix a Zip Virtual Card Decline</h3>
+      <ol>
+        <li>Open the Zip app → locate your approved virtual card → copy the exact billing address shown (this is Zip's address, not yours).</li>
+        <li>At Shopify checkout, enter <strong>Zip's billing address</strong> in the billing address field when using the Zip virtual card number.</li>
+        <li>If the card was expired (session timeout), return to the Zip app and request a new virtual card for the same purchase.</li>
+        <li>Confirm the virtual card amount matches your cart total exactly before submitting checkout.</li>
+        <li>If the card is still declined, contact Zip support — they can see whether the virtual card is active and the exact decline reason from the card network.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>For merchants:</strong> If your customers are frequently getting Zip virtual card declines, ask your payment processor whether strict AVS matching is enabled. Relaxing AVS requirements (or setting them to require partial match only) can resolve this without affecting other payment methods.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="application-declined">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Customer Application Declined by Zip</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When Zip declines a customer's application at checkout, the decision comes entirely from Zip — not Shopify, not the merchant, and not the customer's credit card bank. Merchants cannot see the specific decline reason and cannot override it.</p>
+      <p>Common reasons Zip declines customers:</p>
+      <p><strong>New account limits:</strong> Zip restricts first-time or new users to lower purchase amounts while building trust. A new Zip user trying to place a $400 order will often be declined because Zip's initial spending limit is lower. This limit increases automatically as the customer completes Zip orders on time.</p>
+      <p><strong>Existing overdue payments:</strong> If the customer has an outstanding balance or overdue payment on any previous Zip order, Zip will block new purchases until the overdue amount is cleared.</p>
+      <p><strong>Risk assessment:</strong> Zip evaluates device signals, location, order profile, and customer history. Unusually high-value first orders, mismatched shipping/billing details, or a pattern of returns can trigger a decline.</p>
+      <p><strong>Identity verification:</strong> Some markets require Zip to verify the customer's government-issued ID or phone number. If verification fails, the application is declined.</p>
+    </div>
+    <div class="steps">
+      <h3>What Customers Should Do After a Zip Decline</h3>
+      <ol>
+        <li>Open the Zip app → check for any overdue or missed payments on existing orders. Pay any past-due balance immediately.</li>
+        <li>Check your Zip account status — a frozen or restricted account will block all new purchases.</li>
+        <li>If your Zip spending limit is too low for this order, try a smaller order first to build your limit, or try a different BNPL option at this store.</li>
+        <li>Contact Zip support via the app for the specific decline reason — they can tell you whether it's a limit issue, overdue balance, or account restriction.</li>
+        <li>As an alternative, look for other BNPL options at the same store: Afterpay, Klarna, Sezzle, or Affirm may have different approval criteria.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="order-not-created">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Order Not Created in Shopify After Zip Approval</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>This is the most dangerous Zip failure mode: the customer completes the Zip checkout flow, receives a Zip approval confirmation, returns to your store — but no order appears in Shopify Admin.</p>
+      <p>What happened: After the customer approves the Zip checkout, Zip sends a webhook or redirect back to Shopify to create the order. If this step fails — due to network timeout, Shopify's webhook backlog during high traffic, misconfigured webhook endpoint, or a Zip API error — Shopify never receives the signal to create the order.</p>
+      <p>The result is a "ghost purchase": the customer believes they placed an order, Zip may have already created an installment plan, but your store has no record of the transaction.</p>
+    </div>
+    <div class="warning-box">
+      <strong>Critical:</strong> Do NOT ask the customer to retry the checkout before confirming whether Zip recorded a transaction. If Zip already created an installment plan for the first attempt, a second checkout attempt may create a duplicate plan — leaving the customer charged twice while you only ship once. Always check the Zip merchant dashboard first.
+    </div>
+    <div class="steps">
+      <h3>Merchant Diagnostic Steps</h3>
+      <ol>
+        <li>Check <strong>Shopify Admin → Settings → Notifications → Webhooks</strong> for recent delivery failures around the customer's checkout time.</li>
+        <li>Log into the <strong>Zip merchant dashboard</strong> and search for the transaction by the customer's email or checkout timestamp.</li>
+        <li>If Zip shows the transaction as approved/funded but Shopify has no order, contact Zip merchant support with the transaction ID — they can manually trigger the order creation or issue a refund on their side.</li>
+        <li>Check whether your Shopify store had any errors or maintenance windows around the checkout time.</li>
+        <li>After resolving the webhook issue, ask Zip support to resend the webhook — do not create a manual Shopify order without confirming Zip's side first.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="installment-failed">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>Installment Payment Failed (2nd–4th Payment)</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Zip divides purchases into 4 equal installments over 6 weeks, charged every 2 weeks. The first installment (25%) is charged at checkout. The 2nd, 3rd, and 4th installments are automatically charged on a biweekly schedule to the payment method linked to the customer's Zip account.</p>
+      <p>If a scheduled installment fails, it almost always means: the card linked to the Zip account was declined (expired, insufficient funds, bank block on recurring charges), the customer's bank account had insufficient funds on the charge date, or the customer's payment method was updated in Zip after the initial purchase in a way that caused a mismatch.</p>
+      <p><strong>For merchants:</strong> you are not affected by installment failures. Zip paid you in full at the time of the original order. The failed installment is a collections matter between Zip and the customer — the customer's ability to use Zip in the future may be restricted, but your payout is not clawed back.</p>
+      <p><strong>For customers:</strong> Zip sends a notification when a payment fails and gives a grace period to update the payment method or reschedule the charge. Failing to resolve the failed payment results in late fees and eventual account restriction.</p>
+    </div>
+    <div class="steps">
+      <h3>For Customers: Resolving a Failed Zip Installment</h3>
+      <ol>
+        <li>Open the Zip app → go to <strong>My Orders</strong> → find the order with the failed payment.</li>
+        <li>Update your payment method if the linked card was replaced, expired, or canceled.</li>
+        <li>Use the <strong>Reschedule Payment</strong> option (available once per installment) to defer the failed payment by up to 2 weeks if you need time.</li>
+        <li>Pay the overdue installment as soon as possible — missed payments affect your ability to use Zip on future purchases.</li>
+        <li>Contact Zip support if the payment method is correct but the charge still fails — there may be a bank block on Zip's billing descriptor that requires a one-time bank authorization.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="app-error">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Zip App Error — Virtual Card Not Generated</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>In the virtual card model, after Zip approves the customer's purchase, the Zip app must generate and display the one-time virtual card number, CVV, and expiry. If this step fails — due to a Zip system error, poor network connection, or app bug — the customer is approved but gets no usable card.</p>
+      <p>Symptoms: the Zip app shows "Approved" or "Pending" but no card details appear; the app crashes or freezes after approval; the card screen loads but the numbers don't populate.</p>
+    </div>
+    <div class="steps">
+      <h3>For Customers: Resolving a Virtual Card Generation Error</h3>
+      <ol>
+        <li>Force-close and reopen the Zip app. The approved virtual card may appear on a fresh load.</li>
+        <li>Check your Zip email — virtual card details are sometimes sent by email as a backup when the in-app display fails.</li>
+        <li>Check your internet connection. Virtual card generation requires a live API call; a flaky connection can cause the screen to load without the card data.</li>
+        <li>Update the Zip app to the latest version — some card display bugs are fixed in app updates.</li>
+        <li>If the card still doesn't appear after 10 minutes, contact Zip support. They can see whether the virtual card was generated on their end and can resend the details. <strong>Do not make multiple attempts at checkout</strong> while waiting — each Zip approval may be tied to a single-use authorization.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="refund">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Refund Not Processing on Zip Orders</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Refunds on Zip orders work differently depending on whether the order was processed through a direct Zip integration or through the virtual card model.</p>
+      <p><strong>Direct integration refunds:</strong> Refunds initiated from Shopify Admin are communicated back to Zip via the integration. Zip applies the refund to the customer's outstanding installment balance first (reducing or eliminating future payments), then refunds the overage to the customer's original payment method. Processing typically takes 5–10 business days.</p>
+      <p><strong>Virtual card refunds:</strong> When the customer used a Zip virtual card, Shopify refunds to the virtual card number. Zip receives the refund and applies it to the customer's installment plan. The customer does not receive cash back directly to their bank — the refund reduces what they owe Zip. If they've already paid all installments, the balance is returned to their linked payment method.</p>
+      <p>If a refund is showing as issued in Shopify but the customer hasn't seen it in Zip: confirm the refund was processed in your Shopify Admin, then contact Zip merchant support with the order and refund details — there can be a 1–2 day delay in Zip syncing the refund from their side.</p>
+    </div>
+    <div class="steps">
+      <h3>Merchant Refund Checklist</h3>
+      <ol>
+        <li>Issue the refund from <strong>Shopify Admin → Orders → [Order] → Refund</strong>. Do not process refunds through the Zip merchant portal separately — keep both systems in sync through Shopify.</li>
+        <li>Confirm the refund status in Shopify shows as "Refunded" or "Partially refunded."</li>
+        <li>Allow 5–10 business days for the refund to appear in the customer's Zip account.</li>
+        <li>If the customer reports no refund after 10 business days, contact Zip merchant support with the Shopify order number and refund transaction ID.</li>
+        <li>For full cancellations: if the order is canceled before fulfillment, process the cancellation through Shopify — this should automatically void or refund the Zip installment plan.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 8 -->
+  <div class="failure" id="account-frozen">
+    <div class="failure-header">
+      <div class="failure-num">8</div>
+      <div>
+        <h2>Zip Account Frozen or Restricted</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Multiple missed or overdue installment payments result in Zip restricting or freezing the customer's account. A frozen account means the customer cannot use Zip at any merchant — not just the one where the missed payment occurred.</p>
+      <p>Zip will notify the customer by email and in-app when the account is restricted. The restriction remains until all overdue payments are resolved and the account is in good standing.</p>
+      <p>Customers with a frozen Zip account clicking "Pay with Zip" at checkout may see: a generic decline, a message to check the Zip app, or in some cases Zip simply doesn't appear in their checkout options (because Zip's eligibility check at page load determines they're restricted).</p>
+    </div>
+    <div class="steps">
+      <h3>For Customers: Reactivating a Frozen Zip Account</h3>
+      <ol>
+        <li>Open the Zip app → go to <strong>Account → My Orders</strong> → identify all orders with outstanding or overdue payments.</li>
+        <li>Pay all overdue balances. Even a single unpaid installment from months ago can keep the restriction active.</li>
+        <li>After paying, contact Zip customer support via the app or at help.zip.co to request account reactivation — sometimes the restriction doesn't lift automatically after payment.</li>
+        <li>While your account is frozen, use an alternative payment method: Afterpay, Klarna, Sezzle, or a credit card.</li>
+        <li>After reactivation, set up automatic payments in the Zip app to prevent future missed installments.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- BNPL COMPARISON -->
+  <p class="section-label">BNPL Comparison</p>
+  <h2 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:12px;">Zip vs. Other BNPL Options on Shopify</h2>
+  <p style="font-size:14px; color:#777; margin-bottom:20px;">If Zip isn't working for your customers, here's how the major BNPL alternatives compare on Shopify.</p>
+
+  <div style="overflow-x:auto;">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Model</th>
+          <th>Markets</th>
+          <th>Split</th>
+          <th>Unique Failure Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight-row">
+          <td>Zip (Quadpay)</td>
+          <td>Virtual Visa card (US) / Direct (AU, NZ, UK)</td>
+          <td>US, CA, AU, NZ, UK, ZA</td>
+          <td>4 × every 2 weeks</td>
+          <td>AVS mismatch on virtual card billing address</td>
+        </tr>
+        <tr>
+          <td>Afterpay</td>
+          <td>Direct integration</td>
+          <td>US, CA, AU, NZ, UK, FR, IT, ES</td>
+          <td>4 × every 2 weeks</td>
+          <td>New account first-purchase limit (~$300)</td>
+        </tr>
+        <tr>
+          <td>Klarna</td>
+          <td>Direct integration</td>
+          <td>US, CA, UK, EU, AU + more</td>
+          <td>4 × every 2 weeks or financing</td>
+          <td>SCA / 3D Secure mismatch in European markets</td>
+        </tr>
+        <tr>
+          <td>Sezzle</td>
+          <td>Third-party app</td>
+          <td>US, CA only</td>
+          <td>4 × every 2 weeks</td>
+          <td>Sandbox mode left active after setup</td>
+        </tr>
+        <tr>
+          <td>Affirm</td>
+          <td>Shopify Installments</td>
+          <td>US only</td>
+          <td>4–36 months (variable)</td>
+          <td>Shopify Payments required; cart $50–$17,500</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MERCHANT CHECKLIST -->
+  <p class="section-label" style="margin-top:56px;">Merchant Diagnostic Checklist</p>
+  <h2 style="font-size:1.15rem; font-weight:700; color:#fff; margin-bottom:12px;">Zip Troubleshooting — 8-Step Merchant Checklist</h2>
+
+  <div class="checklist">
+    <h3>Run through this before contacting Zip support</h3>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Zip enabled in Shopify Payments:</strong> Settings → Payments → Alternative payment providers → Zip shows as Active</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Customer country supported:</strong> Zip is US, CA, AU, NZ, UK, ZA only — customers outside these will never see Zip</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Cart meets minimum:</strong> Test with a cart value above $50 to rule out the minimum order threshold</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>AVS settings reviewed:</strong> If using virtual card model, confirm your payment processor doesn't require strict AVS match</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Webhook endpoint active:</strong> Settings → Notifications → Webhooks — confirm Zip webhook URL is registered and receiving without errors</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Zip merchant dashboard checked:</strong> Log into Zip's merchant portal to verify transaction status before asking customers to retry</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>No duplicate order risk:</strong> Before any retry, confirm Zip did not already create an installment plan for the failed checkout</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Backup BNPL options offered:</strong> When Zip declines a customer, display Afterpay, Klarna, or Sezzle as alternatives — don't let a Zip decline mean losing the sale</p>
+    </div>
+  </div>
+
+  <div class="cta-bottom">
+    <h2>Monitor Your Checkout Before Customers Hit These Errors</h2>
+    <p>CheckPulse runs a 4-step checkout diagnostic every 15 minutes and emails you the moment something breaks — including payment method failures.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-sezzle-not-working">Sezzle Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-affirm-not-working">Affirm Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-afterpay-not-working">Afterpay Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-klarna-not-working">Klarna Not Working</a>
+  </nav>
+  <p>© 2026 CheckPulse · Shopify checkout monitoring</p>
+</footer>
+
+</body>
+</html>

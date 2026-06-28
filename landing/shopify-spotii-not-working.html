@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Spotii Not Working — Not Showing, Declined, Zip Acquisition Issues (2026)</title>
+  <meta name="description" content="Shopify Spotii not working? Spotii not showing at checkout, customer declined, OTP failed, post-Zip-acquisition integration broken — 7 root causes with exact fixes for UAE and Saudi Arabia merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-spotii-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-spotii-not-working" />
+  <meta property="og:title" content="Shopify Spotii Not Working — Not Showing, Declined, Zip Acquisition Issues (2026)" />
+  <meta property="og:description" content="Spotii on Shopify fails in 7 distinct ways: not showing at checkout (two-step activation / currency), per-transaction risk declined, spending limit reached (opaque — unlike Tamara), identity verification failure (Emirates ID / National ID), OTP failure, order below minimum (50 AED / 200 SAR), and post-Zip-acquisition infrastructure changes that broke existing integrations. Each fails differently and requires a different fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Spotii Not Working — Not Showing, Declined, Zip Acquisition Issues",
+    "description": "Spotii not working on Shopify has seven root causes: the Spotii app is installed but not enabled as an alternative payment provider; the store currency is not AED or SAR (Spotii only operates in UAE and Saudi Arabia, not Kuwait, Bahrain, Qatar, or Egypt); Spotii's per-transaction risk model declined the customer; the customer has hit their opaque spending limit (unlike Tamara, Spotii does not show customers their limit); Emirates ID or Saudi National ID verification failed; OTP verification failed because the customer is using a non-UAE/KSA SIM; the order is below Spotii's minimum purchase threshold; or the Zip acquisition of Spotii changed API endpoints and merchant portal URLs that existing integrations still reference the old Spotii-branded infrastructure.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-spotii-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-29",
+    "dateModified": "2026-06-29"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Spotii not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Spotii not showing at Shopify checkout is almost always a configuration issue, not a Spotii outage. Spotii only operates in UAE (AED) and Saudi Arabia (SAR) — it will not appear for any other currency or shipping destination. The most common cause is that merchants install the Spotii app from the Shopify App Store but never complete the second required step: enabling Spotii as an alternative payment provider in Shopify Admin → Settings → Payments → Alternative payment providers. Spotii must be manually toggled on in that panel after the app is installed. Other common causes: the merchant's Spotii merchant account is still under review or KYC is incomplete; test/sandbox credentials are still configured; the store's base currency is USD with runtime conversion to AED rather than AED set as a fixed checkout currency per Shopify Market; or the Zip acquisition of Spotii has changed the Spotii merchant portal URL and some merchants are accessing the wrong portal."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is Spotii different from Tabby and Tamara on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Spotii, Tabby, and Tamara are the three main BNPL options for UAE/KSA merchants on Shopify, but they differ in coverage, payment structure, and transparency. Spotii covers only UAE and Saudi Arabia (AED, SAR) — narrower than Tabby (UAE, KSA, Egypt, Kuwait, Qatar) and Tamara (UAE, KSA, Kuwait, Bahrain). Spotii uses a Pay-in-4 bi-weekly model (four equal payments every two weeks) rather than Tabby's Pay-in-4 monthly or Tamara's Pay-in-3 model. Spotii keeps customer spending limits opaque — like Tabby but unlike Tamara, which shows customers their available credit in-app. Spotii is owned by Zip Co. (the Australian BNPL company), which means merchant relations and infrastructure are managed by Zip's regional team rather than a locally-founded MENA company."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What broke in Spotii integrations after the Zip acquisition?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zip acquired Spotii in 2021. Since then, Spotii has undergone backend infrastructure changes as part of Zip's global BNPL platform consolidation. Merchants who integrated Spotii before the Zip acquisition may be referencing old Spotii API endpoints (api.spotii.me rather than the current Zip-hosted endpoints), legacy Spotii webhook URLs that no longer receive events, or a discontinued merchant portal at merchant.spotii.me. The Shopify app itself may have been auto-updated without the merchant realizing API credentials needed to be re-issued from the new Zip merchant portal. Post-acquisition, Spotii's Shopify app documentation URL also changed. Merchants whose Spotii stopped working without any store change should check whether their integration is pointing to deprecated Spotii-branded infrastructure."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Spotii work for Egyptian or Kuwaiti customers on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No — Spotii only covers UAE (AED) and Saudi Arabia (SAR). It does not support Egypt, Kuwait, Qatar, or Bahrain. For Egyptian customers, Tabby is the primary BNPL option (Tabby supports EGP). For Kuwaiti customers, both Tabby and Tamara cover Kuwait (KWD). For Bahraini customers, Tamara covers Bahrain (BHD). Merchants targeting the full MENA region typically need at least two BNPL providers: Spotii or Tamara for core UAE/KSA, and Tabby for broader coverage including Egypt and Qatar."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why does Spotii decline my customer even though it worked before?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Spotii evaluates every transaction independently through a real-time risk model — prior successful purchases do not guarantee approval for future transactions. Each checkout is scored against Spotii's risk model considering the customer's payment history, currently open Spotii plans, phone trust score, and the specific cart value and merchant. A customer who completed three Spotii purchases may be declined on a fourth if they have multiple open plans, if their payment history has a late payment, or if the cart value exceeds their available spending capacity. Unlike Tamara, Spotii does not show customers their available limit — so customers who are declined often have no idea why, and contact the merchant asking if Spotii is broken."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .info-box strong { color: #60a5fa; }
+
+    .spotii-unique {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(79,70,229,0.06));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .spotii-unique h3 { font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .spotii-unique p { font-size: 14px; color: #999; line-height: 1.65; margin-bottom: 10px; }
+    .spotii-unique p:last-child { margin-bottom: 0; }
+    .spotii-unique strong { color: #c4b5fd; }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #161616;
+      border: 1px solid #222;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+    }
+    .compare-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e1e1e;
+      color: #999;
+      vertical-align: top;
+    }
+    .compare-table tr:nth-child(even) td { background: #121212; }
+    .compare-table td:first-child { color: #ccc; font-weight: 600; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    Spotii Not Working
+  </div>
+  <h1>Shopify Spotii Not Working — Not Showing, Declined, Zip Integration Issues</h1>
+  <div class="hero-meta">Updated June 2026 · 7 failure modes · UAE and Saudi Arabia merchants</div>
+  <p class="hero-lead">Spotii is a UAE-founded BNPL platform — now owned by Zip Co. — operating in the UAE and Saudi Arabia with a Pay-in-4 bi-weekly model. Its Shopify integration fails in ways tied to its two-market footprint, its post-Zip-acquisition infrastructure changes, and its opaque spending limits that customers cannot see. Understanding the difference between a merchant-side configuration failure (fixable) and a customer-level risk decline (Spotii's decision) is the fastest path to resolution. This guide covers all 7 Spotii failure modes with exact diagnostic steps for UAE and Saudi Arabia merchants.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is Spotii missing for your UAE or KSA customers?</strong> A 4-step checkout diagnostic catches Spotii configuration failures before your customers do.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- SPOTII UNIQUE MODEL -->
+  <div class="spotii-unique">
+    <h3>How Spotii Differs From Tabby and Tamara</h3>
+    <p><strong>Spotii is the most geographically limited of the three main MENA BNPL platforms on Shopify.</strong> Spotii covers only UAE (AED) and Saudi Arabia (SAR). Tabby covers UAE, KSA, Egypt, Kuwait, and Qatar. Tamara covers UAE, KSA, Kuwait, and Bahrain. Merchants whose customers span the full GCC — especially Egypt, Kuwait, Qatar, or Bahrain — cannot rely on Spotii alone and need a second BNPL provider for those markets. Merchants who installed Spotii when it was the primary UAE BNPL option often discover this limitation only when customers from Egypt or Kuwait report that the BNPL option is missing.</p>
+    <p><strong>Spotii is owned by Zip Co., an Australian company.</strong> Zip acquired Spotii in 2021 as part of its MENA market expansion. The acquisition has been largely positive for infrastructure and risk modelling, but it created a transition period in which merchant portal URLs changed, API endpoint documentation was consolidated under Zip's global developer docs, and some legacy Spotii-branded integrations stopped receiving updates. Merchants who set up Spotii before mid-2021 and have not audited their integration since may be referencing discontinued infrastructure. This is a uniquely Spotii failure mode with no Tabby or Tamara equivalent.</p>
+    <p><strong>Spotii uses a Pay-in-4 bi-weekly model.</strong> The customer pays in four equal installments, one every two weeks — so the total purchase cost is spread over six weeks, not four months (Tabby's monthly Pay-in-4) or two months (Tamara's Pay-in-3 at 30-day intervals). The bi-weekly cadence means customers pay off Spotii plans faster than Tabby plans, which theoretically frees their spending capacity sooner — but also means payment due dates arrive more quickly and missed payments accumulate faster if a customer is in financial difficulty.</p>
+    <p><strong>Spotii's spending limit is opaque — customers cannot see it.</strong> Unlike Tamara, which shows customers their available credit limit in the app, Spotii does not disclose the customer's spending capacity. Customers discover the limit only when they are declined. This opacity creates support tickets where customers report "Spotii is broken at checkout" when what actually happened is that Spotii silently declined them due to a limit they had no way to know about. Tabby has the same opacity; Tamara is the exception that shows the limit.</p>
+  </div>
+
+  <div class="toc">
+    <h2>7 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#not-showing">Spotii not showing at checkout</a></li>
+      <li><a href="#declined">Per-transaction risk declined — "not available for this order"</a></li>
+      <li><a href="#spending-limit">Spending limit reached (opaque — customers cannot see it)</a></li>
+      <li><a href="#identity-verification">Emirates ID or National ID verification failure</a></li>
+      <li><a href="#phone-otp">Phone number verification / OTP failure</a></li>
+      <li><a href="#below-minimum">Order value below Spotii minimum</a></li>
+      <li><a href="#zip-acquisition">Post-Zip-acquisition integration breaks</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="not-showing">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Spotii Not Showing at Shopify Checkout</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Spotii is a third-party alternative payment provider on Shopify, which means its visibility at checkout requires two separate actions that many merchants conflate. Installing the Spotii app from the Shopify App Store is step one — but Spotii will not appear at checkout until it is also manually enabled as an alternative payment provider in Shopify Admin → Settings → Payments → Alternative payment providers. Merchants frequently install the app, see it in their app list, and assume the checkout activation is complete. It is not.</p>
+      <p><strong>Currency is the hard gate for Spotii.</strong> Spotii operates exclusively in UAE (AED) and Saudi Arabia (SAR). If your store's checkout currency for UAE customers is USD, EUR, or any non-AED currency — even if AED is displayed as a runtime conversion from USD — Spotii will not appear. The checkout must present a fixed AED transaction for UAE customers and a fixed SAR transaction for Saudi customers. Multi-currency stores that use Shopify Markets with USD as the base currency and runtime conversion to AED will suppress Spotii for all UAE customers regardless of configuration. To fix this, set AED as the fixed checkout currency for the UAE market in Shopify Admin → Settings → Markets → UAE.</p>
+      <p><strong>Merchant account onboarding is a common silent blocker.</strong> Spotii (under Zip) requires completed KYC and business verification before going live. This includes commercial registration documents, bank account verification, and a review period that typically takes 3–7 business days. Merchants who went through this process before the Zip acquisition may need to re-verify if Zip migrated their account data and flagged it for re-review. The Spotii/Zip merchant portal will show pending status if onboarding is incomplete — but this status is not surfaced at Shopify checkout, so merchants may not know until they test a full checkout flow.</p>
+      <p>Additional suppression causes: test/sandbox API credentials are configured instead of live production keys (a very common cause of Spotii appearing in test mode but not at live checkout); the cart contains only digital products or gift cards (Spotii does not support non-physical goods); or the Shopify app version is outdated and needs updating from the App Store.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Diagnose</h3>
+      <ol>
+        <li><strong>Check two-step activation:</strong> Shopify Admin → Apps → confirm the Spotii app is listed as installed; then Shopify Admin → Settings → Payments → Alternative payment providers → confirm Spotii is listed and the toggle is enabled. Both must be true simultaneously.</li>
+        <li><strong>Check checkout currency per market:</strong> Shopify Admin → Settings → Markets → UAE → confirm AED is set as the fixed checkout currency, not a runtime conversion. Repeat for Saudi Arabia (SAR). Currency conversion from USD is the most common suppression cause for multi-market stores.</li>
+        <li><strong>Check Spotii/Zip merchant account status:</strong> Log into the Spotii/Zip merchant portal and verify your account shows "Live" or "Active" status. Accounts pending review, KYC documents, or risk assessment will suppress Spotii at checkout with no error message to the merchant.</li>
+        <li><strong>Verify API credential mode:</strong> In the Spotii app settings in Shopify, confirm live/production API credentials are configured — not sandbox or test credentials. Test credentials suppress Spotii for real customers while allowing test checkouts to proceed, which creates confusion about when the issue started.</li>
+        <li><strong>Test with a physical product above minimum:</strong> Add physical products totalling above 50 AED (UAE) or 200 SAR (Saudi Arabia) to cart and checkout with a UAE or Saudi Arabia shipping address. Spotii should appear for valid carts.</li>
+        <li><strong>Check the Spotii app version:</strong> Shopify Admin → Apps → Spotii → check if an update is available. Post-acquisition app updates from Zip have occasionally required merchants to re-authorize with updated API scope permissions.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Two-market scope note:</strong> Spotii appears only for UAE (AED) and Saudi Arabia (SAR) checkouts. If customers from Kuwait, Bahrain, Egypt, or Qatar report Spotii is missing — it is not a configuration error. Spotii simply does not operate in those markets. Consider adding Tabby (covers Egypt, Kuwait, Qatar) or Tamara (covers Kuwait, Bahrain) for broader GCC coverage.
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="declined">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Per-Transaction Risk Declined — "Not Available for This Order"</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Like Tabby and Tamara, Spotii runs an independent risk assessment on every transaction — past approval does not guarantee future approval. Each checkout triggers a real-time decision against Spotii's risk model, which evaluates the customer's payment history across all Spotii/Zip merchants, the number of currently open Spotii plans, the customer's total outstanding Spotii balance relative to the requested cart value, the customer's phone verification status, and pattern signals from the specific transaction (merchant category, cart composition, session behavior).</p>
+      <p><strong>First-time Spotii customers face the highest risk of decline.</strong> The Spotii risk model starts conservatively for new users with no payment history. First-time purchases are scored against a limited data set, which can result in a decline or approval for a smaller amount than the customer expected. Customers who have built a 6–12 month track record of on-time Spotii payments generally experience better approval rates and higher available spending capacity over time.</p>
+      <p><strong>Spotii's decline messages are opaque to customers.</strong> Because Spotii does not show customers their spending limit (unlike Tamara), a declined customer at checkout sees a message that Spotii is "not available for this order" — with no explanation of whether this is a risk decision, a limit issue, or a verification problem. This opacity means nearly every Spotii decline generates a customer support ticket to the merchant asking "why doesn't Spotii work?" when in fact the issue is entirely between Spotii and the customer's account.</p>
+      <p>Merchants cannot override Spotii risk decisions, access the decline reason, or appeal on behalf of customers. The most effective merchant response is to ensure that alternative payment methods (Tabby, credit card, Apple Pay, Google Pay) are visibly available at checkout so customers have a fallback when Spotii declines — and to include a brief checkout message noting that BNPL availability depends on the individual customer's account status.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Try a smaller cart value:</strong> Spotii may approve a smaller purchase even if a larger one was declined. If your cart is close to your Spotii spending capacity, reducing the total may flip the decision — you can complete the remainder in a separate order later.</li>
+        <li><strong>Wait for existing Spotii plans to progress:</strong> Each bi-weekly payment you make on open plans frees spending capacity. After one or two payments on existing plans, retry the declined purchase — your available Spotii balance will be higher.</li>
+        <li><strong>Verify your Spotii account is fully set up:</strong> Log into the Spotii app and confirm your Emirates ID (UAE) or National ID (KSA) is verified and your phone number is confirmed. An incomplete account profile is a silent decline trigger.</li>
+        <li><strong>Contact Spotii/Zip customer support:</strong> Spotii's in-app support can provide more context on a specific decline — they cannot always reverse it, but they can indicate whether it is a limit, verification, or risk issue and what you can do to improve approval chances.</li>
+        <li><strong>Use Tabby or a credit card as an alternative:</strong> If Spotii declines you on a specific purchase, Tabby (if offered by the merchant) provides a parallel MENA BNPL path, or complete the purchase with a credit or debit card.</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Merchant note:</strong> Sporadic Spotii declines affecting specific customers are not integration errors — they are customer-level risk decisions. If all customers are being declined simultaneously, that is a merchant account or configuration issue (check failure mode #7 for post-acquisition integration problems). If only some customers see declines, your Spotii integration is working correctly and the issue is on the customer side.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="spending-limit">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Spending Limit Reached (Opaque — Customers Cannot See It)</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Spotii assigns each customer a maximum outstanding balance — the total they can carry across all open Spotii plans simultaneously. When a new purchase would take their outstanding balance above this limit, the transaction is declined. Unlike Tamara — which shows customers their available credit limit clearly in the app — Spotii does not make this limit visible. Customers never know their Spotii spending limit until they hit it, and when they do, they receive only a generic "not available for this order" message with no indication of why.</p>
+      <p><strong>The bi-weekly payment model makes limit exhaustion patterns different from Tabby and Tamara.</strong> Spotii's four payments occur every two weeks, so a plan started this week has one payment due in two weeks, another in four weeks, another in six weeks. A customer with multiple concurrent Spotii plans (across multiple merchants) has payments due every two weeks to multiple merchants simultaneously. This two-week cadence means spending capacity refreshes faster than with Tabby's monthly model — but it also means customers who miss a payment face more frequent due dates and can exhaust their limit faster during peak shopping periods.</p>
+      <p><strong>Seasonal spending events create predictable limit exhaustion.</strong> During Ramadan and the White Friday sales period, UAE and KSA consumers open multiple Spotii plans across different merchants in a short window. By the middle of a major sale event, customers who started the season with available Spotii capacity may have consumed it entirely across five or six open plans — even at the bi-weekly payment pace. These customers then arrive at your checkout with zero available Spotii balance and experience a decline that they attribute to your store or your Spotii integration, not to their own spending pattern.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Check your open Spotii plans:</strong> Log into the Spotii app → My Orders or Plans → review how many open plans you have and what their remaining balances are. Total outstanding balance across all plans is what counts against your limit.</li>
+        <li><strong>Make a payment on an existing plan:</strong> Spotii app → select an open plan → Make a payment. Even a partial early payment on one plan reduces your outstanding balance and frees spending capacity immediately. You do not need to close a plan entirely to free limit.</li>
+        <li><strong>Wait for the next scheduled bi-weekly payment:</strong> Spotii payments occur every two weeks automatically. After your next scheduled payment on any open plan, your outstanding balance decreases and your available spending capacity increases — retry the declined purchase after that payment clears.</li>
+        <li><strong>Try a lower cart value:</strong> If your available Spotii capacity is partially consumed, a smaller cart value may fit within your remaining limit. Split a larger order across two purchases if possible.</li>
+        <li><strong>Contact Spotii support for a limit review:</strong> If you have a long history of on-time Spotii payments, contact Spotii support to request a spending limit review. Customers with 12+ months of clean payment history are more likely to receive a limit increase.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Merchant note:</strong> Because Spotii's limit is opaque, customers who hit their limit have no self-diagnostic path the way Tamara customers do. The most useful thing you can do as a merchant is add a visible note at checkout (via Shopify's checkout editor or an app) indicating that BNPL availability depends on individual account status and offering an alternative payment method clearly. This reduces support volume from limit-declined customers who otherwise assume your store is broken.
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="identity-verification">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Emirates ID or Saudi National ID Verification Failure</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Spotii requires identity verification as part of account setup and risk management. UAE customers must verify with their Emirates ID; Saudi Arabia customers must verify with their National ID (Saudi Huwiyya for nationals, or Iqama residence permit for expats). This verification happens at the Spotii account level — not at every checkout — but unverified or partially verified accounts are blocked from completing purchases, which surfaces at checkout as a decline with no explanation about the verification issue.</p>
+      <p><strong>Emirates ID verification failures are the most common identity issue for UAE customers.</strong> Emirates ID verification fails when: the ID number entered does not match records; the Emirates ID is expired (UAE residents are required to renew their Emirates ID periodically, and an expired ID is not accepted for identity verification); the name on the Emirates ID does not match the name registered on the Spotii account; or the customer registered Spotii before completing their Emirates ID renewal and the Spotii account has outdated ID data that needs to be updated.</p>
+      <p><strong>Expatriate identity verification is a consistent friction point in both UAE and KSA.</strong> The UAE has a very large expatriate workforce — many UAE residents do not hold an Emirates ID (for example, visitors on short-term visas) and cannot meet Spotii's UAE customer identity requirements. Similarly, in Saudi Arabia, expatriate residents with Iqama face the same verification challenges: an Iqama that has recently been renewed, an Iqama number that has changed, or a name transliteration that differs between the Iqama and the Spotii account can all block verification. Merchants targeting tourist or visitor segments in UAE are likely to see higher Spotii decline rates than merchants whose customer base is UAE resident nationals.</p>
+      <p>Customers cannot complete identity re-verification at the Shopify checkout page. The fix always happens inside the Spotii app before attempting another purchase. Customers must re-submit identity documents through the Spotii/Zip app and wait for re-verification, which can take from a few hours to several business days depending on document backlog.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Open the Spotii app and check your verification status:</strong> Spotii app → Account or Profile → check if your Emirates ID (UAE) or National ID/Iqama (Saudi Arabia) shows as verified. An unverified or pending status blocks all purchases.</li>
+        <li><strong>Update your ID if recently renewed:</strong> If you recently renewed your Emirates ID or Iqama, your Spotii account may still reference your old ID data. Spotii app → Account → Update ID → submit your new ID details and front/back ID scan.</li>
+        <li><strong>Ensure name consistency:</strong> The name on your ID must match the name on your Spotii account exactly. For expatriates, name transliteration from Arabic to English can differ between the Iqama and the Spotii account — contact Spotii support to manually match the name if they differ.</li>
+        <li><strong>Submit clear ID images:</strong> If Spotii's automated verification rejected your document scan, resubmit with a higher quality image — well-lit, flat surface, all four corners of the ID visible, no glare across the chip or barcode.</li>
+        <li><strong>Wait for re-verification to complete:</strong> After resubmitting identity documents, verification typically completes within a few business hours during working hours (UAE/KSA business days). Submissions made on weekends or UAE public holidays may take longer.</li>
+        <li><strong>Contact Spotii support directly:</strong> If automated verification has failed more than twice, manual review by Spotii's compliance team is the only remaining path. Contact Spotii/Zip customer support with your account details and explain which verification step failed.</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>UAE visitor note:</strong> Short-term visa holders and tourists in the UAE typically cannot verify a Spotii account because Emirates ID is required and they do not hold one. Spotii is designed for UAE and KSA residents, not for tourist or visitor commerce. Merchants whose stores attract significant UAE visitor traffic should not rely on Spotii as a primary BNPL option — and should ensure credit card, Apple Pay, and Google Pay are offered clearly.
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="phone-otp">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>Phone Number Verification / OTP Failure</h2>
+        <span class="failure-type type-customer">Customer-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Spotii uses SMS OTP (one-time password) verification during account setup and, in some flows, at checkout confirmation. The OTP is sent to the mobile number registered on the customer's Spotii account. OTP delivery fails in several specific scenarios that are especially common in the UAE and Saudi Arabia due to regional SIM and telecom patterns.</p>
+      <p><strong>Non-UAE/KSA SIM cards are the primary OTP failure cause.</strong> Spotii's OTP delivery is optimized for UAE (+971) and Saudi Arabia (+966) mobile numbers. Customers who registered Spotii with a UAE or KSA number but are now using a foreign SIM (roaming or a SIM swap) may not receive OTPs reliably — international roaming can delay or drop SMS messages from UAE-based telecom gateways. Customers who moved away from the UAE or Saudi Arabia but still have a Spotii account on their old number will face OTP failure on every checkout until they update their phone number.</p>
+      <p><strong>Dual-SIM phones are a frequent OTP confusion source.</strong> Many UAE and KSA residents carry dual-SIM phones — often one UAE/KSA local SIM and one home-country SIM. OTPs intended for the UAE number sometimes arrive on the second SIM unexpectedly (if the UAE number is assigned to SIM slot 2), or the customer is checking the wrong SIM for the OTP. When the customer reports the OTP "didn't arrive," the SMS was often delivered — but to the SIM they are not actively checking.</p>
+      <p>Blocked or filtered SMS is also a cause. Some UAE and KSA mobile carriers filter short-code or promotional SMS aggressively; Spotii OTPs sent via certain telecom gateways may be routed to filtered or spam SMS folders on some carrier networks. This affects a minority of customers but creates unexplained, intermittent OTP failures that look like a Spotii system problem.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps for Customers</h3>
+      <ol>
+        <li><strong>Confirm which number your Spotii account is registered to:</strong> Spotii app → Account → Phone Number — verify this is your current, active UAE or KSA number. An old number from a previous SIM is the most common OTP failure cause.</li>
+        <li><strong>Check both SIMs on a dual-SIM phone:</strong> If you use a dual-SIM device, check the SMS inbox on both SIMs — the OTP may have been delivered to the SIM you are not currently using for data.</li>
+        <li><strong>Check SMS spam/filtered folders:</strong> Some UAE and KSA carriers route short-code SMS to filtered or promotional SMS folders. Check your messages app for a filtered or spam folder if the OTP did not arrive in your main inbox.</li>
+        <li><strong>Request a new OTP:</strong> OTPs expire after a short window (typically 3–5 minutes). If you took too long entering it, request a new one rather than retrying the expired code.</li>
+        <li><strong>Update your phone number if it has changed:</strong> Spotii app → Account → Update Phone Number — enter your current active UAE or KSA number and complete re-verification before attempting another checkout. This change requires re-verification of the new number.</li>
+        <li><strong>Try over a stable mobile connection:</strong> OTP SMS delivery can be affected by intermittent network connectivity. If you are on a weak signal or WiFi calling, switch to a strong 4G/5G mobile data connection and request a new OTP.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="below-minimum">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Order Value Below Spotii Minimum</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Spotii has a minimum order value requirement — typically 50 AED in the UAE and 200 SAR in Saudi Arabia. Carts below these minimums will not display Spotii at checkout, regardless of the customer's account status or the merchant's configuration. This is a hard threshold that cannot be overridden, and it is applied before Spotii's risk assessment runs — so a below-minimum cart never reaches the point of showing Spotii as an option.</p>
+      <p><strong>The minimum is applied to the Shopify checkout transaction value, not the catalog price.</strong> Discount codes, automatic discounts, free-shipping thresholds, or order-level promotions that reduce the checkout total below the Spotii minimum will suppress Spotii — even if the cart contained items priced above the minimum before discounts. A customer who adds a large discount code that brings the order total below 50 AED will no longer see Spotii at checkout, even if Spotii was visible earlier in the checkout flow without the discount applied.</p>
+      <p><strong>Spotii minimum thresholds differ from Tabby and Tamara.</strong> Tabby's minimum is 1 AED (effectively no minimum for UAE) and 10 SAR for Saudi Arabia. Tamara's minimum is 100 SAR for Saudi Arabia and 100 AED for UAE — which is higher than Spotii's AED minimum and the same as Spotii's SAR minimum. For low-value average-order-value stores (cosmetics, accessories, small home goods), Spotii's 50 AED minimum means a meaningful portion of carts will naturally fall below it, while Tabby's near-zero minimum would capture those carts.</p>
+    </div>
+    <div class="steps">
+      <h3>Fix Steps</h3>
+      <ol>
+        <li><strong>Verify cart value before troubleshooting further:</strong> Add up items in the cart after discounts are applied — if the total is below 50 AED (UAE) or 200 SAR (Saudi Arabia), Spotii not showing is expected behavior, not a bug.</li>
+        <li><strong>Check if a discount code is bringing the cart below minimum:</strong> A large discount code or automatic promotion applied at checkout may push the order total below the Spotii threshold. Test the checkout flow with and without the discount to confirm.</li>
+        <li><strong>Compare Tabby and Spotii minimum thresholds:</strong> If Spotii suppression due to below-minimum carts is affecting a significant portion of your orders, consider whether Tabby (lower minimum, broader market coverage) better fits your product catalog and average order value.</li>
+        <li><strong>Consider minimum order incentives:</strong> If Spotii is a significant BNPL option for your customers, adding a small incentive (free shipping threshold, bundle pricing) that naturally pushes orders above 50 AED may both increase Spotii eligibility and raise your average order value.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="zip-acquisition">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Post-Zip-Acquisition Integration Breaks</h2>
+        <span class="failure-type type-merchant">Merchant-side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Zip Co. (ASX: ZIP) acquired Spotii in 2021 to enter the MENA BNPL market. The acquisition migrated Spotii's infrastructure into Zip's global platform over subsequent months. For merchants who integrated Spotii before the acquisition — or who set up their integration using pre-acquisition documentation — several elements of the integration may now be pointing to deprecated Spotii-branded infrastructure. This is the most uniquely "Spotii" failure mode: Tabby and Tamara have no equivalent, as both have remained under their original ownership without major infrastructure transitions.</p>
+      <p><strong>Merchant portal URL changes.</strong> The original Spotii merchant portal was at merchant.spotii.me. Following the Zip acquisition, merchant management migrated to the Zip merchant portal. Merchants still bookmarking or being linked to the old Spotii URL may be accessing a deprecated interface — changes made there may not propagate to the live Spotii/Zip checkout system, or may not propagate at all if the old portal has been decommissioned. Verify you are accessing the current Zip-operated merchant portal by checking Spotii's official documentation.</p>
+      <p><strong>API endpoint and webhook URL changes.</strong> Spotii's pre-acquisition API used spotii.me-hosted endpoints. Post-acquisition, Zip consolidated API infrastructure. Merchants with hardcoded Spotii API base URLs in their configuration (especially those who customized the Shopify app settings manually) may be making API calls to endpoints that no longer respond or that redirect incorrectly. Webhook URLs for order notifications also changed, which can cause a merchant's backend to stop receiving Spotii order confirmations even when checkouts are completing successfully from the customer's perspective.</p>
+      <p><strong>API credentials may have expired or been re-issued.</strong> As part of the Zip migration, some merchants had their API credentials re-issued under Zip's key management system. Merchants who did not receive or apply the new credentials continue to see Spotii appear at checkout (the app itself still loads) but transactions fail at the payment processing stage, often with a generic "payment could not be completed" error. Re-issuing and applying new API credentials from the current Zip merchant portal typically resolves this.</p>
+      <p>The Spotii Shopify app itself has been updated post-acquisition — but auto-updates to the app do not automatically update the underlying API credentials or webhook URLs if they were manually customized outside the default app configuration. Merchants who customized their Spotii integration should review each customized element against current documentation.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Diagnose and Fix</h3>
+      <ol>
+        <li><strong>Access the current merchant portal:</strong> Go to the current Spotii/Zip merchant portal (not merchant.spotii.me if that URL no longer resolves correctly) and log in. If your login credentials no longer work or the portal shows an error, your merchant account may need to be migrated — contact Spotii/Zip merchant support directly.</li>
+        <li><strong>Regenerate API credentials from the current portal:</strong> In the Zip merchant portal, navigate to API settings and regenerate your public and secret API keys. Apply the new keys to the Spotii app settings in Shopify Admin → Apps → Spotii → Configuration. Old pre-acquisition keys may no longer be valid.</li>
+        <li><strong>Verify webhook URLs:</strong> In the Zip merchant portal under notifications or webhooks, confirm the webhook destination URL matches your current Shopify store or backend endpoint. If the URL still references the old Spotii-era format, update it.</li>
+        <li><strong>Run a test transaction:</strong> After updating credentials and webhook URLs, use Spotii's test mode (switch to test credentials in the Shopify app settings) to run a test checkout end-to-end and confirm order confirmation is received. Then switch back to live credentials and run a small live test order.</li>
+        <li><strong>Update the Spotii Shopify app:</strong> Shopify Admin → Apps → check for available updates to the Spotii app. Post-acquisition updates include compatibility fixes for Shopify's checkout extensibility updates.</li>
+        <li><strong>Contact Spotii/Zip merchant support:</strong> If you integrated before 2022 and have not audited the integration since, the most reliable fix is to contact Zip's MENA merchant support team and ask them to walk through your account migration status and verify all integration endpoints are current.</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Critical diagnostic question:</strong> Did your Spotii integration stop working without any changes on your side? If yes and the integration was set up before mid-2021, the post-acquisition infrastructure changes are the most likely cause. Start with API credential regeneration and merchant portal verification before investigating any Shopify-side configuration.
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="section-label">MENA BNPL COMPARISON</div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Spotii</th>
+        <th>Tabby</th>
+        <th>Tamara</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Payment structure</td>
+        <td>Pay-in-4 bi-weekly (every 2 weeks)</td>
+        <td>Pay-in-4 monthly</td>
+        <td>Pay-in-3 (30-day intervals) + Pay Later</td>
+      </tr>
+      <tr>
+        <td>Markets covered</td>
+        <td>UAE, Saudi Arabia</td>
+        <td>UAE, KSA, Egypt, Kuwait, Qatar</td>
+        <td>UAE, KSA, Kuwait, Bahrain</td>
+      </tr>
+      <tr>
+        <td>Currencies</td>
+        <td>AED, SAR</td>
+        <td>AED, SAR, EGP, KWD, QAR</td>
+        <td>AED, SAR, KWD, BHD</td>
+      </tr>
+      <tr>
+        <td>Spending limit visible to customer</td>
+        <td>No (opaque, like Tabby)</td>
+        <td>No (opaque)</td>
+        <td>Yes (shown in Tamara app)</td>
+      </tr>
+      <tr>
+        <td>Identity verification</td>
+        <td>Emirates ID (UAE) / National ID or Iqama (KSA)</td>
+        <td>Emirates ID / National ID / Iqama</td>
+        <td>Absher / National ID / Iqama / Emirates ID</td>
+      </tr>
+      <tr>
+        <td>Parent company</td>
+        <td>Zip Co. (Australia, acquired 2021)</td>
+        <td>Tabby (UAE-founded, independent)</td>
+        <td>Tamara (KSA-founded, independent)</td>
+      </tr>
+      <tr>
+        <td>Min. order (UAE)</td>
+        <td>~50 AED</td>
+        <td>~1 AED (no practical minimum)</td>
+        <td>~100 AED</td>
+      </tr>
+      <tr>
+        <td>Min. order (KSA)</td>
+        <td>~200 SAR</td>
+        <td>~10 SAR</td>
+        <td>~100 SAR</td>
+      </tr>
+      <tr>
+        <td>Unique failure mode</td>
+        <td>Post-acquisition Zip infrastructure breaks</td>
+        <td>Per-transaction risk model with opaque limit</td>
+        <td>Absher identity verification layer</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- QUICK CHECKLIST -->
+  <div class="checklist" style="margin-top: 48px;">
+    <h3>Spotii Not Working — Quick Diagnosis Checklist</h3>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Spotii app installed AND enabled as alternative payment provider</strong> — both steps required; installed ≠ enabled at checkout</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Checkout currency is fixed AED (UAE) or fixed SAR (KSA)</strong> — runtime conversion from USD suppresses Spotii for all customers</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Spotii/Zip merchant account is Live status</strong> — pending KYC or document review silently blocks all checkouts</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Live API credentials configured (not test/sandbox)</strong> — sandbox credentials suppress Spotii for real customers</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Cart value above 50 AED (UAE) / 200 SAR (KSA)</strong> — below-minimum carts never show Spotii regardless of configuration</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>If integrated before 2022: verify API credentials and portal from current Zip merchant portal</strong> — post-acquisition changes may have deprecated your original integration</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Spotii Shopify app is up to date</strong> — post-acquisition app updates include checkout extensibility compatibility fixes</p>
+    </div>
+  </div>
+
+  <div class="cta-bottom">
+    <h2>Catch Spotii Failures Before Your Customers Do</h2>
+    <p>CheckPulse runs a 4-step checkout health check — payment provider visibility, currency gating, speed, and cart flow — and emails you if something breaks.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Start Free Checkout Check →</a>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-tabby-not-working">Tabby Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-tamara-not-working">Tamara Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-postpay-not-working">Postpay Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+  </nav>
+  <p>© 2026 CheckPulse · Shopify checkout monitoring</p>
+</footer>
+
+</body>
+</html>

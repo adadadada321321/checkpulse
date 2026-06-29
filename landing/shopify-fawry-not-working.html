@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Fawry Not Working — Reference Code, IPN Callback, Pending Order &amp; API Issues (2026)</title>
+  <meta name="description" content="Shopify Fawry not working? Fawry reference code not generating, order stuck in pending after payment, IPN callback failing, wrong API endpoint, test mode in production — 7 root causes with exact fixes for Egypt merchants using direct Fawry integration." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-fawry-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-fawry-not-working" />
+  <meta property="og:title" content="Shopify Fawry Not Working — Reference Code, IPN Callback &amp; Pending Order Fixes (2026)" />
+  <meta property="og:description" content="Fawry on Shopify fails in 7 distinct ways: reference code not generating (merchant code / security key / API auth failure), order stuck in pending after outlet payment (IPN callback not configured or wrong URL), test environment URL in live store, currency not EGP, reference code expired, Fawry Business account not activated, and signature hash mismatch. Each fails differently and requires a different fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Fawry Not Working — Reference Code, IPN Callback, Pending Order &amp; API Issues",
+    "description": "Fawry not working on Shopify has seven root causes: the Fawry reference code is not generating because the merchant code or security key is wrong or missing from the plugin configuration; the Shopify store is using Fawry's test/staging API endpoint (staging.atfawry.com) in a live production environment, making reference codes unpayable at real outlets; the IPN (instant payment notification) callback URL is not configured or points to the wrong URL so Shopify never receives Fawry's payment confirmation; the Shopify store currency is not Egyptian Pounds (EGP) and the integration is not converting before calling the Fawry API; the reference code has expired because the customer waited longer than the configured validity window before visiting a Fawry outlet; the merchant's Fawry Business account is not fully activated or is missing the e-commerce API permission; or the SHA-256 signature hash is being generated incorrectly in the plugin.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-fawry-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-29",
+    "dateModified": "2026-06-29"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Fawry reference code not generating at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fawry reference code not generating at Shopify checkout is almost always an API authentication failure. Fawry's direct integration API uses a merchant code and a security key to generate a SHA-256 signature for every request. If either the merchant code or the security key is wrong, missing, or copied incorrectly from the Fawry merchant dashboard, the API call returns an authentication error and no reference code is generated. The checkout may appear to complete normally, but the customer never sees a Fawry reference number. The second most common cause is using the Fawry staging/test API endpoint (staging.atfawry.com) instead of the live production endpoint (atfawry.com). Test endpoint calls succeed technically but produce sandbox reference codes that are not payable at real Fawry outlets."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify order stuck in pending after the customer paid at Fawry?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify order staying in pending payment after the customer paid at a Fawry outlet is an IPN (Instant Payment Notification) callback failure. When a customer pays a Fawry reference code at any Fawry agent, ATM, supermarket, or bank branch, Fawry sends a payment confirmation webhook (called an IPN callback) to a URL you configure in your Fawry merchant dashboard. If this callback URL is not configured, points to the wrong domain, uses HTTP instead of HTTPS, or has a trailing slash mismatch, Fawry cannot reach Shopify and the order status never updates from pending to paid. The customer has paid and Fawry has their money, but Shopify has no way of knowing this. Check your Fawry merchant dashboard under 'Integration Settings' or 'IPN Callback' and verify the URL exactly matches your Shopify store's callback endpoint."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I integrate Fawry directly with Shopify (not via Paymob)?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fawry does not have an official Shopify app. Direct Fawry integration on Shopify requires either a third-party plugin (search the Shopify App Store for 'Fawry Egypt') or custom development using Fawry's API. Fawry's direct API (atfawry.com) uses a merchant code and security key for authentication, with SHA-256 signature generation on each request. The integration flow is: (1) customer selects Fawry at checkout, (2) your store calls Fawry's charge API to generate a reference code, (3) customer pays the reference code at any Fawry outlet within the validity window, (4) Fawry calls your IPN callback URL with payment confirmation, (5) your store updates the Shopify order to paid. This is different from Fawry via Paymob, where Paymob handles the API calls and you only configure a Fawry integration ID inside the Paymob dashboard."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Fawry work with Shopify stores priced in USD?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fawry's direct API only accepts Egyptian Pounds (EGP). If your Shopify store displays prices in USD or another currency, your Fawry integration must convert the order total to EGP before calling the Fawry charge API. If the integration passes a USD amount directly to Fawry, the API will either reject the request or generate a reference code with the wrong amount in EGP (treating the USD number as EGP, which means charging the customer a fraction of what they should pay). Most third-party Fawry Shopify plugins handle this conversion using real-time exchange rates from the Egyptian Central Bank or a configured static rate — verify your plugin's currency conversion setting is enabled and using a reasonable rate."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Fawry reference code validity period?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fawry reference codes are valid for a configurable period, typically 24 to 72 hours for e-commerce transactions. After this window, the reference code expires and cannot be paid at any Fawry outlet. The validity period is set in the Fawry charge API request (the 'paymentExpiry' parameter) when the reference code is generated. If a customer does not pay within the validity window, they need to return to checkout and generate a new reference code. Merchants can extend the validity window up to 30 days for some transaction types, but longer windows increase the risk of order management complications (the order is pending in Shopify for the entire validity period). Set the validity to match your customer's typical behavior — 48 hours is a common balance between conversion and operational complexity."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .info-box strong { color: #60a5fa; }
+
+    .fawry-unique {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(79,70,229,0.06));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .fawry-unique h3 { font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .fawry-unique p { font-size: 14px; color: #999; line-height: 1.65; margin-bottom: 10px; }
+    .fawry-unique p:last-child { margin-bottom: 0; }
+    .fawry-unique strong { color: #c4b5fd; }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #161616;
+      border: 1px solid #222;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+    }
+    .compare-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e1e1e;
+      color: #999;
+      vertical-align: top;
+    }
+    .compare-table tr:nth-child(even) td { background: #121212; }
+    .compare-table td:first-child { color: #ccc; font-weight: 600; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    Fawry Not Working
+  </div>
+  <h1>Shopify Fawry Not Working — Reference Code Not Generating, Order Stuck in Pending &amp; IPN Callback Failures</h1>
+  <div class="hero-meta">Updated June 2026 · 7 failure modes · Egypt merchants · Direct Fawry integration (not via Paymob)</div>
+  <p class="hero-lead">Fawry is Egypt's largest offline payment network, with over 300,000 agent locations including Fawry machines, ATMs, supermarkets (Carrefour, Spinneys, BIM), and bank branches. Unlike card or wallet payments, Fawry works through a unique reference-code flow: the merchant generates a code via API, the customer pays it at any outlet within a validity window, and Fawry notifies the merchant via an IPN callback. Each step in this chain is a potential failure point — and when any one fails, the result looks different to the merchant and customer. This guide covers the 7 failure modes merchants encounter when integrating Fawry directly with Shopify.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is Fawry not generating reference codes or leaving orders in pending?</strong> A 4-step checkout diagnostic catches Fawry configuration failures before your customers experience them.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- FAWRY UNIQUE MODEL -->
+  <div class="fawry-unique">
+    <h3>How Fawry's Direct Integration Differs From Fawry via Paymob</h3>
+    <p><strong>There are two ways to accept Fawry payments on Shopify — and they fail differently.</strong> The first is through Paymob: you install the Paymob Shopify app, configure a Fawry integration ID in the Paymob dashboard, and Paymob's API handles all Fawry calls on your behalf. The second is direct Fawry integration: you call Fawry's own API (atfawry.com) using your Fawry Business merchant code and security key, with no intermediary. This guide focuses on direct Fawry integration. If you are using Paymob and experiencing Fawry issues, see the <a href="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working">Paymob not working guide</a> instead — the root causes are completely different (Paymob: missing integration ID; direct Fawry: API auth / IPN callback).</p>
+    <p><strong>Fawry has no official Shopify app.</strong> Unlike Tabby, Paymob, or valU — which publish official apps in the Shopify App Store — Fawry's e-commerce API integration requires either a third-party Shopify plugin or custom development. This means the quality of the integration (specifically: signature generation, error handling, and IPN callback processing) varies significantly between plugins and custom implementations. Most Fawry checkout failures trace back to implementation-level issues in the plugin or custom code, not to Fawry's API itself.</p>
+    <p><strong>Fawry processes in EGP only.</strong> Fawry's charge API requires the transaction amount in Egyptian Pounds. If your Shopify store operates in a different currency, your integration must convert the order total to EGP before calling the Fawry API. Many integration failures in multi-currency stores come from this step being missing or using a stale exchange rate. Fawry does not accept USD, EUR, or any non-EGP currency in the charge request.</p>
+    <p><strong>Fawry's payment flow is asynchronous.</strong> Unlike a card payment (which completes or fails synchronously at checkout), a Fawry payment is a two-stage process: (1) reference code generation at checkout time, (2) customer payment at an outlet + Fawry IPN callback to the merchant hours or days later. This means Fawry orders are intentionally in "Pending" status until the outlet payment occurs. The failure mode merchants most often confuse with a bug is simply an unpaid reference code — the integration worked correctly, the customer just hasn't paid yet.</p>
+  </div>
+
+  <div class="toc">
+    <h2>7 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#no-reference">Reference code not generating (API auth failure)</a></li>
+      <li><a href="#test-env">Test environment in production (staging URL in live store)</a></li>
+      <li><a href="#ipn-missing">IPN callback not configured (order never updates from pending)</a></li>
+      <li><a href="#ipn-mismatch">IPN callback URL mismatch (Fawry cannot reach Shopify)</a></li>
+      <li><a href="#currency">Currency not EGP (amount rejected or wrong value charged)</a></li>
+      <li><a href="#expiry">Reference code expired (customer missed the payment window)</a></li>
+      <li><a href="#account-not-live">Fawry Business account not activated for e-commerce API</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="no-reference">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Reference Code Not Generating — API Authentication Failure</h2>
+        <span class="failure-type type-merchant">Merchant Configuration</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>The most common Fawry failure: the customer reaches the Fawry payment step at checkout, the page appears to process, but no Fawry reference code is displayed. The customer sees a generic "something went wrong" message or is returned to the checkout without a reference number.</p>
+      <p>Fawry's charge API uses signature-based authentication. Every API request must include a SHA-256 hash computed from the merchant code, security key, customer profile ID, customer name, merchant reference number, payment expiry, and order amounts. If any of these inputs are wrong — or if the signature computation itself has a bug — the Fawry API returns a 403 or an authentication error, and no reference code is generated.</p>
+      <p>The three most common causes: (1) the merchant code or security key was copied incorrectly from the Fawry dashboard — Fawry merchant codes and security keys are long alphanumeric strings, and a single character difference causes signature mismatch; (2) the plugin is using outdated Fawry API documentation and generating the signature in a deprecated format; (3) the security key was regenerated in the Fawry dashboard (for security reasons) but the plugin was not updated with the new key.</p>
+      <div class="warning-box">
+        <strong>Silent failure pattern:</strong> Fawry API auth failures often produce no visible error at checkout. The plugin makes the API call, receives a 403, and either shows a blank reference section or falls back to "COD" without alerting the merchant. Check your Shopify error logs or enable plugin debug mode to see the raw Fawry API response.
+      </div>
+      <div class="steps">
+        <h3>How to Fix — Reference Code Not Generating</h3>
+        <ol>
+          <li><strong>Log into your Fawry merchant portal</strong> at merchant.fawry.com → go to Profile → API Credentials → copy the Merchant Code and Security Key exactly (no leading or trailing spaces).</li>
+          <li><strong>Update your plugin or custom integration</strong> with the current merchant code and security key. Save and test with a small order amount.</li>
+          <li><strong>Verify the signature algorithm</strong> matches Fawry's current API docs — Fawry uses SHA-256 on a concatenated string of specific fields in a specific order. The order of fields in the hash input matters; swapping any two fields produces a wrong signature that Fawry rejects.</li>
+          <li><strong>Enable debug logging</strong> in your Fawry plugin to capture the raw API request and response. A 403 response confirms auth failure; a 200 with an error code in the body indicates a different issue (e.g., account not activated for e-commerce).</li>
+          <li><strong>Test in Fawry's staging environment</strong> (staging.atfawry.com) with test credentials first — if reference codes generate in staging but not in production, the issue is almost certainly credentials (wrong merchant code / security key for the live environment).</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="test-env">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Test Environment in Production — Staging URL in Live Store</h2>
+        <span class="failure-type type-merchant">Merchant Configuration</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Fawry has two separate environments: a staging/test environment at <code style="background:#1a1a1a; padding:1px 6px; border-radius:4px; font-size:13px; color:#93c5fd;">staging.atfawry.com</code> and a production environment at <code style="background:#1a1a1a; padding:1px 6px; border-radius:4px; font-size:13px; color:#93c5fd;">atfawry.com</code>. During integration testing, merchants (or developers) configure the staging URL. If this URL is not updated to the production URL before the store goes live, the integration appears to work — reference codes are generated, the checkout completes — but the reference codes are sandbox-only and cannot be paid at any real Fawry outlet.</p>
+      <p>This failure is particularly damaging because it is not immediately apparent to the merchant. Orders are placed, reference codes are generated and sent to customers, but customers report that the Fawry code "doesn't work at the machine." The customer has attempted to pay but the outlet's system returns "invalid reference" because the code was generated against the test environment.</p>
+      <p>This failure also affects the IPN callback: Fawry's staging environment will never send real payment confirmations to production stores, so all orders placed during this period remain in "Pending" indefinitely.</p>
+      <div class="warning-box">
+        <strong>How to identify this failure:</strong> Check the Fawry reference codes generated on your store. Staging reference codes often have a distinct format or prefix compared to production codes. Also check your plugin's API endpoint setting — if it contains "staging" in the URL, you are in test mode on a live store.
+      </div>
+      <div class="steps">
+        <h3>How to Fix — Test Environment in Production</h3>
+        <ol>
+          <li><strong>Open your Fawry plugin settings</strong> in the Shopify admin → find the API endpoint URL field.</li>
+          <li><strong>Confirm the URL is the production endpoint:</strong> <code style="background:#1a1a1a; padding:1px 5px; border-radius:3px; font-size:13px; color:#93c5fd;">https://atfawry.fawrystaging.com/ECommerceWeb/Fawry/payments/charge</code> is staging — replace with the live Fawry production URL from your Fawry merchant documentation.</li>
+          <li><strong>Update API credentials to production credentials</strong> — staging credentials only work on the staging environment; production credentials only work on the production environment. You need separate credential sets for each.</li>
+          <li><strong>Cancel and re-take all orders placed while in test mode</strong> — reference codes generated against staging cannot be redeemed. Contact affected customers and advise them to checkout again.</li>
+          <li><strong>Verify the IPN callback URL</strong> is also pointing to your live store's domain, not a localhost or staging domain from the development phase.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="ipn-missing">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>IPN Callback Not Configured — Orders Never Update From Pending</h2>
+        <span class="failure-type type-merchant">Merchant Configuration</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When a customer pays a Fawry reference code at any Fawry outlet, Fawry's system sends a payment confirmation to your store via an IPN (Instant Payment Notification) callback — an HTTP POST to a URL you configure in your Fawry merchant dashboard. If this callback URL is not configured, Fawry has nowhere to send the confirmation, and all Fawry orders remain in "Pending payment" status in Shopify indefinitely — even after customers have successfully paid.</p>
+      <p>This failure is invisible to customers (they pay successfully, receive a receipt from the Fawry outlet) but highly disruptive for merchants: orders are paid but appear unpaid, Shopify doesn't fulfill them automatically, and merchants may cancel paid orders thinking they are abandoned. Without the IPN callback, there is no automated way to connect a Fawry outlet payment to a Shopify order.</p>
+      <p>Many merchants discover this failure weeks after launch, when they manually check Fawry's dashboard and see successful payments that never updated in Shopify. The gap between Fawry's records (paid) and Shopify's records (pending) is the IPN callback.</p>
+      <div class="info-box">
+        <strong>Where to configure the IPN callback:</strong> Log into your Fawry merchant dashboard → Integration Settings → Merchant IPN URL → enter the callback URL provided by your Fawry Shopify plugin (typically something like: <code style="background:rgba(255,255,255,0.05); padding:1px 5px; border-radius:3px; font-size:12px;">https://yourstore.myshopify.com/apps/fawry/callback</code>). Save and test with a staging payment to confirm callbacks are being received.
+      </div>
+      <div class="steps">
+        <h3>How to Fix — IPN Callback Not Configured</h3>
+        <ol>
+          <li><strong>Find your Fawry IPN callback URL</strong> in your plugin documentation or plugin settings — it is the URL Fawry should POST payment confirmations to.</li>
+          <li><strong>Log into the Fawry merchant portal</strong> → Integration → IPN/Callback Settings → enter the callback URL and save.</li>
+          <li><strong>Test the callback</strong> using Fawry's staging environment — make a test payment and verify the order updates in Shopify from pending to paid.</li>
+          <li><strong>For historical pending orders:</strong> log into your Fawry dashboard to see which reference codes have been paid → manually update those Shopify orders to paid → fulfill them to customers.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="ipn-mismatch">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>IPN Callback URL Mismatch — Fawry Cannot Reach Shopify</h2>
+        <span class="failure-type type-both">Merchant + Technical</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Even when an IPN callback URL is configured in the Fawry dashboard, it can fail to deliver payment confirmations if the URL does not exactly match what your Shopify store expects. Fawry's IPN system sends HTTP POST requests — if the URL is wrong, Fawry's POST goes to a dead endpoint and Shopify never receives the payment confirmation.</p>
+      <p>Common IPN URL mismatch patterns: (1) the store domain changed (custom domain added or changed) but the Fawry dashboard still has the old .myshopify.com URL; (2) the callback URL uses HTTP instead of HTTPS — Shopify stores require HTTPS and may reject unencrypted callbacks; (3) a trailing slash difference (fawrystaging.com/callback vs. fawrystaging.com/callback/ — some web servers treat these differently); (4) the Fawry plugin was updated and the callback URL endpoint path changed, but the Fawry dashboard was not updated; (5) the store was migrated to a new subdomain or new platform and the old callback URL is no longer valid.</p>
+      <p>This failure produces the same symptom as "IPN not configured" — orders stay in pending — but the root cause is different: callbacks are being sent by Fawry but not received by Shopify because the URL is wrong. The distinction matters for diagnosis: check Fawry's dashboard for callback delivery logs — if you see "delivery failed" or HTTP error responses, the URL is the problem.</p>
+      <div class="steps">
+        <h3>How to Fix — IPN Callback URL Mismatch</h3>
+        <ol>
+          <li><strong>Get the exact current callback URL</strong> from your Fawry Shopify plugin settings page — copy it character-by-character, including protocol (https://) and any trailing slash.</li>
+          <li><strong>Update the Fawry merchant dashboard</strong> with the exact URL and save.</li>
+          <li><strong>Check Fawry's callback delivery log</strong> in the Fawry dashboard — look for recent delivery attempts and their HTTP response codes. A 404 means the URL path is wrong; a connection error means the domain is wrong; a 200 means delivery is working.</li>
+          <li><strong>Test with a staging payment</strong> to confirm end-to-end: place a test order → generate a Fawry reference → simulate payment in Fawry staging → verify the Shopify order updates to paid.</li>
+          <li><strong>Set up a backup polling mechanism</strong> in your plugin if available — some Fawry plugins include a cron job that queries Fawry's API for pending order statuses and reconciles them without relying solely on IPN callbacks.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="currency">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>Currency Not EGP — Amount Rejected or Wrong Value Charged</h2>
+        <span class="failure-type type-merchant">Merchant Configuration</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Fawry's charge API accepts transaction amounts in Egyptian Pounds (EGP) only. If your Shopify store is configured to display prices in USD, EUR, GBP, or any other currency, your Fawry integration must convert the order total to EGP before calling the Fawry API. If this conversion is missing, two things can happen: (1) the Fawry API rejects the request with a currency error, producing no reference code; or (2) the API accepts the amount but interprets it as EGP, resulting in a reference code for the wrong value — a $100 USD order becomes a 100 EGP reference code, which is about $2 USD, causing serious undercharging.</p>
+      <p>Multi-currency Shopify stores that add Fawry as an additional payment option without updating their Fawry plugin's currency handling are particularly vulnerable to silent undercharging. The reference code generates successfully, the customer pays it, the Fawry IPN callback fires, the Shopify order marks as paid — everything looks correct — but the merchant received 30x less than the order value.</p>
+      <p>This failure is especially risky for merchants who do not regularly reconcile their Fawry dashboard payouts against their Shopify order values. It can go undetected for weeks while the merchant ships orders and receives only a fraction of the correct payment.</p>
+      <div class="warning-box">
+        <strong>Undercharging risk:</strong> If your store sells in USD and Fawry is generating EGP reference codes without conversion, every Fawry order has been undercharged by approximately 50x. Check your last 30 Fawry payments in the Fawry dashboard and compare the EGP amounts against the expected USD-to-EGP converted values. If there is a systematic mismatch, the conversion is missing.
+      </div>
+      <div class="steps">
+        <h3>How to Fix — Currency Not EGP</h3>
+        <ol>
+          <li><strong>Check your Fawry plugin settings</strong> for a currency conversion option — most modern Fawry plugins have a toggle to convert from the store currency to EGP using a configured rate or a live exchange rate feed.</li>
+          <li><strong>Enable EGP conversion</strong> and set a conservative static rate (e.g., $1 USD = 50 EGP) if a live rate is not available — a static rate protects against the API rejection even if not perfectly precise.</li>
+          <li><strong>Verify the conversion is working</strong> by placing a test order in your non-EGP currency and checking the reference code amount in the Fawry dashboard — the EGP amount should match the order total multiplied by the exchange rate.</li>
+          <li><strong>Review historical Fawry payments</strong> for undercharging — if found, contact the affected customers or absorb the loss and fix the integration to prevent future undercharging.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="expiry">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Reference Code Expired — Customer Missed the Payment Window</h2>
+        <span class="failure-type type-customer">Customer Experience</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Fawry reference codes are not permanent. Every code has a validity window set at the time of generation — after this window closes, the code is invalidated at all Fawry outlets. When a customer attempts to pay an expired reference code, the Fawry outlet terminal returns "invalid reference" or "code expired." The customer may then contact the merchant believing the payment system is broken, when in fact the code simply expired.</p>
+      <p>The validity window is set in the Fawry charge API request's <code style="background:#1a1a1a; padding:1px 5px; border-radius:3px; font-size:13px; color:#93c5fd;">paymentExpiry</code> parameter as a Unix timestamp. Merchants can configure this from as little as a few hours to as long as 30 days, depending on their Fawry account type and the transaction category. The default for e-commerce transactions in most plugins is 24 hours — appropriate for fast-moving orders but too short for customers who browse, place an order, and plan to pay later.</p>
+      <p>Note that an expired reference code does not automatically cancel the Shopify order — the order remains in "Pending payment" status indefinitely unless the merchant has set up automatic order cancellation for pending payments. Merchants should configure Shopify's "Payment pending" automatic cancellation to match or slightly exceed the Fawry reference code validity window.</p>
+      <div class="info-box">
+        <strong>Customer communication matters here:</strong> Include the reference code expiry time in the order confirmation email. "Your Fawry reference code [XXXXXXXXXX] is valid until [time/date]. Pay at any Fawry outlet, ATM, Carrefour, or BIM before this deadline." Customers who know the deadline pay on time. Customers who don't may wait and be surprised when the code expires.
+      </div>
+      <div class="steps">
+        <h3>How to Handle — Expired Reference Codes</h3>
+        <ol>
+          <li><strong>For the customer:</strong> Explain the code expired (not a system failure) and ask them to return to checkout to generate a new reference code. The original order should be cancelled first to release inventory.</li>
+          <li><strong>Extend the validity window</strong> in your plugin settings — for most Egyptian e-commerce, 48–72 hours is a better default than 24 hours. Verify your Fawry account allows extended validity for your transaction type.</li>
+          <li><strong>Add expiry time to order confirmation emails</strong> — include the exact deadline (not just "24 hours") so customers can plan their payment trip to a Fawry outlet.</li>
+          <li><strong>Configure Shopify automatic order cancellation</strong> under Settings → Checkout → "Automatically cancel orders not paid within" → set this to match your reference code validity plus a buffer (e.g., validity is 48h → auto-cancel at 72h, giving customers time if IPN is slightly delayed).</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="account-not-live">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Fawry Business Account Not Activated for E-Commerce API</h2>
+        <span class="failure-type type-merchant">Account Status</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Fawry has multiple products for businesses: a bill payment service, a point-of-sale system, and an e-commerce payment API. A business that registered with Fawry for bill payment or POS services does not automatically get e-commerce API access. If the merchant registered with Fawry but did not specifically request e-commerce API activation, calls to the Fawry charge API will fail with an "account not authorized for this service" error, even if the merchant code and security key are correct.</p>
+      <p>Additionally, Fawry requires business registration documents for e-commerce API activation — typically: Egyptian commercial registration, tax card, and bank account details. If any of these are missing or under review, the e-commerce API access remains in a pending state. The Fawry merchant portal shows the account as "active" for some services but not for the e-commerce charge API specifically.</p>
+      <p>Merchants who receive their Fawry merchant code and immediately try to integrate the API without confirming e-commerce API activation experience this failure — the credentials are valid but the API access is not yet granted. This is analogous to Paymob's KYB pending state, but at the Fawry account level rather than the gateway level.</p>
+      <div class="steps">
+        <h3>How to Fix — Fawry Business Account Not Activated</h3>
+        <ol>
+          <li><strong>Log into your Fawry merchant portal</strong> and check your account's enabled services — look for "E-Commerce API," "Online Payments," or "Fawry for Business" activation status.</li>
+          <li><strong>Contact your Fawry account manager</strong> or Fawry merchant support and request e-commerce API activation. Provide your merchant code, commercial registration number, and tax card number.</li>
+          <li><strong>Submit any missing documentation</strong> — Fawry typically requires Egyptian commercial registration (سجل تجاري) and tax card (بطاقة ضريبية) to activate the e-commerce API for business accounts.</li>
+          <li><strong>While waiting for activation:</strong> use Fawry's staging environment to complete your integration testing so you are ready to go live as soon as the production account is activated.</li>
+          <li><strong>Ask Fawry support for test credentials</strong> that work on the staging environment while your production account is being reviewed — this prevents the activation delay from blocking your integration work.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Comparison</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Fawry Direct vs. Fawry via Paymob vs. Other Egypt Payment Options</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 0;">Choosing the right Fawry integration path depends on your technical setup and whether you also need cards, wallets, or other methods.</p>
+    <div style="overflow-x: auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Fawry Direct Integration</th>
+            <th>Fawry via Paymob</th>
+            <th>Cash on Delivery</th>
+            <th>Bank Transfer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shopify app available</td>
+            <td>No — third-party plugin or custom dev required</td>
+            <td>Yes — Paymob Shopify app</td>
+            <td>Yes — built into Shopify</td>
+            <td>Yes — manual payment method in Shopify</td>
+          </tr>
+          <tr>
+            <td>Payment method</td>
+            <td>Fawry reference code only</td>
+            <td>Fawry reference code (+ cards, wallets, InstaPay)</td>
+            <td>Courier-collected cash</td>
+            <td>Bank wire / Instapay</td>
+          </tr>
+          <tr>
+            <td>Currency</td>
+            <td>EGP only — conversion required for other currencies</td>
+            <td>EGP (Paymob handles conversion)</td>
+            <td>Any — collected on delivery</td>
+            <td>Any — customer sends transfer</td>
+          </tr>
+          <tr>
+            <td>Outlet network</td>
+            <td>300,000+ Fawry outlets, ATMs, supermarkets, banks</td>
+            <td>Same Fawry network via Paymob integration</td>
+            <td>Delivery coverage only</td>
+            <td>Any bank branch in Egypt</td>
+          </tr>
+          <tr>
+            <td>Automatic order confirmation</td>
+            <td>Yes — via IPN callback when customer pays</td>
+            <td>Yes — Paymob handles IPN and Shopify update</td>
+            <td>Manual (at delivery)</td>
+            <td>Manual (merchant verifies transfer)</td>
+          </tr>
+          <tr>
+            <td>Technical complexity</td>
+            <td>High — API auth, signature generation, IPN endpoint, currency conversion</td>
+            <td>Low — configure Fawry integration ID in Paymob dashboard only</td>
+            <td>None — native Shopify feature</td>
+            <td>Very low — manual process</td>
+          </tr>
+          <tr>
+            <td>Settlement</td>
+            <td>Direct from Fawry to merchant bank account</td>
+            <td>Through Paymob settlement cycle</td>
+            <td>At delivery by courier</td>
+            <td>Immediate bank transfer</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>Merchants who want Fawry as their primary payment method and prefer direct settlement without an intermediary gateway</td>
+            <td>Merchants who want Fawry alongside cards, mobile wallets, and other methods under one Paymob gateway account</td>
+            <td>Merchants where customers prefer paying on delivery (reduces checkout friction, higher return rates)</td>
+            <td>B2B or high-value orders where bank transfer is expected by the buyer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Quick Fix Checklist</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 16px;">Fawry Shopify Integration Verification Checklist</h2>
+    <div class="checklist">
+      <h3>Run through this before going live</h3>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>API credentials:</strong> Merchant code and security key match exactly what is shown in your Fawry merchant portal → Profile → API Credentials. No extra spaces or characters.</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Production endpoint:</strong> Plugin API URL is pointing to the Fawry production endpoint (atfawry.com), not the staging environment (staging.atfawry.com or fawrystaging.com).</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>IPN callback configured:</strong> Fawry merchant dashboard → Integration Settings → IPN/Callback URL is set to your Shopify store's Fawry callback endpoint on the live domain with HTTPS.</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Currency conversion enabled:</strong> If your store is not in EGP, your plugin's EGP conversion setting is enabled and using a current exchange rate.</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Reference code validity set:</strong> Configured to 48–72 hours and the expiry time is included in the order confirmation email sent to customers.</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>E-commerce API activated:</strong> Fawry merchant portal shows your account is activated for the e-commerce charge API (not just bill payment or POS services).</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>End-to-end test completed:</strong> Placed a test order → Fawry reference code generated and visible → Fawry staging test payment made → Shopify order updated to paid automatically.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ SECTION -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Frequently Asked</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 32px;">Common Questions About Fawry on Shopify</h2>
+
+    <div class="failure" style="margin-bottom: 32px; padding-bottom: 32px;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">Can I use Fawry direct integration alongside Paymob on the same Shopify store?</h2>
+      <p class="failure-body">Yes — but it is rarely the right choice. If you are already using Paymob as your primary gateway, activating the Fawry integration ID within Paymob is simpler and keeps all payment methods under one dashboard. Adding a separate direct Fawry integration on the same store creates duplicate payment options at checkout (Fawry via Paymob and Fawry direct), which confuses customers. The main reason to choose direct Fawry integration over Fawry via Paymob is if you want direct settlement from Fawry (bypassing Paymob's settlement cycle) or if you specifically need a feature of Fawry's direct API that Paymob's Fawry integration does not expose.</p>
+    </div>
+
+    <div class="failure" style="margin-bottom: 32px; padding-bottom: 32px;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">How long does it take for a Fawry payment to reflect in Shopify after the customer pays at an outlet?</h2>
+      <p class="failure-body">When the IPN callback is configured correctly, Fawry order status in Shopify updates within minutes of the customer paying at a Fawry outlet, ATM, supermarket, or bank. Fawry's IPN system is real-time — as soon as Fawry's network registers the payment, it sends the callback to your configured URL. In practice, the delay from physical payment to Shopify order update is typically under 5 minutes. If orders are taking longer to update or are not updating at all, the IPN callback is the issue — check the Fawry dashboard for delivery failure logs and verify the IPN URL is correct and reachable.</p>
+    </div>
+
+    <div class="failure" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">Does Fawry support refunds via the Shopify admin?</h2>
+      <p class="failure-body">Fawry refunds via Shopify's admin refund flow depend on whether your Fawry plugin supports the Fawry refund API. Fawry has a refund endpoint in its API, but not all Shopify plugins expose it — some require merchants to initiate refunds manually through the Fawry merchant portal. If your plugin does support Fawry refunds via Shopify admin, issuing a refund in Shopify triggers a refund request to Fawry's API, which then reverses the payment back to the customer's Fawry account or source. The refund timeline varies: refunds to mobile wallets via Fawry are typically fast (same-day), while refunds to the original payment source for Fawry-outlet-paid orders may take 2–5 business days depending on how the refund is routed.</p>
+    </div>
+  </div>
+
+  <!-- CTA BOTTOM -->
+  <div class="cta-bottom">
+    <h2>Catch Fawry Failures Before Your Customers Do</h2>
+    <p>CheckPulse monitors your Shopify checkout across all payment methods — including Fawry reference code generation and IPN callback status — and alerts you the moment something stops working.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check →</a>
+    <p style="margin-top: 16px; font-size: 13px; color: #555;">No account required. 4-step diagnostic. Results in under 60 seconds.</p>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working">Paymob Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-shahry-not-working">Shahry Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-valu-not-working">valU Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-tabby-not-working">Tabby Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-postpay-not-working">Postpay Not Working</a>
+  </nav>
+  <p>© 2026 CheckPulse · Shopify Checkout Monitoring</p>
+</footer>
+
+</body>
+</html>

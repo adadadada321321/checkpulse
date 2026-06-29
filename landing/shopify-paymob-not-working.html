@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Paymob Not Working — Cards, Mobile Wallets, Fawry, InstaPay &amp; 3DS Issues (2026)</title>
+  <meta name="description" content="Shopify Paymob not working? Paymob not showing at checkout, card declined, Vodafone Cash not appearing, Fawry reference not generated, 3D Secure OTP failure, merchant KYB pending — 7 root causes with exact fixes for Egypt merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working" />
+  <meta property="og:title" content="Shopify Paymob Not Working — Cards, Mobile Wallets, Fawry &amp; 3DS Issues (2026)" />
+  <meta property="og:description" content="Paymob on Shopify fails in 7 distinct ways: not showing at checkout (integration IDs missing / test mode / multi-method configuration), card payment declined (3DS / Meeza / foreign card), mobile wallet not appearing (Vodafone Cash / Orange Cash / e&amp; Cash — each requires a separate integration ID), Fawry reference not generated, 3D Secure OTP failure, InstaPay not configured, and merchant KYB pending. Each fails differently and requires a different fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Paymob Not Working — Cards, Mobile Wallets, Fawry, InstaPay &amp; 3DS Issues",
+    "description": "Paymob not working on Shopify has seven root causes: the Paymob app is installed but individual integration IDs for each payment method (cards, mobile wallets, Fawry) are not configured; the merchant account is still in test/sandbox mode with test API keys; mobile wallet methods (Vodafone Cash, Orange Cash, e& Cash, WE Pay) are missing because each requires its own Paymob integration ID to be enabled separately; Fawry payment references are not generating because the Fawry integration is not active in Paymob; Egyptian bank 3D Secure OTP is not reaching the customer's registered bank phone number; InstaPay (Egypt's real-time payment system) is not configured as a payment integration; or the merchant's KYB (know your business) review is still pending with Paymob, preventing live transaction processing.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-29",
+    "dateModified": "2026-06-29"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is Paymob not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Paymob not showing at Shopify checkout is almost always a configuration issue at the integration ID level. Paymob is fundamentally different from BNPL providers like Tabby or valU — it is a payment gateway that aggregates multiple payment methods (cards, mobile wallets, Fawry, InstaPay), and each method requires a separate Paymob integration ID to be enabled inside the Paymob Shopify app settings. Installing the Paymob app and connecting it to your Paymob account is only the first step. If no integration IDs are configured, or if the configured integration IDs are test/sandbox IDs rather than live production IDs, no payment methods will appear at checkout. Additionally, the merchant's Paymob account must be fully KYB-approved — not in pending review status — for live transactions to process."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Vodafone Cash not appearing in Paymob on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Vodafone Cash, Orange Cash, e& Cash (formerly Etisalat Cash), and WE Pay each require their own separate Paymob integration ID. In Paymob's dashboard, each payment method — cards, Vodafone Cash, Orange Cash, Fawry, etc. — is a distinct 'integration' with its own numeric integration ID. Merchants frequently configure the card integration ID in their Shopify Paymob app but forget to add the mobile wallet integration IDs. In the Paymob Shopify app, there is typically a configuration field for each payment method where its integration ID must be entered. If the Vodafone Cash integration ID is missing from this field, Vodafone Cash will not appear at checkout even if card payments work perfectly. Log into your Paymob merchant dashboard, go to Integrations, and find the integration ID for each wallet method you want to offer."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is Paymob card payment declined on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Paymob card payment declines on Shopify have multiple causes: the Egyptian bank's 3D Secure (3DS) system sent an OTP to the customer's registered bank phone number but the customer did not receive it or it expired; the card is expired or the CVV entered is incorrect; the customer is using a Meeza card (Egypt's national debit card scheme) and the Meeza integration is not separately enabled in Paymob; the issuing bank declined the transaction due to international online purchase restrictions (some Egyptian bank accounts have online spending limits or require manual activation for e-commerce); or the customer entered the wrong billing details. Paymob processes Egyptian domestic cards (Visa, Mastercard), Meeza national debit cards, and international cards — each with slightly different decline patterns."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is the Fawry payment option not working on Paymob Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Fawry on Paymob works differently from card or wallet payments. When a customer selects Fawry at checkout, Paymob generates a Fawry reference code — the customer then pays this reference at any Fawry agent, supermarket, or bank branch within the code's validity window (typically 24–72 hours). If no Fawry reference is generated, the Fawry integration ID is missing from the Paymob Shopify app configuration. If the reference is generated but the order shows as unpaid, the customer has not yet paid at the Fawry outlet — Paymob only marks the order paid after receiving confirmation from Fawry. Paymob and Fawry have an IPN (instant payment notification) webhook — if this webhook is not configured, paid Fawry orders may never update to paid status in Shopify. Reference codes expire after the configured window — an expired code requires the customer to initiate a new checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Paymob work only in Egypt on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No — Paymob is a multi-country payment gateway operating across Egypt, UAE, Saudi Arabia, Kuwait, Oman, Pakistan, and Palestine. However, its strongest market and most extensive payment method coverage is Egypt, where it supports cards (Visa/Mastercard/Meeza), all major mobile wallets (Vodafone Cash, Orange Cash, e& Cash, WE Pay), Fawry, InstaPay, and BNPL (Shahry, valU via Paymob). For UAE and other markets, Paymob primarily supports cards and local payment methods specific to those markets. This guide focuses on Egypt-specific Paymob failure modes, which are the most complex due to the number of supported payment methods and the regulatory environment for Egyptian online payments."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .info-box strong { color: #60a5fa; }
+
+    .paymob-unique {
+      background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(79,70,229,0.06));
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .paymob-unique h3 { font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .paymob-unique p { font-size: 14px; color: #999; line-height: 1.65; margin-bottom: 10px; }
+    .paymob-unique p:last-child { margin-bottom: 0; }
+    .paymob-unique strong { color: #c4b5fd; }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #161616;
+      border: 1px solid #222;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+    }
+    .compare-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e1e1e;
+      color: #999;
+      vertical-align: top;
+    }
+    .compare-table tr:nth-child(even) td { background: #121212; }
+    .compare-table td:first-child { color: #ccc; font-weight: 600; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    Paymob Not Working
+  </div>
+  <h1>Shopify Paymob Not Working — Cards, Mobile Wallets, Fawry, InstaPay &amp; 3DS Issues</h1>
+  <div class="hero-meta">Updated June 2026 · 7 failure modes · Egypt &amp; MENA merchants · Multi-method payment gateway</div>
+  <p class="hero-lead">Paymob is Egypt's largest and most widely adopted payment gateway, aggregating cards (Visa, Mastercard, Meeza), mobile wallets (Vodafone Cash, Orange Cash, e&amp; Cash, WE Pay), Fawry offline payments, InstaPay (Egypt's real-time interbank network), and BNPL methods (Shahry, valU) under a single merchant account. Unlike single-method BNPL providers, Paymob manages multiple distinct payment integrations — each with its own integration ID, activation state, and failure modes. When Paymob stops working on Shopify, the root cause is almost always a specific method's integration being misconfigured, not a gateway-wide failure. This guide covers all seven failure modes merchants encounter.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is Paymob missing payment methods or failing at checkout?</strong> A 4-step checkout diagnostic catches Paymob configuration failures before your customers see them.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- PAYMOB UNIQUE MODEL -->
+  <div class="paymob-unique">
+    <h3>How Paymob Differs From Other Shopify Payment Providers in Egypt</h3>
+    <p><strong>Paymob is a payment gateway aggregator, not a single payment method.</strong> This is the most important distinction for Shopify merchants. When you integrate Paymob, you are connecting a gateway that can surface multiple payment methods at checkout — but each method (cards, Vodafone Cash, Fawry, InstaPay) is a separate Paymob "integration" with its own numeric integration ID. You must configure each integration ID you want to offer, separately, inside the Paymob Shopify app. This is why Paymob troubleshooting is more complex than BNPL providers like Tabby or Shahry, which are single-method integrations.</p>
+    <p><strong>Paymob is not Egypt-exclusive.</strong> It operates across Egypt, UAE, Saudi Arabia, Kuwait, Oman, Pakistan, and Palestine. However, Egypt is its home market and the market with the broadest method coverage — including Egypt-specific methods like Meeza (national debit), mobile wallets from all four Egyptian telecoms (Vodafone Egypt, Orange Egypt, e&amp; Egypt, WE), and Fawry (Egypt's largest offline payment network with over 300,000 agent locations). For UAE and KSA merchants, Paymob is primarily a card gateway, not a multi-method aggregator.</p>
+    <p><strong>Paymob sits between Shopify and every other provider.</strong> When a merchant also offers Shahry or valU via Paymob — rather than directly via their own Shopify apps — those BNPL methods appear as Paymob integrations, not as standalone Shopify payment providers. This matters for troubleshooting: a Shahry failure on a Paymob-integrated store may be a Paymob integration ID issue, not a Shahry app configuration issue.</p>
+    <p><strong>Paymob's Shopify integration requires KYB completion.</strong> Unlike PayPal or Stripe (which use instant or near-instant onboarding for some account types), Paymob requires Egyptian commercial registration, Tax Card, and a KYB review process before the merchant account goes live. Until KYB is approved, the Paymob account is in test/sandbox mode — payment methods may appear in the Shopify checkout UI but will fail when customers attempt to pay.</p>
+  </div>
+
+  <div class="toc">
+    <h2>7 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#not-showing">Paymob not showing at checkout (integration IDs not configured)</a></li>
+      <li><a href="#mobile-wallet">Mobile wallets not appearing (Vodafone Cash / Orange Cash / e&amp; Cash / WE Pay)</a></li>
+      <li><a href="#card-declined">Card payment declined (3DS / Meeza / bank restrictions)</a></li>
+      <li><a href="#fawry">Fawry reference not generated or order not updating to paid</a></li>
+      <li><a href="#3ds-otp">3D Secure / bank OTP failure</a></li>
+      <li><a href="#instapay">InstaPay not configured or not showing</a></li>
+      <li><a href="#kyb-pending">Merchant KYB pending — test mode blocking live payments</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="not-showing">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Paymob Not Showing at Checkout</h2>
+        <span class="failure-type type-merchant">Merchant-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Paymob not appearing at Shopify checkout is the most reported issue, and the root cause is almost always missing integration IDs — not a Shopify-Paymob connection failure. Paymob works differently from other payment providers: connecting your Paymob account to Shopify enables the gateway, but the specific payment methods that appear at checkout depend on which integration IDs you configure inside the Paymob Shopify app's settings panel.</p>
+      <p>Each payment method in Paymob — cards, Vodafone Cash, Orange Cash, Fawry, InstaPay — is a separate "integration" inside your Paymob merchant dashboard, each with its own numeric integration ID (typically a 5–6 digit number). If you do not copy these integration IDs into the Paymob Shopify app's configuration fields for each method, those methods will not appear at checkout. Merchants commonly configure only the card integration ID and overlook mobile wallet and Fawry integration IDs entirely.</p>
+      <p>A second common cause is the Paymob Shopify app being activated in test mode. In test mode, the app connects to Paymob's sandbox environment using test API keys — checkout UI elements may appear but transactions will fail when submitted. The visual appearance of the checkout is identical whether Paymob is in test or live mode, so merchants who go live without switching to production API keys experience a working-looking but non-functioning checkout.</p>
+      <p>Paymob also requires that you enable it as an alternative payment provider in Shopify's payment settings. Installing the Paymob app from the Shopify App Store is the first step — but you must also navigate to Shopify Admin → Settings → Payments → Alternative payment providers and ensure Paymob is set to Active.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Fix</h3>
+      <ol>
+        <li>Go to <strong>Shopify Admin → Settings → Payments → Alternative payment providers</strong> — confirm Paymob is listed and set to <strong>Active</strong></li>
+        <li>Open the <strong>Paymob Shopify app settings</strong> → verify your API key is the <strong>live production key</strong>, not the sandbox/test key</li>
+        <li>Log into your <strong>Paymob merchant dashboard → Developers → Integration IDs</strong> — find the integration ID for each payment method you want to offer</li>
+        <li>In the Paymob Shopify app settings, <strong>enter each integration ID</strong> in the corresponding field (card integration ID, Vodafone Cash integration ID, Fawry integration ID, etc.)</li>
+        <li>Save the settings and <strong>test checkout with a real shipping address</strong> in Egypt — each configured method should now appear</li>
+        <li>If methods still do not appear, confirm your <strong>Paymob account KYB is approved</strong> (not pending) — see Failure Mode 7</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Integration IDs vs API keys:</strong> These are two different things in Paymob. Your API key connects Shopify to your Paymob account. Integration IDs tell Paymob which specific payment methods to surface. Both must be correctly configured — the API key alone is not sufficient to make payment methods appear.
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="mobile-wallet">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Mobile Wallets Not Appearing (Vodafone Cash / Orange Cash / e&amp; Cash / WE Pay)</h2>
+        <span class="failure-type type-merchant">Merchant-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Egypt's four main mobile wallet platforms — Vodafone Cash, Orange Cash, e&amp; Cash (formerly Etisalat Cash), and WE Pay — are among the most used payment methods for Egyptian online shoppers who do not have bank accounts or credit cards. Offering these wallets via Paymob significantly expands the addressable customer base in Egypt, particularly for customers in the 18–35 age range with smartphones but without formal banking.</p>
+      <p>Each mobile wallet is a separate Paymob integration. In your Paymob merchant dashboard, you will find individual integration IDs for Vodafone Cash, Orange Cash, e&amp; Cash, and WE Pay — each distinct from your card integration ID and Fawry integration ID. If you configure only the card integration ID in the Paymob Shopify app, only card payments will appear at checkout. Mobile wallets will be invisible, causing silent checkout abandonment from the segment of customers who specifically came to your store expecting to pay via wallet.</p>
+      <p>When a customer selects a mobile wallet at checkout powered by Paymob, they are redirected to the wallet's payment page (or receive an OTP on their wallet-registered mobile number) to confirm the payment. The wallet must have sufficient balance, and the customer's mobile number must be the one registered with that wallet. A customer who uses Vodafone Cash on their Vodafone SIM cannot use Orange Cash unless they also have an Orange SIM with an active Orange Cash wallet.</p>
+      <p>Some mobile wallet methods in Paymob are only available after you apply to enable them in your Paymob merchant account. Not all wallet integrations are automatically available — you may need to request activation of specific wallets from your Paymob account manager.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Fix</h3>
+      <ol>
+        <li>Log into <strong>Paymob merchant dashboard → Developers → Integration IDs</strong> — look for wallet-specific integrations (Vodafone Cash, Orange Cash, e&amp; Cash, WE Pay)</li>
+        <li>If wallet integrations are not listed, <strong>contact your Paymob account manager</strong> to request activation for the mobile wallet methods you want to offer</li>
+        <li>Once wallet integration IDs appear in your dashboard, <strong>copy each ID into the Paymob Shopify app settings</strong> in the corresponding wallet field</li>
+        <li>Test by going through checkout with an <strong>Egyptian shipping address</strong> — wallet options should now appear alongside card payment</li>
+        <li>If a specific wallet appears but transactions fail, verify the <strong>customer's mobile number matches their registered wallet number</strong> and the wallet has sufficient balance</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Per-wallet integration IDs:</strong> Vodafone Cash, Orange Cash, e&amp; Cash, and WE Pay each have their own integration ID — they are not interchangeable. You must configure each wallet's ID separately. A merchant who only enables Vodafone Cash will not show Orange Cash to customers, even if both use Paymob.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="card-declined">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Card Payment Declined</h2>
+        <span class="failure-type type-customer">Customer-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Card declines through Paymob on Shopify have several distinct causes depending on the card type. Paymob processes Egyptian domestic cards (Visa and Mastercard issued by Egyptian banks), Meeza cards (Egypt's national debit card scheme operated by NAPS — National Automated Payment System), and international cards. Each category has different decline patterns.</p>
+      <p>Egyptian bank-issued Visa and Mastercard debit cards frequently fail on e-commerce due to restrictions set by the issuing bank. Many Egyptian banks require customers to manually activate their card for online (card-not-present) transactions through their mobile banking app or by calling the bank. Customers with a physical debit card that works at ATMs but has never been used online may hit this restriction without knowing it exists.</p>
+      <p>Meeza cards — Egypt's national debit scheme launched in 2019 — require a separate Paymob integration specifically for Meeza acceptance. If the Paymob card integration is configured for Visa/Mastercard only and the Meeza integration ID is not added, Meeza cards will be declined even when the customer correctly selects card payment. Meeza is the default card type for government employees and many public sector workers in Egypt — a meaningful segment of the Egyptian consumer base.</p>
+      <p>International cards (Visa/Mastercard issued outside Egypt) may face higher decline rates from Paymob due to Egypt's foreign exchange controls and the regulatory environment for cross-border card-not-present transactions. Egyptian merchants selling primarily to local Egyptian customers should ensure their Paymob integration is optimized for EGP-denominated domestic transactions rather than defaulting to international card processing flows.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Diagnose Card Declines</h3>
+      <ol>
+        <li>Check the <strong>Paymob merchant dashboard → Transactions</strong> for the specific decline reason code — Paymob provides issuer response codes for card declines</li>
+        <li>If the decline code indicates <strong>online transactions not enabled</strong>, tell the customer to contact their bank to activate online/e-commerce transactions on their card</li>
+        <li>For <strong>Meeza card declines</strong>, confirm the Meeza integration ID is configured in your Paymob Shopify app settings — Meeza requires a separate integration from Visa/Mastercard</li>
+        <li>For <strong>3D Secure failures</strong>, see Failure Mode 5 — OTP is the most common Meeza and Egyptian domestic card decline reason</li>
+        <li>For <strong>international card declines</strong>, contact your Paymob account manager about international card acceptance settings on your merchant account</li>
+        <li>Verify the customer entered the <strong>correct billing details</strong>, CVV, and card expiry — Paymob applies AVS/CVV validation for some card types</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Meeza vs Visa/Mastercard:</strong> Meeza is Egypt's national debit card scheme and is not the same as a Visa or Mastercard debit card. Meeza cards display the Meeza logo and are issued by Egyptian banks. They require the Meeza integration ID in Paymob — separate from the Visa/Mastercard integration. If you only have a Visa/Mastercard integration configured, Meeza cards will be declined.
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="fawry">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Fawry Reference Not Generated or Order Not Updating to Paid</h2>
+        <span class="failure-type type-both">Merchant &amp; Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Fawry is Egypt's largest offline payment network, with over 300,000 agent locations including supermarkets, pharmacies, and banks. When a customer selects Fawry at checkout, Paymob generates a unique Fawry reference code. The customer then pays this reference at any Fawry outlet within the code's validity window — typically 24 to 72 hours. The order remains in a pending state in Shopify until Fawry notifies Paymob of the payment, at which point the order automatically updates to paid.</p>
+      <p>If no Fawry reference code is generated at checkout, the Fawry integration ID is missing from the Paymob Shopify app configuration. This is the most common Fawry-specific failure. Go to your Paymob merchant dashboard, find the Fawry integration ID under Developers → Integration IDs, and add it to the Paymob Shopify app settings.</p>
+      <p>A more operationally complex failure occurs when the Fawry reference is successfully generated but the Shopify order never updates from pending to paid — even after the customer has paid at a Fawry agent. This is almost always caused by a missing or misconfigured webhook (IPN — Instant Payment Notification) from Paymob to Shopify. Paymob must send a payment confirmation webhook to Shopify when Fawry confirms the payment. If this webhook is not configured or the Shopify URL Paymob is sending to is incorrect, Fawry payments never trigger order fulfillment.</p>
+      <p>Reference code expiry is a third failure mode. Fawry references have a configurable validity window set in your Paymob account. If a customer does not pay within this window, the reference expires and the pending order in Shopify will never receive a payment notification. The customer must initiate a new checkout to generate a new reference. Consider setting a longer validity window (48–72 hours) and communicating the expiry deadline clearly to customers after order placement.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Fix Fawry Issues</h3>
+      <ol>
+        <li>Confirm the <strong>Fawry integration ID</strong> is configured in the Paymob Shopify app settings — find it in Paymob dashboard → Developers → Integration IDs</li>
+        <li>Check your <strong>Paymob webhook settings</strong> — the IPN/callback URL must point to your Shopify store's Paymob webhook endpoint (found in the Paymob Shopify app settings or Shopify Payments documentation for the app)</li>
+        <li>For pending orders that were paid at Fawry but not updated in Shopify, go to <strong>Paymob dashboard → Transactions</strong> and confirm the payment is recorded there — if it is, the issue is the Shopify webhook; if not, Fawry has not yet confirmed the payment</li>
+        <li>Set an appropriate <strong>Fawry reference validity period</strong> in your Paymob account (48–72 hours recommended) — shorter periods increase expired-reference complaints</li>
+        <li>Display the Fawry reference code and <strong>payment deadline clearly</strong> in the order confirmation email — customers may not know the code expires</li>
+        <li>For expired references, the customer must <strong>place a new order</strong> — Fawry references cannot be regenerated for the same order</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Order fulfillment risk:</strong> Never fulfill a Fawry order until Paymob has confirmed the payment in your Shopify dashboard. A pending order with a Fawry reference is not a paid order — the customer may never pay. Configure your fulfillment workflow to only process Fawry orders with confirmed paid status.
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="3ds-otp">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>3D Secure / Bank OTP Failure</h2>
+        <span class="failure-type type-customer">Customer-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Egypt's banking system mandates 3D Secure (3DS) authentication for card-not-present online transactions. When a customer pays by card through Paymob, their issuing bank sends a one-time password (OTP) to the mobile phone number registered with their bank account. The customer must enter this OTP within a time window (typically 60–90 seconds) to complete the payment. If the OTP is not received, entered incorrectly, or entered after expiry, the transaction fails with a 3DS authentication failure — even though there is nothing wrong with the card itself.</p>
+      <p>The most common cause of 3DS OTP failure is a mismatch between the customer's current mobile number and the number registered with their bank. Egyptian customers frequently change SIM cards or phone numbers without updating their bank records. The bank sends the OTP to the old registered number, which the customer no longer controls. The solution is for the customer to contact their bank and update their registered mobile number — this cannot be fixed at checkout.</p>
+      <p>International roaming causes a related issue. Egyptian customers traveling abroad with their Egyptian SIM may experience OTP delivery delays due to SMS roaming. Egyptian banks do not always support OTP delivery to roaming SIMs reliably. Customers in this situation may receive OTPs with delays of several minutes — past the bank's OTP expiry window — causing authentication failures even though the card is valid.</p>
+      <p>Some Egyptian banks have implemented 3DS in a way that requires the customer to be enrolled in their mobile banking app or to have previously activated online banking. First-time online shoppers with older bank accounts may encounter 3DS failures because their bank has not automatically enrolled them. The fix requires the customer to activate online banking through their branch or mobile app.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Diagnose 3DS OTP Failures</h3>
+      <ol>
+        <li>Check the <strong>Paymob transaction log</strong> for the specific error — 3DS failures typically appear as "Authentication failed" or "3DS verification failed"</li>
+        <li>Ask the customer: <strong>"Did you receive an OTP SMS from your bank?"</strong> — if no, the issue is the registered phone number or OTP delivery; if yes but it failed, it likely expired</li>
+        <li>If the customer <strong>did not receive the OTP</strong>, advise them to contact their bank to verify and update their registered mobile number</li>
+        <li>If the customer <strong>received the OTP but it expired</strong> before entry, advise them to have the OTP ready before clicking "Pay" — the bank sends it immediately when the 3DS step loads</li>
+        <li>For <strong>traveling customers</strong> with OTP delays, advise them to use a mobile wallet (Vodafone Cash, Orange Cash) which does not require 3DS, or to use their bank's mobile app as an alternative payment channel</li>
+        <li>For customers who <strong>never activated online banking</strong>, they must contact their bank to enable card-not-present transactions</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Alternative for 3DS-blocked customers:</strong> Mobile wallets (Vodafone Cash, Orange Cash) do not use the same 3DS OTP mechanism as bank cards — they have their own wallet-level OTP. If a customer cannot complete 3DS for their card, offering them a mobile wallet payment option often resolves the checkout abandonment without requiring any bank interaction.
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="instapay">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>InstaPay Not Configured or Not Showing</h2>
+        <span class="failure-type type-merchant">Merchant-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>InstaPay is Egypt's national real-time interbank payment system, launched by the Central Bank of Egypt (CBE) in 2022 and integrated into major Egyptian banks' mobile apps. It allows instant transfers between any two bank accounts or registered wallets in Egypt using a mobile number or IPA (InstaPay Address) as the identifier, without needing a recipient's bank account number. InstaPay has grown rapidly among Egyptian consumers as a preferred method for peer-to-peer and merchant payments.</p>
+      <p>Paymob supports InstaPay as a payment method for Shopify merchants through a dedicated InstaPay integration ID. However, InstaPay is newer than Paymob's card and wallet integrations, and many merchants who set up their Paymob integration before InstaPay became available have not added the InstaPay integration to their checkout. Customers who prefer InstaPay — a growing segment, particularly among younger Egyptian consumers — will not see it as an option and may abandon checkout.</p>
+      <p>InstaPay integration via Paymob typically requires the merchant to be enrolled in Paymob's InstaPay partnership — this may involve a separate activation request to your Paymob account manager. Not all Paymob merchant accounts have InstaPay automatically available. If InstaPay is not listed as an integration option in your Paymob dashboard, request activation from Paymob's merchant support team.</p>
+      <p>When InstaPay is available and configured, the checkout flow redirects the customer to their bank's mobile app or the InstaPay interface to confirm the transfer. Unlike Fawry (which has an expiry window), InstaPay transfers complete in real-time. However, the webhook/IPN mechanism for InstaPay payment confirmation to Shopify must be configured — the same requirement as Fawry — to ensure the Shopify order updates automatically when the customer completes payment.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Add InstaPay to Paymob Checkout</h3>
+      <ol>
+        <li>Log into <strong>Paymob merchant dashboard → Developers → Integration IDs</strong> — look for an InstaPay integration</li>
+        <li>If no InstaPay integration is listed, <strong>contact your Paymob account manager</strong> to request InstaPay activation on your merchant account</li>
+        <li>Once activated and an integration ID is issued, <strong>add the InstaPay integration ID</strong> to the Paymob Shopify app settings in the InstaPay field</li>
+        <li>Confirm your <strong>webhook/IPN configuration</strong> handles InstaPay payment notifications — InstaPay is real-time but still requires a payment confirmation webhook to update the Shopify order</li>
+        <li>Test checkout with an <strong>Egyptian shipping address</strong> — InstaPay should now appear alongside cards and wallets</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Why offer InstaPay:</strong> InstaPay is growing fastest among Egyptian consumers aged 18–35 who actively use mobile banking apps. For merchants targeting young Egyptian consumers, InstaPay can meaningfully reduce checkout abandonment compared to requiring a card (which requires 3DS) or Fawry (which requires an in-person visit). It is particularly valuable for customers who have limited card credit but a funded bank account.
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="kyb-pending">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Merchant KYB Pending — Test Mode Blocking Live Payments</h2>
+        <span class="failure-type type-merchant">Merchant-Side</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Paymob requires all merchants to pass a KYB (Know Your Business) review before their account is activated for live transaction processing. For Egyptian merchants, this involves submitting Egyptian commercial registration (سجل تجاري), Tax Card (بطاقة ضريبية), business bank account details, and business owner identity documents. Paymob's compliance team reviews these before setting the merchant account to Live status.</p>
+      <p>During KYB review — which typically takes 3 to 7 business days but can extend to 2 weeks for certain business categories or for documents requiring additional verification — the Paymob merchant account operates in test/sandbox mode. In this mode, the Paymob Shopify app can be installed, integration IDs configured, and the checkout UI will appear to work. Customers will see Paymob payment options. However, all payment attempts will fail at the final step — either returning a generic error or timing out — because the account is not authorized to process real transactions.</p>
+      <p>This is one of the most operationally dangerous Paymob failure modes because it is entirely invisible to the merchant without checking the Paymob dashboard. There is no visual difference at Shopify checkout between a merchant account in test mode and a live account. Merchants who go live with their Shopify store before confirming Paymob KYB approval lose real customers to payment failure without any indication that configuration is the cause.</p>
+      <p>Paymob may also periodically place existing live merchant accounts on compliance hold for re-verification — particularly if commercial registration or Tax Card has expired, if the business changed its legal structure, or if Paymob's compliance team flagged the account for periodic review. An account that was working can stop processing payments if it is placed on hold for re-verification.</p>
+    </div>
+    <div class="steps">
+      <h3>How to Resolve KYB Issues</h3>
+      <ol>
+        <li>Log into the <strong>Paymob merchant dashboard</strong> and check your account status in the dashboard home or under Settings → Account — it should show <strong>Live / Active</strong>, not Pending Review or Test Mode</li>
+        <li>If your account shows <strong>Pending Review</strong>, contact Paymob merchant support to confirm receipt of your documents and expected approval timeline</li>
+        <li>Ensure your <strong>Egyptian commercial registration and Tax Card are current</strong> — expired documents are the most common cause of KYB delays and compliance holds</li>
+        <li>Upload all required documents directly to the <strong>Paymob merchant portal</strong> — do not send documents only by email without confirming they are attached to your account record</li>
+        <li>If you were previously live and then experienced a payment stoppage, <strong>check for a compliance hold email from Paymob</strong> — Paymob sends notifications when accounts are placed on hold but these can end up in spam filters</li>
+        <li>After KYB approval, verify that the <strong>API key configured in the Paymob Shopify app is the live key</strong>, not the sandbox key — switching from test to live requires updating the API key in the app settings</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Critical pre-launch check:</strong> Never launch your Shopify store with Paymob configured without first confirming your Paymob account shows "Live" status in the merchant dashboard. A test-mode account looks functional but will fail every payment attempt by real customers. This is the most common cause of "Paymob stops working after launch" reports.
+    </div>
+  </div>
+
+  <!-- PRE-LAUNCH CHECKLIST -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Merchant Checklist</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 16px;">Paymob Pre-Launch Verification Checklist</h2>
+    <div class="checklist">
+      <h3>Before Going Live with Paymob on Shopify</h3>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Shopify payments toggle:</strong> Paymob is enabled under Settings → Payments → Alternative payment providers (Active, not just installed)</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Merchant account status:</strong> Paymob dashboard shows Live / Active — not Pending Review or Test Mode</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Live API key configured:</strong> The API key in the Paymob Shopify app is the production/live key — not the sandbox/test key</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Card integration ID:</strong> Visa/Mastercard integration ID configured in Paymob Shopify app settings</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Meeza integration ID:</strong> If serving Egyptian domestic debit card users, Meeza integration ID is separately configured</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Mobile wallet integration IDs:</strong> Each wallet you want to offer (Vodafone Cash, Orange Cash, e&amp; Cash, WE Pay) has its own integration ID entered separately</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Fawry integration ID:</strong> Fawry integration ID configured, and IPN webhook URL is set in Paymob to notify Shopify when Fawry payments are confirmed</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Webhook configuration:</strong> Paymob callback/IPN URL points to the correct Shopify endpoint — test with a real transaction to confirm order status updates</p>
+      </div>
+      <div class="checklist-item">
+        <div class="check-icon"></div>
+        <p><strong>Test purchase completed:</strong> Completed at least one live transaction for each payment method to confirm real payments process end-to-end</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Egypt Payment Gateway Comparison</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Paymob vs Fawry vs Tap Payments vs Telr (Egypt)</h2>
+    <p style="font-size: 14px; color: #666; margin-bottom: 0;">Understanding when each Egypt-serving payment gateway applies — and how their configurations differ</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Paymob</th>
+          <th>Fawry (standalone)</th>
+          <th>Tap Payments</th>
+          <th>Telr</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Egypt coverage</td>
+          <td>Yes — home market, broadest method coverage</td>
+          <td>Yes — Egypt only (offline + online)</td>
+          <td>Yes (via Egypt expansion, primarily KSA/Kuwait/UAE native)</td>
+          <td>Yes (UAE-origin, MENA expansion)</td>
+        </tr>
+        <tr>
+          <td>Card payments</td>
+          <td>Visa, Mastercard, Meeza (Egypt national scheme)</td>
+          <td>Visa, Mastercard (online Fawry Pay)</td>
+          <td>Visa, Mastercard, Mada (KSA), KNET (Kuwait)</td>
+          <td>Visa, Mastercard</td>
+        </tr>
+        <tr>
+          <td>Egyptian mobile wallets</td>
+          <td>Yes — Vodafone Cash, Orange Cash, e&amp; Cash, WE Pay</td>
+          <td>Via Fawry Pay (limited wallet options)</td>
+          <td>Limited in Egypt market</td>
+          <td>Limited in Egypt market</td>
+        </tr>
+        <tr>
+          <td>Fawry offline network</td>
+          <td>Yes — via Paymob Fawry integration</td>
+          <td>Yes — direct Fawry integration</td>
+          <td>No</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>InstaPay (Egypt)</td>
+          <td>Yes — via Paymob InstaPay integration</td>
+          <td>No</td>
+          <td>No</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>BNPL support</td>
+          <td>Yes — Shahry, valU, Sympl (via Paymob integrations)</td>
+          <td>No direct BNPL</td>
+          <td>Tabby (via Tap integration in KSA/UAE)</td>
+          <td>Limited</td>
+        </tr>
+        <tr>
+          <td>Configuration complexity</td>
+          <td>High — multiple integration IDs per method</td>
+          <td>Medium — single integration, webhook setup</td>
+          <td>Medium — per-region setup</td>
+          <td>Medium</td>
+        </tr>
+        <tr>
+          <td>KYB requirement</td>
+          <td>Egyptian commercial reg + Tax Card + bank account</td>
+          <td>Egyptian commercial reg + Fawry registration</td>
+          <td>Per-country KYB</td>
+          <td>Per-country KYB</td>
+        </tr>
+        <tr>
+          <td>Best for</td>
+          <td>Egypt-first merchants needing broadest method coverage (cards + wallets + Fawry + InstaPay)</td>
+          <td>Merchants who specifically want Fawry offline as the primary method, or want direct Fawry integration outside Paymob</td>
+          <td>KSA/Kuwait/UAE-primary merchants adding Egypt as a secondary market</td>
+          <td>UAE-primary merchants adding Egypt as a secondary market</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FAQ SECTION -->
+  <div style="margin-bottom: 56px;">
+    <div class="section-label">Frequently Asked</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 32px;">Common Questions About Paymob on Shopify</h2>
+
+    <div class="failure" style="margin-bottom: 32px; padding-bottom: 32px;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">Can I use Paymob together with Tabby or Shahry on the same Shopify store?</h2>
+      <p class="failure-body">Yes — in two ways. First, you can have both Paymob (configured for cards and wallets) and Tabby or Shahry (configured as separate alternative payment providers directly via their own Shopify apps) active simultaneously in Shopify's payment settings. Each provider handles its own checkout flow and neither interferes with the other. Second, Paymob also supports Shahry and valU as BNPL integrations within the Paymob gateway itself — allowing merchants who want a single gateway to manage cards, wallets, Fawry, and BNPL all under one Paymob merchant account. Choose the approach that matches your integration preference — both work on Shopify.</p>
+    </div>
+
+    <div class="failure" style="margin-bottom: 32px; padding-bottom: 32px;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">Why did Paymob stop working after it was working before?</h2>
+      <p class="failure-body">A previously working Paymob integration can stop for several reasons: the merchant's commercial registration or Tax Card expired, triggering a compliance hold; Paymob pushed an API version update requiring the Shopify app to be updated; the webhook URL configuration was accidentally changed or reset, causing order status updates to stop; or Paymob rotated API keys and the merchant's Shopify app is still using the old key. Check the Paymob merchant dashboard for account status and any compliance notifications. If the account is Active, verify the API key in the Paymob Shopify app matches the current live key in your Paymob dashboard. If the API key matches, check the webhook configuration to ensure callbacks are reaching Shopify.</p>
+    </div>
+
+    <div class="failure" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+      <h2 style="font-size: 1rem; font-weight: 700; color: #e8e8e8; margin-bottom: 12px;">Does Paymob work with Shopify's one-page checkout?</h2>
+      <p class="failure-body">Paymob's compatibility with Shopify's one-page checkout depends on the Paymob Shopify app version. The Paymob Shopify app is periodically updated to maintain compatibility with Shopify's checkout architecture changes. If you are on Shopify's one-page checkout and Paymob methods are not appearing, first update the Paymob Shopify app to its latest version. If methods still do not appear, contact Paymob merchant support — one-page checkout compatibility may require Paymob to update their integration on their side. Some payment methods offered through Paymob (particularly mobile wallets) may have specific constraints on one-page checkout due to the redirect flow required to complete wallet authentication.</p>
+    </div>
+  </div>
+
+  <!-- CTA BOTTOM -->
+  <div class="cta-bottom">
+    <h2>Catch Paymob Failures Before Your Customers Do</h2>
+    <p>CheckPulse monitors your Shopify checkout across all payment methods — including every Paymob integration (cards, wallets, Fawry, InstaPay) — and alerts you the moment a payment method stops working.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run a Free Checkout Check →</a>
+    <p style="margin-top: 16px; font-size: 13px; color: #555;">No account required. 4-step diagnostic. Results in under 60 seconds.</p>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">Home</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-shahry-not-working">Shahry Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-valu-not-working">valU Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-tabby-not-working">Tabby Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-postpay-not-working">Postpay Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-tamara-not-working">Tamara Not Working</a>
+  </nav>
+  <p>© 2026 CheckPulse · Shopify Checkout Monitoring</p>
+</footer>
+
+</body>
+</html>

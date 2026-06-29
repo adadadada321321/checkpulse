@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify valU Installment Not Working — Plan Not Showing, Credit Limit &amp; App Timeout Issues (2026)</title>
+  <meta name="description" content="Shopify valU installment plans not working? Plan selector not rendering, only 3-month showing, credit limit declined, down payment stuck, valU app timeout — 7 root causes with exact fixes for Egypt merchants." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-valu-installment-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-valu-installment-not-working" />
+  <meta property="og:title" content="Shopify valU Installment Not Working — Plan Not Showing, Credit Limit &amp; App Timeout Issues (2026)" />
+  <meta property="og:description" content="valU installment on Shopify fails in 7 distinct ways: plan selector not rendering (Checkout Extensibility required), only 3-month plan showing (cart below minimum), credit limit insufficient for selected duration, down payment not processing, valU app approval timing out, financing fees not shown before confirmation, or plan locked after order. Each fails differently and requires a different fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify valU Installment Not Working — Plan Not Showing, Credit Limit &amp; App Timeout Issues",
+    "description": "valU installment not working on Shopify has seven root causes: the installment plan selector widget is not rendering because the merchant's theme does not support Shopify Checkout Extensibility (OS 2.0 required); only the 3-month plan shows because the cart total is below valU's minimum threshold for longer plan durations; the customer's available credit limit is insufficient for the installment amount required by the selected plan; the down payment is not processing correctly due to a gateway timeout or misconfigured callback; the valU app approval step times out because the customer switches away from checkout to open the valU app; financing fees for plans longer than 3 months are not displayed before the customer confirms, causing post-purchase disputes; or the plan is locked after order creation with no modification pathway available to merchants or customers.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-valu-installment-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-29",
+    "dateModified": "2026-06-29"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why are valU installment plans not showing at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "valU installment plan options not showing at checkout is almost always a theme compatibility or activation issue. valU requires Shopify Checkout Extensibility — available only on Online Store 2.0 themes — to render the installment plan picker widget. Merchants on legacy or classic themes can display valU as a payment option, but the plan duration selector (3 months, 6 months, 12 months, etc.) will not appear. Customers can select valU but cannot choose a plan, and the transaction either fails or defaults to full payment. The second most common cause is that valU has been installed as a Shopify app but not completed the second required step: enabling valU as an alternative payment provider under Shopify Admin → Settings → Payments → Alternative payment providers. Without this step, valU is installed but not active at checkout. A third cause is currency: valU operates exclusively in EGP. If the store's checkout currency for Egyptian customers is not EGP, valU (including all installment plans) will not appear."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is only the 3-month valU plan showing and not 6, 12, or 36 months?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "valU applies minimum cart value thresholds for each plan duration. If the customer's cart total is below the threshold for a longer plan, only the plans the cart qualifies for are displayed. Approximate thresholds (which vary by merchant agreement and may be updated by EFG Finance): 3-month plan requires approximately 200 EGP minimum; 6-month plan requires approximately 500 EGP; 12-month plan requires approximately 1,000 EGP; 24-month plan requires approximately 2,000 EGP; 36-month plan requires approximately 3,000 EGP. A cart of 800 EGP will therefore show 3-month and 6-month plans but not 12, 24, or 36-month plans. Additionally, individual customers may not qualify for longer plans based on their credit assessment even if the cart meets the minimum — valU evaluates both the order amount and the monthly installment size against the customer's income profile. Merchants can confirm the exact thresholds in their valU merchant portal or by contacting EFG Finance."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why did the customer's valU plan get declined even though the cart amount was within their credit limit?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "valU's credit engine evaluates installment approval on the monthly installment size, not just the total cart amount. This creates a counterintuitive situation where a shorter plan (higher monthly installment) may be declined while a longer plan (lower monthly installment) is approved for the same cart amount. For example, a customer with an EFG Finance-assessed income ratio limit of 500 EGP per month might be declined for a 6-month plan on a 2,400 EGP cart (400 EGP/month — approved) vs. a 3-month plan (800 EGP/month — declined). The error message shown to the customer is typically a generic 'installment plan not available' with no breakdown by plan duration — so customers and merchants assume the issue is with valU overall rather than with the specific plan selected. The fix is to inform customers that trying a longer plan duration (if the cart qualifies) may succeed where a shorter plan failed, and to check available plans in the valU app before checkout."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens when the valU app approval times out at checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "When a customer selects a valU installment plan at checkout, they are redirected to complete plan approval in the valU app — they must open the app, review the installment schedule, and tap confirm. This redirect flow has a session timeout, typically 3–5 minutes depending on the Paymob or gateway configuration. Customers frequently experience timeout in two scenarios: they are on a slow mobile connection and the redirect to the valU app is delayed; or they switch from the checkout browser to the valU app, approve the plan, and return to find the checkout session has already expired. When the session expires, the merchant sees an abandoned order and the customer sees a 'payment session expired' or 'transaction cancelled' message. The fix is to increase the payment redirect timeout in the gateway settings (Paymob: adjust the session_expiry parameter in the transaction API call), and to display clear in-checkout instructions telling customers to keep the checkout page open while approving in the valU app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is valU installment different from Tabby and Postpay installments on Shopify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "valU, Tabby, and Postpay all offer installment options on Shopify for Egyptian customers, but they differ fundamentally in model, geography, and plan structure. valU is Egypt-exclusive (EGP only), while Tabby covers UAE, Saudi Arabia, Egypt, Kuwait, and Qatar, and Postpay covers UAE, Saudi Arabia, and Egypt. valU offers installment durations of 3, 6, 9, 12, 18, 24, and 36 months — the longest BNPL plan available on Shopify's ecosystem — while Tabby and Postpay offer only short-term 4-installment plans (approximately 3 months). valU's longer plans (beyond 3 months) carry a financing fee (APR), unlike Tabby and Postpay which are 0% interest on their short plans. valU's credit approval is backed by EFG Finance's formal underwriting, making it more conservative than Tabby's and Postpay's per-transaction risk models. valU requires the customer to have the valU app installed and actively approve the plan in-app — there is no OTP or SMS-only path. This in-app approval step is the primary source of unique technical failures (timeouts, app not installed) not present with Tabby or Postpay."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-weight: 700; font-size: 15px; color: #e8e8e8; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #666; }
+    header nav a:hover { color: #999; }
+
+    .hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 56px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 16px; }
+    .breadcrumb a { color: #555; }
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.1rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+    .hero-meta { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .hero-lead { font-size: 16px; color: #999; line-height: 1.7; margin-bottom: 28px; }
+
+    .cta-bar {
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .cta-bar p { font-size: 14px; color: #888; flex: 1; min-width: 200px; }
+    .cta-bar p strong { color: #ccc; }
+    .btn-primary {
+      display: inline-block;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { text-decoration: none; opacity: 0.9; }
+
+    .content {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .valu-unique {
+      background: #131313;
+      border: 1px solid #222;
+      border-left: 3px solid #7c3aed;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+    .valu-unique h3 { font-size: 14px; font-weight: 700; color: #ccc; margin-bottom: 12px; }
+    .valu-unique p { font-size: 14px; color: #888; margin-bottom: 10px; line-height: 1.65; }
+    .valu-unique p:last-child { margin-bottom: 0; }
+    .valu-unique strong { color: #bbb; }
+
+    .toc {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; }
+    .toc li:last-child { margin-bottom: 0; }
+    .toc a { color: #a78bfa; }
+
+    .failure {
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .failure-header {
+      background: #111;
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .failure h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #e0e0e0;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .type-merchant { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .type-customer { background: rgba(234,179,8,0.15); color: #eab308; }
+    .type-both { background: rgba(99,102,241,0.15); color: #818cf8; }
+
+    .failure-body {
+      padding: 24px;
+      background: #0f0f0f;
+    }
+    .failure-body p { font-size: 15px; color: #888; margin-bottom: 14px; line-height: 1.7; }
+    .failure-body p:last-child { margin-bottom: 0; }
+    .failure-body strong { color: #bbb; }
+
+    .steps {
+      background: #111;
+      border-top: 1px solid #1a1a1a;
+      padding: 20px 24px;
+    }
+    .steps h3 { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #777; margin-bottom: 10px; line-height: 1.6; }
+    .steps li:last-child { margin-bottom: 0; }
+    .steps li strong { color: #aaa; }
+
+    .info-box {
+      background: rgba(124,58,237,0.08);
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #888;
+      margin: 16px 24px 24px;
+      line-height: 1.6;
+    }
+    .info-box strong { color: #a78bfa; }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 40px;
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .comparison-table th {
+      background: #111;
+      color: #888;
+      font-weight: 700;
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 1px solid #1e1e1e;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .comparison-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid #161616;
+      color: #888;
+      vertical-align: top;
+    }
+    .comparison-table tr:last-child td { border-bottom: none; }
+    .comparison-table td:first-child { color: #ccc; font-weight: 600; white-space: nowrap; }
+    .comparison-table tr:nth-child(even) td { background: #0d0d0d; }
+
+    .table-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-top: 40px;
+      margin-bottom: 12px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    valU Installment Not Working
+  </div>
+  <h1>Shopify valU Installment Not Working — Plan Not Showing, Credit Declined &amp; App Timeout Issues</h1>
+  <div class="hero-meta">Updated June 2026 · 7 failure modes · Egypt merchants · valU BNPL · EFG Finance · EGP only · تقسيط فاليو</div>
+  <p class="hero-lead">valU (فاليو) is Egypt's leading installment financing platform, backed by EFG Finance (EFG Holding) with CIB as primary banking partner. When valU installment stops working on Shopify, the failure is rarely in one place — a plan selector that won't render requires a different fix than a customer whose 6-month plan is declined but 12-month is approved, which is different from a down payment stuck in processing, which is different from an app approval session timing out. Understanding which of the seven installment-specific failure modes you're dealing with is the difference between a 5-minute configuration fix and days chasing the wrong problem with the wrong team.</p>
+
+  <div class="cta-bar">
+    <p><strong>valU installment plans not appearing or getting declined?</strong> A 4-step checkout diagnostic confirms whether your Shopify theme supports valU installment plans and whether your gateway has the correct plan configuration.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- VALU INSTALLMENT MODEL -->
+  <div class="valu-unique">
+    <h3>How valU Installment Works on Shopify — and Why It Fails Differently From Other BNPL</h3>
+    <p><strong>valU is Egypt's longest-tenure installment BNPL provider, offering plans from 3 to 36 months — the widest plan range of any BNPL provider on Shopify's ecosystem.</strong> Unlike Tabby and Postpay, which offer fixed 4-payment plans over approximately 3 months, valU functions as a formal consumer financing product backed by EFG Finance's underwriting. Plans beyond 3 months carry a financing fee (APR), making valU similar to a bank installment loan rather than a short-term BNPL advance.</p>
+    <p><strong>The valU checkout flow is fundamentally different from other BNPL providers.</strong> When a customer selects a valU plan, they are redirected out of the Shopify checkout to confirm the plan inside the valU mobile app. They must have the valU app installed, be logged in, and actively tap "confirm" on the installment schedule. This in-app approval step is the source of unique technical failures — session timeouts, app-not-installed errors, and customers confirming in the app but returning to an expired checkout — that do not exist with Tabby, Postpay, or other BNPL providers.</p>
+    <p><strong>valU operates exclusively in Egypt (EGP only) and requires an Egyptian National ID and an Egyptian mobile number.</strong> The plan options available to a customer depend on both the cart total (minimum thresholds per plan duration) and a per-customer credit assessment by EFG Finance. The same cart may show 3 available plans to one customer and only 1 to another, depending on each customer's credit profile and available limit in the valU system.</p>
+    <p><strong>The primary Shopify integration path for valU is through Paymob.</strong> Merchants integrate Paymob as their Shopify payment gateway, enable valU as a payment method within Paymob, and valU installment plans appear at checkout. A direct valU merchant agreement (bypassing Paymob) is available for larger merchants. Both paths require separate configuration to enable the installment plan selector widget and the plan-specific minimum cart thresholds.</p>
+  </div>
+
+  <div class="toc">
+    <h2>7 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#plan-selector-not-rendering">Installment plan selector not rendering — Checkout Extensibility (OS 2.0) required</a></li>
+      <li><a href="#only-3-month-showing">Only 3-month plan showing — cart below minimum threshold for longer plans</a></li>
+      <li><a href="#credit-limit-wrong-duration">Customer credit limit insufficient for selected plan duration</a></li>
+      <li><a href="#down-payment-stuck">Down payment not processing — gateway timeout or callback misconfigured</a></li>
+      <li><a href="#app-approval-timeout">valU app approval step timing out — customer leaves checkout to open app</a></li>
+      <li><a href="#financing-fee-not-shown">Financing fees shown after confirmation, not before — customer disputes</a></li>
+      <li><a href="#plan-locked">Plan locked after order confirmed — no modification or switching pathway</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="plan-selector-not-rendering">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Installment plan selector not rendering — Checkout Extensibility (OS 2.0) required</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>The valU installment plan picker — the widget where customers choose between 3, 6, 12, 24, or 36-month durations — requires Shopify Checkout Extensibility to render. Checkout Extensibility is only available on Online Store 2.0 themes (Dawn, Sense, Craft, and other OS 2.0 compatible themes). Merchants on legacy or classic themes (Debut, Brooklyn, Minimal, and older custom themes) can install the valU app and enable valU as a payment method, but the installment plan duration selector will not appear. Customers at these stores will see valU as a payment option at checkout but will have no way to choose a plan duration — the transaction either fails with an incomplete plan selection error or defaults to the base (shortest) plan without the customer's knowledge.</p>
+      <p>This is different from the general "valU not showing" issue covered in the valU general troubleshooting page. In this case, valU is visible and selectable at checkout, but the installment plan options (the core value proposition of the product) are absent. The symptom is subtle: a customer who selects valU, sees no plan picker, taps "continue," and then either gets an error or gets redirected to the app without knowing which plan they've selected. Merchants on classic themes who've received customer complaints about "valU not working" or "valU plan not showing" are almost always in this scenario.</p>
+      <p>The fix requires migrating to an OS 2.0 theme. Shopify has deprecated classic themes for new stores and strongly encourages migration for existing stores. The valU app documentation explicitly lists Checkout Extensibility as a requirement for the installment plan picker. There is no workaround using JavaScript injection or theme customization — the plan selector is a Checkout Extensibility block and cannot be embedded in classic checkout flows.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Identify your current theme version:</strong> In Shopify Admin → Online Store → Themes, look at your current theme. If the theme was published before 2022 or is listed as a "classic" or "vintage" theme, it likely does not support Checkout Extensibility. Click "Customize" and check whether Checkout sections (under Checkout) appear in the theme editor — if not, the theme does not support OS 2.0 checkout customization.</li>
+        <li><strong>Migrate to an OS 2.0 theme:</strong> Install a free OS 2.0 theme (Dawn is Shopify's free reference theme and fully supports Checkout Extensibility) in a duplicate/test environment. Configure your sections, apps, and checkout settings in the new theme before switching. OS 2.0 themes support the same app blocks but with a different section structure, so plan the migration to avoid live store disruption.</li>
+        <li><strong>Reinstall and reconfigure valU app post-migration:</strong> After migrating to the OS 2.0 theme, open the valU Shopify app and follow the app's checkout configuration guide. The installment plan block must be explicitly added to the checkout as a Checkout Extensibility block — it is not automatic. Look for a "Setup checkout" or "Configure plans" section in the valU app dashboard.</li>
+        <li><strong>Verify plan selector renders before going live:</strong> Use Shopify's checkout preview mode or complete a test order to confirm that the installment plan duration options appear when valU is selected. Test with a cart above the minimum threshold for at least two plan durations (e.g., 1,200 EGP cart should show both 3-month and 6-month plans if configured correctly).</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="only-3-month-showing">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Only 3-month plan showing — cart below minimum threshold for longer plans</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>valU applies minimum cart value thresholds for each plan duration. When the customer's cart total does not meet the minimum for a longer plan, only the eligible plan durations are displayed. This is by design — valU restricts longer financing plans to higher-value purchases — but it is frequently misdiagnosed as a technical failure, particularly when customers complain that "the 12-month plan isn't showing" or "valU only shows 3 months."</p>
+      <p>Approximate minimum cart thresholds per plan duration (actual values vary by merchant agreement and may be updated by EFG Finance): 3-month plan requires approximately 200 EGP; 6-month plan requires approximately 500 EGP; 12-month plan requires approximately 1,000 EGP; 24-month plan requires approximately 2,000 EGP; 36-month plan requires approximately 3,000 EGP. A store selling items at 700 EGP per unit will show 3-month and 6-month plans, but customers needing 12, 24, or 36 months will not see those options unless the cart reaches 1,000 EGP.</p>
+      <p>There is a second threshold layer: individual customer credit profile. Even if the cart meets the minimum for a 12-month plan, valU may not offer it to a specific customer if their EFG Finance credit assessment does not support that plan duration or monthly installment size. Merchants cannot override this second layer — it is determined by valU's underwriting, not the merchant's configuration. However, merchants can confirm with EFG Finance or Paymob whether the cart minimum thresholds are correctly configured for their account, as these can be set to non-default values during onboarding.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Confirm current minimum thresholds with EFG Finance or Paymob:</strong> Log in to your Paymob merchant dashboard, navigate to the valU configuration section, and review the minimum cart value settings for each plan duration. If you have a direct valU merchant agreement, log in to the valU merchant portal or contact your EFG Finance account manager to confirm the configured minimums.</li>
+        <li><strong>Review your product pricing relative to plan thresholds:</strong> If most of your products are priced below 1,000 EGP, customers will never see the 12-month plan for single-item purchases. Consider whether you can adjust product bundling, minimum order requirements, or cart upsells to help customers reach thresholds for the plans most relevant to your category.</li>
+        <li><strong>Surface plan availability information on product pages:</strong> Add a valU badge or installment calculator widget to product pages that shows what plans are available for each product's price point. Customers who know that a 1,200 EGP purchase qualifies for a 12-month plan at approximately 100 EGP/month are more likely to add to cart with that purchase intent than customers who discover plan options only at checkout.</li>
+        <li><strong>Educate support team to distinguish threshold vs. credit issues:</strong> When a customer reports "12-month plan not showing," the first question is: was the cart above 1,000 EGP? If yes and the plan is still not showing, the issue is the customer's credit profile (failure mode 3), not the cart minimum. These require different customer-facing responses.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Note:</strong> Cart thresholds are set at the EFG Finance / Paymob account level, not in the Shopify app itself. If you believe the configured thresholds are incorrect for your business category, contact your EFG Finance merchant account manager or Paymob support to adjust them.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="credit-limit-wrong-duration">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Customer credit limit insufficient for selected plan duration</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>valU's credit engine evaluates installment approval on the monthly installment amount, not just the total cart amount. This produces a counterintuitive result that confuses both customers and merchants: a shorter plan (higher monthly payment) can be declined while a longer plan (lower monthly payment) for the same cart total is approved. A customer requesting a 6-month plan on a 3,000 EGP cart needs to cover 500 EGP per month — if EFG Finance's underwriting determines this exceeds the customer's approved monthly installment ceiling, the plan is declined. The same customer selecting a 12-month plan (250 EGP/month) may be approved.</p>
+      <p>The error message valU surfaces to customers when a plan is declined is typically generic — "installment plan not available" or "this plan is not available for your account" — with no indication of whether the issue is the monthly amount, the total credit limit, or outstanding obligations. Customers frequently interpret this as a system error or a merchant-side configuration problem and contact the store rather than checking their valU app or calling EFG Finance customer service.</p>
+      <p>A second variant of this failure occurs when a customer has an existing valU installment plan from a previous purchase that is still active. Active plans consume available credit — a customer who has an existing 1,000 EGP monthly installment in progress may have insufficient remaining limit for a new plan even if their total credit limit is theoretically adequate for the new purchase. The customer's available limit is visible in the valU app under their account balance section.</p>
+      <p>Merchants should note that this is not a configuration issue they can resolve — the credit assessment is controlled entirely by EFG Finance. The merchant's role is to inform customers about the nature of the decline so they can take corrective action: checking their valU app for available credit, trying a longer plan duration, or waiting until an existing plan is paid down before making a new purchase.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Add plan-specific guidance to checkout:</strong> In the valU checkout widget or a nearby help text block, add a note explaining that plan availability depends on the customer's valU credit profile and that trying a longer plan duration may succeed if a shorter plan is declined. This reduces support contacts and sets customer expectations.</li>
+        <li><strong>Configure a "try different duration" fallback message:</strong> Work with your Paymob integration to display a specific message when valU returns a plan-level decline that suggests the customer select a longer plan duration (if available for the cart amount).</li>
+        <li><strong>Direct customers to the valU app to check available limit:</strong> Add a support FAQ or checkout help link explaining that customers can check their available valU credit limit and existing active plans in the valU app. Customers can adjust their borrowing by paying down existing plans or applying for a credit limit increase through the valU app.</li>
+        <li><strong>Log plan-level decline codes from the gateway:</strong> Paymob passes valU decline reason codes in transaction webhooks. Log and monitor these — a spike in credit-limit declines vs. configuration declines vs. OTP declines will tell you whether the issue is systemic (affecting many customers, suggesting a configuration problem) or individual (affecting specific customers, suggesting credit profile issues).</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="down-payment-stuck">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Down payment not processing — gateway timeout or callback misconfigured</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>valU installment plans of 12 months and longer often require a down payment — the first installment is collected at the time of purchase, with remaining installments spread across the plan duration. The down payment is processed as a separate transaction through the merchant's payment gateway (typically Paymob) at the same time as the valU plan approval. This two-step process — plan approval in the valU system and down payment charge through the gateway — must both succeed for the order to complete.</p>
+      <p>The most common failure in the down payment step is a gateway session timeout. The full valU plan approval flow involves redirecting the customer to the valU app (or a web OTP page for customers without the app), waiting for the customer to confirm, and then triggering the down payment charge. If the gateway's transaction session expires before the customer confirms in the valU app, the plan approval may succeed on valU's side while the down payment charge never fires — leaving the order in a "pending" state indefinitely. The merchant sees a pending order, the customer's plan is active in their valU app, but no down payment has been collected and Shopify has not fulfilled the order.</p>
+      <p>A second cause is an incorrectly configured payment callback. Paymob sends a transaction result webhook to the merchant's Shopify store after the down payment is processed. If the webhook URL is not correctly configured or is temporarily unreachable (e.g., during a Cloudflare outage or a server restart), Shopify does not receive the payment confirmation and the order remains pending even when payment was actually collected. The customer's bank account or valU app shows a successful charge, but the Shopify order shows unpaid.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Increase gateway session timeout:</strong> In your Paymob merchant dashboard, check the session_expiry or transaction timeout setting for valU transactions. Increase this to at least 15–20 minutes to allow customers adequate time to complete the in-app approval and down payment without the session expiring. The default session timeout for many Paymob integrations is 3–5 minutes, which is insufficient for customers who need to download or open the valU app.</li>
+        <li><strong>Verify the payment callback (webhook) URL configuration:</strong> In Paymob's dashboard, navigate to Developer Settings → Callbacks and confirm that the webhook URL pointing to your Shopify store is correctly configured and active. The URL should be publicly reachable — test it with a tool like curl or a webhook testing service. Also check that the Shopify webhook secret (if configured) matches between Paymob and Shopify.</li>
+        <li><strong>Reconcile pending orders manually:</strong> For existing orders stuck in "pending" state, check your Paymob transaction log to determine whether the down payment was successfully charged. If the charge is confirmed in Paymob but Shopify shows the order as unpaid, you can manually mark the Shopify order as paid (via the order detail page → "Mark as paid") and fulfill. Contact Paymob support to identify and fix the callback delivery failure that caused the discrepancy.</li>
+        <li><strong>Set up pending order monitoring:</strong> Configure a Shopify notification or monitoring rule to alert you when an order remains in "pending payment" status for more than 30 minutes. valU down payment orders should either complete or fail within that window — a persistently pending order indicates a callback failure that requires immediate investigation.</li>
+        <li><strong>Add a customer-facing order status page note:</strong> For valU orders requiring down payment, add a note on the order confirmation page explaining that customers will receive a confirmation email once payment is fully processed. This reduces customer anxiety during the brief processing window and decreases "where is my order" support contacts.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="app-approval-timeout">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>valU app approval step timing out — customer leaves checkout to open app</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>The valU installment checkout flow requires the customer to actively confirm the plan inside the valU mobile app. When a customer selects a valU plan at Shopify checkout, they receive either a redirect to the valU app or a push notification prompting them to open the app and approve the installment schedule. The approval must happen within the gateway's session timeout window — typically 3–5 minutes in default configurations — before the checkout session expires.</p>
+      <p>This flow creates a failure mode unique to valU among Shopify payment methods: the customer successfully selects a plan and initiates approval, but then leaves the checkout browser to open the valU app. On mobile, this means switching away from the Safari or Chrome browser tab. On many mobile browsers, inactive background tabs are paused or their JavaScript timers are throttled — meaning the checkout session countdown continues in the background, and when the customer returns after approving in the app, they find a "session expired" or "transaction cancelled" error waiting for them. The plan was approved in valU's system, but the Shopify checkout never received the confirmation.</p>
+      <p>Customers in this scenario are in a confusing state: their valU app shows an approved plan, but their Shopify order was not placed. They may attempt to recheckout, select the same plan again, and sometimes end up with duplicate plan approvals in valU before one successfully completes. Merchants see a series of failed or abandoned orders followed by a successful order, without a clear explanation in the payment logs for why the earlier attempts failed.</p>
+      <p>The problem is more severe for customers who need to download the valU app before completing the approval. First-time valU users who arrive at checkout without the app installed must download it (~50–100MB), install it, log in or register, and then approve the plan — a process that can easily take 5–10 minutes, far exceeding a 3-minute session timeout.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Increase session timeout to 15+ minutes:</strong> In Paymob dashboard settings, increase the session_expiry for valU transactions to a minimum of 15 minutes. This is the single most impactful change for reducing app-approval timeout failures and applies immediately to all new valU transactions without any changes to your Shopify theme.</li>
+        <li><strong>Add checkout instructions for the app approval step:</strong> Using a Checkout Extensibility content block or the valU app's checkout display settings, add a note before the customer confirms their valU selection: "You will be redirected to approve your installment plan in the valU app. Please keep this page open or return to this browser tab after approving." This reduces the percentage of customers who close the checkout tab while completing app approval.</li>
+        <li><strong>Surface the valU app download requirement before checkout:</strong> On product pages and in cart, display a message for new customers advising them to download the valU app before initiating checkout. Link to the App Store and Google Play. Customers who download and register before reaching checkout will complete the approval step in seconds rather than minutes.</li>
+        <li><strong>Implement a payment pending page with a "retry" option:</strong> For customers who return to an expired checkout after successfully approving in the valU app, provide a clear path to re-initiate the checkout with their cart pre-loaded. A "your session expired — click here to complete your order" page reduces customer drop-off after the first attempt fails.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Merchant note:</strong> The valU app approval timeout is the most common source of "valU abandoned order" reports in Egypt Shopify stores. If your analytics show a spike in valU payment initiated → not completed, the timeout window is the first setting to increase before investigating other potential causes.
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="financing-fee-not-shown">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Financing fees shown after confirmation, not before — customer disputes</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>valU plans of 6 months and longer include a financing fee — an Annual Percentage Rate (APR) applied to the outstanding balance. The total repayment amount is therefore higher than the original purchase price. For example, a 2,400 EGP purchase on a 12-month valU plan at 15% APR would result in total repayments of approximately 2,580–2,640 EGP (24 × ~107 EGP), not 24 × 100 EGP. The financing fee transforms valU from a cost-neutral payment method (like Tabby's 0% plans) into a consumer credit product where the customer pays more than the purchase price.</p>
+      <p>The standard Paymob/valU Shopify checkout integration does not display the total repayment amount including financing fees before the customer confirms their plan selection. The customer sees the plan duration and a monthly installment figure — often calculated without the financing fee displayed separately — and approves the plan in the valU app, where the full fee breakdown is shown for the first time. Many customers approve the plan in the app without carefully reviewing the detailed breakdown, then receive the first installment charge, see the amount, and contact the merchant to dispute or cancel the plan.</p>
+      <p>This is a display configuration issue, not a transaction failure — the payment processes correctly and valU's terms are technically disclosed during app confirmation. However, it generates significant post-purchase support volume and chargebacks. Merchants who sell products in the 1,000–5,000 EGP range where 12–36 month plans are common face disproportionate customer service costs from this disclosure gap. The fix is to configure valU's checkout widget to display the total cost including fees before plan confirmation, which valU supports via merchant configuration settings.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Enable "total repayment amount" display in valU checkout widget:</strong> In your valU merchant portal or Paymob dashboard valU settings, look for a display option to show the total amount including financing fees alongside each plan option. This typically appears as "Total repayment: X EGP" next to each plan duration in the plan picker. Contact your EFG Finance account manager or Paymob support if you cannot locate this setting.</li>
+        <li><strong>Add installment calculator with fee transparency on product pages:</strong> Deploy a valU installment calculator widget on product pages that shows both the monthly installment and the total repayment amount for each eligible plan. Customers who understand the full cost before adding to cart are less likely to dispute after completing the purchase. valU provides embeddable calculator widgets for merchant websites.</li>
+        <li><strong>Explicitly label plans with APR-bearing financing in checkout:</strong> In any custom checkout text or Checkout Extensibility content blocks, add a note next to plans of 6+ months: "Plans of 6 months and longer include a financing fee. Total repayment is shown in the valU app before you confirm." This sets expectations before the customer reaches the app confirmation screen.</li>
+        <li><strong>Create a pre-purchase FAQ for valU installments:</strong> Add a collapsible FAQ section near the valU option at checkout explaining that 3-month plans may be 0% (for eligible promotions), longer plans include a financing fee, and the exact breakdown is shown in the valU app. Link to a detailed landing page about your valU integration for customers who want to understand costs before purchasing.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="plan-locked">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Plan locked after order confirmed — no modification or switching pathway</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Once a customer has approved and confirmed a valU installment plan, the plan is locked — the duration, monthly installment amount, and financing fee cannot be modified. A customer who selected a 36-month plan and immediately realizes they wanted a 12-month plan, or who calls support the next day wanting to change their installment terms, has no self-service pathway to do so. valU does not currently support plan modification after order creation.</p>
+      <p>The only resolution is a full cancellation and recheckout: the merchant cancels the Shopify order, which triggers a refund to the customer's valU account (or a reversal of the plan), and the customer must recheckout and select the correct plan duration. This process typically takes 3–5 business days for the refund to appear in the customer's valU account, during which the customer cannot use that credit for the new purchase. In practice, many customers abandon the purchase entirely rather than wait for the refund cycle.</p>
+      <p>Merchants who are unfamiliar with this constraint (and most are — it is not prominently documented in the valU Shopify integration guides) often attempt to modify the order directly in Shopify or contact Paymob for a plan switch, spending significant time before discovering that cancellation-and-recheckout is the only path. Some merchants attempt partial refunds or Shopify order editing as a workaround — these do not affect the underlying valU installment plan and create a discrepancy between what Shopify shows and what the customer is paying through valU.</p>
+      <p>Prevention is the most effective strategy: making plan selection clear and explicit before confirmation, showing the total cost including fees (failure mode 6), and prompting customers to confirm their chosen duration with a deliberate "are you sure?" step before the valU app redirect all reduce the frequency of post-confirmation plan change requests.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Add plan confirmation step before valU app redirect:</strong> In your checkout flow (using Checkout Extensibility), add a summary display showing the selected plan duration, monthly installment, total repayment including fees, and a "confirm this plan" button before initiating the redirect to the valU app. Customers who see the full plan summary before confirming are significantly less likely to request a plan change after the fact.</li>
+        <li><strong>Train support team on the cancellation-and-recheckout process:</strong> Ensure your customer service team knows the exact procedure: (1) cancel the original Shopify order; (2) inform the customer the refund will appear in their valU account in 3–5 business days; (3) have the customer recheckout after the refund is received; (4) offer any available discount or priority handling for the inconvenience. Having this process written down reduces the time spent per incident.</li>
+        <li><strong>Communicate the plan-lock constraint in checkout:</strong> Add a brief note at the plan selection step explaining that once confirmed, the installment plan cannot be changed and a new checkout will be required. While this may slow some customers, it prevents post-purchase escalations that are more costly to handle.</li>
+        <li><strong>Document plan modification requests for EFG Finance feedback:</strong> Log plan modification requests (customer name, order ID, original plan, requested plan, reason for change) and share with your EFG Finance account manager. Accumulating this data strengthens a business case for EFG Finance to build a plan modification feature — a request that multiple large-volume merchants have made.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE: valU plan durations -->
+  <p class="table-label">valU Installment Plan Comparison — Duration, Minimums &amp; Fees</p>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Plan Duration</th>
+        <th>Min Cart (approx.)</th>
+        <th>Down Payment</th>
+        <th>Financing Fee</th>
+        <th>Best For</th>
+        <th>Most Common Failure</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>3 months</td>
+        <td>~200 EGP</td>
+        <td>No</td>
+        <td>0% (promo) to ~5%</td>
+        <td>Small electronics, accessories, daily goods</td>
+        <td>Plan not showing if cart under minimum; no fees means fewer disputes</td>
+      </tr>
+      <tr>
+        <td>6 months</td>
+        <td>~500 EGP</td>
+        <td>Sometimes</td>
+        <td>~5–12% APR</td>
+        <td>Mid-range appliances, fashion, home goods</td>
+        <td>Credit limit declined (monthly installment too high vs. 3-month); fees not shown before confirmation</td>
+      </tr>
+      <tr>
+        <td>12 months</td>
+        <td>~1,000 EGP</td>
+        <td>Common</td>
+        <td>~12–18% APR</td>
+        <td>Electronics, furniture, higher-value fashion</td>
+        <td>Down payment callback misconfigured; plan locked after confirmation; financing fee disputes</td>
+      </tr>
+      <tr>
+        <td>24 months</td>
+        <td>~2,000 EGP</td>
+        <td>Required</td>
+        <td>~18–24% APR</td>
+        <td>Large appliances, high-value electronics</td>
+        <td>App approval timeout (customer downloading app for first time); down payment stuck pending</td>
+      </tr>
+      <tr>
+        <td>36 months</td>
+        <td>~3,000 EGP</td>
+        <td>Required</td>
+        <td>~24–30% APR</td>
+        <td>Premium items, high-value jewelry, B2B equipment</td>
+        <td>Plan-lock disputes most severe at this duration; financing fee disclosure most critical</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- DIAGNOSTIC CHECKLIST -->
+  <div class="checklist" style="margin-top: 48px;">
+    <h3>valU Installment Shopify Integration Diagnostic Checklist</h3>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>OS 2.0 theme in use</strong> — current Shopify theme is an Online Store 2.0 compatible theme (Dawn, Sense, Craft, or equivalent). Classic/legacy themes cannot render the valU installment plan picker widget.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>valU enabled as alternative payment provider</strong> — in Shopify Admin → Settings → Payments → Alternative payment providers, valU is listed and active. App installation alone is not sufficient; the alternative payment provider activation is a required second step.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Installment plan block added in Checkout Extensibility</strong> — the valU plan selector widget has been explicitly added as a Checkout Extensibility block in the theme editor. The block is visible in Checkout preview with a test cart above the minimum threshold.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Store currency is EGP</strong> — checkout currency for Egyptian customers is Egyptian Pounds. valU operates exclusively in EGP and will not appear for any other currency.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Gateway session timeout set to 15+ minutes</strong> — in Paymob dashboard (or valU merchant portal), the session_expiry for valU transactions is at least 15 minutes to allow time for in-app approval without timeout.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Down payment callback URL configured and reachable</strong> — Paymob webhook URL for transaction results is correctly configured and publicly reachable. Test with a simulated webhook or a real transaction to confirm down payment confirmation reaches Shopify.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Plan minimum cart thresholds match merchant agreement</strong> — minimum cart values for each plan duration (3, 6, 12, 24, 36 months) are configured to match the thresholds in the EFG Finance or Paymob merchant agreement. Confirm with account manager if thresholds seem incorrect.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Financing fee display enabled for plans over 3 months</strong> — checkout widget shows total repayment amount including financing fees for 6-month and longer plans. Customers see the full cost before confirming, reducing post-purchase disputes.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>End-to-end test with real valU account completed</strong> — a full test purchase was completed using a real valU account with the valU app installed, including in-app plan approval and (for 12+ month plans) down payment processing. Each plan duration available at the merchant's minimum was tested.</p>
+    </div>
+  </div>
+
+  <!-- CTA BOTTOM -->
+  <div class="cta-bottom">
+    <h2>Not sure if your checkout handles valU installment plans correctly?</h2>
+    <p>CheckPulse runs a 4-step checkout diagnostic that tests your payment methods end-to-end — including whether your theme supports the valU plan picker widget and whether your gateway session timeout is configured for in-app approval.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Issues</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-valu-not-working">valU Not Working</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-fawry-not-working">Fawry</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working">Paymob</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-forsa-not-working">Forsa</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-meeza-not-working">Meeza</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-masary-not-working">Masary</a>
+  </nav>
+  <p>© 2026 CheckPulse. Shopify checkout monitoring and payment diagnostics.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopify Masary Not Working — Bill Code Not Generating, Order Pending &amp; Payment Issues (2026)</title>
+  <meta name="description" content="Shopify Masary not working? Masary bill code not generating, order stuck in pending after agent payment, callback URL wrong, test mode in production, code expired — 7 root causes with exact fixes for Egypt merchants using Masary offline payment." />
+  <link rel="canonical" href="https://adadadada321321.github.io/checkpulse/shopify-masary-not-working" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://adadadada321321.github.io/checkpulse/shopify-masary-not-working" />
+  <meta property="og:title" content="Shopify Masary Not Working — Bill Code Not Generating, Order Pending &amp; Payment Fixes (2026)" />
+  <meta property="og:description" content="Masary on Shopify fails in 7 distinct ways: bill code not generating (wrong merchant code, secret key, or signature hash), order stuck in pending after customer paid at agent (callback URL not configured or mismatched), staging API in production, currency not EGP, reference code expired, Masary e-commerce feature not activated, or merchant category mismatch. Each fails differently and requires a different fix." />
+  <meta property="og:site_name" content="CheckPulse" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Shopify Masary Not Working — Bill Code Not Generating, Order Pending &amp; Payment Issues",
+    "description": "Masary not working on Shopify has seven root causes: the Masary bill code or reference number is not generating because the merchant code or secret key is wrong or the signature hash is being computed incorrectly; the Shopify store is using Masary's sandbox or staging API endpoint in a live production environment, producing codes that cannot be paid at real Masary outlets; the IPN (instant payment notification) callback URL is not configured in the Masary merchant portal or points to the wrong address so Shopify never receives confirmation; the Shopify store currency is not Egyptian Pounds (EGP) and the integration is passing a foreign currency amount directly to the Masary API; the reference code expired because the customer waited longer than the configured validity window; the merchant's Masary account was set up for bill collection only and has not been activated for e-commerce merchant payments; or there is a product category or merchant category code mismatch that prevents the payment gateway from accepting the transaction.",
+    "url": "https://adadadada321321.github.io/checkpulse/shopify-masary-not-working",
+    "publisher": {
+      "@type": "Organization",
+      "name": "CheckPulse",
+      "url": "https://adadadada321321.github.io/checkpulse/"
+    },
+    "datePublished": "2026-06-29",
+    "dateModified": "2026-06-29"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why is the Masary bill code not generating at Shopify checkout?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Masary bill code not generating at Shopify checkout is almost always an API authentication failure. Masary's e-commerce API requires a merchant code and a secret key to generate a request signature for every transaction. If either the merchant code or the secret key is entered incorrectly — even a single extra character or space from a copy-paste error — the API returns an authentication error and no bill reference code is issued. The checkout may appear to proceed normally, but the customer never receives a Masary reference number to pay. The second most common cause is using Masary's sandbox or staging API endpoint in the live production environment. Sandbox endpoints accept requests and may appear to generate codes, but those codes are test codes that cannot be paid at any real Masary outlet or ATM."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is my Shopify order stuck in pending after the customer paid at a Masary outlet?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A Shopify order remaining in pending payment status after a customer paid their Masary bill code at an agent, ATM, or participating bank branch is a payment notification callback failure. When a customer successfully pays a Masary reference code at any Masary outlet, Masary sends a payment confirmation (IPN or webhook) to a callback URL you configure in your Masary merchant portal. If this callback URL is not configured, contains the wrong domain, uses HTTP instead of HTTPS, has a trailing slash discrepancy, or your server returns an error response when Masary calls it, Masary cannot notify Shopify of the payment and the order status stays in pending indefinitely. The customer has paid and Masary holds the funds, but your Shopify store has no record of the payment."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is Masary different from Fawry for Shopify in Egypt?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Masary and Fawry both operate large offline payment networks in Egypt using a similar reference code model — the customer receives a code and pays it at a physical agent. The practical differences for Shopify merchants are in network footprint, integration paths, and typical use cases. Fawry has the larger raw outlet count (over 340,000 agents) and is more commonly integrated by Shopify merchants directly. Masary's network coverage is also large across Egypt but is particularly strong in specific geographic and institutional payment segments. From an integration standpoint, both require a merchant account, API credentials, and a properly configured callback URL. A key operational difference is that Masary is operated under the EFG Finance umbrella (part of EFG Hermes Group, one of Egypt's largest financial institutions), which means its merchant onboarding process has a financial institution character rather than a pure fintech one. Both Fawry and Masary are available via Paymob as an aggregator, which is often easier than direct integration with either network."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does Masary work with Shopify stores priced in USD?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Masary's payment network operates exclusively in Egyptian Pounds (EGP). If your Shopify store displays prices in USD, EUR, or any other currency, your Masary integration must convert the order total to EGP before calling the Masary API. If the integration passes a foreign currency amount directly, the API will either reject the request or — more dangerously — treat the number as EGP, charging the customer the correct numeric amount but in the wrong currency (for example, treating $50 USD as 50 EGP, which is a fraction of the correct amount). Most payment aggregators like Paymob handle this conversion automatically. Direct Masary integrations must implement currency conversion using an approved rate source before making the API call."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the Masary bill code expiry period?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Masary reference codes have a configurable validity period set when the code is generated via the API. For e-commerce transactions, the validity window is typically between 24 and 72 hours, after which the code cannot be paid at any Masary outlet. If a customer does not pay within the validity window, they must return to checkout and generate a new reference code. The validity period is a parameter in the Masary payment generation API call — merchants can configure it within the allowed range for their account type. Setting the validity window too short (for example, 2 hours) causes failed conversions for customers who intend to pay later in the day. A 48-hour window balances conversion opportunity with order management complexity."
+        }
+      }
+    ]
+  }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+    a { color: #a78bfa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+    header nav { margin-left: auto; display: flex; gap: 20px; font-size: 13px; }
+    header nav a { color: #888; }
+    header nav a:hover { color: #e8e8e8; text-decoration: none; }
+
+    .hero {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 24px 40px;
+    }
+    .breadcrumb { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .breadcrumb a { color: #555; }
+    .breadcrumb a:hover { color: #888; text-decoration: none; }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .hero-meta { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .hero-lead {
+      font-size: 1.05rem;
+      color: #b0b0b0;
+      max-width: 680px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .cta-bar {
+      background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(79,70,229,0.12));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .cta-bar p { flex: 1; min-width: 200px; font-size: 14px; color: #aaa; }
+    .cta-bar strong { color: #e8e8e8; }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+
+    .toc {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 48px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { font-size: 14px; color: #888; margin-bottom: 6px; line-height: 1.4; }
+    .toc a { color: #888; }
+    .toc a:hover { color: #e8e8e8; }
+
+    .failure {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .failure:last-of-type { border-bottom: none; }
+    .failure-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .failure-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #666;
+      margin-top: 3px;
+    }
+    .failure h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .failure-type {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .type-merchant { background: rgba(79,70,229,0.15); color: #818cf8; border: 1px solid rgba(79,70,229,0.25); }
+    .type-customer { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .type-both { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+
+    .failure-body { font-size: 15px; color: #aaa; line-height: 1.75; }
+    .failure-body p { margin-bottom: 14px; }
+    .failure-body p:last-child { margin-bottom: 0; }
+
+    .steps {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .steps h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 14px; }
+    .steps ol { padding-left: 20px; }
+    .steps li { font-size: 14px; color: #888; margin-bottom: 8px; line-height: 1.5; }
+    .steps li strong { color: #ccc; }
+
+    .warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .warning-box strong { color: #f87171; }
+
+    .info-box {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    .info-box strong { color: #60a5fa; }
+
+    .masary-unique {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(5,150,105,0.06));
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+    }
+    .masary-unique h3 { font-size: 14px; font-weight: 700; color: #34d399; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .masary-unique p { font-size: 14px; color: #999; line-height: 1.65; margin-bottom: 10px; }
+    .masary-unique p:last-child { margin-bottom: 0; }
+    .masary-unique strong { color: #6ee7b7; }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+    .compare-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #161616;
+      border: 1px solid #222;
+      color: #666;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 11px;
+    }
+    .compare-table td {
+      padding: 10px 14px;
+      border: 1px solid #1e1e1e;
+      color: #999;
+      vertical-align: top;
+    }
+    .compare-table tr:nth-child(even) td { background: #121212; }
+    .compare-table td:first-child { color: #ccc; font-weight: 600; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .checklist {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .checklist h3 { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+    .checklist-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .checklist-item:last-child { margin-bottom: 0; }
+    .check-icon {
+      flex-shrink: 0;
+      width: 16px; height: 16px;
+      border: 1.5px solid #333;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .checklist-item p { font-size: 14px; color: #888; line-height: 1.5; }
+    .checklist-item p strong { color: #ccc; }
+
+    .cta-bottom {
+      background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15));
+      border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 14px;
+      padding: 36px 32px;
+      text-align: center;
+      margin-top: 64px;
+    }
+    .cta-bottom h2 { font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-bottom p { color: #999; font-size: 15px; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+    footer {
+      border-top: 1px solid #1a1a1a;
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #444;
+    }
+    footer nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 16px; }
+    footer nav a { color: #555; }
+    footer nav a:hover { color: #888; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="https://adadadada321321.github.io/checkpulse/" class="logo">
+    <div class="logo-mark">C</div>
+    <span class="logo-text">CheckPulse</span>
+  </a>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div class="breadcrumb">
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a> ›
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Issues</a> ›
+    Masary Not Working
+  </div>
+  <h1>Shopify Masary Not Working — Bill Code Not Generating, Order Stuck in Pending &amp; Payment Issues</h1>
+  <div class="hero-meta">Updated June 2026 · 7 failure modes · Egypt merchants · Masary offline payment network · EGP only</div>
+  <p class="hero-lead">Masary (ماساري) is one of Egypt's established offline payment networks, allowing customers to pay e-commerce orders at a wide network of physical agents, ATMs, and participating bank branches using a reference code generated at Shopify checkout. When Masary stops working on Shopify, the failure mode is what determines the fix — a reference code not generating (API credential or signature issue) is an entirely different problem from an order stuck in pending after a customer paid (callback URL failure), which is different again from a test endpoint left in production. Understanding which of the seven failure modes you are facing is the difference between a 10-minute fix and hours of incorrect debugging.</p>
+
+  <div class="cta-bar">
+    <p><strong>Is Masary not generating codes or leaving orders in pending?</strong> A 4-step checkout diagnostic confirms whether your Masary integration is live and correctly configured before customers hit the problem.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- MASARY UNIQUE MODEL -->
+  <div class="masary-unique">
+    <h3>How Masary Works — and Why It Fails Differently From Card Payments</h3>
+    <p><strong>Masary is an offline reference code payment network, not a real-time card payment processor.</strong> The payment flow is asynchronous: your Shopify store generates a reference code for the customer at checkout → the customer takes that code to any Masary agent, ATM, or bank branch and pays in cash or via bank card → Masary's system notifies your store via a webhook/callback → your store marks the order as paid. Each step in this chain can fail independently, and the failure looks completely different to the merchant and the customer depending on where the break occurs.</p>
+    <p><strong>Masary is operated under the EFG Finance umbrella, the financial services arm of EFG Hermes Group — one of Egypt's largest financial institutions.</strong> This institutional backing gives Masary a wide acceptance network across Egypt's banking, ATM, and agent infrastructure, but it also means that merchant onboarding, account activation, and support follow a financial institution process rather than a pure fintech one. New merchant accounts may require additional review and documentation compared to newer BNPL providers.</p>
+    <p><strong>Masary is integrated via direct API or through payment aggregators like Paymob.</strong> Direct integration requires a Masary merchant code, a secret key for signature generation, and a correctly configured callback URL. Via Paymob, Masary is available as one of the offline payment methods within the Paymob payment suite — requiring only a Masary-enabled Paymob account, not a separate Masary merchant registration. The failure modes differ between the two integration paths.</p>
+    <p><strong>Masary operates exclusively in Egyptian Pounds (EGP) and is available to Egyptian customers only.</strong> Shopify stores with multi-currency pricing must convert order totals to EGP before calling the Masary API. Non-Egyptian customers cannot use Masary regardless of integration status.</p>
+  </div>
+
+  <div class="toc">
+    <h2>7 Failure Modes Covered</h2>
+    <ol>
+      <li><a href="#not-appearing">Masary not appearing at checkout (merchant not registered or integration not configured)</a></li>
+      <li><a href="#code-not-generating">Bill reference code not generating (API credential or signature failure)</a></li>
+      <li><a href="#order-pending">Order stuck in pending after agent payment (callback URL not configured or wrong)</a></li>
+      <li><a href="#staging-in-production">Staging or test API endpoint used in live production store</a></li>
+      <li><a href="#currency-not-egp">Currency not EGP — amount passed in foreign currency</a></li>
+      <li><a href="#code-expired">Reference code expired before customer paid</a></li>
+      <li><a href="#account-not-activated">Masary merchant account not activated for e-commerce payments</a></li>
+    </ol>
+  </div>
+
+  <!-- FAILURE 1 -->
+  <div class="failure" id="not-appearing">
+    <div class="failure-header">
+      <div class="failure-num">1</div>
+      <div>
+        <h2>Masary not appearing at checkout — merchant not registered or integration not configured</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>The most common reason Masary does not appear as a payment option at Shopify checkout is that the merchant has not completed merchant registration with Masary, or has completed registration but has not fully configured the integration within Shopify. Masary e-commerce acceptance requires a separate merchant account from any existing Masary bill payment setup — being a Masary registered issuer for bill collection does not automatically grant e-commerce merchant payment acceptance.</p>
+      <p>To accept Masary payments for Shopify orders, merchants must complete an e-commerce merchant onboarding with Masary (or via a payment aggregator like Paymob that includes Masary in its offline payment suite). Direct Masary merchant registration is handled through EFG Finance's merchant acquisition process, which typically involves submitting business documentation, signing a merchant services agreement, and receiving production API credentials. Until this process is complete and approved, the payment option cannot appear at checkout.</p>
+      <p>Merchants who have completed Masary registration but installed the integration without entering their production credentials will also see Masary absent from checkout. The Masary payment plugin or custom integration requires a production merchant code and secret key entered in Shopify's payment settings. Blank or placeholder credentials fail silently — Masary will not appear at checkout without valid credentials. Similarly, the integration must be explicitly enabled/activated in Shopify payment settings after credentials are saved; installation does not automatically make the method visible to customers.</p>
+      <p>For merchants using Paymob as their aggregator: Masary offline payment through Paymob requires Masary (or the equivalent Paymob offline payment method) to be explicitly enabled in the Paymob dashboard under payment integrations. Paymob's card and wallet setup does not automatically include Masary offline — it must be toggled on separately.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Confirm merchant registration status:</strong> Contact Masary merchant support or your EFG Finance commercial contact to confirm your e-commerce merchant account is approved and active — not just applied for. Pending applications do not allow payment acceptance.</li>
+        <li><strong>Retrieve production API credentials:</strong> Log in to the Masary merchant portal and locate your production merchant code and secret key. These differ from sandbox credentials issued during developer testing. Contact Masary merchant support if you cannot locate them or if your account is newly approved.</li>
+        <li><strong>Enter credentials in Shopify:</strong> Go to Shopify admin → Settings → Payments → Third-party providers → Masary. Enter the production merchant code and secret key exactly as provided, checking for leading or trailing spaces introduced by copy-paste. Save the configuration.</li>
+        <li><strong>Enable the payment method:</strong> After saving credentials, toggle Masary to Active or Enabled in the Shopify payment settings. Installation alone does not make it visible at checkout.</li>
+        <li><strong>If using Paymob:</strong> Log in to your Paymob dashboard → Integrations → find the Masary or offline payment method section and ensure it is enabled alongside your card and other wallet integrations.</li>
+        <li><strong>Test with a real order:</strong> Use an incognito browser window, add a product to cart, proceed to checkout, and verify Masary appears as a payment option. Complete a test transaction and verify a reference code is generated.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 2 -->
+  <div class="failure" id="code-not-generating">
+    <div class="failure-header">
+      <div class="failure-num">2</div>
+      <div>
+        <h2>Bill reference code not generating — API credential or signature failure</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When Masary appears at checkout but no reference code is generated after the customer selects it, the integration is authenticating with the Masary API but the API is rejecting the request. This is almost always an API authentication or signature failure. Masary's payment generation API uses a request signature — computed from the merchant code, secret key, order amount, and other parameters — to verify that requests come from authorized merchants. If the signature computation is incorrect, the API rejects the request and no bill code is issued.</p>
+      <p>The most common signature failure causes are: wrong secret key (copied incorrectly or from the sandbox environment instead of production), wrong merchant code, incorrect parameter order in the signature hash computation (the parameters must be concatenated in the exact order Masary's API documentation specifies), or incorrect character encoding of the input string before hashing. A single difference in any of these factors produces an entirely different hash value and triggers an authentication error.</p>
+      <p>A second category of code generation failure occurs when the Masary API rejects the request for reasons unrelated to authentication: the order amount is below Masary's minimum transaction threshold, the product category is not permitted under the merchant's account type, or the merchant account has been temporarily flagged or suspended. These rejection reasons are usually communicated in the API error response body — logging the full API response (not just the HTTP status code) is essential for diagnosing which type of failure is occurring.</p>
+      <p>For merchants using an off-the-shelf Shopify plugin for Masary, the plugin may have a bug in its signature generation code that only manifests in certain character sets, order total amounts, or Shopify versions. Checking the plugin's GitHub repository or changelog for known signature issues and verifying the plugin is on its latest version is a critical first step before modifying API credentials.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Log the full API response:</strong> Enable logging for Masary API calls in your integration and capture the complete response body when code generation fails. The Masary API error response includes a specific error code and message that identifies whether the failure is an authentication error, a signature mismatch, a business rule rejection, or something else. Diagnose the specific error before making changes.</li>
+        <li><strong>Re-enter the secret key manually:</strong> Copy the secret key from the Masary merchant portal, paste it into a plain text editor to verify it contains no hidden characters, then re-enter it in your Shopify integration. Do not copy from an email or document that may have introduced smart quotes or encoding characters.</li>
+        <li><strong>Verify signature parameter order:</strong> Compare your signature generation code against Masary's API documentation (available in the Masary developer portal). The parameter concatenation order must exactly match the documentation — even a correct secret key produces the wrong signature if parameters are in the wrong order.</li>
+        <li><strong>Confirm you are using production credentials:</strong> Verify the API endpoint URL and credentials you are using are the live production ones, not the sandbox ones. Sandbox credentials are typically labeled differently in the merchant portal.</li>
+        <li><strong>Update your plugin:</strong> If using a third-party Shopify plugin, update to the latest version. Check the plugin's issue tracker for known signature or credential handling bugs.</li>
+        <li><strong>Test with Masary's API directly:</strong> Use a tool like curl or Postman to send a test payment generation request directly to the Masary API with your credentials. This isolates whether the issue is with your Shopify plugin or with the credentials/account.</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Critical:</strong> Never log or expose your Masary secret key in public error logs, browser console output, or front-end JavaScript. The secret key must remain server-side only. If your integration has ever exposed the secret key publicly, contact Masary merchant support to rotate it immediately.
+    </div>
+  </div>
+
+  <!-- FAILURE 3 -->
+  <div class="failure" id="order-pending">
+    <div class="failure-header">
+      <div class="failure-num">3</div>
+      <div>
+        <h2>Order stuck in pending after customer paid at Masary outlet</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>When a Shopify order stays in "Payment Pending" status after a customer successfully paid their Masary reference code at an agent, ATM, or participating bank branch, the problem is always a failure in Masary's payment notification delivery to your Shopify store. Masary's offline payment workflow is inherently asynchronous — your store generates a code at checkout, and separately, Masary notifies your store when that code is paid. If the notification delivery fails, your store never learns that the payment occurred.</p>
+      <p>The notification is delivered via a callback URL (also called IPN — Instant Payment Notification, or webhook) that you configure in your Masary merchant portal. Masary calls this URL with payment confirmation data after the customer pays at an outlet. For Shopify to receive this notification and update the order status, the callback URL must be correctly configured in the Masary merchant portal and must be publicly reachable from Masary's servers.</p>
+      <p>Common callback URL failure causes: the URL is not configured at all in the Masary portal (the most common cause — merchants configure credentials but forget to set the callback); the URL contains the wrong domain (pointing to a development/staging domain instead of the live Shopify store URL); the URL uses HTTP instead of HTTPS (Masary's servers may reject non-HTTPS callback URLs); a trailing slash discrepancy between the configured URL and what the server expects; or the Shopify store's endpoint returns an error response when Masary calls it, causing Masary to consider the delivery failed (though Masary may retry, repeated failures leave the order stuck).</p>
+      <p>A second category of pending order failure occurs when the callback URL is correctly configured but your Shopify store cannot process the notification — for example, because the notification format changed in a Masary API update and your plugin has not been updated to parse the new format, or because a Shopify app is blocking or intercepting the callback request.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Verify the callback URL in the Masary portal:</strong> Log in to your Masary merchant portal and navigate to Integration Settings or IPN/Callback URL configuration. Confirm that a callback URL is entered and that it points to your live production Shopify domain — not a development URL, localhost, or the wrong store. The URL should use HTTPS.</li>
+        <li><strong>Test callback URL reachability:</strong> Use a tool like curl to confirm the callback endpoint is publicly reachable and returns a 200 OK response. If the URL is behind a firewall or restricted to specific IPs, Masary's servers may not be able to reach it. Contact Masary to obtain their callback server IP ranges if IP allowlisting is required.</li>
+        <li><strong>Check for trailing slash mismatches:</strong> Verify that the URL in the Masary portal exactly matches what your server expects — including whether or not there is a trailing slash. A URL configured as `example.com/masary/callback` may fail if the server only listens at `example.com/masary/callback/` (with trailing slash) or vice versa.</li>
+        <li><strong>Review Shopify webhook logs:</strong> Check your Shopify admin → Settings → Notifications or your integration's error logs for any failed incoming callback attempts. Error responses from your server cause Masary to retry, but repeated failures eventually leave the order stuck.</li>
+        <li><strong>Manually update stuck orders:</strong> For orders already stuck in pending, contact Masary merchant support with the order reference number to confirm payment status and get a payment confirmation you can use to manually mark the Shopify order as paid. This is a workaround; fix the root callback URL issue to prevent recurrence.</li>
+        <li><strong>Update your integration plugin:</strong> If the callback is reaching your server but orders are not updating, the integration may not be parsing the Masary notification payload correctly. Verify your plugin is on its latest version and check the plugin's changelog for callback format changes.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Merchant note:</strong> Pending-order failures from callback issues are invisible until a customer contacts you saying "I paid but my order is not confirmed." By then, you may have multiple stuck orders. Consider setting up an automated Shopify order alert for orders that remain in "Payment Pending" status for more than 2 hours — this surfaces the issue before it compounds across many customers.
+    </div>
+  </div>
+
+  <!-- FAILURE 4 -->
+  <div class="failure" id="staging-in-production">
+    <div class="failure-header">
+      <div class="failure-num">4</div>
+      <div>
+        <h2>Staging or test API endpoint used in live production store</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Masary, like Fawry and other Egyptian offline payment networks, operates separate API environments for development/testing and live production. The test/sandbox environment uses a different API endpoint URL from the production environment. When a Shopify store that was originally connected to the Masary sandbox for testing goes live without switching to the production endpoint and production credentials, it continues using the sandbox — and the reference codes it generates are sandbox codes that cannot be paid at any real Masary outlet, ATM, or bank branch.</p>
+      <p>This failure mode is particularly deceptive because everything appears to work technically. The checkout flow completes normally, a reference code is generated, the code is displayed to the customer, no error is shown — but the customer discovers at the agent that the code is invalid. Customers typically contact the merchant reporting "the Masary agent said the code doesn't exist" rather than describing it as a payment failure, which can be difficult to trace back to the sandbox-in-production issue without examining the API endpoint configuration.</p>
+      <p>A related variation occurs when credentials are switched to production but the API endpoint URL is left pointing to the sandbox. In this case, the production credentials fail authentication against the sandbox environment (since sandbox and production credentials are separate), producing an authentication error. Conversely, using sandbox credentials against the production endpoint also fails. Both the endpoint URL and the credentials must match — both sandbox or both production.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Identify which API endpoint your integration is using:</strong> Find the Masary API URL configured in your Shopify integration (plugin settings, environment variables, or hardcoded in custom code) and compare it to the Masary API documentation. Confirm you are using the production endpoint URL, not the sandbox or staging URL. The URLs typically differ by a subdomain or path segment (for example, "sandbox.api.masary.com" vs "api.masary.com" — check your Masary documentation for the exact URLs).</li>
+        <li><strong>Switch both the endpoint and credentials together:</strong> When moving from sandbox to production, update both the API endpoint URL and the API credentials (merchant code and secret key) at the same time. Using production credentials with a sandbox URL (or sandbox credentials with a production URL) will not work.</li>
+        <li><strong>Verify with a low-value test transaction:</strong> After switching to production, complete a low-value real transaction in a real browser, take the reference code to a Masary agent or ATM, and confirm the code is accepted and the payment processes. This is the only way to definitively confirm the production switch worked end-to-end.</li>
+        <li><strong>Cancel or void any sandbox codes distributed to real customers:</strong> If real customers received sandbox reference codes, contact Masary merchant support to identify any orders with unpayable sandbox codes and refund or re-generate valid codes for those customers.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 5 -->
+  <div class="failure" id="currency-not-egp">
+    <div class="failure-header">
+      <div class="failure-num">5</div>
+      <div>
+        <h2>Currency not EGP — order amount passed in wrong currency</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Masary's payment network operates exclusively in Egyptian Pounds (EGP). If your Shopify store is configured with a multi-currency setup — displaying prices in USD, EUR, GBP, or other currencies — and your Masary integration passes the order total to the Masary API in the display currency rather than converting to EGP first, one of two things happens: the API rejects the request with a currency error (if the API validates currency), or — more dangerously — the API accepts the numeric amount and treats it as EGP, generating a valid reference code for the wrong amount.</p>
+      <p>In the second scenario, a customer whose cart is $50 USD receives a Masary reference code for 50 EGP (approximately $1 USD at 2026 exchange rates). The customer pays this small amount at the agent, Masary notifies Shopify of a payment of 50 EGP, and the order may be marked as paid — but for a tiny fraction of the real order value. This is not a theoretical edge case; it has caused real revenue loss for merchants with multi-currency Shopify stores and poorly configured offline payment integrations.</p>
+      <p>The correct behavior is for the integration to convert the order total from the display currency to EGP at a current exchange rate before calling the Masary API. Payment aggregators like Paymob handle this conversion automatically. Direct Masary integrations must implement it explicitly — either by maintaining a configured exchange rate or by fetching a current rate from the Central Bank of Egypt or a trusted exchange service before each transaction.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Verify what currency amount is being sent to the Masary API:</strong> Add logging to your Masary integration to record the exact amount and currency being sent in each API request. If the amount is not in EGP, implement currency conversion before the API call.</li>
+        <li><strong>Implement EGP conversion:</strong> Add a conversion step that fetches the order total in EGP before generating the Masary reference code. Use the Central Bank of Egypt's official rate or a reliable financial data API. Hardcoded exchange rates become incorrect as rates fluctuate — prefer dynamic rates.</li>
+        <li><strong>Restrict Masary to EGP stores only:</strong> If your store serves both Egyptian and non-Egyptian customers in different currencies, configure Masary to appear only when the checkout currency is EGP. Use Shopify Markets or checkout conditions to hide Masary for non-EGP orders.</li>
+        <li><strong>Audit past orders for amount mismatches:</strong> If you suspect this issue has been occurring, compare Masary payment notification amounts (in EGP) against the expected EGP value of those orders. Orders where the Masary payment amount is significantly lower than expected were likely processed with the currency conversion missing.</li>
+      </ol>
+    </div>
+    <div class="warning-box">
+      <strong>Critical:</strong> Masary codes generated for the wrong amount (due to missing currency conversion) result in customers paying less than the order total. This is a revenue loss issue, not just a technical issue. Audit past Masary transactions if you have operated with multi-currency enabled and are unsure whether conversion was applied.
+    </div>
+  </div>
+
+  <!-- FAILURE 6 -->
+  <div class="failure" id="code-expired">
+    <div class="failure-header">
+      <div class="failure-num">6</div>
+      <div>
+        <h2>Reference code expired before customer paid</h2>
+        <span class="failure-type type-both">Merchant + Customer</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Every Masary reference code has a validity window — a maximum time limit within which the customer must visit a Masary outlet and pay the code. After this window expires, the code becomes invalid and cannot be paid at any outlet, ATM, or bank branch regardless of the code's face value. When a customer attempts to pay an expired code, the Masary outlet or ATM will return an error such as "code not found" or "code invalid."</p>
+      <p>The validity period is configured as a parameter when the reference code is generated via the Masary API. The configurable range and default values depend on the merchant's account type and agreement with Masary. Common validity windows for e-commerce are 24 to 72 hours, though merchants can often configure shorter or longer windows within the allowed range. Setting a validity window that is too short causes unnecessary abandoned orders from customers who fully intend to pay but are delayed — 24 hours is often too short for customers who plan to pay at an agent on their way to or from work the next day. 48 to 72 hours is a more customer-friendly default for most e-commerce use cases.</p>
+      <p>A related issue is customer confusion about the expiry — customers who receive a reference code without a clear displayed expiry time do not know when they need to pay by. Adding the expiry date and time prominently in the order confirmation, the checkout success page, and any follow-up emails significantly reduces expired code failures from customers who simply did not realize the code was time-limited.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Increase the validity window:</strong> Review the validity period parameter in your Masary API code generation call. If it is set to 24 hours or less, consider increasing to 48 or 72 hours. Check your Masary merchant agreement for the maximum allowed validity period on your account type.</li>
+        <li><strong>Display expiry prominently to the customer:</strong> Show the exact expiry date and time of the Masary code on the order confirmation page and in the order confirmation email. Customers are more likely to pay before expiry when they know explicitly when the code expires. Use a format like "Pay by: Sunday 29 June 2026 at 11:59 PM" rather than just "valid for 48 hours."</li>
+        <li><strong>Send a pre-expiry reminder email:</strong> Implement an automated email 12–24 hours before the code expires reminding the customer to pay. Many customers who receive the initial code have every intention of paying but forget — a single reminder email can recover a significant percentage of pending payments.</li>
+        <li><strong>Generate a fresh code on customer request:</strong> Add functionality on the order status page for a customer to request a new reference code if their existing one has expired. This requires cancelling or voiding the expired code (check Masary API documentation for code cancellation) and generating a new one.</li>
+        <li><strong>Avoid auto-cancelling orders immediately after expiry:</strong> Give customers a short grace period after code expiry before cancelling the Shopify order — some payment notifications from Masary may be delayed, and customers who paid near the expiry window may have their payment processed after your store thinks the code is expired.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- FAILURE 7 -->
+  <div class="failure" id="account-not-activated">
+    <div class="failure-header">
+      <div class="failure-num">7</div>
+      <div>
+        <h2>Masary merchant account not activated for e-commerce payments</h2>
+        <span class="failure-type type-merchant">Merchant Issue</span>
+      </div>
+    </div>
+    <div class="failure-body">
+      <p>Masary serves multiple distinct merchant use cases: bill payment collection (utilities, telecom, subscriptions), government fee payment, and e-commerce merchant payment acceptance. A Masary merchant account registered for one purpose is not automatically enabled for all other purposes. Specifically, a business that registered with Masary for bill collection or as a biller does not automatically have the e-commerce merchant payment feature — the ability to generate dynamic reference codes for variable-amount Shopify orders — enabled on their account.</p>
+      <p>This is a particularly common confusion for merchants in industries that use Masary for subscription or service billing (the customer pays a fixed monthly bill at an agent) who then try to use Masary for their Shopify store's e-commerce orders. The API calls will fail or be rejected not because of credential errors but because the e-commerce payment feature is simply not active on the account — even with perfectly correct credentials and signature computation.</p>
+      <p>Masary's API may return a specific error code for this situation, or it may return a general rejection that is easily confused with a signature or credential error. Contacting Masary merchant support with the specific API error code and requesting confirmation of which features are enabled on the account is the fastest way to diagnose this failure mode. Adding the e-commerce merchant payment feature requires contacting your EFG Finance account manager or Masary merchant support and may require a signed addendum to the merchant agreement.</p>
+    </div>
+    <div class="steps">
+      <h3>How to fix</h3>
+      <ol>
+        <li><strong>Log the specific API error code and message:</strong> When code generation fails, capture the complete error response from the Masary API, including the specific error code. An error related to account feature enablement will typically be distinct from authentication errors — note the error code before contacting support.</li>
+        <li><strong>Contact Masary merchant support:</strong> Provide the specific API error code and describe the use case: that you want to accept dynamic e-commerce payments at Shopify checkout for variable order amounts. Ask specifically whether your account has the "e-commerce merchant payment" or "dynamic payment generation" feature enabled.</li>
+        <li><strong>Request feature activation from EFG Finance:</strong> If the feature is not enabled, request activation from your EFG Finance account manager or through Masary merchant support. This may involve signing a merchant services addendum and providing additional business documentation about your Shopify store.</li>
+        <li><strong>Confirm with a post-activation test:</strong> After EFG Finance or Masary support confirms the feature has been activated, retry generating a test reference code via the API. Verify the code is accepted at a Masary outlet before considering the issue resolved.</li>
+        <li><strong>Consider Paymob as a faster path:</strong> If activating the feature on a direct Masary account is taking too long and you need to accept offline payments urgently, consider integrating Masary through Paymob instead. Paymob's onboarding for its offline payment methods (which include Masary-network payments) may be faster than direct Masary e-commerce feature activation.</li>
+      </ol>
+    </div>
+    <div class="info-box">
+      <strong>Merchant note:</strong> If you were using Masary for bill collection before trying to add it to Shopify, confirm with your EFG Finance account manager that your agreement has been updated to include e-commerce merchant payments. These are different commercial relationships with different settlement terms, and some Masary account setups restrict certain features to the original registered use case.
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <div class="section-label" style="margin-top: 48px;">Egypt Offline Payment Networks — Quick Comparison</div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Masary</th>
+        <th>Fawry</th>
+        <th>Paymob (aggregator)</th>
+        <th>Aman Wallet</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Payment type</td>
+        <td>Offline reference code (agent / ATM / bank)</td>
+        <td>Offline reference code (agent / ATM / bank)</td>
+        <td>Aggregator — cards, wallets, Fawry, COD</td>
+        <td>Digital wallet balance or BNPL installments</td>
+      </tr>
+      <tr>
+        <td>Customer action</td>
+        <td>Pays code at Masary agent, ATM, or bank branch</td>
+        <td>Pays reference at Fawry outlet, ATM, or bank</td>
+        <td>Depends on method (card online, wallet OTP, Fawry offline)</td>
+        <td>Pays from Aman app wallet balance or applies for installment</td>
+      </tr>
+      <tr>
+        <td>Currency</td>
+        <td>EGP only</td>
+        <td>EGP only</td>
+        <td>EGP primary; multi-currency in some countries</td>
+        <td>EGP only</td>
+      </tr>
+      <tr>
+        <td>Payment timing</td>
+        <td>Asynchronous (customer pays later at agent)</td>
+        <td>Asynchronous (customer pays later at outlet)</td>
+        <td>Real-time (card/wallet) or async (Fawry via Paymob)</td>
+        <td>Real-time (wallet balance or instant installment approval)</td>
+      </tr>
+      <tr>
+        <td>Integration path</td>
+        <td>Direct Masary API or via Paymob</td>
+        <td>Direct Fawry API or via Paymob</td>
+        <td>Single Paymob API for all methods</td>
+        <td>Direct Aman API or via Paymob</td>
+      </tr>
+      <tr>
+        <td>Most common failure</td>
+        <td>Pending order after payment (callback not configured)</td>
+        <td>Reference code not generating (SHA-256 signature wrong)</td>
+        <td>Integration credentials or method not enabled in dashboard</td>
+        <td>Wallet inactive / CBE tier limit exceeded</td>
+      </tr>
+      <tr>
+        <td>Merchant onboarding</td>
+        <td>Via EFG Finance (financial institution process)</td>
+        <td>Directly via Fawry merchant portal</td>
+        <td>Via Paymob (faster, single onboarding)</td>
+        <td>Via Raya Holding / Aman merchant portal or Paymob</td>
+      </tr>
+      <tr>
+        <td>Best for</td>
+        <td>Merchants with existing Masary relationships; high geographic coverage</td>
+        <td>Largest outlet network in Egypt; most widely known by customers</td>
+        <td>All-in-one Egypt payment coverage; fastest to integrate</td>
+        <td>Stores targeting customers who prefer digital wallet or installment payments</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- DIAGNOSTIC CHECKLIST -->
+  <div class="checklist" style="margin-top: 48px;">
+    <h3>Masary Shopify Integration Diagnostic Checklist</h3>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Masary merchant account confirmed active</strong> — e-commerce merchant payment feature enabled by EFG Finance, not just bill collection access.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Production API credentials in use</strong> — merchant code and secret key copied from the Masary merchant portal's production section, not sandbox credentials.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Production API endpoint URL configured</strong> — the Masary API URL in your integration points to the live production endpoint, not sandbox or staging.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Signature generation verified</strong> — request signature is computed with the correct parameter order per Masary API documentation. No extra spaces or encoding issues in the input string.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Callback URL configured in Masary merchant portal</strong> — IPN / notification URL is entered in the portal, points to your live Shopify store domain using HTTPS, and is publicly reachable.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Currency conversion applied</strong> — all amounts sent to the Masary API are in EGP, regardless of the Shopify store's display currency.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>Reference code validity window set appropriately</strong> — expiry window is 48–72 hours and expiry date/time is displayed prominently to customers at checkout and in confirmation emails.</p>
+    </div>
+    <div class="checklist-item">
+      <div class="check-icon"></div>
+      <p><strong>End-to-end test completed</strong> — a real Masary reference code generated in production was successfully paid at a physical Masary outlet or ATM and the Shopify order updated to paid without manual intervention.</p>
+    </div>
+  </div>
+
+  <!-- CTA BOTTOM -->
+  <div class="cta-bottom">
+    <h2>Not sure if your Masary integration is live and working?</h2>
+    <p>CheckPulse runs a 4-step checkout diagnostic that tests your payment methods end-to-end — including offline payment configurations — before real customers discover the issue.</p>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check" class="btn-primary">Run Free Checkout Check →</a>
+  </div>
+
+</div>
+
+<footer>
+  <nav>
+    <a href="https://adadadada321321.github.io/checkpulse/">CheckPulse</a>
+    <a href="https://adadadada321321.github.io/checkpulse/free-check">Free Check</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-checkout-not-working">Checkout Issues</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-payment-failed">Payment Failed</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-fawry-not-working">Fawry</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-paymob-not-working">Paymob</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-aman-wallet-not-working">Aman Wallet</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-mnt-halan-not-working">MNT-Halan</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-forsa-not-working">Forsa</a>
+    <a href="https://adadadada321321.github.io/checkpulse/shopify-meeza-not-working">Meeza</a>
+  </nav>
+  <p>© 2026 CheckPulse. Shopify checkout monitoring and payment diagnostics.</p>
+</footer>
+
+</body>
+</html>
